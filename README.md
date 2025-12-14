@@ -1,16 +1,22 @@
-# React + Vite
+# This is a Web Application integrating DDO Audit
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Currently DDO Audit will only group the raid timers by character name. This web application will allow the timer to be grouped by raid name instead.
 
-Currently, two official plugins are available:
+## Running locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Install deps: `npm install`
+- Start dev server: `npm run dev`
 
-## React Compiler
+If you're running in a dev container / Codespaces and can't open the site in your browser,
+make sure Vite is listening on all interfaces (this repo is configured to do that by default)
+and then open the forwarded port from VS Code.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## How it works
 
-## Expanding the ESLint configuration
+- Enter one or more DDO Audit character IDs (comma or whitespace separated)
+- The app loads raid activity for those characters and groups results by raid (quest) name
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+related APIs:
+- Fetch raid id of selected character ids: https://api.ddoaudit.com/v1/activity/raids?character_ids=81612777584,81612779875,81612799899,81612840713
+- Fetch character details by ids: https://api.ddoaudit.com/v1/characters/ids/81612777584,81612779875,81612799899,81612840713
+- Fetch quest name by id: https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.csv
