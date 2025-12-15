@@ -99,6 +99,11 @@
   color: #888;
 }
 
+.allAvailable {
+  color: #3fb950;
+  font-weight: 600;
+}
+
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;

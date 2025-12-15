@@ -59,6 +59,7 @@ const PLAYER_BY_CHARACTER_NAME = {
 }
 
 const MIN_CHARACTER_LEVEL = 28
+const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'old mic']
 
 function getPlayerName(characterName) {
   const key = String(characterName ?? '').trim().toLowerCase()
@@ -231,9 +232,11 @@ function App() {
   const [now, setNow] = useState(() => Date.now())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set())
   const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set())
+  const [collapsedRaids, setCollapsedRaids] = useState(() => new Set())
   const abortRef = useRef(null)
   const resetCharacterCollapseRef = useRef(true)
   const resetRaidCollapseRef = useRef(true)
+  const resetRaidCardCollapseRef = useRef(true)
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
 
@@ -289,6 +292,29 @@ function App() {
     // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
   }, [raidGroups, now])
 
+  useEffect(() => {
+    if (!resetRaidCardCollapseRef.current) return
+    if (!raidGroups.length) return
+
+    const next = new Set()
+    for (const rg of raidGroups) {
+      const perPlayer = groupEntriesByPlayer(rg.entries, now)
+      /** @type {Map<string, boolean>} */
+      const playerHasAvailable = new Map()
+      for (const pg of perPlayer) {
+        const hasAvail = (pg.entries ?? []).some((e) => isEntryAvailable(e, now))
+        playerHasAvailable.set(pg.player, hasAvail)
+      }
+
+      const allSixAvailable = EXPECTED_PLAYERS.every((p) => playerHasAvailable.get(p) === true)
+      if (allSixAvailable) next.add(String(rg.questId))
+    }
+
+    setCollapsedRaids(next)
+    resetRaidCardCollapseRef.current = false
+    // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
+  }, [raidGroups, now])
+
   async function load() {
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
@@ -296,6 +322,7 @@ function App() {
 
     resetCharacterCollapseRef.current = true
     resetRaidCollapseRef.current = true
+    resetRaidCardCollapseRef.current = true
 
     setLoading(true)
     setError('')
@@ -358,6 +385,20 @@ function App() {
       const next = new Set(prev)
       if (next.has(playerName)) next.delete(playerName)
       else next.add(playerName)
+      return next
+    })
+  }
+
+  function isRaidCollapsed(questId) {
+    return collapsedRaids.has(String(questId))
+  }
+
+  function toggleRaidCollapsed(questId) {
+    const key = String(questId)
+    setCollapsedRaids((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -438,97 +479,125 @@ function App() {
           <p className="muted">No raid activity found for those character IDs.</p>
         ) : (
           <div className="raidList">
-            {raidGroups.map((g) => (
-              <div key={g.questId} className="raidCard">
-                <div className="raidTitle">
-                  <h3>{g.raidName}</h3>
-                  <span className="muted">
-                    Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'} · Quest ID:{' '}
-                    {g.questId}
-                  </span>
-                </div>
-                <div className="table">
-                  <div className="row head">
-                    <div>Character</div>
-                    <div>Level</div>
-                    <div>Classes</div>
-                    <div>Last completion</div>
-                    <div>Time remaining</div>
-                  </div>
-                  {groupEntriesByPlayer(g.entries, now).map((pg) => {
-                    const collapsed = isCollapsed(g.questId, pg.player)
-                    const collapsedAvailabilityText = (() => {
-                      if (!collapsed) return ''
+            {raidGroups.map((g) => {
+              const perPlayer = groupEntriesByPlayer(g.entries, now)
+              const availablePlayers = EXPECTED_PLAYERS.filter((playerName) => {
+                const pg = perPlayer.find((p) => p.player === playerName)
+                return pg ? (pg.entries ?? []).some((e) => isEntryAvailable(e, now)) : false
+              }).length
 
-                      const available = (pg.entries ?? []).filter((e) => isEntryAvailable(e, now))
-                      if (available.length) {
-                        const availableNames = available
-                          .map((e) => e.characterName)
-                          .sort((a, b) => String(a).localeCompare(String(b)))
-                        return availableNames.map((n) => `✅ ${n}`).join(', ')
-                      }
-
-                      // None available: show a ❌ plus the soonest-to-be-available character.
-                      let soonest = null
-                      let soonestRemaining = Number.POSITIVE_INFINITY
-                      for (const e of pg.entries ?? []) {
-                        const readyAt = addMs(e?.lastTimestamp, RAID_LOCKOUT_MS)
-                        if (!readyAt) continue
-                        const remaining = readyAt.getTime() - now
-                        if (remaining > 0 && remaining < soonestRemaining) {
-                          soonest = e
-                          soonestRemaining = remaining
+              return (
+                <div key={g.questId} className="raidCard">
+                  <div className="raidTitle">
+                    <h3>{g.raidName}</h3>
+                    <span className="muted">
+                      Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'} · Quest ID:{' '}
+                      {g.questId}
+                    </span>
+                      <span
+                        className={
+                          availablePlayers === EXPECTED_PLAYERS.length ? 'muted allAvailable' : 'muted'
                         }
-                      }
+                      >
+                        Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
+                      </span>
+                    <button
+                      type="button"
+                      className="toggleBtn"
+                      onClick={() => toggleRaidCollapsed(g.questId)}
+                    >
+                      {isRaidCollapsed(g.questId) ? 'Show' : 'Hide'}
+                    </button>
+                  </div>
 
-                      if (soonest) {
-                        return `❌ Soonest: ${soonest.characterName} (${formatTimeRemaining(soonestRemaining)})`
-                      }
-                      return '❌'
-                    })()
-                    return (
-                      <div key={pg.player} className="playerSection">
-                        <div className="row groupRow">
-                          <div className="groupRowInner">
-                            <button
-                              type="button"
-                              className="toggleBtn"
-                              onClick={() => toggleCollapsed(g.questId, pg.player)}
-                            >
-                              {collapsed ? 'Show' : 'Hide'}
-                            </button>
-                            <strong>{pg.player}</strong>
-                            <span className="muted">({pg.entries.length})</span>
-                            {collapsed ? <span className="muted">{collapsedAvailabilityText}</span> : null}
-                          </div>
-                        </div>
-
-                        {collapsed
-                          ? null
-                          : pg.entries.map((e) => (
-                              <div key={e.characterId} className="row">
-                                <div>{e.characterName}</div>
-                                <div className="mono">{e.totalLevel ?? '—'}</div>
-                                <div>{formatClasses(e.classes)}</div>
-                                <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
-                                {(() => {
-                                  const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-                                  const title = readyAt ? readyAt.toLocaleString() : ''
-                                  const remaining = readyAt ? readyAt.getTime() - now : NaN
-                                  return (
-                                    <div className="mono" title={title}>
-                                      {formatTimeRemaining(remaining)}
-                                    </div>
-                                  )
-                                })()}
-                              </div>
-                            ))}
+                  {isRaidCollapsed(g.questId) ? null : (
+                    <div className="table">
+                      <div className="row head">
+                        <div>Character</div>
+                        <div>Level</div>
+                        <div>Classes</div>
+                        <div>Last completion</div>
+                        <div>Time remaining</div>
                       </div>
-                    )
-                  })}
+                      {perPlayer.map((pg) => {
+                        const collapsed = isCollapsed(g.questId, pg.player)
+                        const collapsedAvailabilityText = (() => {
+                          if (!collapsed) return ''
+
+                          const available = (pg.entries ?? []).filter((e) => isEntryAvailable(e, now))
+                          if (available.length) {
+                            const availableNames = available
+                              .map((e) => e.characterName)
+                              .sort((a, b) => String(a).localeCompare(String(b)))
+                            return availableNames.map((n) => `✅ ${n}`).join(', ')
+                          }
+
+                          // None available: show a ❌ plus the soonest-to-be-available character.
+                          let soonest = null
+                          let soonestRemaining = Number.POSITIVE_INFINITY
+                          for (const e of pg.entries ?? []) {
+                            const readyAt = addMs(e?.lastTimestamp, RAID_LOCKOUT_MS)
+                            if (!readyAt) continue
+                            const remaining = readyAt.getTime() - now
+                            if (remaining > 0 && remaining < soonestRemaining) {
+                              soonest = e
+                              soonestRemaining = remaining
+                            }
+                          }
+
+                          if (soonest) {
+                            return `❌ Soonest: ${soonest.characterName} (${formatTimeRemaining(soonestRemaining)})`
+                          }
+                          return '❌'
+                        })()
+
+                        return (
+                          <div key={pg.player} className="playerSection">
+                            <div className="row groupRow">
+                              <div className="groupRowInner">
+                                <button
+                                  type="button"
+                                  className="toggleBtn"
+                                  onClick={() => toggleCollapsed(g.questId, pg.player)}
+                                >
+                                  {collapsed ? 'Show' : 'Hide'}
+                                </button>
+                                <strong>{pg.player}</strong>
+                                <span className="muted">({pg.entries.length})</span>
+                                {collapsed ? (
+                                  <span className="muted">{collapsedAvailabilityText}</span>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {collapsed
+                              ? null
+                              : pg.entries.map((e) => (
+                                  <div key={e.characterId} className="row">
+                                    <div>{e.characterName}</div>
+                                    <div className="mono">{e.totalLevel ?? '—'}</div>
+                                    <div>{formatClasses(e.classes)}</div>
+                                    <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
+                                    {(() => {
+                                      const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
+                                      const title = readyAt ? readyAt.toLocaleString() : ''
+                                      const remaining = readyAt ? readyAt.getTime() - now : NaN
+                                      return (
+                                        <div className="mono" title={title}>
+                                          {formatTimeRemaining(remaining)}
+                                        </div>
+                                      )
+                                    })()}
+                                  </div>
+                                ))}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
