@@ -74,6 +74,21 @@
   gap: 0.5rem;
 }
 
+.playerGroups {
+  display: grid;
+  gap: 1rem;
+  margin: 0.75rem 0 1.5rem;
+}
+
+.playerName {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.playerGroup .chips {
+  margin: 0;
+}
+
 .chip {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
@@ -118,7 +133,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 1.2fr 1.4fr 0.9fr;
+  grid-template-columns: 1.2fr 0.5fr 1.4fr 1.3fr 0.9fr;
   gap: 0.75rem;
   padding: 0.5rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -129,6 +144,27 @@
   padding-top: 0;
   font-weight: 600;
   color: #bbb;
+}
+
+.playerSection {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.row.groupRow {
+  border-top: none;
+  grid-template-columns: 1fr;
+  padding: 0.6rem 0;
+}
+
+.groupRowInner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.toggleBtn {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.9rem;
 }
 
 @media (prefers-color-scheme: light) {
@@ -142,6 +178,9 @@
     background: rgba(0, 0, 0, 0.03);
   }
   .row {
+    border-top-color: rgba(0, 0, 0, 0.08);
+  }
+  .playerSection {
     border-top-color: rgba(0, 0, 0, 0.08);
   }
   .subtitle,

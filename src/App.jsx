@@ -12,10 +12,112 @@ import {
   parseCharacterIds,
 } from './ddoAuditApi'
 
+const PLAYER_BY_CHARACTER_NAME = {
+  // Johnson
+  nonjosh: 'Johnson',
+  nonjoshii: 'Johnson',
+  nonjoshiv: 'Johnson',
+  mvppiker: 'Johnson',
+
+  // Jonah
+  zenser: 'Jonah',
+  zenrar: 'Jonah',
+  zertiar: 'Jonah',
+  zevkar: 'Jonah',
+
+  // Michael
+  garei: 'Michael',
+  tareos: 'Michael',
+  karc: 'Michael',
+
+  // Ken
+  kenami: 'Ken',
+  nekamisama: 'Ken',
+  nekami: 'Ken',
+  amiken: 'Ken',
+  feldspars: 'Ken',
+  waven: 'Ken',
+  fatslayer: 'Ken',
+  fateslayer: 'Ken',
+  temor: 'Ken',
+
+  // Renz
+  hako: 'Renz',
+  renz: 'Renz',
+  okah: 'Renz',
+  zner: 'Renz',
+  zneri: 'Renz',
+  znery: 'Renz',
+
+  // old mic
+  ctenmiir: 'old mic',
+  keviamin: 'old mic',
+}
+
+const MIN_CHARACTER_LEVEL = 28
+
+function getPlayerName(characterName) {
+  const key = String(characterName ?? '').trim().toLowerCase()
+  if (!key) return 'Unknown'
+  return PLAYER_BY_CHARACTER_NAME[key] ?? 'Unknown'
+}
+
+function groupEntriesByPlayer(entries, now) {
+  /** @type {Map<string, any[]>} */
+  const map = new Map()
+  for (const e of entries ?? []) {
+    const player = e?.playerName ?? 'Unknown'
+    const arr = map.get(player) ?? []
+    arr.push(e)
+    map.set(player, arr)
+  }
+
+  const groups = Array.from(map.entries()).map(([player, list]) => {
+    const sorted = list.slice().sort((a, b) => {
+      const aHasTimer = Boolean(a?.lastTimestamp)
+      const bHasTimer = Boolean(b?.lastTimestamp)
+      if (aHasTimer !== bHasTimer) return aHasTimer ? 1 : -1
+
+      const aReadyAt = addMs(a.lastTimestamp, RAID_LOCKOUT_MS)
+      const bReadyAt = addMs(b.lastTimestamp, RAID_LOCKOUT_MS)
+      const aRemaining = aReadyAt ? aReadyAt.getTime() - now : Number.POSITIVE_INFINITY
+      const bRemaining = bReadyAt ? bReadyAt.getTime() - now : Number.POSITIVE_INFINITY
+
+      // Asc: less time remaining first.
+      const byRemaining = aRemaining - bRemaining
+      if (byRemaining !== 0) return byRemaining
+
+      return String(a.characterName).localeCompare(String(b.characterName))
+    })
+    return { player, entries: sorted }
+  })
+
+  groups.sort((a, b) => {
+    if (a.player === 'Unknown' && b.player !== 'Unknown') return 1
+    if (b.player === 'Unknown' && a.player !== 'Unknown') return -1
+    return a.player.localeCompare(b.player)
+  })
+
+  return groups
+}
+
+function formatClasses(classes) {
+  const list = Array.isArray(classes) ? classes : []
+  const filtered = list.filter((c) => c?.name && c?.name !== 'Epic' && c?.name !== 'Legendary')
+  if (!filtered.length) return '—'
+  return filtered.map((c) => `${c.name} ${c.level}`).join(', ')
+}
+
+function isEntryAvailable(entry, now) {
+  const readyAt = addMs(entry?.lastTimestamp, RAID_LOCKOUT_MS)
+  if (!readyAt) return true
+  return readyAt.getTime() - now <= 0
+}
+
 function buildRaidGroups({ raidActivity, questsById, charactersById }) {
   /**
    * groupKey: questId
-   * value: { questId, raidName, entries: Array<{ characterId, characterName, lastTimestamp }> }
+  * value: { questId, raidName, questLevel, entries: Array<{ characterId, characterName, playerName, lastTimestamp }> }
    */
   const groups = new Map()
 
@@ -26,17 +128,25 @@ function buildRaidGroups({ raidActivity, questsById, charactersById }) {
 
     if (!characterId || !ts || !Array.isArray(questIds)) continue
 
-    const characterName = charactersById?.[characterId]?.name ?? characterId
+    const character = charactersById?.[characterId]
+    const totalLevel = character?.total_level ?? null
+    if (typeof totalLevel === 'number' && totalLevel < MIN_CHARACTER_LEVEL) continue
+
+    const characterName = character?.name ?? characterId
+    const playerName = getPlayerName(characterName)
+    const classes = character?.classes ?? []
 
     for (const questIdRaw of questIds) {
       const questId = String(questIdRaw)
       if (!questId) continue
 
       const raidName = questsById?.[questId]?.name ?? `Unknown quest (${questId})`
+      const questLevel = questsById?.[questId]?.level ?? null
 
       const existing = groups.get(questId) ?? {
         questId,
         raidName,
+        questLevel,
         entriesByCharacterId: new Map(),
       }
 
@@ -45,6 +155,9 @@ function buildRaidGroups({ raidActivity, questsById, charactersById }) {
         existing.entriesByCharacterId.set(characterId, {
           characterId,
           characterName,
+          playerName,
+          totalLevel,
+          classes,
           lastTimestamp: ts,
         })
       }
@@ -53,14 +166,52 @@ function buildRaidGroups({ raidActivity, questsById, charactersById }) {
     }
   }
 
+  // Add placeholder entries for characters with no timer for this raid.
+  const allCharacterIds = Object.keys(charactersById ?? {})
+    .map(String)
+    .filter((id) => {
+      const lvl = charactersById?.[id]?.total_level
+      return typeof lvl !== 'number' || lvl >= MIN_CHARACTER_LEVEL
+    })
+  for (const g of groups.values()) {
+    for (const characterId of allCharacterIds) {
+      if (g.entriesByCharacterId.has(characterId)) continue
+      const character = charactersById?.[characterId]
+      const characterName = character?.name ?? characterId
+      const playerName = getPlayerName(characterName)
+      const totalLevel = character?.total_level ?? null
+      const classes = character?.classes ?? []
+      g.entriesByCharacterId.set(characterId, {
+        characterId,
+        characterName,
+        playerName,
+        totalLevel,
+        classes,
+        lastTimestamp: null,
+      })
+    }
+  }
+
   const normalized = Array.from(groups.values()).map((g) => {
     const entries = Array.from(g.entriesByCharacterId.values()).sort((a, b) => {
+      const byPlayer = String(a.playerName).localeCompare(String(b.playerName))
+      if (byPlayer !== 0) return byPlayer
+      const byName = String(a.characterName).localeCompare(String(b.characterName))
+      if (byName !== 0) return byName
+      if (!a.lastTimestamp && b.lastTimestamp) return -1
+      if (!b.lastTimestamp && a.lastTimestamp) return 1
+      if (!a.lastTimestamp && !b.lastTimestamp) return 0
       return new Date(a.lastTimestamp).getTime() - new Date(b.lastTimestamp).getTime()
     })
-    return { questId: g.questId, raidName: g.raidName, entries }
+    return { questId: g.questId, raidName: g.raidName, questLevel: g.questLevel ?? null, entries }
   })
 
-  normalized.sort((a, b) => a.raidName.localeCompare(b.raidName))
+  normalized.sort((a, b) => {
+    const aLevel = typeof a.questLevel === 'number' ? a.questLevel : -1
+    const bLevel = typeof b.questLevel === 'number' ? b.questLevel : -1
+    if (aLevel !== bLevel) return bLevel - aLevel
+    return a.raidName.localeCompare(b.raidName)
+  })
   return normalized
 }
 
@@ -74,7 +225,11 @@ function App() {
   const [raidActivity, setRaidActivity] = useState([])
   const [questsById, setQuestsById] = useState({})
   const [now, setNow] = useState(() => Date.now())
+  const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set())
+  const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set())
   const abortRef = useRef(null)
+  const resetCharacterCollapseRef = useRef(true)
+  const resetRaidCollapseRef = useRef(true)
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
 
@@ -82,10 +237,61 @@ function App() {
     return buildRaidGroups({ raidActivity, questsById, charactersById })
   }, [raidActivity, questsById, charactersById])
 
+  const charactersByPlayer = useMemo(() => {
+    const values = Object.values(charactersById ?? {}).filter((c) => {
+      const lvl = c?.total_level
+      return typeof lvl !== 'number' || lvl >= MIN_CHARACTER_LEVEL
+    })
+    /** @type {Map<string, any[]>} */
+    const map = new Map()
+    for (const c of values) {
+      const player = getPlayerName(c?.name)
+      const arr = map.get(player) ?? []
+      arr.push(c)
+      map.set(player, arr)
+    }
+
+    const groups = Array.from(map.entries()).map(([player, chars]) => {
+      const sorted = chars.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      return { player, chars: sorted }
+    })
+
+    groups.sort((a, b) => {
+      if (a.player === 'Unknown' && b.player !== 'Unknown') return 1
+      if (b.player === 'Unknown' && a.player !== 'Unknown') return -1
+      return a.player.localeCompare(b.player)
+    })
+    return groups
+  }, [charactersById])
+
+  useEffect(() => {
+    if (!resetCharacterCollapseRef.current) return
+    if (!charactersByPlayer.length) return
+    setCollapsedCharacterPlayers(new Set(charactersByPlayer.map((g) => g.player)))
+    resetCharacterCollapseRef.current = false
+  }, [charactersByPlayer])
+
+  useEffect(() => {
+    if (!resetRaidCollapseRef.current) return
+    if (!raidGroups.length) return
+
+    const next = new Set()
+    for (const rg of raidGroups) {
+      const perPlayer = groupEntriesByPlayer(rg.entries, now)
+      for (const pg of perPlayer) next.add(`${rg.questId}:${pg.player}`)
+    }
+    setCollapsedPlayerGroups(next)
+    resetRaidCollapseRef.current = false
+    // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
+  }, [raidGroups, now])
+
   async function load() {
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
+
+    resetCharacterCollapseRef.current = true
+    resetRaidCollapseRef.current = true
 
     setLoading(true)
     setError('')
@@ -125,6 +331,33 @@ function App() {
     return () => clearInterval(id)
   }, [])
 
+  function isCollapsed(questId, playerName) {
+    return collapsedPlayerGroups.has(`${questId}:${playerName}`)
+  }
+
+  function toggleCollapsed(questId, playerName) {
+    const key = `${questId}:${playerName}`
+    setCollapsedPlayerGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  function isCharacterPlayerCollapsed(playerName) {
+    return collapsedCharacterPlayers.has(playerName)
+  }
+
+  function toggleCharacterPlayerCollapsed(playerName) {
+    setCollapsedCharacterPlayers((prev) => {
+      const next = new Set(prev)
+      if (next.has(playerName)) next.delete(playerName)
+      else next.add(playerName)
+      return next
+    })
+  }
+
   return (
     <>
       <header className="header">
@@ -162,16 +395,36 @@ function App() {
       <section className="results">
         <h2>Characters</h2>
         {Object.keys(charactersById ?? {}).length ? (
-          <ul className="chips">
-            {Object.values(charactersById)
-              .slice()
-              .sort((a, b) => String(a.name).localeCompare(String(b.name)))
-              .map((c) => (
-                <li key={c.id} className="chip">
-                  <strong>{c.name}</strong> <span className="muted">({c.server_name})</span>
-                </li>
-              ))}
-          </ul>
+          <div className="playerGroups">
+            {charactersByPlayer.map((group) => {
+              const collapsed = isCharacterPlayerCollapsed(group.player)
+              return (
+                <div key={group.player} className="playerGroup">
+                  <div className="groupRowInner">
+                    <button
+                      type="button"
+                      className="toggleBtn"
+                      onClick={() => toggleCharacterPlayerCollapsed(group.player)}
+                    >
+                      {collapsed ? 'Show' : 'Hide'}
+                    </button>
+                    <strong>{group.player}</strong>
+                    <span className="muted">({group.chars.length})</span>
+                  </div>
+
+                  {collapsed ? null : (
+                    <ul className="chips">
+                      {group.chars.map((c) => (
+                        <li key={c.id} className="chip">
+                          <strong>{c.name}</strong> <span className="muted">({c.server_name})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         ) : (
           <p className="muted">No character data loaded yet.</p>
         )}
@@ -185,30 +438,72 @@ function App() {
               <div key={g.questId} className="raidCard">
                 <div className="raidTitle">
                   <h3>{g.raidName}</h3>
-                  <span className="muted">Quest ID: {g.questId}</span>
+                  <span className="muted">
+                    Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'} · Quest ID:{' '}
+                    {g.questId}
+                  </span>
                 </div>
                 <div className="table">
                   <div className="row head">
                     <div>Character</div>
+                    <div>Level</div>
+                    <div>Classes</div>
                     <div>Last completion</div>
                     <div>Time remaining</div>
                   </div>
-                  {g.entries.map((e) => (
-                    <div key={e.characterId} className="row">
-                      <div>{e.characterName}</div>
-                      <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
-                      {(() => {
-                        const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-                        const title = readyAt ? readyAt.toLocaleString() : ''
-                        const remaining = readyAt ? readyAt.getTime() - now : NaN
-                        return (
-                          <div className="mono" title={title}>
-                            {formatTimeRemaining(remaining)}
+                  {groupEntriesByPlayer(g.entries, now).map((pg) => {
+                    const collapsed = isCollapsed(g.questId, pg.player)
+                    const availableNames = collapsed
+                      ? pg.entries
+                          .filter((e) => isEntryAvailable(e, now))
+                          .map((e) => e.characterName)
+                          .sort((a, b) => String(a).localeCompare(String(b)))
+                      : []
+                    const collapsedAvailabilityText = collapsed
+                      ? availableNames.length
+                        ? availableNames.map((n) => `✅ ${n}`).join(', ')
+                        : '❌'
+                      : ''
+                    return (
+                      <div key={pg.player} className="playerSection">
+                        <div className="row groupRow">
+                          <div className="groupRowInner">
+                            <button
+                              type="button"
+                              className="toggleBtn"
+                              onClick={() => toggleCollapsed(g.questId, pg.player)}
+                            >
+                              {collapsed ? 'Show' : 'Hide'}
+                            </button>
+                            <strong>{pg.player}</strong>
+                            <span className="muted">({pg.entries.length})</span>
+                            {collapsed ? <span className="muted">{collapsedAvailabilityText}</span> : null}
                           </div>
-                        )
-                      })()}
-                    </div>
-                  ))}
+                        </div>
+
+                        {collapsed
+                          ? null
+                          : pg.entries.map((e) => (
+                              <div key={e.characterId} className="row">
+                                <div>{e.characterName}</div>
+                                <div className="mono">{e.totalLevel ?? '—'}</div>
+                                <div>{formatClasses(e.classes)}</div>
+                                <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
+                                {(() => {
+                                  const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
+                                  const title = readyAt ? readyAt.toLocaleString() : ''
+                                  const remaining = readyAt ? readyAt.getTime() - now : NaN
+                                  return (
+                                    <div className="mono" title={title}>
+                                      {formatTimeRemaining(remaining)}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            ))}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             ))}

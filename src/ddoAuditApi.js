@@ -68,11 +68,21 @@ export async function fetchRaidActivity(characterIds, options = {}) {
 
 let questsByIdPromise = null
 
+function parseNullableInt(value) {
+  if (value === null || value === undefined) return null
+  const text = String(value).trim()
+  if (!text || text.toLowerCase() === 'null') return null
+  const n = Number.parseInt(text, 10)
+  return Number.isFinite(n) ? n : null
+}
+
 /**
  * Quests CSV rows contain quoted fields with embedded newlines, so a real CSV parser is required.
  * We only rely on:
  * - col[0] => quest id
  * - col[2] => quest name
+ * - col[3] => heroic level
+ * - col[4] => epic/legendary level
  * - col[9] => quest type ("Raid", "Party", ...)
  */
 export async function fetchQuestsById() {
@@ -94,15 +104,18 @@ export async function fetchQuestsById() {
       throw new Error(`Failed to parse quests.csv: ${first.message}`)
     }
 
-    /** @type {Record<string, { id: string, name: string, type: string | null }> } */
+    /** @type {Record<string, { id: string, name: string, type: string | null, level: number | null }> } */
     const map = {}
     for (const row of parsed.data ?? []) {
       if (!Array.isArray(row)) continue
       const id = String(row[0] ?? '').trim()
       const name = String(row[2] ?? '').trim()
+      const heroicLevel = parseNullableInt(row[3])
+      const epicLevel = parseNullableInt(row[4])
+      const level = heroicLevel === null && epicLevel === null ? null : Math.max(heroicLevel ?? 0, epicLevel ?? 0)
       const type = row.length > 9 ? String(row[9] ?? '').trim() : ''
       if (!id || !name) continue
-      map[id] = { id, name, type: type || null }
+      map[id] = { id, name, type: type || null, level }
     }
     return map
   })()
@@ -114,6 +127,7 @@ export async function fetchQuestsById() {
  * @param {string | number | Date} ts
  */
 export function formatLocalDateTime(ts) {
+  if (ts === null || ts === undefined || ts === '') return '—'
   const d = ts instanceof Date ? ts : new Date(ts)
   if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleString()
@@ -124,6 +138,7 @@ export function formatLocalDateTime(ts) {
  * @param {number} ms
  */
 export function addMs(ts, ms) {
+  if (ts === null || ts === undefined || ts === '') return null
   const d = ts instanceof Date ? ts : new Date(ts)
   if (Number.isNaN(d.getTime())) return null
   return new Date(d.getTime() + ms)
@@ -158,7 +173,7 @@ export function formatAge(ts) {
  * @param {number} remainingMs
  */
 export function formatTimeRemaining(remainingMs) {
-  if (!Number.isFinite(remainingMs)) return '—'
+  if (!Number.isFinite(remainingMs)) return 'Available ✅'
   if (remainingMs <= 0) return 'Ready'
 
   const totalMinutes = Math.ceil(remainingMs / 60000)
