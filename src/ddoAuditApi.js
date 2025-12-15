@@ -130,7 +130,14 @@ export function formatLocalDateTime(ts) {
   if (ts === null || ts === undefined || ts === '') return '—'
   const d = ts instanceof Date ? ts : new Date(ts)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString()
+  return d.toLocaleString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 /**
