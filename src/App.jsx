@@ -453,17 +453,35 @@ function App() {
                   </div>
                   {groupEntriesByPlayer(g.entries, now).map((pg) => {
                     const collapsed = isCollapsed(g.questId, pg.player)
-                    const availableNames = collapsed
-                      ? pg.entries
-                          .filter((e) => isEntryAvailable(e, now))
+                    const collapsedAvailabilityText = (() => {
+                      if (!collapsed) return ''
+
+                      const available = (pg.entries ?? []).filter((e) => isEntryAvailable(e, now))
+                      if (available.length) {
+                        const availableNames = available
                           .map((e) => e.characterName)
                           .sort((a, b) => String(a).localeCompare(String(b)))
-                      : []
-                    const collapsedAvailabilityText = collapsed
-                      ? availableNames.length
-                        ? availableNames.map((n) => `✅ ${n}`).join(', ')
-                        : '❌'
-                      : ''
+                        return availableNames.map((n) => `✅ ${n}`).join(', ')
+                      }
+
+                      // None available: show a ❌ plus the soonest-to-be-available character.
+                      let soonest = null
+                      let soonestRemaining = Number.POSITIVE_INFINITY
+                      for (const e of pg.entries ?? []) {
+                        const readyAt = addMs(e?.lastTimestamp, RAID_LOCKOUT_MS)
+                        if (!readyAt) continue
+                        const remaining = readyAt.getTime() - now
+                        if (remaining > 0 && remaining < soonestRemaining) {
+                          soonest = e
+                          soonestRemaining = remaining
+                        }
+                      }
+
+                      if (soonest) {
+                        return `❌ Soonest: ${soonest.characterName} (${formatTimeRemaining(soonestRemaining)})`
+                      }
+                      return '❌'
+                    })()
                     return (
                       <div key={pg.player} className="playerSection">
                         <div className="row groupRow">
