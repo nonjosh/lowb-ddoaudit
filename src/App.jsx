@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 import {
+  addMs,
   fetchCharactersByIds,
   fetchQuestsById,
   fetchRaidActivity,
-  formatAge,
   formatLocalDateTime,
+  formatTimeRemaining,
+  RAID_LOCKOUT_MS,
   parseCharacterIds,
 } from './ddoAuditApi'
 
@@ -64,13 +66,14 @@ function buildRaidGroups({ raidActivity, questsById, charactersById }) {
 
 function App() {
   const [characterIdsInput, setCharacterIdsInput] = useState(
-    '81612777584,81612779875,81612799899,81612840713',
+    '81612777584,81612779875,81612799899,81612840713,111671237122,81612780586,81612811713,111670413405,81612777720,81608349902,81612777715,81612780583,81612782737,81612795666,81612796054,81612796057,81612916723,81613135800,111670322311,111670420969,111671347683,111671727098,111672061714,111673440702,111678077704,180388777114',
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [charactersById, setCharactersById] = useState({})
   const [raidActivity, setRaidActivity] = useState([])
   const [questsById, setQuestsById] = useState({})
+  const [now, setNow] = useState(() => Date.now())
   const abortRef = useRef(null)
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
@@ -117,13 +120,18 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
   return (
     <>
       <header className="header">
         <h1>DDO Audit Raid Timers (Grouped by Raid)</h1>
         <p className="subtitle">
           Paste character IDs, then load. Results are grouped by raid name and show each
-          character’s most recent completion timestamp.
+          character’s most recent completion timestamp. Lockout is assumed to be 2 days 18 hours.
         </p>
       </header>
 
@@ -183,13 +191,22 @@ function App() {
                   <div className="row head">
                     <div>Character</div>
                     <div>Last completion</div>
-                    <div>Age</div>
+                    <div>Time remaining</div>
                   </div>
                   {g.entries.map((e) => (
                     <div key={e.characterId} className="row">
                       <div>{e.characterName}</div>
                       <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
-                      <div>{formatAge(e.lastTimestamp)}</div>
+                      {(() => {
+                        const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
+                        const title = readyAt ? readyAt.toLocaleString() : ''
+                        const remaining = readyAt ? readyAt.getTime() - now : NaN
+                        return (
+                          <div className="mono" title={title}>
+                            {formatTimeRemaining(remaining)}
+                          </div>
+                        )
+                      })()}
                     </div>
                   ))}
                 </div>

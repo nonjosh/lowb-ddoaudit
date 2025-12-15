@@ -118,7 +118,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 1.2fr 1.4fr 0.6fr;
+  grid-template-columns: 1.2fr 1.4fr 0.9fr;
   gap: 0.75rem;
   padding: 0.5rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);

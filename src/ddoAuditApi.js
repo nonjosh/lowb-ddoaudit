@@ -4,6 +4,9 @@ const DDOAUDIT_BASE_URL = 'https://api.ddoaudit.com/v1'
 const QUESTS_CSV_URL =
   'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.csv'
 
+// User-specified lockout duration.
+export const RAID_LOCKOUT_MS = (2 * 24 + 18) * 60 * 60 * 1000
+
 /**
  * @param {string | number} value
  */
@@ -118,6 +121,25 @@ export function formatLocalDateTime(ts) {
 
 /**
  * @param {string | number | Date} ts
+ * @param {number} ms
+ */
+export function addMs(ts, ms) {
+  const d = ts instanceof Date ? ts : new Date(ts)
+  if (Number.isNaN(d.getTime())) return null
+  return new Date(d.getTime() + ms)
+}
+
+/**
+ * @param {string | number | Date} ts
+ */
+export function formatReadyAt(ts) {
+  const ready = addMs(ts, RAID_LOCKOUT_MS)
+  if (!ready) return '—'
+  return formatLocalDateTime(ready)
+}
+
+/**
+ * @param {string | number | Date} ts
  */
 export function formatAge(ts) {
   const d = ts instanceof Date ? ts : new Date(ts)
@@ -128,6 +150,23 @@ export function formatAge(ts) {
   const hours = Math.floor((totalMinutes - days * 60 * 24) / 60)
   const minutes = totalMinutes - days * 60 * 24 - hours * 60
   if (days > 0) return `${days}d ${hours}h`
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
+}
+
+/**
+ * @param {number} remainingMs
+ */
+export function formatTimeRemaining(remainingMs) {
+  if (!Number.isFinite(remainingMs)) return '—'
+  if (remainingMs <= 0) return 'Ready'
+
+  const totalMinutes = Math.ceil(remainingMs / 60000)
+  const days = Math.floor(totalMinutes / (60 * 24))
+  const hours = Math.floor((totalMinutes - days * 60 * 24) / 60)
+  const minutes = totalMinutes - days * 60 * 24 - hours * 60
+
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`
   if (hours > 0) return `${hours}h ${minutes}m`
   return `${minutes}m`
 }
