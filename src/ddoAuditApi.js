@@ -4,6 +4,22 @@ const DDOAUDIT_BASE_URL = 'https://api.ddoaudit.com/v1'
 const QUESTS_CSV_URL =
   'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.csv'
 
+const MAX_CHARACTER_IDS_PER_REQUEST = 30
+
+/**
+ * @template T
+ * @param {T[]} items
+ * @param {number} size
+ */
+function chunk(items, size) {
+  if (!Array.isArray(items) || items.length === 0) return []
+  const chunkSize = Math.max(1, size | 0)
+  /** @type {T[][]} */
+  const out = []
+  for (let i = 0; i < items.length; i += chunkSize) out.push(items.slice(i, i + chunkSize))
+  return out
+}
+
 // User-specified lockout duration.
 export const RAID_LOCKOUT_MS = (2 * 24 + 18) * 60 * 60 * 1000
 
@@ -40,13 +56,26 @@ export function parseCharacterIds(input) {
  */
 export async function fetchCharactersByIds(characterIds, options = {}) {
   if (!characterIds?.length) return {}
-  const url = `${DDOAUDIT_BASE_URL}/characters/ids/${characterIds.join(',')}`
-  const resp = await fetch(url, { signal: options.signal })
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch characters (${resp.status})`)
+
+  const batches = chunk(characterIds, MAX_CHARACTER_IDS_PER_REQUEST)
+  const results = await Promise.all(
+    batches.map(async (batch) => {
+      const url = `${DDOAUDIT_BASE_URL}/characters/ids/${batch.join(',')}`
+      const resp = await fetch(url, { signal: options.signal })
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch characters (${resp.status})`)
+      }
+      const json = await resp.json()
+      return json?.data ?? {}
+    }),
+  )
+
+  // Efficiently merge all result objects into one
+  const merged = {};
+  for (const obj of results) {
+    Object.assign(merged, obj);
   }
-  const json = await resp.json()
-  return json?.data ?? {}
+  return merged;
 }
 
 /**
@@ -55,15 +84,23 @@ export async function fetchCharactersByIds(characterIds, options = {}) {
  */
 export async function fetchRaidActivity(characterIds, options = {}) {
   if (!characterIds?.length) return []
-  const url = new URL(`${DDOAUDIT_BASE_URL}/activity/raids`)
-  url.searchParams.set('character_ids', characterIds.join(','))
 
-  const resp = await fetch(url, { signal: options.signal })
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch raid activity (${resp.status})`)
-  }
-  const json = await resp.json()
-  return json?.data ?? []
+  const batches = chunk(characterIds, MAX_CHARACTER_IDS_PER_REQUEST)
+  const results = await Promise.all(
+    batches.map(async (batch) => {
+      const url = new URL(`${DDOAUDIT_BASE_URL}/activity/raids`)
+      url.searchParams.set('character_ids', batch.join(','))
+
+      const resp = await fetch(url, { signal: options.signal })
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch raid activity (${resp.status})`)
+      }
+      const json = await resp.json()
+      return json?.data ?? []
+    }),
+  )
+
+  return results.flat()
 }
 
 let questsByIdPromise = null
