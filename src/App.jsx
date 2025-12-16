@@ -222,11 +222,12 @@ function buildRaidGroups({ raidActivity, questsById, charactersById }) {
 }
 
 function App() {
-  const [characterIdsInput, setCharacterIdsInput] = useState(
+  const [characterIdsInput] = useState(
     '81612777584,81612779875,81612799899,81612840713,111670413405,81612796054,81608349902,81612777715,81612777720,81612780583,81612780586,81612782737,81612795666,81612796057,81612811713,81613135800,111670193026,111670322311,111670420969,111670661572,111670702832,111670708744,111671237122,111671347683,111671471817,111671727098,111672061714,111672875879,111678077704,180388777114,180388801443,180388818353,180388822764',
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
   const [charactersById, setCharactersById] = useState({})
   const [raidActivity, setRaidActivity] = useState([])
   const [questsById, setQuestsById] = useState({})
@@ -344,6 +345,7 @@ function App() {
       setQuestsById(quests)
       setCharactersById(characters)
       setRaidActivity(raids)
+      setLastUpdatedAt(new Date())
     } catch (e) {
       if (e?.name === 'AbortError') return
       setError(e?.message ?? String(e))
@@ -415,24 +417,14 @@ function App() {
       </header>
 
       <section className="controls">
-        <label className="label" htmlFor="characterIds">
-          Character IDs (comma or whitespace separated)
-        </label>
-        <textarea
-          id="characterIds"
-          className="textarea"
-          value={characterIdsInput}
-          onChange={(e) => setCharacterIdsInput(e.target.value)}
-          rows={3}
-          spellCheck={false}
-        />
         <div className="actions">
           <button onClick={load} disabled={loading}>
-            {loading ? 'Loading…' : 'Load timers'}
+            {loading ? 'Refreshing…' : 'Refresh data'}
           </button>
           <div className="meta">
             <span>Characters: {characterIds.length}</span>
             <span>Raids: {raidGroups.length}</span>
+            <span>Updated: {formatLocalDateTime(lastUpdatedAt)}</span>
           </div>
         </div>
         {error ? <div className="error">{error}</div> : null}
