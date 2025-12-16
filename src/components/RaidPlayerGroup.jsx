@@ -11,6 +11,29 @@ import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
   const pg = playerGroup
   const entries = pg.entries ?? []
+  const displayEntries = entries
+    .slice()
+    .sort((a, b) => {
+      const aAvailable = isEntryAvailable(a, now)
+      const bAvailable = isEntryAvailable(b, now)
+      if (aAvailable !== bAvailable) return aAvailable ? -1 : 1
+
+      // For available characters, sort by level desc.
+      if (aAvailable && bAvailable) {
+        const aLvl = typeof a?.totalLevel === 'number' ? a.totalLevel : Number.NEGATIVE_INFINITY
+        const bLvl = typeof b?.totalLevel === 'number' ? b.totalLevel : Number.NEGATIVE_INFINITY
+        if (aLvl !== bLvl) return bLvl - aLvl
+        return String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? ''))
+      }
+
+      // For unavailable characters, keep a useful order: soonest-to-ready first.
+      const aReadyAt = addMs(a?.lastTimestamp, RAID_LOCKOUT_MS)
+      const bReadyAt = addMs(b?.lastTimestamp, RAID_LOCKOUT_MS)
+      const aRemaining = aReadyAt ? aReadyAt.getTime() - now : Number.POSITIVE_INFINITY
+      const bRemaining = bReadyAt ? bReadyAt.getTime() - now : Number.POSITIVE_INFINITY
+      if (aRemaining !== bRemaining) return aRemaining - bRemaining
+      return String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? ''))
+    })
   const countedEntries = entries.filter((e) => {
     const lvl = e?.totalLevel
     return typeof lvl !== 'number' || lvl >= 20
@@ -83,20 +106,28 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
 
       {collapsed
         ? null
-        : entries.map((e) => (
+        : displayEntries.map((e) => (
             <div key={e.characterId} className="row">
               <div title={formatClasses(e?.classes)}>{e.characterName}</div>
               <div className="mono">{e.totalLevel ?? '—'}</div>
               <div>{formatClasses(e.classes)}</div>
               <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
               {(() => {
+                const lvl = e?.totalLevel
+                const lowLevel = typeof lvl === 'number' && lvl < 20
+                const available = isEntryAvailable(e, now)
+
                 const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
                 const title = readyAt ? readyAt.toLocaleString() : ''
                 const remaining = readyAt ? readyAt.getTime() - now : NaN
                 return (
                   <div className="mono" title={title}>
-                    <div>{formatTimeRemaining(remaining)}</div>
-                    {readyAt ? <div className="muted">{formatLocalDateTime(readyAt)}</div> : null}
+                    <div>{available && lowLevel ? 'N/A' : formatTimeRemaining(remaining)}</div>
+                    {available && lowLevel
+                      ? null
+                      : readyAt
+                        ? <div className="muted">{formatLocalDateTime(readyAt)}</div>
+                        : null}
                   </div>
                 )
               })()}
