@@ -10,15 +10,26 @@ import { formatClasses, isEntryAvailable } from '../raidLogic'
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
   const pg = playerGroup
 
-  const collapsedAvailabilityText = (() => {
-    if (!collapsed) return ''
+  const collapsedAvailabilityNode = (() => {
+    if (!collapsed) return null
 
-    const available = (pg.entries ?? []).filter((e) => isEntryAvailable(e, now))
+    const available = (pg.entries ?? [])
+      .filter((e) => isEntryAvailable(e, now))
+      .slice()
+      .sort((a, b) => String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? '')))
+
     if (available.length) {
-      const availableNames = available
-        .map((e) => e.characterName)
-        .sort((a, b) => String(a).localeCompare(String(b)))
-      return availableNames.map((n) => `✅ ${n}`).join(', ')
+      return (
+        <span className="muted">
+          ✅{' '}
+          {available.map((e, idx) => (
+            <span key={e.characterId ?? `${e.characterName ?? 'unknown'}-${idx}`} title={formatClasses(e?.classes)}>
+              {idx ? ', ' : ''}
+              {e.characterName}
+            </span>
+          ))}
+        </span>
+      )
     }
 
     // None available: show a ❌ plus the soonest-to-be-available character.
@@ -38,9 +49,14 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
 
     if (soonest) {
       const when = soonestReadyAt ? formatLocalDateTime(soonestReadyAt) : '—'
-      return `❌ Soonest: ${soonest.characterName} (${formatTimeRemaining(soonestRemaining)} · ${when})`
+      return (
+        <span className="muted">
+          ❌ Soonest: {soonest.characterName} ({formatTimeRemaining(soonestRemaining)} · {when})
+        </span>
+      )
     }
-    return '❌'
+
+    return <span className="muted">❌</span>
   })()
 
   return (
@@ -52,7 +68,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
           </button>
           <strong>{pg.player}</strong>
           <span className="muted">({pg.entries.length})</span>
-          {collapsed ? <span className="muted">{collapsedAvailabilityText}</span> : null}
+          {collapsed ? collapsedAvailabilityNode : null}
         </div>
       </div>
 
@@ -60,7 +76,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
         ? null
         : pg.entries.map((e) => (
             <div key={e.characterId} className="row">
-              <div>{e.characterName}</div>
+              <div title={formatClasses(e?.classes)}>{e.characterName}</div>
               <div className="mono">{e.totalLevel ?? '—'}</div>
               <div>{formatClasses(e.classes)}</div>
               <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>

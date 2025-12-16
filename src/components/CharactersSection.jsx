@@ -1,3 +1,5 @@
+import { formatClasses } from '../raidLogic'
+
 export default function CharactersSection({ charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
   const onlineCharacters = Object.values(charactersById ?? {})
     .filter((c) => c?.is_online)
@@ -25,9 +27,8 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
             const collapsed = isPlayerCollapsed(group.player)
             const onlineForPlayer = (group.chars ?? [])
               .filter((c) => c?.is_online)
-              .map((c) => c?.name ?? 'Unknown')
-              .filter(Boolean)
-              .sort((a, b) => String(a).localeCompare(String(b)))
+              .slice()
+              .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')))
 
             return (
               <div key={group.player} className="playerGroup">
@@ -42,14 +43,26 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
                   <strong>{group.player}</strong>
                   <span className="muted">({group.chars.length})</span>
                   {collapsed && onlineForPlayer.length ? (
-                    <span className="muted">🟢 {onlineForPlayer.join(', ')}</span>
+                    <span className="muted">
+                      🟢{' '}
+                      {onlineForPlayer.map((c, idx) => (
+                        <span key={c.id ?? `${c.name ?? 'unknown'}-${idx}`} title={formatClasses(c?.classes)}>
+                          {idx ? ', ' : ''}
+                          {c?.name ?? 'Unknown'}
+                        </span>
+                      ))}
+                    </span>
                   ) : null}
                 </div>
 
                 {collapsed ? null : (
                   <ul className="chips">
                     {group.chars.map((c) => (
-                      <li key={c.id} className="chip">
+                      <li
+                        key={c.id}
+                        className="chip"
+                        title={formatClasses(c?.classes)}
+                      >
                         <strong>
                           {c.name}
                           {c.is_online ? ' 🟢' : null}
