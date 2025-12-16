@@ -6,6 +6,7 @@ import {
 } from '../ddoAuditApi'
 
 import { formatClasses, isEntryAvailable } from '../raidLogic'
+import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
   const pg = playerGroup
@@ -19,15 +20,16 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
       .sort((a, b) => String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? '')))
 
     if (available.length) {
+      const availableItems = available.map((e) => ({
+        id: e?.characterId,
+        name: e?.characterName,
+        classes: e?.classes,
+      }))
+
       return (
         <span className="muted">
           ✅{' '}
-          {available.map((e, idx) => (
-            <span key={e.characterId ?? `${e.characterName ?? 'unknown'}-${idx}`} title={formatClasses(e?.classes)}>
-              {idx ? ', ' : ''}
-              {e.characterName}
-            </span>
-          ))}
+          <CharacterNamesWithClassTooltip items={availableItems} />
         </span>
       )
     }

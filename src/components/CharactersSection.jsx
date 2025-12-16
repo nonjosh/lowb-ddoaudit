@@ -1,4 +1,5 @@
 import { formatClasses } from '../raidLogic'
+import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 
 export default function CharactersSection({ charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
   const onlineCharacters = Object.values(charactersById ?? {})
@@ -30,6 +31,12 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
               .slice()
               .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')))
 
+            const onlineForPlayerItems = onlineForPlayer.map((c) => ({
+              id: c?.id,
+              name: c?.name,
+              classes: c?.classes,
+            }))
+
             return (
               <div key={group.player} className="playerGroup">
                 <div className="groupRowInner">
@@ -45,12 +52,7 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
                   {collapsed && onlineForPlayer.length ? (
                     <span className="muted">
                       🟢{' '}
-                      {onlineForPlayer.map((c, idx) => (
-                        <span key={c.id ?? `${c.name ?? 'unknown'}-${idx}`} title={formatClasses(c?.classes)}>
-                          {idx ? ', ' : ''}
-                          {c?.name ?? 'Unknown'}
-                        </span>
-                      ))}
+                      <CharacterNamesWithClassTooltip items={onlineForPlayerItems} />
                     </span>
                   ) : null}
                 </div>
