@@ -14,11 +14,14 @@ export const PLAYER_BY_CHARACTER_NAME = {
   zenrar: 'Jonah',
   zertiar: 'Jonah',
   zevkar: 'Jonah',
+  magiz: 'Jonah',
 
   // Michael
   garei: 'Michael',
   tareos: 'Michael',
   karc: 'Michael',
+  warkon: 'Michael',
+  kayos: 'Michael',
 
   // Ken
   kenami: 'Ken',
