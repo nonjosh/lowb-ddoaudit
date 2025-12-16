@@ -1,8 +1,6 @@
-import Papa from 'papaparse'
-
 const DDOAUDIT_BASE_URL = 'https://api.ddoaudit.com/v1'
-const QUESTS_CSV_URL =
-  'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.csv'
+const QUESTS_JSON_URL =
+  'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.json'
 
 const MAX_CHARACTER_IDS_PER_REQUEST = 30
 
@@ -107,6 +105,7 @@ let questsByIdPromise = null
 
 function parseNullableInt(value) {
   if (value === null || value === undefined) return null
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null
   const text = String(value).trim()
   if (!text || text.toLowerCase() === 'null') return null
   const n = Number.parseInt(text, 10)
@@ -114,46 +113,41 @@ function parseNullableInt(value) {
 }
 
 /**
- * Quests CSV rows contain quoted fields with embedded newlines, so a real CSV parser is required.
- * We only rely on:
- * - col[0] => quest id
- * - col[2] => quest name
- * - col[3] => heroic level
- * - col[4] => epic/legendary level
- * - col[9] => quest type ("Raid", "Party", ...)
+ * Quests are loaded from JSON and mapped into a simple lookup table keyed by quest id.
+ * Returned values are normalized to the shape used by the UI.
  */
 export async function fetchQuestsById() {
   if (questsByIdPromise) return questsByIdPromise
 
   questsByIdPromise = (async () => {
-    const resp = await fetch(QUESTS_CSV_URL)
+    const resp = await fetch(QUESTS_JSON_URL)
     if (!resp.ok) {
-      throw new Error(`Failed to fetch quests.csv (${resp.status})`)
+      throw new Error(`Failed to fetch quests.json (${resp.status})`)
     }
-    const csvText = await resp.text()
 
-    const parsed = Papa.parse(csvText, {
-      skipEmptyLines: true,
-    })
-
-    if (parsed.errors?.length) {
-      const first = parsed.errors[0]
-      throw new Error(`Failed to parse quests.csv: ${first.message}`)
-    }
+    const data = await resp.json()
+    const list = Array.isArray(data) ? data : []
 
     /** @type {Record<string, { id: string, name: string, type: string | null, level: number | null }> } */
     const map = {}
-    for (const row of parsed.data ?? []) {
-      if (!Array.isArray(row)) continue
-      const id = String(row[0] ?? '').trim()
-      const name = String(row[2] ?? '').trim()
-      const heroicLevel = parseNullableInt(row[3])
-      const epicLevel = parseNullableInt(row[4])
-      const level = heroicLevel === null && epicLevel === null ? null : Math.max(heroicLevel ?? 0, epicLevel ?? 0)
-      const type = row.length > 9 ? String(row[9] ?? '').trim() : ''
-      if (!id || !name) continue
-      map[id] = { id, name, type: type || null, level }
+
+    for (const q of list) {
+      const name = String(q?.name ?? '').trim()
+      const type = String(q?.group_size ?? '').trim()
+      const heroicCr = parseNullableInt(q?.heroic_normal_cr)
+      const epicCr = parseNullableInt(q?.epic_normal_cr)
+      const level = heroicCr === null && epicCr === null ? null : Math.max(heroicCr ?? 0, epicCr ?? 0)
+
+      const primaryId = String(q?.id ?? '').trim()
+      const altId = String(q?.alt_id ?? '').trim()
+      const ids = new Set([primaryId, altId].filter((x) => x && x.toLowerCase() !== 'null'))
+
+      if (!name || ids.size === 0) continue
+      for (const id of ids) {
+        map[id] = { id, name, type: type || null, level }
+      }
     }
+
     return map
   })()
 
