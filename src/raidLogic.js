@@ -1,6 +1,5 @@
 import { addMs, RAID_LOCKOUT_MS } from './ddoAuditApi'
 
-export const MIN_CHARACTER_LEVEL = 28
 export const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'old mic']
 
 export const PLAYER_BY_CHARACTER_NAME = {
@@ -123,7 +122,6 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
 
     const character = charactersById?.[characterId]
     const totalLevel = character?.total_level ?? null
-    if (typeof totalLevel === 'number' && totalLevel < MIN_CHARACTER_LEVEL) continue
 
     const characterName = character?.name ?? characterId
     const playerName = getPlayerName(characterName)
@@ -163,10 +161,6 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
   // Add placeholder entries for characters with no timer for this raid.
   const allCharacterIds = Object.keys(charactersById ?? {})
     .map(String)
-    .filter((id) => {
-      const lvl = charactersById?.[id]?.total_level
-      return typeof lvl !== 'number' || lvl >= MIN_CHARACTER_LEVEL
-    })
   for (const g of groups.values()) {
     for (const characterId of allCharacterIds) {
       if (g.entriesByCharacterId.has(characterId)) continue

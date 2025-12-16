@@ -13,7 +13,6 @@ import {
   getPlayerName,
   groupEntriesByPlayer,
   isEntryAvailable,
-  MIN_CHARACTER_LEVEL,
 } from './raidLogic'
 
 function App() {
@@ -42,10 +41,7 @@ function App() {
   }, [raidActivity, questsById, charactersById])
 
   const charactersByPlayer = useMemo(() => {
-    const values = Object.values(charactersById ?? {}).filter((c) => {
-      const lvl = c?.total_level
-      return typeof lvl !== 'number' || lvl >= MIN_CHARACTER_LEVEL
-    })
+    const values = Object.values(charactersById ?? {})
 
     /** @type {Map<string, any[]>} */
     const map = new Map()
