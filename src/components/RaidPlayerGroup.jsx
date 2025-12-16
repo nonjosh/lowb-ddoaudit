@@ -95,7 +95,8 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
                 const remaining = readyAt ? readyAt.getTime() - now : NaN
                 return (
                   <div className="mono" title={title}>
-                    {formatTimeRemaining(remaining)}
+                    <div>{formatTimeRemaining(remaining)}</div>
+                    {readyAt ? <div className="muted">{formatLocalDateTime(readyAt)}</div> : null}
                   </div>
                 )
               })()}
