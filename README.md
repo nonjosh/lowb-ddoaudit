@@ -1,6 +1,7 @@
 # This is a Web Application integrating DDO Audit
 
-Live site: https://nonjosh.github.io/enhanced-ddoaudit/
+Live site (GitHub Pages):
+- https://nonjosh.github.io/lowb-ddoaudit/
 
 Currently DDO Audit will only group the raid timers by character name. This web application will allow the timer to be grouped by raid name instead.
 
