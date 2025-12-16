@@ -147,6 +147,7 @@ function buildRaidGroups({ raidActivity, questsById, charactersById }) {
 
       const raidName = questsById?.[questId]?.name ?? `Unknown quest (${questId})`
       const questLevel = questsById?.[questId]?.level ?? null
+      if (typeof questLevel === 'number' && questLevel < 20) continue
 
       const existing = groups.get(questId) ?? {
         questId,
