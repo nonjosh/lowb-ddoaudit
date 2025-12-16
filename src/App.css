@@ -63,6 +63,18 @@
 
 .results {
   margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.charactersPane {
+  min-width: 0;
+}
+
+.raidsPane {
+  min-width: 0;
 }
 
 .chips {

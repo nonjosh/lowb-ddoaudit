@@ -222,21 +222,25 @@ function App() {
       />
 
       <section className="results">
-        <CharactersSection
-          charactersById={charactersById}
-          charactersByPlayer={charactersByPlayer}
-          isPlayerCollapsed={isCharacterPlayerCollapsed}
-          togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
-        />
+        <div className="charactersPane">
+          <CharactersSection
+            charactersById={charactersById}
+            charactersByPlayer={charactersByPlayer}
+            isPlayerCollapsed={isCharacterPlayerCollapsed}
+            togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
+          />
+        </div>
 
-        <RaidsSection
-          raidGroups={raidGroups}
-          now={now}
-          isRaidCollapsed={isRaidCollapsed}
-          toggleRaidCollapsed={toggleRaidCollapsed}
-          isPlayerCollapsed={isCollapsed}
-          togglePlayerCollapsed={toggleCollapsed}
-        />
+        <div className="raidsPane">
+          <RaidsSection
+            raidGroups={raidGroups}
+            now={now}
+            isRaidCollapsed={isRaidCollapsed}
+            toggleRaidCollapsed={toggleRaidCollapsed}
+            isPlayerCollapsed={isCollapsed}
+            togglePlayerCollapsed={toggleCollapsed}
+          />
+        </div>
       </section>
     </>
   )
