@@ -15,8 +15,8 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
         {onlineCharacters.length
           ? onlineCharacters
               .map((c) => {
-                const server = c?.server_name ? ` (${c.server_name})` : ''
-                return `${c?.name ?? 'Unknown'}${server}`
+                const classes = formatClasses(c?.classes)
+                return `${c?.name ?? 'Unknown'} (${classes})`
               })
               .join(', ')
           : '—'}
@@ -69,7 +69,7 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
                           {c.name}
                           {c.is_online ? ' 🟢' : null}
                         </strong>{' '}
-                        <span className="muted">({c.server_name})</span>
+                        <span className="muted">({formatClasses(c?.classes)})</span>
                       </li>
                     ))}
                   </ul>
