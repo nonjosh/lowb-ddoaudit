@@ -1,225 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
+import { fetchCharactersByIds, fetchQuestsById, fetchRaidActivity, parseCharacterIds } from './ddoAuditApi'
+
+import Controls from './components/Controls'
+import CharactersSection from './components/CharactersSection'
+import RaidsSection from './components/RaidsSection'
+
 import {
-  addMs,
-  fetchCharactersByIds,
-  fetchQuestsById,
-  fetchRaidActivity,
-  formatLocalDateTime,
-  formatTimeRemaining,
-  RAID_LOCKOUT_MS,
-  parseCharacterIds,
-} from './ddoAuditApi'
-
-const PLAYER_BY_CHARACTER_NAME = {
-  // Johnson
-  nonjosh: 'Johnson',
-  nonjoshii: 'Johnson',
-  nonjoshiv: 'Johnson',
-  mvppiker: 'Johnson',
-
-  // Jonah
-  zenser: 'Jonah',
-  zenrar: 'Jonah',
-  zertiar: 'Jonah',
-  zevkar: 'Jonah',
-
-  // Michael
-  garei: 'Michael',
-  tareos: 'Michael',
-  karc: 'Michael',
-
-  // Ken
-  kenami: 'Ken',
-  nekamisama: 'Ken',
-  nekami: 'Ken',
-  amiken: 'Ken',
-  feldspars: 'Ken',
-  waven: 'Ken',
-  fatslayer: 'Ken',
-  fateslayer: 'Ken',
-  temor: 'Ken',
-
-  // Renz
-  hako: 'Renz',
-  renz: 'Renz',
-  okah: 'Renz',
-  zner: 'Renz',
-  zneri: 'Renz',
-  znerii: 'Renz',
-  zneriii: 'Renz',
-  znery: 'Renz',
-
-  // old mic
-  ctenmiir: 'old mic',
-  keviamin: 'old mic',
-  graceella : 'old mic',
-  castra: 'old mic',
-}
-
-const MIN_CHARACTER_LEVEL = 28
-const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'old mic']
-
-function getPlayerName(characterName) {
-  const key = String(characterName ?? '').trim().toLowerCase()
-  if (!key) return 'Unknown'
-  return PLAYER_BY_CHARACTER_NAME[key] ?? 'Unknown'
-}
-
-function groupEntriesByPlayer(entries, now) {
-  /** @type {Map<string, any[]>} */
-  const map = new Map()
-  for (const e of entries ?? []) {
-    const player = e?.playerName ?? 'Unknown'
-    const arr = map.get(player) ?? []
-    arr.push(e)
-    map.set(player, arr)
-  }
-
-  const groups = Array.from(map.entries()).map(([player, list]) => {
-    const sorted = list.slice().sort((a, b) => {
-      const aHasTimer = Boolean(a?.lastTimestamp)
-      const bHasTimer = Boolean(b?.lastTimestamp)
-      if (aHasTimer !== bHasTimer) return aHasTimer ? 1 : -1
-
-      const aReadyAt = addMs(a.lastTimestamp, RAID_LOCKOUT_MS)
-      const bReadyAt = addMs(b.lastTimestamp, RAID_LOCKOUT_MS)
-      const aRemaining = aReadyAt ? aReadyAt.getTime() - now : Number.POSITIVE_INFINITY
-      const bRemaining = bReadyAt ? bReadyAt.getTime() - now : Number.POSITIVE_INFINITY
-
-      // Asc: less time remaining first.
-      const byRemaining = aRemaining - bRemaining
-      if (byRemaining !== 0) return byRemaining
-
-      return String(a.characterName).localeCompare(String(b.characterName))
-    })
-    return { player, entries: sorted }
-  })
-
-  groups.sort((a, b) => {
-    if (a.player === 'Unknown' && b.player !== 'Unknown') return 1
-    if (b.player === 'Unknown' && a.player !== 'Unknown') return -1
-    return a.player.localeCompare(b.player)
-  })
-
-  return groups
-}
-
-function formatClasses(classes) {
-  const list = Array.isArray(classes) ? classes : []
-  const filtered = list.filter((c) => c?.name && c?.name !== 'Epic' && c?.name !== 'Legendary')
-  if (!filtered.length) return '—'
-  return filtered.map((c) => `${c.name} ${c.level}`).join(', ')
-}
-
-function isEntryAvailable(entry, now) {
-  const readyAt = addMs(entry?.lastTimestamp, RAID_LOCKOUT_MS)
-  if (!readyAt) return true
-  return readyAt.getTime() - now <= 0
-}
-
-function buildRaidGroups({ raidActivity, questsById, charactersById }) {
-  /**
-   * groupKey: questId
-  * value: { questId, raidName, questLevel, entries: Array<{ characterId, characterName, playerName, lastTimestamp }> }
-   */
-  const groups = new Map()
-
-  for (const item of raidActivity ?? []) {
-    const characterId = String(item?.character_id ?? '')
-    const ts = item?.timestamp
-    const questIds = item?.data?.quest_ids ?? []
-
-    if (!characterId || !ts || !Array.isArray(questIds)) continue
-
-    const character = charactersById?.[characterId]
-    const totalLevel = character?.total_level ?? null
-    if (typeof totalLevel === 'number' && totalLevel < MIN_CHARACTER_LEVEL) continue
-
-    const characterName = character?.name ?? characterId
-    const playerName = getPlayerName(characterName)
-    const classes = character?.classes ?? []
-
-    for (const questIdRaw of questIds) {
-      const questId = String(questIdRaw)
-      if (!questId) continue
-
-      const raidName = questsById?.[questId]?.name ?? `Unknown quest (${questId})`
-      const questLevel = questsById?.[questId]?.level ?? null
-      if (typeof questLevel === 'number' && questLevel < 20) continue
-
-      const existing = groups.get(questId) ?? {
-        questId,
-        raidName,
-        questLevel,
-        entriesByCharacterId: new Map(),
-      }
-
-      const prev = existing.entriesByCharacterId.get(characterId)
-      if (!prev || new Date(ts).getTime() > new Date(prev.lastTimestamp).getTime()) {
-        existing.entriesByCharacterId.set(characterId, {
-          characterId,
-          characterName,
-          playerName,
-          totalLevel,
-          classes,
-          lastTimestamp: ts,
-        })
-      }
-
-      groups.set(questId, existing)
-    }
-  }
-
-  // Add placeholder entries for characters with no timer for this raid.
-  const allCharacterIds = Object.keys(charactersById ?? {})
-    .map(String)
-    .filter((id) => {
-      const lvl = charactersById?.[id]?.total_level
-      return typeof lvl !== 'number' || lvl >= MIN_CHARACTER_LEVEL
-    })
-  for (const g of groups.values()) {
-    for (const characterId of allCharacterIds) {
-      if (g.entriesByCharacterId.has(characterId)) continue
-      const character = charactersById?.[characterId]
-      const characterName = character?.name ?? characterId
-      const playerName = getPlayerName(characterName)
-      const totalLevel = character?.total_level ?? null
-      const classes = character?.classes ?? []
-      g.entriesByCharacterId.set(characterId, {
-        characterId,
-        characterName,
-        playerName,
-        totalLevel,
-        classes,
-        lastTimestamp: null,
-      })
-    }
-  }
-
-  const normalized = Array.from(groups.values()).map((g) => {
-    const entries = Array.from(g.entriesByCharacterId.values()).sort((a, b) => {
-      const byPlayer = String(a.playerName).localeCompare(String(b.playerName))
-      if (byPlayer !== 0) return byPlayer
-      const byName = String(a.characterName).localeCompare(String(b.characterName))
-      if (byName !== 0) return byName
-      if (!a.lastTimestamp && b.lastTimestamp) return -1
-      if (!b.lastTimestamp && a.lastTimestamp) return 1
-      if (!a.lastTimestamp && !b.lastTimestamp) return 0
-      return new Date(a.lastTimestamp).getTime() - new Date(b.lastTimestamp).getTime()
-    })
-    return { questId: g.questId, raidName: g.raidName, questLevel: g.questLevel ?? null, entries }
-  })
-
-  normalized.sort((a, b) => {
-    const aLevel = typeof a.questLevel === 'number' ? a.questLevel : -1
-    const bLevel = typeof b.questLevel === 'number' ? b.questLevel : -1
-    if (aLevel !== bLevel) return bLevel - aLevel
-    return a.raidName.localeCompare(b.raidName)
-  })
-  return normalized
-}
+  buildRaidGroups,
+  EXPECTED_PLAYERS,
+  getPlayerName,
+  groupEntriesByPlayer,
+  isEntryAvailable,
+  MIN_CHARACTER_LEVEL,
+} from './raidLogic'
 
 function App() {
   const [characterIdsInput] = useState(
@@ -251,6 +46,7 @@ function App() {
       const lvl = c?.total_level
       return typeof lvl !== 'number' || lvl >= MIN_CHARACTER_LEVEL
     })
+
     /** @type {Map<string, any[]>} */
     const map = new Map()
     for (const c of values) {
@@ -416,186 +212,31 @@ function App() {
         </p>
       </header>
 
-      <section className="controls">
-        <div className="actions">
-          <button onClick={load} disabled={loading}>
-            {loading ? 'Refreshing…' : 'Refresh data'}
-          </button>
-          <div className="meta">
-            <span>Characters: {characterIds.length}</span>
-            <span>Raids: {raidGroups.length}</span>
-            <span>Updated: {formatLocalDateTime(lastUpdatedAt)}</span>
-          </div>
-        </div>
-        {error ? <div className="error">{error}</div> : null}
-      </section>
+      <Controls
+        loading={loading}
+        onRefresh={load}
+        characterCount={characterIds.length}
+        raidCount={raidGroups.length}
+        lastUpdatedAt={lastUpdatedAt}
+        error={error}
+      />
 
       <section className="results">
-        <h2>Characters</h2>
-        {Object.keys(charactersById ?? {}).length ? (
-          <div className="playerGroups">
-            {charactersByPlayer.map((group) => {
-              const collapsed = isCharacterPlayerCollapsed(group.player)
-              return (
-                <div key={group.player} className="playerGroup">
-                  <div className="groupRowInner">
-                    <button
-                      type="button"
-                      className="toggleBtn"
-                      onClick={() => toggleCharacterPlayerCollapsed(group.player)}
-                    >
-                      {collapsed ? 'Show' : 'Hide'}
-                    </button>
-                    <strong>{group.player}</strong>
-                    <span className="muted">({group.chars.length})</span>
-                  </div>
+        <CharactersSection
+          charactersById={charactersById}
+          charactersByPlayer={charactersByPlayer}
+          isPlayerCollapsed={isCharacterPlayerCollapsed}
+          togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
+        />
 
-                  {collapsed ? null : (
-                    <ul className="chips">
-                      {group.chars.map((c) => (
-                        <li key={c.id} className="chip">
-                          <strong>{c.name}</strong> <span className="muted">({c.server_name})</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <p className="muted">No character data loaded yet.</p>
-        )}
-
-        <h2>Raids</h2>
-        {!raidGroups.length ? (
-          <p className="muted">No raid activity found for those character IDs.</p>
-        ) : (
-          <div className="raidList">
-            {raidGroups.map((g) => {
-              const perPlayer = groupEntriesByPlayer(g.entries, now)
-              const availablePlayers = EXPECTED_PLAYERS.filter((playerName) => {
-                const pg = perPlayer.find((p) => p.player === playerName)
-                return pg ? (pg.entries ?? []).some((e) => isEntryAvailable(e, now)) : false
-              }).length
-
-              return (
-                <div key={g.questId} className="raidCard">
-                  <div className="raidTitle">
-                    <h3>{g.raidName}</h3>
-                    <span className="muted">
-                      Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'} · Quest ID:{' '}
-                      {g.questId}
-                    </span>
-                      <span
-                        className={
-                          availablePlayers === EXPECTED_PLAYERS.length ? 'muted allAvailable' : 'muted'
-                        }
-                      >
-                        Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
-                      </span>
-                    <button
-                      type="button"
-                      className="toggleBtn"
-                      onClick={() => toggleRaidCollapsed(g.questId)}
-                    >
-                      {isRaidCollapsed(g.questId) ? 'Show' : 'Hide'}
-                    </button>
-                  </div>
-
-                  {isRaidCollapsed(g.questId) ? null : (
-                    <div className="table">
-                      <div className="row head">
-                        <div>Character</div>
-                        <div>Level</div>
-                        <div>Classes</div>
-                        <div>Last completion</div>
-                        <div>Time remaining</div>
-                      </div>
-                      {perPlayer.map((pg) => {
-                        const collapsed = isCollapsed(g.questId, pg.player)
-                        const collapsedAvailabilityText = (() => {
-                          if (!collapsed) return ''
-
-                          const available = (pg.entries ?? []).filter((e) => isEntryAvailable(e, now))
-                          if (available.length) {
-                            const availableNames = available
-                              .map((e) => e.characterName)
-                              .sort((a, b) => String(a).localeCompare(String(b)))
-                            return availableNames.map((n) => `✅ ${n}`).join(', ')
-                          }
-
-                          // None available: show a ❌ plus the soonest-to-be-available character.
-                          let soonest = null
-                          let soonestRemaining = Number.POSITIVE_INFINITY
-                          let soonestReadyAt = null
-                          for (const e of pg.entries ?? []) {
-                            const readyAt = addMs(e?.lastTimestamp, RAID_LOCKOUT_MS)
-                            if (!readyAt) continue
-                            const remaining = readyAt.getTime() - now
-                            if (remaining > 0 && remaining < soonestRemaining) {
-                              soonest = e
-                              soonestRemaining = remaining
-                              soonestReadyAt = readyAt
-                            }
-                          }
-
-                          if (soonest) {
-                            const when = soonestReadyAt ? formatLocalDateTime(soonestReadyAt) : '—'
-                            return `❌ Soonest: ${soonest.characterName} (${formatTimeRemaining(soonestRemaining)} · ${when})`
-                          }
-                          return '❌'
-                        })()
-
-                        return (
-                          <div key={pg.player} className="playerSection">
-                            <div className="row groupRow">
-                              <div className="groupRowInner">
-                                <button
-                                  type="button"
-                                  className="toggleBtn"
-                                  onClick={() => toggleCollapsed(g.questId, pg.player)}
-                                >
-                                  {collapsed ? 'Show' : 'Hide'}
-                                </button>
-                                <strong>{pg.player}</strong>
-                                <span className="muted">({pg.entries.length})</span>
-                                {collapsed ? (
-                                  <span className="muted">{collapsedAvailabilityText}</span>
-                                ) : null}
-                              </div>
-                            </div>
-
-                            {collapsed
-                              ? null
-                              : pg.entries.map((e) => (
-                                  <div key={e.characterId} className="row">
-                                    <div>{e.characterName}</div>
-                                    <div className="mono">{e.totalLevel ?? '—'}</div>
-                                    <div>{formatClasses(e.classes)}</div>
-                                    <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
-                                    {(() => {
-                                      const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-                                      const title = readyAt ? readyAt.toLocaleString() : ''
-                                      const remaining = readyAt ? readyAt.getTime() - now : NaN
-                                      return (
-                                        <div className="mono" title={title}>
-                                          {formatTimeRemaining(remaining)}
-                                        </div>
-                                      )
-                                    })()}
-                                  </div>
-                                ))}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <RaidsSection
+          raidGroups={raidGroups}
+          now={now}
+          isRaidCollapsed={isRaidCollapsed}
+          toggleRaidCollapsed={toggleRaidCollapsed}
+          isPlayerCollapsed={isCollapsed}
+          togglePlayerCollapsed={toggleCollapsed}
+        />
       </section>
     </>
   )
