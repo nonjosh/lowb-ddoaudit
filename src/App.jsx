@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 import { fetchCharactersByIds, fetchQuestsById, fetchRaidActivity, parseCharacterIds } from './ddoAuditApi'
@@ -30,6 +30,7 @@ function App() {
   const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set())
   const [collapsedRaids, setCollapsedRaids] = useState(() => new Set())
   const abortRef = useRef(null)
+  const loadingRef = useRef(false)
   const resetCharacterCollapseRef = useRef(true)
   const resetRaidCollapseRef = useRef(true)
   const resetRaidCardCollapseRef = useRef(true)
@@ -109,8 +110,11 @@ function App() {
     // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
   }, [raidGroups, now])
 
-  async function load() {
-    if (abortRef.current) abortRef.current.abort()
+  const load = useCallback(async ({ force = true } = {}) => {
+    // Avoid spamming/aborting in-flight requests from the auto-refresh loop.
+    if (loadingRef.current && !force) return
+
+    if (force && abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
 
@@ -118,6 +122,7 @@ function App() {
     resetRaidCollapseRef.current = true
     resetRaidCardCollapseRef.current = true
 
+    loadingRef.current = true
     setLoading(true)
     setError('')
 
@@ -142,15 +147,22 @@ function App() {
       if (e?.name === 'AbortError') return
       setError(e?.message ?? String(e))
     } finally {
+      loadingRef.current = false
       setLoading(false)
     }
-  }
+  }, [characterIdsInput])
 
   useEffect(() => {
     // Initial load using the default sample IDs.
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    load({ force: true })
+  }, [load])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      load({ force: false })
+    }, 6000)
+    return () => clearInterval(id)
+  }, [load])
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000)
@@ -210,7 +222,7 @@ function App() {
 
       <Controls
         loading={loading}
-        onRefresh={load}
+        onRefresh={() => load({ force: true })}
         characterCount={characterIds.length}
         raidCount={raidGroups.length}
         lastUpdatedAt={lastUpdatedAt}
