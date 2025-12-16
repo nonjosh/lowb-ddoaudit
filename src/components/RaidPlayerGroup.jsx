@@ -10,11 +10,18 @@ import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
   const pg = playerGroup
+  const entries = pg.entries ?? []
+  const countedEntries = entries.filter((e) => {
+    const lvl = e?.totalLevel
+    return typeof lvl !== 'number' || lvl >= 20
+  })
+  const availableCount = countedEntries.filter((e) => isEntryAvailable(e, now)).length
+  const totalCount = countedEntries.length
 
   const collapsedAvailabilityNode = (() => {
     if (!collapsed) return null
 
-    const available = (pg.entries ?? [])
+    const available = entries
       .filter((e) => isEntryAvailable(e, now))
       .slice()
       .sort((a, b) => String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? '')))
@@ -69,14 +76,14 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
             {collapsed ? 'Show' : 'Hide'}
           </button>
           <strong>{pg.player}</strong>
-          <span className="muted">({pg.entries.length})</span>
+          <span className="muted">({availableCount}/{totalCount})</span>
           {collapsed ? collapsedAvailabilityNode : null}
         </div>
       </div>
 
       {collapsed
         ? null
-        : pg.entries.map((e) => (
+        : entries.map((e) => (
             <div key={e.characterId} className="row">
               <div title={formatClasses(e?.classes)}>{e.characterName}</div>
               <div className="mono">{e.totalLevel ?? '—'}</div>
