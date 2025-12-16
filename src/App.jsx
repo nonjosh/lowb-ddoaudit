@@ -536,6 +536,7 @@ function App() {
                           // None available: show a ❌ plus the soonest-to-be-available character.
                           let soonest = null
                           let soonestRemaining = Number.POSITIVE_INFINITY
+                          let soonestReadyAt = null
                           for (const e of pg.entries ?? []) {
                             const readyAt = addMs(e?.lastTimestamp, RAID_LOCKOUT_MS)
                             if (!readyAt) continue
@@ -543,11 +544,13 @@ function App() {
                             if (remaining > 0 && remaining < soonestRemaining) {
                               soonest = e
                               soonestRemaining = remaining
+                              soonestReadyAt = readyAt
                             }
                           }
 
                           if (soonest) {
-                            return `❌ Soonest: ${soonest.characterName} (${formatTimeRemaining(soonestRemaining)})`
+                            const when = soonestReadyAt ? formatLocalDateTime(soonestReadyAt) : '—'
+                            return `❌ Soonest: ${soonest.characterName} (${formatTimeRemaining(soonestRemaining)} · ${when})`
                           }
                           return '❌'
                         })()
