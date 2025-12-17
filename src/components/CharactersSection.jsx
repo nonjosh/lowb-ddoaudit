@@ -2,13 +2,7 @@ import { formatClasses } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 
 export default function CharactersSection({ charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
-  const isEligibleCharacter = (c) => {
-    const lvl = c?.total_level
-    return typeof lvl !== 'number' || lvl >= 30
-  }
-
   const onlineCharacters = Object.values(charactersById ?? {})
-    .filter(isEligibleCharacter)
     .filter((c) => c?.is_online)
     .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')))
 
@@ -32,8 +26,7 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
         <div className="playerGroups">
           {charactersByPlayer.map((group) => {
             const collapsed = isPlayerCollapsed(group.player)
-            const eligibleForPlayer = (group.chars ?? []).filter(isEligibleCharacter)
-            const onlineForPlayer = eligibleForPlayer
+            const onlineForPlayer = (group.chars ?? [])
               .filter((c) => c?.is_online)
               .slice()
               .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')))
@@ -55,7 +48,7 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
                     {collapsed ? 'Show' : 'Hide'}
                   </button>
                   <strong>{group.player}</strong>
-                  <span className="muted">({eligibleForPlayer.length})</span>
+                  <span className="muted">({group.chars.length})</span>
                   {collapsed && onlineForPlayer.length ? (
                     <span className="muted">
                       🟢{' '}
@@ -66,7 +59,7 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
 
                 {collapsed ? null : (
                   <ul className="chips">
-                    {eligibleForPlayer.map((c) => (
+                    {group.chars.map((c) => (
                       <li
                         key={c.id}
                         className="chip"
