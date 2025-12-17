@@ -2,56 +2,30 @@ import { addMs, RAID_LOCKOUT_MS } from './ddoAuditApi'
 
 export const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'old mic']
 
-export const PLAYER_BY_CHARACTER_NAME = {
-  // Johnson
-  nonjosh: 'Johnson',
-  nonjoshii: 'Johnson',
-  nonjoshiv: 'Johnson',
-  mvppiker: 'Johnson',
-
-  // Jonah
-  zenser: 'Jonah',
-  zenrar: 'Jonah',
-  zertiar: 'Jonah',
-  zevkar: 'Jonah',
-  magiz: 'Jonah',
-
-  // Michael
-  garei: 'Michael',
-  tareos: 'Michael',
-  karc: 'Michael',
-  warkon: 'Michael',
-  kayos: 'Michael',
-
-  // Ken
-  kenami: 'Ken',
-  nekamisama: 'Ken',
-  nekami: 'Ken',
-  amiken: 'Ken',
-  feldspars: 'Ken',
-  waven: 'Ken',
-  fatslayer: 'Ken',
-  fateslayer: 'Ken',
-  temor: 'Ken',
-  nameisfree: 'Ken',
-
-  // Renz
-  hako: 'Renz',
-  renz: 'Renz',
-  okah: 'Renz',
-  zner: 'Renz',
-  zneri: 'Renz',
-  znerii: 'Renz',
-  zneriii: 'Renz',
-  zneriv: 'Renz',
-  znery: 'Renz',
-
-  // old mic
-  ctenmiir: 'old mic',
-  keviamin: 'old mic',
-  graceella: 'old mic',
-  castra: 'old mic',
+export const CHARACTERS_BY_PLAYER = {
+  Johnson: ['nonjosh', 'nonjoshii', 'nonjoshiv', 'mvppiker'],
+  Jonah: ['zenser', 'zenrar', 'zertiar', 'zevkar', 'magiz'],
+  Michael: ['garei', 'tareos', 'karc', 'warkon', 'kayos'],
+  Ken: ['kenami', 'nekamisama', 'nekami', 'amiken', 'feldspars', 'waven', 'fatslayer', 'fateslayer', 'temor', 'nameisfree'],
+  Renz: ['hako', 'renz', 'okah', 'zner', 'zneri', 'znerii', 'zneriii', 'zneriv', 'znery'],
+  'old mic': ['ctenmiir', 'keviamin', 'graceella', 'castra'],
 }
+
+function buildPlayerByCharacterName(charactersByPlayer) {
+  /** @type {Record<string, string>} */
+  const map = {}
+  for (const [player, names] of Object.entries(charactersByPlayer ?? {})) {
+    for (const rawName of names ?? []) {
+      const key = String(rawName ?? '').trim().toLowerCase()
+      if (!key) continue
+      map[key] = player
+    }
+  }
+  return map
+}
+
+// Back-compat export: existing code expects character -> player.
+export const PLAYER_BY_CHARACTER_NAME = buildPlayerByCharacterName(CHARACTERS_BY_PLAYER)
 
 export function getPlayerName(characterName) {
   const key = String(characterName ?? '').trim().toLowerCase()
