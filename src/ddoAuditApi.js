@@ -157,10 +157,11 @@ export async function fetchQuestsById() {
 /**
  * @param {string | number | Date} ts
  */
-export function formatLocalDateTime(ts) {
+export function formatLocalDateTime(ts, options = {}) {
   if (ts === null || ts === undefined || ts === '') return '—'
   const d = ts instanceof Date ? ts : new Date(ts)
   if (Number.isNaN(d.getTime())) return '—'
+  const includeSeconds = options?.includeSeconds === true
   return d.toLocaleString(undefined, {
     weekday: 'short',
     year: 'numeric',
@@ -168,6 +169,7 @@ export function formatLocalDateTime(ts) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    ...(includeSeconds ? { second: '2-digit' } : {}),
   })
 }
 

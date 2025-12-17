@@ -10,7 +10,7 @@ export default function Controls({ loading, onRefresh, characterCount, raidCount
         <div className="meta">
           <span>Characters: {characterCount}</span>
           <span>Raids: {raidCount}</span>
-          <span>Updated: {formatLocalDateTime(lastUpdatedAt)}</span>
+          <span>Updated: {formatLocalDateTime(lastUpdatedAt, { includeSeconds: true })}</span>
         </div>
       </div>
       {error ? <div className="error">{error}</div> : null}
