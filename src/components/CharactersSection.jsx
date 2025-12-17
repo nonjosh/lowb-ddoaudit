@@ -63,7 +63,6 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
                       <li
                         key={c.id}
                         className="chip"
-                        title={formatClasses(c?.classes)}
                       >
                         <strong>
                           {c.name}
