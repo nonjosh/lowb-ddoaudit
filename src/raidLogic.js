@@ -113,10 +113,20 @@ export function isEntryAvailable(entry, now) {
 
 export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
   /**
-   * groupKey: questId
+   * groupKey: normalized raid name
    * value: { questId, raidName, questLevel, entries: Array<{ characterId, characterName, playerName, lastTimestamp }> }
    */
   const groups = new Map()
+
+  function normalizeRaidKey(name) {
+    return String(name ?? '').trim().toLowerCase()
+  }
+
+  function isBetterQuestLevel(nextLevel, currentLevel) {
+    const a = typeof nextLevel === 'number' ? nextLevel : -1
+    const b = typeof currentLevel === 'number' ? currentLevel : -1
+    return a > b
+  }
 
   for (const item of raidActivity ?? []) {
     const characterId = String(item?.character_id ?? '')
@@ -140,11 +150,21 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
       const questLevel = questsById?.[questId]?.level ?? null
       if (typeof questLevel === 'number' && questLevel < 20) continue
 
-      const existing = groups.get(questId) ?? {
+      // Some raids exist as multiple quest_ids (e.g., different level versions).
+      // Collapse those duplicates by raid name and keep the highest-level representative.
+      const groupKey = normalizeRaidKey(raidName)
+
+      const existing = groups.get(groupKey) ?? {
         questId,
         raidName,
         questLevel,
         entriesByCharacterId: new Map(),
+      }
+
+      if (isBetterQuestLevel(questLevel, existing.questLevel)) {
+        existing.questId = questId
+        existing.questLevel = questLevel
+        existing.raidName = raidName
       }
 
       const prev = existing.entriesByCharacterId.get(characterId)
@@ -159,7 +179,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
         })
       }
 
-      groups.set(questId, existing)
+      groups.set(groupKey, existing)
     }
   }
 
