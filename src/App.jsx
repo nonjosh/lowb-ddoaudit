@@ -114,10 +114,6 @@ function App() {
     const controller = new AbortController()
     abortRef.current = controller
 
-    resetCharacterCollapseRef.current = true
-    resetRaidCollapseRef.current = true
-    resetRaidCardCollapseRef.current = true
-
     setLoading(true)
     setError('')
 
