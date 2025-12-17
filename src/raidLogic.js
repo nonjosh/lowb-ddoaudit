@@ -33,6 +33,7 @@ export const PLAYER_BY_CHARACTER_NAME = {
   fatslayer: 'Ken',
   fateslayer: 'Ken',
   temor: 'Ken',
+  nameisfree: 'Ken',
 
   // Renz
   hako: 'Renz',
