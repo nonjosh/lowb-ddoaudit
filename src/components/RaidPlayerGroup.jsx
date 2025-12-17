@@ -11,7 +11,14 @@ import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
   const pg = playerGroup
   const entries = pg.entries ?? []
-  const displayEntries = entries
+
+  // Hide characters below level 30.
+  const eligibleEntries = entries.filter((e) => {
+    const lvl = e?.totalLevel
+    return typeof lvl !== 'number' || lvl >= 30
+  })
+
+  const displayEntries = eligibleEntries
     .slice()
     .sort((a, b) => {
       const aAvailable = isEntryAvailable(a, now)
@@ -34,17 +41,13 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
       if (aRemaining !== bRemaining) return aRemaining - bRemaining
       return String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? ''))
     })
-  const countedEntries = entries.filter((e) => {
-    const lvl = e?.totalLevel
-    return typeof lvl !== 'number' || lvl >= 20
-  })
-  const availableCount = countedEntries.filter((e) => isEntryAvailable(e, now)).length
-  const totalCount = countedEntries.length
+  const availableCount = eligibleEntries.filter((e) => isEntryAvailable(e, now)).length
+  const totalCount = eligibleEntries.length
 
   const collapsedAvailabilityNode = (() => {
     if (!collapsed) return null
 
-    const available = entries
+    const available = eligibleEntries
       .filter((e) => isEntryAvailable(e, now))
       .slice()
       .sort((a, b) => String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? '')))
@@ -68,7 +71,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
     let soonest = null
     let soonestRemaining = Number.POSITIVE_INFINITY
     let soonestReadyAt = null
-    for (const e of pg.entries ?? []) {
+    for (const e of eligibleEntries) {
       const readyAt = addMs(e?.lastTimestamp, RAID_LOCKOUT_MS)
       if (!readyAt) continue
       const remaining = readyAt.getTime() - now
@@ -113,8 +116,6 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
               <div>{formatClasses(e.classes)}</div>
               <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
               {(() => {
-                const lvl = e?.totalLevel
-                const lowLevel = typeof lvl === 'number' && lvl < 20
                 const available = isEntryAvailable(e, now)
 
                 const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
@@ -122,8 +123,8 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
                 const remaining = readyAt ? readyAt.getTime() - now : NaN
                 return (
                   <div className="mono" title={title}>
-                    <div>{available && lowLevel ? 'N/A' : formatTimeRemaining(remaining)}</div>
-                    {available && lowLevel
+                    <div>{formatTimeRemaining(remaining)}</div>
+                    {available
                       ? null
                       : readyAt
                         ? <div className="muted">{formatLocalDateTime(readyAt)}</div>
