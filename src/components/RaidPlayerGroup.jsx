@@ -109,31 +109,46 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
 
       {collapsed
         ? null
-        : displayEntries.map((e) => (
-            <div key={e.characterId} className="row">
-              <div title={formatClasses(e?.classes)}>{e.characterName}</div>
-              <div className="mono">{e.totalLevel ?? '—'}</div>
-              <div>{formatClasses(e.classes)}</div>
-              <div className="mono">{formatLocalDateTime(e.lastTimestamp)}</div>
-              {(() => {
-                const available = isEntryAvailable(e, now)
+        : displayEntries.map((e) => {
+            const available = isEntryAvailable(e, now)
 
-                const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-                const title = readyAt ? readyAt.toLocaleString() : ''
-                const remaining = readyAt ? readyAt.getTime() - now : NaN
-                return (
-                  <div className="mono" title={title}>
-                    <div>{formatTimeRemaining(remaining)}</div>
-                    {available
-                      ? null
-                      : readyAt
-                        ? <div className="muted">{formatLocalDateTime(readyAt)}</div>
-                        : null}
-                  </div>
-                )
-              })()}
-            </div>
-          ))}
+            const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
+            const lastCompletionTitle = `Last completion: ${lastCompletionText}`
+
+            return (
+              <div key={e.characterId} className="row">
+                <div title={formatClasses(e?.classes)}>{e.characterName}</div>
+                <div className="mono">{e.totalLevel ?? '—'}</div>
+                <div>{formatClasses(e.classes)}</div>
+                <div className="mono lastCompletionCell">
+                  {available ? null : (
+                    <span
+                      className="hoverInfoIcon"
+                      title={lastCompletionTitle}
+                      aria-label={lastCompletionTitle}
+                    >
+                      i
+                    </span>
+                  )}
+                </div>
+                {(() => {
+                  const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
+                  const title = readyAt ? readyAt.toLocaleString() : ''
+                  const remaining = readyAt ? readyAt.getTime() - now : NaN
+                  return (
+                    <div className="mono" title={title}>
+                      <div>{formatTimeRemaining(remaining)}</div>
+                      {available
+                        ? null
+                        : readyAt
+                          ? <div className="muted">{formatLocalDateTime(readyAt)}</div>
+                          : null}
+                    </div>
+                  )
+                })()}
+              </div>
+            )
+          })}
     </div>
   )
 }

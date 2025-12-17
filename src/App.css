@@ -169,10 +169,30 @@
 
 .row {
   display: grid;
-  grid-template-columns: 1.2fr 0.5fr 1.4fr 1.3fr 0.9fr;
+  grid-template-columns: 1.2fr 0.5fr 1.4fr 0.25fr 0.9fr;
   gap: 0.75rem;
   padding: 0.5rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lastCompletionHeader,
+.lastCompletionCell {
+  display: flex;
+  justify-content: center;
+}
+
+.hoverInfoIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
 }
 
 .row.head {
@@ -226,5 +246,9 @@
   }
   .row.head {
     color: rgba(0, 0, 0, 0.7);
+  }
+
+  .hoverInfoIcon {
+    border-color: rgba(0, 0, 0, 0.12);
   }
 }

@@ -72,7 +72,11 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
             <div>Character</div>
             <div>Level</div>
             <div>Classes</div>
-            <div>Last completion</div>
+            <div className="lastCompletionHeader">
+              <span className="hoverInfoIcon" title="Last completion" aria-label="Last completion">
+                i
+              </span>
+            </div>
             <div>Time remaining</div>
           </div>
 
