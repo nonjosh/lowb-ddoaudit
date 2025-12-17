@@ -42,6 +42,7 @@ export const PLAYER_BY_CHARACTER_NAME = {
   zneri: 'Renz',
   znerii: 'Renz',
   zneriii: 'Renz',
+  zneriv: 'Renz',
   znery: 'Renz',
 
   // old mic
