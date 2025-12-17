@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 import { fetchCharactersByIds, fetchQuestsById, fetchRaidActivity, parseCharacterIds } from './ddoAuditApi'
@@ -29,10 +29,12 @@ function App() {
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set())
   const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set())
   const [collapsedRaids, setCollapsedRaids] = useState(() => new Set())
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const abortRef = useRef(null)
   const resetCharacterCollapseRef = useRef(true)
   const resetRaidCollapseRef = useRef(true)
   const resetRaidCardCollapseRef = useRef(true)
+  const loadingRef = useRef(false)
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
 
@@ -109,7 +111,7 @@ function App() {
     // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
   }, [raidGroups, now])
 
-  async function load() {
+  const load = useCallback(async () => {
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -140,18 +142,33 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [characterIdsInput])
 
   useEffect(() => {
     // Initial load using the default sample IDs.
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [load])
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000)
     return () => clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    loadingRef.current = loading
+  }, [loading])
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) return
+
+    const id = setInterval(() => {
+      // Avoid constantly aborting in-flight requests; manual refresh can still interrupt.
+      if (loadingRef.current) return
+      load()
+    }, 10_000)
+
+    return () => clearInterval(id)
+  }, [autoRefreshEnabled, load])
 
   function isCollapsed(questId, playerName) {
     return collapsedPlayerGroups.has(`${questId}:${playerName}`)
@@ -207,6 +224,8 @@ function App() {
       <Controls
         loading={loading}
         onRefresh={load}
+        autoRefreshEnabled={autoRefreshEnabled}
+        onToggleAutoRefresh={() => setAutoRefreshEnabled((v) => !v)}
         characterCount={characterIds.length}
         raidCount={raidGroups.length}
         lastUpdatedAt={lastUpdatedAt}
