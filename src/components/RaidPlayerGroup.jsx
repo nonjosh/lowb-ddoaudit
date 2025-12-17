@@ -5,7 +5,7 @@ import {
   RAID_LOCKOUT_MS,
 } from '../ddoAuditApi'
 
-import { formatClasses, isEntryAvailable } from '../raidLogic'
+import { formatClasses, getPlayerDisplayName, isEntryAvailable } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
@@ -101,7 +101,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
           <button type="button" className="toggleBtn" onClick={onToggleCollapsed}>
             {collapsed ? 'Show' : 'Hide'}
           </button>
-          <strong>{pg.player}</strong>
+          <strong>{getPlayerDisplayName(pg.player)}</strong>
           <span className="muted">({availableCount}/{totalCount})</span>
           {collapsed ? collapsedAvailabilityNode : null}
         </div>

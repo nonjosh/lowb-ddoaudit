@@ -1,6 +1,14 @@
 import { addMs, RAID_LOCKOUT_MS } from './ddoAuditApi'
 
-export const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'old mic']
+export const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'OldMic']
+
+const PLAYER_DISPLAY_NAMES = {
+  OldMic: '老mic',
+}
+
+export function getPlayerDisplayName(playerName) {
+  return PLAYER_DISPLAY_NAMES[playerName] ?? playerName
+}
 
 export const CHARACTERS_BY_PLAYER = {
   Johnson: ['nonjosh', 'nonjoshii', 'nonjoshiv', 'mvppiker'],
@@ -8,7 +16,7 @@ export const CHARACTERS_BY_PLAYER = {
   Michael: ['garei', 'tareos', 'karc', 'warkon', 'kayos'],
   Ken: ['kenami', 'nekamisama', 'nekami', 'amiken', 'feldspars', 'waven', 'fatslayer', 'fateslayer', 'temor', 'nameisfree'],
   Renz: ['hako', 'renz', 'okah', 'zner', 'zneri', 'znerii', 'zneriii', 'zneriv', 'znery'],
-  'old mic': ['ctenmiir', 'keviamin', 'graceella', 'castra'],
+  OldMic: ['ctenmiir', 'keviamin', 'graceella', 'castra'],
 }
 
 function buildPlayerByCharacterName(charactersByPlayer) {

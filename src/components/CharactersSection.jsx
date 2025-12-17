@@ -1,4 +1,4 @@
-import { formatClasses } from '../raidLogic'
+import { formatClasses, getPlayerDisplayName } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 
 export default function CharactersSection({ charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
@@ -47,7 +47,7 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
                   >
                     {collapsed ? 'Show' : 'Hide'}
                   </button>
-                  <strong>{group.player}</strong>
+                  <strong>{getPlayerDisplayName(group.player)}</strong>
                   <span className="muted">({group.chars.length})</span>
                   {collapsed && onlineForPlayer.length ? (
                     <span className="muted">
