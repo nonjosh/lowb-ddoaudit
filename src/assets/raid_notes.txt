@@ -92,3 +92,7 @@ Set:
 Kelas' Volatile Mixture  - Orb: +3 Artifact bonus to bonus Imbue Dice
 Project Nemesis Sequence:
 Dark Red / Off ⇨ Green ⇨ Blue ⇨ Yellow ⇨ Red ⇨ Purple ⇨ Green
+
+## Project Nemesis
+Sequence:
+Dark Red / Off ⇨ Green ⇨ Blue ⇨ Yellow ⇨ Red ⇨ Purple ⇨ Green
