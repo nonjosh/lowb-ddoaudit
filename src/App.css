@@ -144,6 +144,25 @@
   margin: 0;
 }
 
+.raidNotes {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.raidNotesRow {
+  font-size: 0.95rem;
+}
+
+.raidNotesList {
+  margin: 0.25rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.raidNotesList li {
+  margin: 0.15rem 0;
+}
+
 .table {
   margin-top: 0.75rem;
 }

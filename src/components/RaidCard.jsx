@@ -1,9 +1,33 @@
 import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable } from '../raidLogic'
+import { getRaidNotesForRaidName } from '../raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
 
 export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer }) {
   const g = raidGroup
   const perPlayer = groupEntriesByPlayer(g.entries, now)
+  const raidNotes = getRaidNotesForRaidName(g.raidName)
+
+  const renderNotesField = (label, items) => {
+    const list = Array.isArray(items) ? items.filter(Boolean) : []
+    if (list.length === 0) return null
+    if (list.length === 1) {
+      return (
+        <div className="raidNotesRow">
+          <span className="muted">{label}:</span> {list[0]}
+        </div>
+      )
+    }
+    return (
+      <div className="raidNotesRow">
+        <span className="muted">{label}:</span>
+        <ul className="raidNotesList">
+          {list.map((x, idx) => (
+            <li key={`${label}-${idx}`}>{x}</li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
 
   const isEligibleEntry = (e) => {
     const lvl = e?.totalLevel
@@ -33,6 +57,14 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           {isRaidCollapsed ? 'Show' : 'Hide'}
         </button>
       </div>
+
+      {raidNotes ? (
+        <div className="raidNotes">
+          {renderNotesField('Augment', raidNotes.augments)}
+          {renderNotesField('Set', raidNotes.sets)}
+          {renderNotesField('Notes', raidNotes.notes)}
+        </div>
+      ) : null}
 
       {isRaidCollapsed ? null : (
         <div className="table">
