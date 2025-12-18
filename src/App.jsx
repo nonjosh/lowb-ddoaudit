@@ -236,6 +236,8 @@ function App() {
               overflowY: 'auto' 
             }}>
               <CharactersSection
+                loading={loading}
+                hasFetched={!!lastUpdatedAt}
                 charactersById={charactersById}
                 charactersByPlayer={charactersByPlayer}
                 isPlayerCollapsed={isCharacterPlayerCollapsed}
@@ -246,6 +248,8 @@ function App() {
 
           <Grid size={{ xs: 12, sm: 8, md: 9, lg: 9.5 }}>
             <RaidsSection
+              loading={loading}
+              hasFetched={!!lastUpdatedAt}
               raidGroups={raidGroups}
               now={now}
               isRaidCollapsed={isRaidCollapsed}

@@ -1,16 +1,19 @@
 import { formatClasses, getPlayerDisplayName } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
-import { Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Box } from '@mui/material'
+import { Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Box, CircularProgress, Skeleton } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
-export default function CharactersSection({ charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
+export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
   const onlineCharacters = Object.values(charactersById ?? {})
     .filter((c) => c?.is_online)
     .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')))
 
   return (
     <>
-      <Typography variant="h5" gutterBottom>Characters</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+        <Typography variant="h5" sx={{ mb: 0 }}>Characters</Typography>
+        {loading && <CircularProgress size={20} />}
+      </Box>
 
       <Typography variant="body2" color="text.secondary" gutterBottom>
         Online:{' '}
@@ -90,8 +93,16 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
             )
           })}
         </Box>
+      ) : (loading || !hasFetched) ? (
+        <Box sx={{ mt: 2 }}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} variant="rectangular" height={48} sx={{ mb: 1, borderRadius: 1 }} />
+          ))}
+        </Box>
       ) : (
-        <Typography variant="body2" color="text.secondary">No character data loaded yet.</Typography>
+        <Typography variant="body2" color="text.secondary">
+          No character data found.
+        </Typography>
       )}
     </>
   )
