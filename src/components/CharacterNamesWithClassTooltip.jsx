@@ -9,12 +9,13 @@ export default function CharacterNamesWithClassTooltip({ items }) {
       {list.map((item, idx) => {
         const key = item?.id ?? item?.name ?? `item-${idx}`
         const name = item?.name ?? 'Unknown'
+        const isLast = idx === list.length - 1
         return (
           <span key={key}>
-            {idx ? ', ' : ''}
             <Tooltip title={formatClasses(item?.classes)}>
               <span style={{ cursor: 'help' }}>{name}</span>
             </Tooltip>
+            {!isLast ? ', ' : ''}
           </span>
         )
       })}
