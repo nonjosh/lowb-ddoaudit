@@ -1,6 +1,8 @@
 const DDOAUDIT_BASE_URL = 'https://api.ddoaudit.com/v1'
 const QUESTS_JSON_URL =
   'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.json'
+const AREAS_JSON_URL =
+  'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/areas.json'
 
 const MAX_CHARACTER_IDS_PER_REQUEST = 30
 
@@ -102,6 +104,7 @@ export async function fetchRaidActivity(characterIds, options = {}) {
 }
 
 let questsByIdPromise = null
+let areasByIdPromise = null
 
 function parseNullableInt(value) {
   if (value === null || value === undefined) return null
@@ -157,6 +160,39 @@ export async function fetchQuestsById() {
   })()
 
   return questsByIdPromise
+}
+
+/**
+ * Areas are loaded from JSON and mapped into a simple lookup table keyed by area id.
+ * Returned values are normalized to the shape used by the UI.
+ */
+export async function fetchAreasById() {
+  if (areasByIdPromise) return areasByIdPromise
+
+  areasByIdPromise = (async () => {
+    const resp = await fetch(AREAS_JSON_URL)
+    if (!resp.ok) {
+      throw new Error(`Failed to fetch areas.json (${resp.status})`)
+    }
+
+    const data = await resp.json()
+    const list = Array.isArray(data) ? data : []
+
+    /** @type {Record<string, { id: string, name: string }> } */
+    const map = {}
+
+    for (const a of list) {
+      const id = String(a?.id ?? '').trim()
+      const name = String(a?.name ?? '').trim()
+      if (!id || id.toLowerCase() === 'null' || id === '0') continue
+      if (!name) continue
+      map[id] = { id, name }
+    }
+
+    return map
+  })()
+
+  return areasByIdPromise
 }
 
 /**

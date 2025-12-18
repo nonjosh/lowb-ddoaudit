@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { formatClasses, getPlayerDisplayName } from '../raidLogic'
-import { fetchQuestsById, formatLocalDateTime } from '../ddoAuditApi'
+import { fetchAreasById, fetchQuestsById, formatLocalDateTime } from '../ddoAuditApi'
 import { 
   Typography, Box, CircularProgress, Skeleton, 
   List, ListItem, ListItemText, ListItemButton, ListSubheader,
@@ -11,10 +11,12 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 
 export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer }) {
   const [quests, setQuests] = useState({})
+  const [areas, setAreas] = useState({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState(null)
 
   useEffect(() => {
     fetchQuestsById().then(setQuests).catch(console.error)
+    fetchAreasById().then(setAreas).catch(console.error)
   }, [])
 
   const { onlineByPack, offlineGroups } = useMemo(() => {
@@ -30,7 +32,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
       const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
       if (onlineChar) {
         const quest = quests[onlineChar.location_id]
-        const pack = quest?.required_adventure_pack || 'Public Area / Unknown'
+        const pack = quest ? (quest?.required_adventure_pack || 'No Adventure Pack') : 'Not in quest'
         if (!online[pack]) online[pack] = []
         online[pack].push(group)
       } else {
@@ -59,9 +61,11 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     let onlineInfo = null
     if (onlineChars.length > 0) {
        onlineInfo = onlineChars.map(c => {
-          const questName = quests[c.location_id]?.name || 'Unknown Location'
+        const questName = quests[c.location_id]?.name
+        const areaName = areas[c.location_id]?.name
+        const locationName = questName || areaName || 'Unknown Area'
           const classes = formatClasses(c?.classes)
-          return `${c.name} (${classes}) @ ${questName}`
+         return `${c.name} (${classes}) @ ${locationName}`
        }).join(', ')
     }
 
@@ -93,7 +97,12 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     )
   }
 
-  const sortedPacks = Object.keys(onlineByPack).sort()
+  const sortedPacks = Object.keys(onlineByPack).sort((a, b) => {
+    if (a === b) return 0
+    if (a === 'Not in quest') return -1
+    if (b === 'Not in quest') return 1
+    return a.localeCompare(b)
+  })
 
   return (
     <>
