@@ -60,7 +60,7 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
             <Typography variant="h6">{g.raidName}</Typography>
             <Typography variant="caption" color="text.secondary">
-              Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'} · Quest ID: {g.questId}
+              Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}
             </Typography>
           </Box>
         }
