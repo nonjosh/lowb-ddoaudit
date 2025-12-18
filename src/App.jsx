@@ -214,16 +214,6 @@ function App() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom>
-          DDO Audit Raid Timers (Grouped by Raid)
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Paste character IDs, then load. Results are grouped by raid name and show each
-          character’s most recent completion timestamp. Lockout is assumed to be 2 days 18 hours.
-        </Typography>
-      </Box>
-
       <Controls
         loading={loading}
         onRefresh={load}
