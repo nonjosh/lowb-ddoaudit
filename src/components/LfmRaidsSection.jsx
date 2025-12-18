@@ -162,7 +162,8 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         }
       }
 
-      const hasMajorityGuild = majorityGuildCount > memberCount / 2
+      // Don't highlight guild "majority" when the leader is alone.
+      const hasMajorityGuild = memberCount > 1 && majorityGuildCount > memberCount / 2
       const leaderGuildIsMajority =
         hasMajorityGuild && leaderGuildName && majorityGuildName && leaderGuildName === majorityGuildName
 
