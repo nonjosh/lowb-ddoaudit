@@ -42,9 +42,14 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
   return (
     <Card sx={{ mb: 2 }}>
       <CardHeader
+        onClick={onToggleRaid}
+        sx={{ cursor: 'pointer' }}
         action={
           <IconButton
-            onClick={onToggleRaid}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleRaid()
+            }}
             aria-label="show more"
             sx={{ transform: !isRaidCollapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}
           >
@@ -83,14 +88,6 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
                   <TableCell>Character</TableCell>
                   <TableCell>Level</TableCell>
                   <TableCell>Classes</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      Last completion
-                      <Tooltip title="Last completion">
-                        <InfoIcon fontSize="small" color="action" />
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
                   <TableCell>Time remaining</TableCell>
                 </TableRow>
               </TableHead>

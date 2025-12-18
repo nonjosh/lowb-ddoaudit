@@ -99,10 +99,20 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
 
   return (
     <>
-      <TableRow sx={{ '& > *': { borderBottom: 'unset' }, bgcolor: 'action.hover' }}>
-        <TableCell colSpan={5} sx={{ py: 0.5 }}>
+      <TableRow 
+        onClick={onToggleCollapsed}
+        sx={{ '& > *': { borderBottom: 'unset' }, bgcolor: 'action.hover', cursor: 'pointer' }}
+      >
+        <TableCell colSpan={4} sx={{ py: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton size="small" onClick={onToggleCollapsed} sx={{ transform: !collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}>
+            <IconButton 
+              size="small" 
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleCollapsed()
+              }} 
+              sx={{ transform: !collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}
+            >
               <ExpandMoreIcon fontSize="small" />
             </IconButton>
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{getPlayerDisplayName(pg.player)}</Typography>
@@ -115,10 +125,14 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
       {!collapsed && displayEntries.map((e) => {
         const available = isEntryAvailable(e, now)
         const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
-        const lastCompletionTitle = `Last completion: ${lastCompletionText}`
         const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-        const title = readyAt ? readyAt.toLocaleString() : ''
         const remaining = readyAt ? readyAt.getTime() - now : NaN
+        
+        const tooltipTitle = available ? null : (
+          <Box>
+            <Typography variant="body2">Last completion: {lastCompletionText}</Typography>
+          </Box>
+        )
 
         return (
           <TableRow key={e.characterId} hover>
@@ -133,15 +147,8 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
             <TableCell>
               <Typography variant="body2">{formatClasses(e.classes)}</Typography>
             </TableCell>
-            <TableCell align="center">
-              {available ? null : (
-                <Tooltip title={lastCompletionTitle}>
-                  <InfoIcon fontSize="small" color="action" />
-                </Tooltip>
-              )}
-            </TableCell>
             <TableCell>
-              <Tooltip title={title}>
+              <Tooltip title={tooltipTitle}>
                 <Box>
                   <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{formatTimeRemaining(remaining)}</Typography>
                   {!available && readyAt ? (
