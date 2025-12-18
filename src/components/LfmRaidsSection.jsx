@@ -2,8 +2,13 @@ import { Fragment, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
+  Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Skeleton,
   Stack,
   Typography,
@@ -17,7 +22,7 @@ import {
   TableRow,
   Paper,
 } from '@mui/material'
-import { EXPECTED_PLAYERS, getPlayerDisplayName, getPlayerName } from '../raidLogic'
+import { EXPECTED_PLAYERS, formatClasses, getPlayerDisplayName, getPlayerName } from '../raidLogic'
 
 function isRaidQuest(quest) {
   const type = String(quest?.type ?? '').trim().toLowerCase()
@@ -25,6 +30,20 @@ function isRaidQuest(quest) {
 }
 
 function getEffectiveLevel(lfm, quest) {
+  // Prefer a version-specific quest level when available.
+  const leaderLevel = lfm?.leader?.total_level
+  const heroicLevel = quest?.heroicLevel
+  const epicLevel = quest?.epicLevel
+
+  if (typeof heroicLevel === 'number' && typeof epicLevel === 'number') {
+    // Heuristic: epic content is generally aimed at level 20+.
+    if (typeof leaderLevel === 'number' && leaderLevel >= 20) return epicLevel
+    return heroicLevel
+  }
+  if (typeof epicLevel === 'number') return epicLevel
+  if (typeof heroicLevel === 'number') return heroicLevel
+
+  // Fall back to the combined/max quest level if the split fields aren't present.
   const questLevel = quest?.level
   if (typeof questLevel === 'number') return questLevel
 
@@ -70,6 +89,7 @@ function parseReaperSkulls(text) {
 
 export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error }) {
   const [questFilter, setQuestFilter] = useState('raid')
+  const [selectedLfm, setSelectedLfm] = useState(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   const raidLfms = useMemo(() => {
@@ -105,6 +125,23 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           : difficulty
 
       const memberCount = 1 + (lfm?.members?.length ?? 0)
+
+      const participants = [lfm?.leader, ...(lfm?.members ?? [])]
+        .filter(Boolean)
+        .map((p) => {
+          const characterName = String(p?.name ?? '').trim() || '—'
+          const playerName = getPlayerName(characterName)
+          const classesDisplay = formatClasses(p?.classes)
+          return {
+            characterName,
+            playerName,
+            playerDisplayName: getPlayerDisplayName(playerName),
+            guildName: String(p?.guild_name ?? '').trim() || '',
+            totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
+            classesDisplay,
+            isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
+          }
+        })
 
       /** @type {Map<string, number>} */
       const guildCounts = new Map()
@@ -151,6 +188,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         minLevel,
         maxLevel,
         comment,
+        participants,
         memberCount,
         maxPlayers,
         openSlots: Math.max(0, maxPlayers - memberCount),
@@ -164,7 +202,20 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       })
     }
 
-    normalized.sort((a, b) => {
+    // Hide full groups.
+    let filtered = normalized.filter((x) => (x?.openSlots ?? 0) > 0)
+
+    // Toggle between raid-only and all quests.
+    if (questFilter === 'raid') {
+      filtered = filtered.filter((x) => x.isRaid)
+    }
+
+    // Sort by quest level desc (then most recently updated, then name).
+    filtered.sort((a, b) => {
+      const aHasName = Boolean(String(a.questName ?? '').trim())
+      const bHasName = Boolean(String(b.questName ?? '').trim())
+      if (aHasName !== bHasName) return aHasName ? -1 : 1
+
       const aLevel = typeof a.questLevel === 'number' ? a.questLevel : -1
       const bLevel = typeof b.questLevel === 'number' ? b.questLevel : -1
       if (aLevel !== bLevel) return bLevel - aLevel
@@ -176,16 +227,11 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       return a.questName.localeCompare(b.questName)
     })
 
-    // Hide full groups.
-    let filtered = normalized.filter((x) => (x?.openSlots ?? 0) > 0)
-
-    // Toggle between raid-only and all quests.
-    if (questFilter === 'raid') {
-      filtered = filtered.filter((x) => x.isRaid)
-    }
-
     return filtered
   }, [lfmsById, questsById, questFilter])
+
+  const shownCount = raidLfms.length
+  const totalCount = rawCount
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -194,8 +240,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           LFMs
         </Typography>
         {loading && <CircularProgress size={20} />}
-        <Chip size="small" variant="outlined" label={`Raw: ${rawCount}`} />
-        {!!raidLfms.length && <Chip size="small" variant="outlined" label={`Active: ${raidLfms.length}`} />}
+        <Chip size="small" variant="outlined" label={`Showing ${shownCount} out of ${totalCount}`} />
 
         <Box sx={{ ml: 'auto' }} />
         <ToggleButtonGroup
@@ -248,6 +293,8 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                   <TableRow
                     hover
                     sx={{ bgcolor: l.hasFriendInside ? 'action.selected' : 'inherit' }}
+                    onClick={() => setSelectedLfm(l)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <TableCell sx={{ maxWidth: 320 }}>
                       {l.questName ? (
@@ -291,12 +338,22 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                   </TableRow>
 
                   {Array.isArray(l.friendPlayersInside) && l.friendPlayersInside.length ? (
-                    <TableRow>
+                    <TableRow sx={{ bgcolor: 'action.selected' }}>
                       <TableCell colSpan={5} sx={{ py: 0.5 }}>
-                        <Typography variant="caption" color="primary">
-                          Friends inside:{' '}
-                          {l.friendPlayersInside.map(getPlayerDisplayName).join(' • ')}
-                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                          <Typography variant="caption" color="text.secondary">
+                            Friends inside:
+                          </Typography>
+                          {l.friendPlayersInside.map((p) => (
+                            <Chip
+                              key={p}
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                              label={getPlayerDisplayName(p)}
+                            />
+                          ))}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -306,6 +363,61 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           </Table>
         </TableContainer>
       )}
+
+      <Dialog
+        open={Boolean(selectedLfm)}
+        onClose={() => setSelectedLfm(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedLfm?.questName || 'LFM Group'}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Table size="small" aria-label="lfm members">
+            <TableHead>
+              <TableRow>
+                <TableCell>Character</TableCell>
+                <TableCell align="right" sx={{ width: 80 }}>Level</TableCell>
+                <TableCell>Classes</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(selectedLfm?.participants ?? []).map((p) => (
+                <TableRow key={`${p.characterName}:${p.playerName}`}>
+                  <TableCell>
+                    <Stack spacing={0.25}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" noWrap>
+                          {p.characterName}
+                        </Typography>
+                        {EXPECTED_PLAYERS.includes(p.playerName) ? (
+                          <Chip size="small" color="success" label={p.playerDisplayName} />
+                        ) : null}
+                        {p.isLeader ? <Chip size="small" variant="outlined" label="Leader" /> : null}
+                      </Stack>
+                      {p.guildName ? (
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {p.guildName}
+                        </Typography>
+                      ) : null}
+                    </Stack>
+                  </TableCell>
+                  <TableCell align="right">{typeof p.totalLevel === 'number' ? p.totalLevel : '—'}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" noWrap>
+                      {p.classesDisplay || '—'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedLfm(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   )
 }
