@@ -62,9 +62,10 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
 
   const renderPlayerRow = (group) => {
     const onlineChars = (group.chars ?? []).filter((c) => c?.is_online)
+    const isOnline = onlineChars.length > 0
     
     let onlineInfo = null
-    if (onlineChars.length > 0) {
+    if (isOnline) {
       onlineInfo = onlineChars
         .map((c) => {
           const questName = quests[c.location_id]?.name
@@ -86,15 +87,17 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
           <ListItemText 
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                   {getPlayerDisplayName(group.player)}
                 </Typography>
+                {isOnline && (
+                  <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
+                )}
                 <Typography variant="caption" color="text.secondary">
                   ({group.chars.length})
                 </Typography>
                 {onlineInfo && (
-                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
-                    <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
+                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
                     <Typography variant="caption" color="success.main">
                       {onlineInfo}
                     </Typography>
