@@ -5,10 +5,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Skeleton,
   Stack,
   Typography,
@@ -23,6 +19,7 @@ import {
   Paper,
 } from '@mui/material'
 import { EXPECTED_PLAYERS, formatClasses, getPlayerDisplayName, getPlayerName } from '../raidLogic'
+import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 function isRaidQuest(quest) {
   const type = String(quest?.type ?? '').trim().toLowerCase()
@@ -365,60 +362,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         </TableContainer>
       )}
 
-      <Dialog
-        open={Boolean(selectedLfm)}
-        onClose={() => setSelectedLfm(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedLfm?.questName || 'LFM Group'}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Table size="small" aria-label="lfm members">
-            <TableHead>
-              <TableRow>
-                <TableCell>Character</TableCell>
-                <TableCell align="right" sx={{ width: 80 }}>Level</TableCell>
-                <TableCell>Classes</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(selectedLfm?.participants ?? []).map((p) => (
-                <TableRow key={`${p.characterName}:${p.playerName}`}>
-                  <TableCell>
-                    <Stack spacing={0.25}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="body2" noWrap>
-                          {p.characterName}
-                        </Typography>
-                        {EXPECTED_PLAYERS.includes(p.playerName) ? (
-                          <Chip size="small" color="success" label={p.playerDisplayName} />
-                        ) : null}
-                        {p.isLeader ? <Chip size="small" variant="outlined" label="Leader" /> : null}
-                      </Stack>
-                      {p.guildName ? (
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {p.guildName}
-                        </Typography>
-                      ) : null}
-                    </Stack>
-                  </TableCell>
-                  <TableCell align="right">{typeof p.totalLevel === 'number' ? p.totalLevel : '—'}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2" noWrap>
-                      {p.classesDisplay || '—'}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedLfm(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} />
     </Paper>
   )
 }
