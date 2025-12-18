@@ -128,7 +128,7 @@ export async function fetchQuestsById() {
     const data = await resp.json()
     const list = Array.isArray(data) ? data : []
 
-    /** @type {Record<string, { id: string, name: string, type: string | null, level: number | null }> } */
+    /** @type {Record<string, { id: string, name: string, type: string | null, level: number | null, required_adventure_pack: string | null }> } */
     const map = {}
 
     for (const q of list) {
@@ -137,14 +137,19 @@ export async function fetchQuestsById() {
       const heroicCr = parseNullableInt(q?.heroic_normal_cr)
       const epicCr = parseNullableInt(q?.epic_normal_cr)
       const level = heroicCr === null && epicCr === null ? null : Math.max(heroicCr ?? 0, epicCr ?? 0)
+      const pack = String(q?.required_adventure_pack ?? '').trim() || null
 
       const primaryId = String(q?.id ?? '').trim()
       const altId = String(q?.alt_id ?? '').trim()
-      const ids = new Set([primaryId, altId].filter((x) => x && x.toLowerCase() !== 'null'))
+      const areaId = String(q?.area_id ?? '').trim()
+      const ids = new Set([primaryId, altId, areaId].filter((x) => x && x.toLowerCase() !== 'null' && x !== '0'))
 
       if (!name || ids.size === 0) continue
+
+      const questObj = { id: primaryId, name, type: type || null, level, required_adventure_pack: pack }
+
       for (const id of ids) {
-        map[id] = { id, name, type: type || null, level }
+        map[id] = questObj
       }
     }
 
