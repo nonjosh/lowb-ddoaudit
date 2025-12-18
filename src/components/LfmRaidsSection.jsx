@@ -48,6 +48,26 @@ function getGroupNames(lfm) {
   return names
 }
 
+/**
+ * Best-effort: skull count is typically embedded in the LFM comment (e.g. "R10", "Reaper 3").
+ * @param {string} text
+ */
+function parseReaperSkulls(text) {
+  const s = String(text ?? '')
+  if (!s) return null
+
+  // Capture 1-10 in common formats: R10, R 5, Reaper1, Reaper 3
+  const re = /\b(?:r|reaper)\s*([1-9]|10)\b/gi
+  let m
+  let best = null
+  while ((m = re.exec(s))) {
+    const n = Number.parseInt(m[1], 10)
+    if (!Number.isFinite(n)) continue
+    best = best === null ? n : Math.max(best, n)
+  }
+  return best
+}
+
 export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error }) {
   const [questFilter, setQuestFilter] = useState('raid')
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
@@ -74,6 +94,13 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       const minLevel = typeof lfm?.minimum_level === 'number' ? lfm.minimum_level : null
       const maxLevel = typeof lfm?.maximum_level === 'number' ? lfm.maximum_level : null
       const comment = String(lfm?.comment ?? '').trim() || ''
+
+      const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
+      const reaperSkulls = difficulty.toLowerCase() === 'reaper' ? parseReaperSkulls(comment) : null
+      const difficultyDisplay =
+        difficulty.toLowerCase() === 'reaper' && typeof reaperSkulls === 'number'
+          ? `Reaper ${reaperSkulls}`
+          : difficulty
 
       const memberCount = 1 + (lfm?.members?.length ?? 0)
 
@@ -110,7 +137,9 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         questName: quest?.name ?? `Unknown quest (${questId})`,
         questLevel: level,
         isRaid,
-        difficulty: String(lfm?.difficulty ?? '').trim() || '—',
+        difficulty,
+        difficultyDisplay,
+        reaperSkulls,
         leaderName,
         leaderGuildName,
         minLevel,
@@ -238,7 +267,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                         </Typography>
                       ) : null}
                     </TableCell>
-                    <TableCell>{l.difficulty}</TableCell>
+                    <TableCell>{l.difficultyDisplay}</TableCell>
                     <TableCell align="right">
                       {l.memberCount}/{l.maxPlayers}
                     </TableCell>
