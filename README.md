@@ -1,4 +1,4 @@
-# This is a Web Application integrating DDO Audit
+# This is a Web Application integrating DDO Audit for our friends in Shadowdale
 
 Live site (GitHub Pages):
 - https://nonjosh.github.io/lowb-ddoaudit/
@@ -19,3 +19,5 @@ and then open the forwarded port from VS Code.
 - Fetch character details by ids: https://api.ddoaudit.com/v1/characters/ids/81612777584,81612779875,81612799899,81612840713
 - Fetch quest name/level by id: https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.json
 - Fetch area name: https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/areas.json
+- Fetch LFM: https://api.ddoaudit.com/v1/lfms/shadowdale
+- Fetch server health: https://api.ddoaudit.com/v1/game/server-info

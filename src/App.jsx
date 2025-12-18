@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Container, Typography, Box, Grid, Paper } from '@mui/material'
 // import './App.css'
 
-import { fetchCharactersByIds, fetchQuestsById, fetchRaidActivity, parseCharacterIds } from './ddoAuditApi'
+import { fetchCharactersByIds, fetchLfms, fetchQuestsById, fetchRaidActivity, parseCharacterIds } from './ddoAuditApi'
 
 import Controls from './components/Controls'
 import CharactersSection from './components/CharactersSection'
+import LfmRaidsSection from './components/LfmRaidsSection'
 import RaidsSection from './components/RaidsSection'
 
 import {
@@ -26,6 +27,8 @@ function App() {
   const [charactersById, setCharactersById] = useState({})
   const [raidActivity, setRaidActivity] = useState([])
   const [questsById, setQuestsById] = useState({})
+  const [lfmsById, setLfmsById] = useState({})
+  const [lfmError, setLfmError] = useState('')
   const [now, setNow] = useState(() => Date.now())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set())
   const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set())
@@ -119,6 +122,7 @@ function App() {
 
     setLoading(true)
     setError('')
+    setLfmError('')
 
     try {
       const ids = parseCharacterIds(characterIdsInput)
@@ -127,15 +131,25 @@ function App() {
         return
       }
 
-      const [quests, characters, raids] = await Promise.all([
+      let lfmFetchError = null
+      const [quests, characters, raids, lfms] = await Promise.all([
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
         fetchRaidActivity(ids, { signal: controller.signal }),
+        fetchLfms('shadowdale', { signal: controller.signal }).catch((e) => {
+          lfmFetchError = e
+          return null
+        }),
       ])
+
+      if (lfmFetchError) {
+        setLfmError(lfmFetchError?.message ?? String(lfmFetchError))
+      }
 
       setQuestsById(quests)
       setCharactersById(characters)
       setRaidActivity(raids)
+      setLfmsById(lfms ?? {})
       setLastUpdatedAt(new Date())
     } catch (e) {
       if (e?.name === 'AbortError') return
@@ -247,6 +261,15 @@ function App() {
           </Grid>
 
           <Grid size={{ xs: 12, sm: 8, md: 9, lg: 9.5 }}>
+            <Box sx={{ mb: 3 }}>
+              <LfmRaidsSection
+                loading={loading}
+                hasFetched={!!lastUpdatedAt}
+                lfmsById={lfmsById}
+                questsById={questsById}
+                error={lfmError}
+              />
+            </Box>
             <RaidsSection
               loading={loading}
               hasFetched={!!lastUpdatedAt}

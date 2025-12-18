@@ -103,6 +103,24 @@ export async function fetchRaidActivity(characterIds, options = {}) {
   return results.flat()
 }
 
+/**
+ * Fetch current LFM (Looking For More) listings for a server.
+ *
+ * @param {string} serverName
+ * @param {{ signal?: AbortSignal }} [options]
+ */
+export async function fetchLfms(serverName = 'shadowdale', options = {}) {
+  const server = String(serverName ?? '').trim() || 'shadowdale'
+  const url = `${DDOAUDIT_BASE_URL}/lfms/${encodeURIComponent(server)}`
+  const resp = await fetch(url, { signal: options.signal })
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch LFMs (${resp.status})`)
+  }
+  const json = await resp.json()
+  // API returns an object keyed by group id.
+  return json ?? {}
+}
+
 let questsByIdPromise = null
 let areasByIdPromise = null
 
