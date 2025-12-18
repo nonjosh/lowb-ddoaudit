@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -17,7 +17,7 @@ import {
   TableRow,
   Paper,
 } from '@mui/material'
-import { EXPECTED_PLAYERS, getPlayerName } from '../raidLogic'
+import { EXPECTED_PLAYERS, getPlayerDisplayName, getPlayerName } from '../raidLogic'
 
 function isRaidQuest(quest) {
   const type = String(quest?.type ?? '').trim().toLowerCase()
@@ -85,6 +85,8 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       const quest = questsById?.[questId] ?? null
       const isRaid = isRaidQuest(quest)
 
+      const questName = String(quest?.name ?? '').trim() || ''
+
       const maxPlayers = isRaid ? RAID_SIZE : PARTY_SIZE
 
       const level = getEffectiveLevel(lfm, quest)
@@ -131,10 +133,14 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       const playersInGroup = new Set(groupNames.map(getPlayerName))
       const hasFriendInside = EXPECTED_PLAYERS.some((p) => playersInGroup.has(p))
 
+      const friendPlayersInside = Array.from(
+        new Set(groupNames.map(getPlayerName).filter((p) => EXPECTED_PLAYERS.includes(p))),
+      ).sort((a, b) => a.localeCompare(b))
+
       normalized.push({
         id: String(lfm?.id ?? questId),
         questId,
-        questName: quest?.name ?? `Unknown quest (${questId})`,
+        questName,
         questLevel: level,
         isRaid,
         difficulty,
@@ -154,6 +160,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         leaderGuildIsMajority,
         lastUpdate: lfm?.last_update ?? null,
         hasFriendInside,
+        friendPlayersInside,
       })
     }
 
@@ -181,7 +188,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
   }, [lfmsById, questsById, questFilter])
 
   return (
-    <>
+    <Paper variant="outlined" sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
         <Typography variant="h5" sx={{ mb: 0 }}>
           LFMs
@@ -224,33 +231,38 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           </Typography>
         )
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component={Box} sx={{ mt: 1 }}>
           <Table size="small" aria-label="lfm table">
             <TableHead>
               <TableRow>
                 <TableCell>Quest</TableCell>
                 <TableCell>Leader</TableCell>
                 <TableCell>Difficulty</TableCell>
-                <TableCell align="right">Players</TableCell>
+                <TableCell align="right" sx={{ width: 96 }} />
                 <TableCell>Comment</TableCell>
-                <TableCell>Tags</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {raidLfms.map((l) => {
-                return (
+              {raidLfms.map((l) => (
+                <Fragment key={l.id}>
                   <TableRow
-                    key={l.id}
                     hover
                     sx={{ bgcolor: l.hasFriendInside ? 'action.selected' : 'inherit' }}
                   >
                     <TableCell sx={{ maxWidth: 320 }}>
-                      <Typography variant="body2" noWrap>
-                        {l.questName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {typeof l.questLevel === 'number' ? `Quest Lv ${l.questLevel}` : 'Quest Lv —'}
-                      </Typography>
+                      {l.questName ? (
+                        <>
+                          <Typography variant="body2" noWrap>
+                            {l.questName}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="caption" color="text.secondary">
+                              {typeof l.questLevel === 'number' ? `Quest Lv ${l.questLevel}` : 'Quest Lv —'}
+                            </Typography>
+                            {l.isRaid ? <Chip size="small" variant="outlined" label="Raid" /> : null}
+                          </Stack>
+                        </>
+                      ) : null}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" noWrap>
@@ -276,19 +288,24 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                         {l.comment || '—'}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        {!l.isRaid ? <Chip size="small" variant="outlined" label="Non-raid" /> : <Chip size="small" variant="outlined" label="Raid" />}
-                        {l.hasFriendInside ? <Chip size="small" color="primary" label="Friend inside" /> : null}
-                      </Stack>
-                    </TableCell>
                   </TableRow>
-                )
-              })}
+
+                  {Array.isArray(l.friendPlayersInside) && l.friendPlayersInside.length ? (
+                    <TableRow>
+                      <TableCell colSpan={5} sx={{ py: 0.5 }}>
+                        <Typography variant="caption" color="primary">
+                          Friends inside:{' '}
+                          {l.friendPlayersInside.map(getPlayerDisplayName).join(' • ')}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
       )}
-    </>
+    </Paper>
   )
 }
