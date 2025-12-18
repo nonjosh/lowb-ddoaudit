@@ -117,8 +117,57 @@ export async function fetchLfms(serverName = 'shadowdale', options = {}) {
     throw new Error(`Failed to fetch LFMs (${resp.status})`)
   }
   const json = await resp.json()
-  // API returns an object keyed by group id.
-  return json ?? {}
+
+  /**
+   * Normalize possible response shapes into a record keyed by group id.
+   * Some deployments return `{ data: { [id]: lfm } }` while others return `{ [id]: lfm }`.
+   */
+  const normalize = (value) => {
+    if (!value) return {}
+
+    // Common wrapper: { data: ... }
+    if (typeof value === 'object' && !Array.isArray(value) && value?.data) {
+      return normalize(value.data)
+    }
+
+    // Sometimes: [ { id, quest_id, ... }, ... ]
+    if (Array.isArray(value)) {
+      /** @type {Record<string, any>} */
+      const out = {}
+      for (const item of value) {
+        const id = item?.id ?? item?.group_id
+        if (id === null || id === undefined) continue
+        out[String(id)] = item
+      }
+      return out
+    }
+
+    // Already the expected record: { [id]: lfm }
+    if (typeof value === 'object') {
+      const keys = Object.keys(value)
+      if (keys.length === 1) {
+        const onlyKey = keys[0]
+        const nested = value?.[onlyKey]
+        // If we got something like { data: { ... } } but under a different key name,
+        // unwrap when the nested object looks like a record of LFMs.
+        if (
+          nested &&
+          typeof nested === 'object' &&
+          !Array.isArray(nested) &&
+          !('quest_id' in value) &&
+          !('id' in value) &&
+          Object.values(nested).some((x) => x && typeof x === 'object' && 'quest_id' in x)
+        ) {
+          return nested
+        }
+      }
+      return value
+    }
+
+    return {}
+  }
+
+  return normalize(json)
 }
 
 let questsByIdPromise = null

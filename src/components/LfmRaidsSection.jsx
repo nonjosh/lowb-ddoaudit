@@ -1,5 +1,22 @@
-import { useMemo } from 'react'
-import { Alert, Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+import { useMemo, useState } from 'react'
+import {
+  Alert,
+  Box,
+  Chip,
+  CircularProgress,
+  Skeleton,
+  Stack,
+  Typography,
+  ToggleButton,
+  ToggleButtonGroup,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material'
 import { EXPECTED_PLAYERS, getPlayerName } from '../raidLogic'
 
 function isRaidQuest(quest) {
@@ -32,10 +49,13 @@ function getGroupNames(lfm) {
 }
 
 export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error }) {
+  const [questFilter, setQuestFilter] = useState('raid')
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   const raidLfms = useMemo(() => {
     const lfms = Object.values(lfmsById ?? {})
+    const PARTY_SIZE = 6
+    const RAID_SIZE = 12
 
     const normalized = []
     for (const lfm of lfms) {
@@ -45,7 +65,40 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       const quest = questsById?.[questId] ?? null
       const isRaid = isRaidQuest(quest)
 
+      const maxPlayers = isRaid ? RAID_SIZE : PARTY_SIZE
+
       const level = getEffectiveLevel(lfm, quest)
+
+      const leaderName = String(lfm?.leader?.name ?? '').trim() || '—'
+      const leaderGuildName = String(lfm?.leader?.guild_name ?? '').trim() || ''
+      const minLevel = typeof lfm?.minimum_level === 'number' ? lfm.minimum_level : null
+      const maxLevel = typeof lfm?.maximum_level === 'number' ? lfm.maximum_level : null
+      const comment = String(lfm?.comment ?? '').trim() || ''
+
+      const memberCount = 1 + (lfm?.members?.length ?? 0)
+
+      /** @type {Map<string, number>} */
+      const guildCounts = new Map()
+      const leaderGuild = String(lfm?.leader?.guild_name ?? '').trim()
+      if (leaderGuild) guildCounts.set(leaderGuild, (guildCounts.get(leaderGuild) ?? 0) + 1)
+      for (const m of lfm?.members ?? []) {
+        const g = String(m?.guild_name ?? '').trim()
+        if (!g) continue
+        guildCounts.set(g, (guildCounts.get(g) ?? 0) + 1)
+      }
+
+      let majorityGuildName = ''
+      let majorityGuildCount = 0
+      for (const [g, c] of guildCounts.entries()) {
+        if (c > majorityGuildCount) {
+          majorityGuildName = g
+          majorityGuildCount = c
+        }
+      }
+
+      const hasMajorityGuild = majorityGuildCount > memberCount / 2
+      const leaderGuildIsMajority =
+        hasMajorityGuild && leaderGuildName && majorityGuildName && leaderGuildName === majorityGuildName
 
       const groupNames = getGroupNames(lfm)
       const playersInGroup = new Set(groupNames.map(getPlayerName))
@@ -58,38 +111,74 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         questLevel: level,
         isRaid,
         difficulty: String(lfm?.difficulty ?? '').trim() || '—',
-        memberCount: 1 + (lfm?.members?.length ?? 0),
+        leaderName,
+        leaderGuildName,
+        minLevel,
+        maxLevel,
+        comment,
+        memberCount,
+        maxPlayers,
+        openSlots: Math.max(0, maxPlayers - memberCount),
+        majorityGuildName,
+        majorityGuildCount,
+        hasMajorityGuild,
+        leaderGuildIsMajority,
         lastUpdate: lfm?.last_update ?? null,
         hasFriendInside,
       })
     }
 
     normalized.sort((a, b) => {
+      const aLevel = typeof a.questLevel === 'number' ? a.questLevel : -1
+      const bLevel = typeof b.questLevel === 'number' ? b.questLevel : -1
+      if (aLevel !== bLevel) return bLevel - aLevel
+
       const aTs = a.lastUpdate ? new Date(a.lastUpdate).getTime() : 0
       const bTs = b.lastUpdate ? new Date(b.lastUpdate).getTime() : 0
       if (aTs !== bTs) return bTs - aTs
+
       return a.questName.localeCompare(b.questName)
     })
 
-    return normalized
-  }, [lfmsById, questsById])
+    // Hide full groups.
+    let filtered = normalized.filter((x) => (x?.openSlots ?? 0) > 0)
+
+    // Toggle between raid-only and all quests.
+    if (questFilter === 'raid') {
+      filtered = filtered.filter((x) => x.isRaid)
+    }
+
+    return filtered
+  }, [lfmsById, questsById, questFilter])
 
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
         <Typography variant="h5" sx={{ mb: 0 }}>
-          Raid LFMs
+          LFMs
         </Typography>
         {loading && <CircularProgress size={20} />}
         <Chip size="small" variant="outlined" label={`Raw: ${rawCount}`} />
         {!!raidLfms.length && <Chip size="small" variant="outlined" label={`Active: ${raidLfms.length}`} />}
-      </Box>
 
-      {rawCount > 0 && raidLfms.length === 0 ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-          Loaded LFMs but none normalized. Likely missing/empty `quest_id` fields in the response.
-        </Typography>
-      ) : null}
+        <Box sx={{ ml: 'auto' }} />
+        <ToggleButtonGroup
+          size="small"
+          value={questFilter}
+          exclusive
+          onChange={(_, v) => {
+            if (v) setQuestFilter(v)
+          }}
+          aria-label="quest filter"
+        >
+          <ToggleButton value="raid" aria-label="raids only">
+            Raids
+          </ToggleButton>
+          <ToggleButton value="all" aria-label="all quests">
+            All
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
 
       {error ? <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert> : null}
 
@@ -102,41 +191,74 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           </Stack>
         ) : (
           <Typography variant="body2" color="text.secondary">
-            No LFMs found.
+            No open LFMs found.
           </Typography>
         )
       ) : (
-        <Stack spacing={1.5}>
-          {raidLfms.map((l) => (
-            <Box
-              key={l.id}
-              sx={{
-                p: 1.5,
-                borderRadius: 1,
-                border: 1,
-                borderColor: 'divider',
-                bgcolor: l.hasFriendInside ? 'action.selected' : 'background.paper',
-              }}
-            >
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} justifyContent="space-between">
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="subtitle1" sx={{ lineHeight: 1.2 }} noWrap>
-                    {l.questName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {typeof l.questLevel === 'number' ? `Lv ${l.questLevel} • ` : ''}
-                    {l.difficulty} • Players: {l.memberCount}
-                  </Typography>
-                </Box>
-
-                <Stack direction="row" spacing={1} alignItems="center">
-                  {!l.isRaid ? <Chip size="small" variant="outlined" label="Non-raid" /> : null}
-                  {l.hasFriendInside ? <Chip size="small" color="primary" label="Friend inside" /> : null}
-                </Stack>
-              </Stack>
-            </Box>
-          ))}
-        </Stack>
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small" aria-label="lfm table">
+            <TableHead>
+              <TableRow>
+                <TableCell>Quest</TableCell>
+                <TableCell>Leader</TableCell>
+                <TableCell>Difficulty</TableCell>
+                <TableCell align="right">Players</TableCell>
+                <TableCell>Comment</TableCell>
+                <TableCell>Tags</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {raidLfms.map((l) => {
+                return (
+                  <TableRow
+                    key={l.id}
+                    hover
+                    sx={{ bgcolor: l.hasFriendInside ? 'action.selected' : 'inherit' }}
+                  >
+                    <TableCell sx={{ maxWidth: 320 }}>
+                      <Typography variant="body2" noWrap>
+                        {l.questName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {typeof l.questLevel === 'number' ? `Quest Lv ${l.questLevel}` : 'Quest Lv —'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap>
+                        {l.leaderName}
+                      </Typography>
+                      {l.leaderGuildName ? (
+                        <Typography
+                          variant="caption"
+                          color={l.leaderGuildIsMajority ? 'primary' : 'text.secondary'}
+                          sx={l.leaderGuildIsMajority ? { fontWeight: 600 } : undefined}
+                          noWrap
+                        >
+                          {l.leaderGuildName}
+                        </Typography>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>{l.difficulty}</TableCell>
+                    <TableCell align="right">
+                      {l.memberCount}/{l.maxPlayers}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 360 }}>
+                      <Typography variant="body2" noWrap>
+                        {l.comment || '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        {!l.isRaid ? <Chip size="small" variant="outlined" label="Non-raid" /> : <Chip size="small" variant="outlined" label="Raid" />}
+                        {l.hasFriendInside ? <Chip size="small" color="primary" label="Friend inside" /> : null}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
     </>
   )
