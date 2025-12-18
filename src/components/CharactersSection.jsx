@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { formatClasses, getPlayerDisplayName } from '../raidLogic'
-import { fetchAreasById, fetchQuestsById, formatAge, formatLocalDateTime } from '../ddoAuditApi'
+import { fetchAreasById, fetchQuestsById } from '../ddoAuditApi'
+import PlayerCharactersDialog from './PlayerCharactersDialog'
 import { 
   Typography, Box, CircularProgress, Skeleton, 
   List, ListItem, ListItemText, ListItemButton, ListSubheader,
-  Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip
+  Paper
 } from '@mui/material'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
@@ -14,8 +14,6 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
   const [quests, setQuests] = useState({})
   const [areas, setAreas] = useState({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState(null)
-
-  const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
   useEffect(() => {
     fetchQuestsById().then(setQuests).catch(console.error)
@@ -151,82 +149,12 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
         </Typography>
       )}
 
-      <Dialog 
-        open={!!selectedPlayerGroup} 
+      <PlayerCharactersDialog
+        open={!!selectedPlayerGroup}
         onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedPlayerGroup ? getPlayerDisplayName(selectedPlayerGroup.player) : ''}
-        </DialogTitle>
-        <DialogContent>
-          {selectedPlayerGroup && (
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Level</TableCell>
-                    <TableCell>Classes</TableCell>
-                    <TableCell>Last online</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {selectedPlayerGroup.chars
-                    .slice()
-                    .sort((a, b) => {
-                      if (a.is_online !== b.is_online) return a.is_online ? -1 : 1
-                      return new Date(b.last_update) - new Date(a.last_update)
-                    })
-                    .map((c) => {
-                    return (
-                      <TableRow key={c.id}>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {c.name}
-                            {c.is_online && <FiberManualRecordIcon color="success" sx={{ width: 10, height: 10 }} />}
-                          </Box>
-                        </TableCell>
-                        <TableCell>{c.total_level}</TableCell>
-                        <TableCell>{formatClasses(c.classes)}</TableCell>
-                        <TableCell>
-                          {(() => {
-                            if (c.is_online) return 'Online'
-
-                            const updatedAt = new Date(c.last_update)
-                            if (Number.isNaN(updatedAt.getTime())) return '—'
-
-                            const ageMs = Date.now() - updatedAt.getTime()
-                            const exact = formatLocalDateTime(c.last_update)
-
-                            if (ageMs >= 0 && ageMs <= WEEK_MS) {
-                              const relative = formatAge(c.last_update)
-                              const relativeWithAgo = relative === '—' ? exact : `${relative} ago`
-                              return (
-                                <Tooltip title={exact} arrow>
-                                  <Box component="span" sx={{ cursor: 'help' }}>
-                                    {relativeWithAgo}
-                                  </Box>
-                                </Tooltip>
-                              )
-                            }
-
-                            return exact
-                          })()}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        playerName={selectedPlayerGroup ? getPlayerDisplayName(selectedPlayerGroup.player) : ''}
+        characters={selectedPlayerGroup?.chars}
+      />
     </>
   )
 }
