@@ -336,7 +336,12 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                   </TableRow>
 
                   {Array.isArray(l.friendPlayersInside) && l.friendPlayersInside.length ? (
-                    <TableRow sx={{ bgcolor: 'action.selected' }}>
+                    <TableRow
+                      hover
+                      sx={{ bgcolor: 'action.selected' }}
+                      onClick={() => setSelectedLfm(l)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <TableCell colSpan={5} sx={{ py: 0.5 }}>
                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                           <Typography variant="caption" color="text.secondary">
