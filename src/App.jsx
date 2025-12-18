@@ -228,7 +228,13 @@ function App() {
       <Box sx={{ mt: 4 }}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, sm: 4, md: 3, lg: 2.5 }}>
-            <Paper sx={{ p: 2 }}>
+            <Paper sx={{ 
+              p: 2, 
+              position: 'sticky', 
+              top: 16, 
+              maxHeight: 'calc(100vh - 32px)', 
+              overflowY: 'auto' 
+            }}>
               <CharactersSection
                 charactersById={charactersById}
                 charactersByPlayer={charactersByPlayer}
