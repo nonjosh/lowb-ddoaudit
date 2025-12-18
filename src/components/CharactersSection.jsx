@@ -2,6 +2,7 @@ import { formatClasses, getPlayerDisplayName } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 import { Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Box, CircularProgress, Skeleton } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 
 export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
   const onlineCharacters = Object.values(charactersById ?? {})
@@ -65,7 +66,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                     </Typography>
                     {collapsed && onlineForPlayer.length ? (
                       <Box component="span" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Typography variant="caption">🟢</Typography>
+                        <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
                         <CharacterNamesWithClassTooltip items={onlineForPlayerItems} />
                       </Box>
                     ) : null}
@@ -77,11 +78,11 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                       <Chip
                         key={c.id}
                         label={
-                          <span>
+                          <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
                             <strong>{c.name}</strong>
-                            {c.is_online ? ' 🟢' : null}
+                            {c.is_online ? <FiberManualRecordIcon color="success" sx={{ width: 10, height: 10, ml: 0.5 }} /> : null}
                             <span style={{ opacity: 0.7, marginLeft: 4 }}>({formatClasses(c?.classes)})</span>
-                          </span>
+                          </Box>
                         }
                         variant="outlined"
                         size="small"

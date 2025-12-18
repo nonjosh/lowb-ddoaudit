@@ -10,6 +10,8 @@ import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 import { TableRow, TableCell, IconButton, Typography, Box, Tooltip } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import InfoIcon from '@mui/icons-material/Info'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
 
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
   const pg = playerGroup
@@ -64,7 +66,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
 
       return (
         <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
-          <Typography variant="caption">✅</Typography>
+          <CheckCircleIcon color="success" sx={{ width: 16, height: 16 }} />
           <CharacterNamesWithClassTooltip items={availableItems} />
         </Box>
       )
@@ -88,13 +90,16 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
     if (soonest) {
       const when = soonestReadyAt ? formatLocalDateTime(soonestReadyAt) : '—'
       return (
-        <Typography variant="caption" color="text.secondary">
-          ❌ Soonest: {soonest.characterName} ({formatTimeRemaining(soonestRemaining)} · {when})
-        </Typography>
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <CancelIcon color="error" sx={{ width: 16, height: 16 }} />
+          <Typography variant="caption" color="text.secondary">
+            Soonest: {soonest.characterName} ({formatTimeRemaining(soonestRemaining)} · {when})
+          </Typography>
+        </Box>
       )
     }
 
-    return <Typography variant="caption" color="text.secondary">❌</Typography>
+    return <CancelIcon color="error" sx={{ width: 16, height: 16 }} />
   })()
 
   return (
@@ -150,7 +155,10 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
             <TableCell>
               <Tooltip title={tooltipTitle}>
                 <Box>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{formatTimeRemaining(remaining)}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {formatTimeRemaining(remaining)}
+                    {!Number.isFinite(remaining) && <CheckCircleIcon color="success" sx={{ width: 14, height: 14 }} />}
+                  </Typography>
                   {!available && readyAt ? (
                     <Typography variant="caption" color="text.secondary" display="block">
                       {formatLocalDateTime(readyAt)}

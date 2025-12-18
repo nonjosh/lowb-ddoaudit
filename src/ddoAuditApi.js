@@ -213,7 +213,7 @@ export function formatAge(ts) {
  * @param {number} remainingMs
  */
 export function formatTimeRemaining(remainingMs) {
-  if (!Number.isFinite(remainingMs)) return 'Available ✅'
+  if (!Number.isFinite(remainingMs)) return 'Available'
   if (remainingMs <= 0) return 'Ready'
 
   const totalMinutes = Math.ceil(remainingMs / 60000)
