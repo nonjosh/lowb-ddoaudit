@@ -8,6 +8,8 @@ import {
   Paper
 } from '@mui/material'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 
 export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer }) {
@@ -113,7 +115,14 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
           {sortedPacks.map(pack => (
             <Paper key={pack} variant="outlined" sx={{ mb: 2, overflow: 'hidden' }}>
               <ListSubheader sx={{ bgcolor: 'action.hover', lineHeight: '32px', borderBottom: 1, borderColor: 'divider' }}>
-                {pack}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {pack === 'Not in quest' ? (
+                    <PlaceOutlinedIcon sx={{ fontSize: 18 }} />
+                  ) : (
+                    <LocalOfferOutlinedIcon sx={{ fontSize: 18 }} />
+                  )}
+                  {pack}
+                </Box>
               </ListSubheader>
               <List dense disablePadding>
                 {onlineByPack[pack].map(renderPlayerRow)}
