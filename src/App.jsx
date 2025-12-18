@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import './App.css'
+import { Container, Typography, Box, Grid, Paper } from '@mui/material'
+// import './App.css'
 
 import { fetchCharactersByIds, fetchQuestsById, fetchRaidActivity, parseCharacterIds } from './ddoAuditApi'
 
@@ -212,14 +213,16 @@ function App() {
   }
 
   return (
-    <>
-      <header className="header">
-        <h1>DDO Audit Raid Timers (Grouped by Raid)</h1>
-        <p className="subtitle">
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h3" component="h1" gutterBottom>
+          DDO Audit Raid Timers (Grouped by Raid)
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
           Paste character IDs, then load. Results are grouped by raid name and show each
           character’s most recent completion timestamp. Lockout is assumed to be 2 days 18 hours.
-        </p>
-      </header>
+        </Typography>
+      </Box>
 
       <Controls
         loading={loading}
@@ -232,28 +235,32 @@ function App() {
         error={error}
       />
 
-      <section className="results">
-        <div className="charactersPane">
-          <CharactersSection
-            charactersById={charactersById}
-            charactersByPlayer={charactersByPlayer}
-            isPlayerCollapsed={isCharacterPlayerCollapsed}
-            togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
-          />
-        </div>
+      <Box sx={{ mt: 4 }}>
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, sm: 4, md: 3, lg: 2.5 }}>
+            <Paper sx={{ p: 2 }}>
+              <CharactersSection
+                charactersById={charactersById}
+                charactersByPlayer={charactersByPlayer}
+                isPlayerCollapsed={isCharacterPlayerCollapsed}
+                togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
+              />
+            </Paper>
+          </Grid>
 
-        <div className="raidsPane">
-          <RaidsSection
-            raidGroups={raidGroups}
-            now={now}
-            isRaidCollapsed={isRaidCollapsed}
-            toggleRaidCollapsed={toggleRaidCollapsed}
-            isPlayerCollapsed={isCollapsed}
-            togglePlayerCollapsed={toggleCollapsed}
-          />
-        </div>
-      </section>
-    </>
+          <Grid size={{ xs: 12, sm: 8, md: 9, lg: 9.5 }}>
+            <RaidsSection
+              raidGroups={raidGroups}
+              now={now}
+              isRaidCollapsed={isRaidCollapsed}
+              toggleRaidCollapsed={toggleRaidCollapsed}
+              isPlayerCollapsed={isCollapsed}
+              togglePlayerCollapsed={toggleCollapsed}
+            />
+          </Grid>
+        </Grid>
+      </Box>
+    </Container>
   )
 }
 

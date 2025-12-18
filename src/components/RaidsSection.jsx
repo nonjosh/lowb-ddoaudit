@@ -1,15 +1,16 @@
 import RaidCard from './RaidCard'
+import { Typography, Box, Stack } from '@mui/material'
 
 export default function RaidsSection({ raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed }) {
   return (
     <>
-      <h2>Raids</h2>
+      <Typography variant="h5" gutterBottom>Raids</Typography>
       {!raidGroups.length ? (
-        <p className="muted">No raid activity found for those character IDs.</p>
+        <Typography variant="body2" color="text.secondary">No raid activity found for those character IDs.</Typography>
       ) : (
-        <div className="raidList">
+        <Stack spacing={2}>
           {raidGroups.map((g) => (
-            <div key={g.questId}>
+            <Box key={g.questId}>
               <RaidCard
                 raidGroup={g}
                 now={now}
@@ -18,9 +19,9 @@ export default function RaidsSection({ raidGroups, now, isRaidCollapsed, toggleR
                 isPlayerCollapsed={isPlayerCollapsed}
                 onTogglePlayer={togglePlayerCollapsed}
               />
-            </div>
+            </Box>
           ))}
-        </div>
+        </Stack>
       )}
     </>
   )

@@ -1,3 +1,4 @@
+import { Tooltip } from '@mui/material'
 import { formatClasses } from '../raidLogic'
 
 export default function CharacterNamesWithClassTooltip({ items }) {
@@ -9,9 +10,11 @@ export default function CharacterNamesWithClassTooltip({ items }) {
         const key = item?.id ?? item?.name ?? `item-${idx}`
         const name = item?.name ?? 'Unknown'
         return (
-          <span key={key} title={formatClasses(item?.classes)}>
+          <span key={key}>
             {idx ? ', ' : ''}
-            {name}
+            <Tooltip title={formatClasses(item?.classes)}>
+              <span style={{ cursor: 'help' }}>{name}</span>
+            </Tooltip>
           </span>
         )
       })}

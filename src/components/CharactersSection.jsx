@@ -1,5 +1,7 @@
 import { formatClasses, getPlayerDisplayName } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
+import { Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Box } from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
 export default function CharactersSection({ charactersById, charactersByPlayer, isPlayerCollapsed, togglePlayerCollapsed }) {
   const onlineCharacters = Object.values(charactersById ?? {})
@@ -8,9 +10,9 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
 
   return (
     <>
-      <h2>Characters</h2>
+      <Typography variant="h5" gutterBottom>Characters</Typography>
 
-      <p className="muted">
+      <Typography variant="body2" color="text.secondary" gutterBottom>
         Online:{' '}
         {onlineCharacters.length
           ? onlineCharacters
@@ -20,10 +22,10 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
               })
               .join(', ')
           : '—'}
-      </p>
+      </Typography>
 
       {Object.keys(charactersById ?? {}).length ? (
-        <div className="playerGroups">
+        <Box sx={{ mt: 2 }}>
           {charactersByPlayer.map((group) => {
             const collapsed = isPlayerCollapsed(group.player)
             const onlineForPlayer = (group.chars ?? [])
@@ -38,47 +40,58 @@ export default function CharactersSection({ charactersById, charactersByPlayer, 
             }))
 
             return (
-              <div key={group.player} className="playerGroup">
-                <div className="groupRowInner">
-                  <button
-                    type="button"
-                    className="toggleBtn"
-                    onClick={() => togglePlayerCollapsed(group.player)}
-                  >
-                    {collapsed ? 'Show' : 'Hide'}
-                  </button>
-                  <strong>{getPlayerDisplayName(group.player)}</strong>
-                  <span className="muted">({group.chars.length})</span>
-                  {collapsed && onlineForPlayer.length ? (
-                    <span className="muted">
-                      🟢{' '}
-                      <CharacterNamesWithClassTooltip items={onlineForPlayerItems} />
-                    </span>
-                  ) : null}
-                </div>
-
-                {collapsed ? null : (
-                  <ul className="chips">
+              <Accordion 
+                key={group.player} 
+                expanded={!collapsed} 
+                onChange={() => togglePlayerCollapsed(group.player)}
+                disableGutters
+                elevation={0}
+                sx={{ 
+                  '&:before': { display: 'none' },
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+                  background: 'transparent'
+                }}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      {getPlayerDisplayName(group.player)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ({group.chars.length})
+                    </Typography>
+                    {collapsed && onlineForPlayer.length ? (
+                      <Box component="span" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption">🟢</Typography>
+                        <CharacterNamesWithClassTooltip items={onlineForPlayerItems} />
+                      </Box>
+                    ) : null}
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {group.chars.map((c) => (
-                      <li
+                      <Chip
                         key={c.id}
-                        className="chip"
-                      >
-                        <strong>
-                          {c.name}
-                          {c.is_online ? ' 🟢' : null}
-                        </strong>{' '}
-                        <span className="muted">({formatClasses(c?.classes)})</span>
-                      </li>
+                        label={
+                          <span>
+                            <strong>{c.name}</strong>
+                            {c.is_online ? ' 🟢' : null}
+                            <span style={{ opacity: 0.7, marginLeft: 4 }}>({formatClasses(c?.classes)})</span>
+                          </span>
+                        }
+                        variant="outlined"
+                        size="small"
+                      />
                     ))}
-                  </ul>
-                )}
-              </div>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
             )
           })}
-        </div>
+        </Box>
       ) : (
-        <p className="muted">No character data loaded yet.</p>
+        <Typography variant="body2" color="text.secondary">No character data loaded yet.</Typography>
       )}
     </>
   )

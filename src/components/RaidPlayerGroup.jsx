@@ -7,6 +7,9 @@ import {
 
 import { formatClasses, getPlayerDisplayName, isEntryAvailable } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
+import { TableRow, TableCell, IconButton, Typography, Box, Tooltip } from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import InfoIcon from '@mui/icons-material/Info'
 
 export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
   const pg = playerGroup
@@ -60,10 +63,10 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
       }))
 
       return (
-        <span className="muted">
-          ✅{' '}
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+          <Typography variant="caption">✅</Typography>
           <CharacterNamesWithClassTooltip items={availableItems} />
-        </span>
+        </Box>
       )
     }
 
@@ -85,70 +88,73 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
     if (soonest) {
       const when = soonestReadyAt ? formatLocalDateTime(soonestReadyAt) : '—'
       return (
-        <span className="muted">
+        <Typography variant="caption" color="text.secondary">
           ❌ Soonest: {soonest.characterName} ({formatTimeRemaining(soonestRemaining)} · {when})
-        </span>
+        </Typography>
       )
     }
 
-    return <span className="muted">❌</span>
+    return <Typography variant="caption" color="text.secondary">❌</Typography>
   })()
 
   return (
-    <div className="playerSection">
-      <div className="row groupRow">
-        <div className="groupRowInner">
-          <button type="button" className="toggleBtn" onClick={onToggleCollapsed}>
-            {collapsed ? 'Show' : 'Hide'}
-          </button>
-          <strong>{getPlayerDisplayName(pg.player)}</strong>
-          <span className="muted">({availableCount}/{totalCount})</span>
-          {collapsed ? collapsedAvailabilityNode : null}
-        </div>
-      </div>
+    <>
+      <TableRow sx={{ '& > *': { borderBottom: 'unset' }, bgcolor: 'action.hover' }}>
+        <TableCell colSpan={5} sx={{ py: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton size="small" onClick={onToggleCollapsed} sx={{ transform: !collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}>
+              <ExpandMoreIcon fontSize="small" />
+            </IconButton>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{getPlayerDisplayName(pg.player)}</Typography>
+            <Typography variant="caption" color="text.secondary">({availableCount}/{totalCount})</Typography>
+            {collapsed ? collapsedAvailabilityNode : null}
+          </Box>
+        </TableCell>
+      </TableRow>
 
-      {collapsed
-        ? null
-        : displayEntries.map((e) => {
-            const available = isEntryAvailable(e, now)
+      {!collapsed && displayEntries.map((e) => {
+        const available = isEntryAvailable(e, now)
+        const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
+        const lastCompletionTitle = `Last completion: ${lastCompletionText}`
+        const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
+        const title = readyAt ? readyAt.toLocaleString() : ''
+        const remaining = readyAt ? readyAt.getTime() - now : NaN
 
-            const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
-            const lastCompletionTitle = `Last completion: ${lastCompletionText}`
-
-            return (
-              <div key={e.characterId} className="row">
-                <div title={formatClasses(e?.classes)}>{e.characterName}</div>
-                <div className="mono">{e.totalLevel ?? '—'}</div>
-                <div>{formatClasses(e.classes)}</div>
-                <div className="mono lastCompletionCell">
-                  {available ? null : (
-                    <span
-                      className="hoverInfoIcon"
-                      title={lastCompletionTitle}
-                      aria-label={lastCompletionTitle}
-                    >
-                      i
-                    </span>
-                  )}
-                </div>
-                {(() => {
-                  const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-                  const title = readyAt ? readyAt.toLocaleString() : ''
-                  const remaining = readyAt ? readyAt.getTime() - now : NaN
-                  return (
-                    <div className="mono" title={title}>
-                      <div>{formatTimeRemaining(remaining)}</div>
-                      {available
-                        ? null
-                        : readyAt
-                          ? <div className="muted">{formatLocalDateTime(readyAt)}</div>
-                          : null}
-                    </div>
-                  )
-                })()}
-              </div>
-            )
-          })}
-    </div>
+        return (
+          <TableRow key={e.characterId} hover>
+            <TableCell>
+              <Tooltip title={formatClasses(e?.classes)}>
+                <Typography variant="body2">{e.characterName}</Typography>
+              </Tooltip>
+            </TableCell>
+            <TableCell>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{e.totalLevel ?? '—'}</Typography>
+            </TableCell>
+            <TableCell>
+              <Typography variant="body2">{formatClasses(e.classes)}</Typography>
+            </TableCell>
+            <TableCell align="center">
+              {available ? null : (
+                <Tooltip title={lastCompletionTitle}>
+                  <InfoIcon fontSize="small" color="action" />
+                </Tooltip>
+              )}
+            </TableCell>
+            <TableCell>
+              <Tooltip title={title}>
+                <Box>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{formatTimeRemaining(remaining)}</Typography>
+                  {!available && readyAt ? (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {formatLocalDateTime(readyAt)}
+                    </Typography>
+                  ) : null}
+                </Box>
+              </Tooltip>
+            </TableCell>
+          </TableRow>
+        )
+      })}
+    </>
   )
 }

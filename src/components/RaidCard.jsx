@@ -1,6 +1,9 @@
 import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable } from '../raidLogic'
 import { getRaidNotesForRaidName } from '../raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
+import { Card, CardHeader, CardContent, Collapse, IconButton, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip } from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import InfoIcon from '@mui/icons-material/Info'
 
 export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer }) {
   const g = raidGroup
@@ -10,22 +13,15 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
   const renderNotesField = (label, items) => {
     const list = Array.isArray(items) ? items.filter(Boolean) : []
     if (list.length === 0) return null
-    if (list.length === 1) {
-      return (
-        <div className="raidNotesRow">
-          <span className="muted">{label}:</span> {list[0]}
-        </div>
-      )
-    }
     return (
-      <div className="raidNotesRow">
-        <span className="muted">{label}:</span>
-        <ul className="raidNotesList">
+      <Box sx={{ display: 'flex', gap: 1, mb: 0.5 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>{label}:</Typography>
+        <Box>
           {list.map((x, idx) => (
-            <li key={`${label}-${idx}`}>{x}</li>
+            <Typography key={idx} variant="body2" component="div">{x}</Typography>
           ))}
-        </ul>
-      </div>
+        </Box>
+      </Box>
     )
   }
 
@@ -44,56 +40,78 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
   }).length
 
   return (
-    <div className="raidCard">
-      <div className="raidTitle">
-        <h3>{g.raidName}</h3>
-        <span className="muted">
-          Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'} · Quest ID: {g.questId}
-        </span>
-        <span className={availablePlayers === EXPECTED_PLAYERS.length ? 'muted allAvailable' : 'muted'}>
-          Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
-        </span>
-        <button type="button" className="toggleBtn" onClick={onToggleRaid}>
-          {isRaidCollapsed ? 'Show' : 'Hide'}
-        </button>
-      </div>
+    <Card sx={{ mb: 2 }}>
+      <CardHeader
+        action={
+          <IconButton
+            onClick={onToggleRaid}
+            aria-label="show more"
+            sx={{ transform: !isRaidCollapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}
+          >
+            <ExpandMoreIcon />
+          </IconButton>
+        }
+        title={
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
+            <Typography variant="h6">{g.raidName}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'} · Quest ID: {g.questId}
+            </Typography>
+          </Box>
+        }
+        subheader={
+          <Typography variant="body2" color={availablePlayers === EXPECTED_PLAYERS.length ? 'success.main' : 'text.secondary'}>
+            Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
+          </Typography>
+        }
+      />
+      
+      <Collapse in={!isRaidCollapsed} timeout="auto" unmountOnExit>
+        <CardContent>
+          {raidNotes ? (
+            <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+              {renderNotesField('Augment', raidNotes.augments)}
+              {renderNotesField('Set', raidNotes.sets)}
+              {renderNotesField('Notes', raidNotes.notes)}
+            </Box>
+          ) : null}
 
-      {raidNotes ? (
-        <div className="raidNotes">
-          {renderNotesField('Augment', raidNotes.augments)}
-          {renderNotesField('Set', raidNotes.sets)}
-          {renderNotesField('Notes', raidNotes.notes)}
-        </div>
-      ) : null}
-
-      {isRaidCollapsed ? null : (
-        <div className="table">
-          <div className="row head">
-            <div>Character</div>
-            <div>Level</div>
-            <div>Classes</div>
-            <div className="lastCompletionHeader">
-              <span className="hoverInfoIcon" title="Last completion" aria-label="Last completion">
-                i
-              </span>
-            </div>
-            <div>Time remaining</div>
-          </div>
-
-          {perPlayerEligible.map((pg) => {
-            const collapsed = isPlayerCollapsed(g.questId, pg.player)
-            return (
-              <RaidPlayerGroup
-                key={pg.player}
-                playerGroup={pg}
-                now={now}
-                collapsed={collapsed}
-                onToggleCollapsed={() => onTogglePlayer(g.questId, pg.player)}
-              />
-            )
-          })}
-        </div>
-      )}
-    </div>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Character</TableCell>
+                  <TableCell>Level</TableCell>
+                  <TableCell>Classes</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      Last completion
+                      <Tooltip title="Last completion">
+                        <InfoIcon fontSize="small" color="action" />
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>Time remaining</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {perPlayerEligible.map((pg) => {
+                  const collapsed = isPlayerCollapsed(g.questId, pg.player)
+                  return (
+                    <RaidPlayerGroup
+                      key={pg.player}
+                      playerGroup={pg}
+                      now={now}
+                      collapsed={collapsed}
+                      onToggleCollapsed={() => onTogglePlayer(g.questId, pg.player)}
+                    />
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Collapse>
+    </Card>
   )
 }
