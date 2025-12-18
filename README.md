@@ -14,12 +14,7 @@ If you're running in a dev container / Codespaces and can't open the site in you
 make sure Vite is listening on all interfaces (this repo is configured to do that by default)
 and then open the forwarded port from VS Code.
 
-## How it works
-
-- Enter one or more DDO Audit character IDs (comma or whitespace separated)
-- The app loads raid activity for those characters and groups results by raid (quest) name
-
-related APIs:
+## Related APIs
 - Fetch raid id of selected character ids: https://api.ddoaudit.com/v1/activity/raids?character_ids=81612777584,81612779875,81612799899,81612840713
 - Fetch character details by ids: https://api.ddoaudit.com/v1/characters/ids/81612777584,81612779875,81612799899,81612840713
 - Fetch quest name/level by id: https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.json
