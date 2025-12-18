@@ -7,7 +7,7 @@ import { fetchCharactersByIds, fetchLfms, fetchQuestsById, fetchRaidActivity, pa
 import Controls from './components/Controls'
 import CharactersSection from './components/CharactersSection'
 import LfmRaidsSection from './components/LfmRaidsSection'
-import RaidsSection from './components/RaidsSection'
+import RaidTimerSection from './components/RaidTimerSection'
 
 import {
   buildRaidGroups,
@@ -270,7 +270,7 @@ function App() {
                 error={lfmError}
               />
             </Box>
-            <RaidsSection
+            <RaidTimerSection
               loading={loading}
               hasFetched={!!lastUpdatedAt}
               raidGroups={raidGroups}

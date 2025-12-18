@@ -1,11 +1,11 @@
 import RaidCard from './RaidCard'
 import { Typography, Box, Stack, CircularProgress, Skeleton } from '@mui/material'
 
-export default function RaidsSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed }) {
+export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed }) {
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-        <Typography variant="h5" sx={{ mb: 0 }}>Raids</Typography>
+        <Typography variant="h5" sx={{ mb: 0 }}>Raid Timers</Typography>
         {loading && <CircularProgress size={20} />}
       </Box>
       {!raidGroups.length ? (
