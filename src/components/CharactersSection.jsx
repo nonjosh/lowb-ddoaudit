@@ -8,6 +8,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip
 } from '@mui/material'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 
 export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer }) {
   const [quests, setQuests] = useState({})
@@ -45,10 +46,6 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     return { onlineByPack: online, offlineGroups: offline }
   }, [charactersByPlayer, quests])
 
-  const onlineCharacters = Object.values(charactersById ?? {})
-    .filter((c) => c?.is_online)
-    .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')))
-
   const handlePlayerClick = (group) => {
     setSelectedPlayerGroup(group)
   }
@@ -81,7 +78,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                   {getPlayerDisplayName(group.player)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  ({group.chars.length} chars)
+                  ({group.chars.length})
                 </Typography>
                 {onlineInfo && (
                   <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
@@ -113,18 +110,6 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
         {loading && <CircularProgress size={20} />}
       </Box>
 
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        Online:{' '}
-        {onlineCharacters.length
-          ? onlineCharacters
-              .map((c) => {
-                const classes = formatClasses(c?.classes)
-                return `${c?.name ?? 'Unknown'} (${classes})`
-              })
-              .join(', ')
-          : '—'}
-      </Typography>
-
       {Object.keys(charactersById ?? {}).length ? (
         <Box sx={{ mt: 2 }}>
           {sortedPacks.map(pack => (
@@ -142,7 +127,10 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
             <Paper key="offline" variant="outlined" sx={{ mb: 2, overflow: 'hidden' }}>
               {sortedPacks.length > 0 && (
                 <ListSubheader sx={{ bgcolor: 'action.hover', lineHeight: '32px', borderBottom: 1, borderColor: 'divider' }}>
-                  Offline
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <RemoveCircleOutlineIcon sx={{ fontSize: 18 }} />
+                    Offline
+                  </Box>
                 </ListSubheader>
               )}
               <List dense disablePadding>
