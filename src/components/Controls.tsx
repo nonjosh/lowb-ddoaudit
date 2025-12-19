@@ -1,5 +1,7 @@
-import { Alert, Box, Button, Chip, FormControlLabel, Paper, Stack, Switch, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, FormControlLabel, Paper, Stack, Switch, Typography, ToggleButton, Tooltip } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import SyncIcon from '@mui/icons-material/Sync'
+import SyncDisabledIcon from '@mui/icons-material/SyncDisabled'
 
 import { formatLocalDateTime } from '../ddoAuditApi'
 
@@ -52,10 +54,18 @@ export default function Controls({
         
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
           <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-around', sm: 'flex-start' } }}>
-            <FormControlLabel
-              control={<Switch size="small" checked={autoRefreshEnabled} onChange={onToggleAutoRefresh} disabled={loading} />}
-              label={<Typography variant="body2">Auto refresh</Typography>}
-            />
+            <Tooltip title={autoRefreshEnabled ? "Disable auto refresh" : "Enable auto refresh"}>
+              <ToggleButton
+                value="check"
+                selected={autoRefreshEnabled}
+                onChange={() => onToggleAutoRefresh()}
+                disabled={loading}
+                size="small"
+                color="primary"
+              >
+                {autoRefreshEnabled ? <SyncIcon /> : <SyncDisabledIcon />}
+              </ToggleButton>
+            </Tooltip>
             <FormControlLabel
               control={<Switch size="small" checked={showClassIcons} onChange={onToggleShowClassIcons} />}
               label={<Typography variant="body2">Class icons</Typography>}
