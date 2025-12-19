@@ -18,7 +18,7 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
-import { formatClasses, getPlayerDisplayName } from '../raidLogic'
+import { getPlayerDisplayName } from '../raidLogic'
 import PlayerCharactersDialog from './PlayerCharactersDialog'
 import ClassDisplay from './ClassDisplay'
 
