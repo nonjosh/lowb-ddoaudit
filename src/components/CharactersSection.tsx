@@ -25,6 +25,7 @@ interface Character {
   is_online: boolean
   location_id: string
   classes: any[]
+  race: string
 }
 
 interface PlayerGroup {
@@ -105,7 +106,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
           if (questName) return `${c.name} (${classes})`
 
           const locationName = areaName || 'Unknown Area'
-          return `${c.name} (${classes}) @ ${locationName}`
+          return `${c.name} ({c.race} ${classes}) @ ${locationName}`
         })
         .join(', ')
     }

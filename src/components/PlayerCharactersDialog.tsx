@@ -41,6 +41,7 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                   <TableCell>Name</TableCell>
                   <TableCell>Level</TableCell>
                   <TableCell>Classes</TableCell>
+                  <TableCell>Race</TableCell>
                   <TableCell>Last online</TableCell>
                 </TableRow>
               </TableHead>
@@ -61,6 +62,7 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                       </TableCell>
                       <TableCell>{c.total_level}</TableCell>
                       <TableCell>{formatClasses(c.classes)}</TableCell>
+                      <TableCell>{c.race}</TableCell>
                       <TableCell>
                         {(() => {
                           if (c.is_online) return 'Online'

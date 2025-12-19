@@ -115,7 +115,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
         onClick={onToggleCollapsed}
         sx={{ '& > *': { borderBottom: 'unset' }, bgcolor: 'action.hover', cursor: 'pointer' }}
       >
-        <TableCell colSpan={4} sx={{ py: 0.5 }}>
+        <TableCell colSpan={5} sx={{ py: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton 
               size="small" 
@@ -158,6 +158,9 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
             </TableCell>
             <TableCell>
               <Typography variant="body2">{formatClasses(e.classes)}</Typography>
+            </TableCell>
+            <TableCell>
+              <Typography variant="body2">{e.race}</Typography>
             </TableCell>
             <TableCell>
               <Tooltip title={tooltipTitle}>

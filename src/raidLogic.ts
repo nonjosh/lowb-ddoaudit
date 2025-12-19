@@ -51,6 +51,7 @@ export interface RaidEntry {
   playerName: string
   totalLevel: number | null
   classes: CharacterClass[]
+  race: string
   lastTimestamp: string | null
 }
 
@@ -144,6 +145,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
     const character = charactersById?.[characterId]
     const totalLevel = character?.total_level ?? null
+    const race = character?.race ?? 'Unknown'
 
     const characterName = character?.name ?? characterId
     const playerName = getPlayerName(characterName)
@@ -182,6 +184,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           playerName,
           totalLevel,
           classes,
+          race,
           lastTimestamp: ts,
         })
       }
@@ -201,12 +204,14 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       const playerName = getPlayerName(characterName)
       const totalLevel = character?.total_level ?? null
       const classes = character?.classes ?? []
+      const race = character?.race ?? 'Unknown'
       g.entriesByCharacterId.set(characterId, {
         characterId,
         characterName,
         playerName,
         totalLevel,
         classes,
+        race,
         lastTimestamp: null,
       })
     }

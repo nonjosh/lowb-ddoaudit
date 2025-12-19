@@ -112,6 +112,7 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
                   <TableCell>Character</TableCell>
                   <TableCell>Level</TableCell>
                   <TableCell>Classes</TableCell>
+                  <TableCell>Race</TableCell>
                   <TableCell>Time remaining</TableCell>
                 </TableRow>
               </TableHead>

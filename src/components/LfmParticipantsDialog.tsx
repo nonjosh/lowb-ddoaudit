@@ -25,6 +25,7 @@ interface LfmParticipant {
   totalLevel: number | null
   classesDisplay: string
   isLeader: boolean
+  race?: string
 }
 
 interface LfmGroup {
@@ -75,6 +76,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose }: LfmParti
                 Level
               </TableCell>
               <TableCell>Classes</TableCell>
+              <TableCell>Race</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -104,6 +106,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose }: LfmParti
                     {p.classesDisplay || '—'}
                   </Typography>
                 </TableCell>
+                <TableCell>{p.race}</TableCell>
               </TableRow>
             ))}
           </TableBody>

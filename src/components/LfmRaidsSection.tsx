@@ -154,6 +154,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
             totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
             classesDisplay,
             isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
+            race: p?.race ?? 'Unknown',
           }
         })
 
