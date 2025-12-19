@@ -121,6 +121,14 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           ? `Reaper ${reaperSkulls}`
           : difficulty
 
+      const difficultyColor = (() => {
+        const d = difficulty.toLowerCase()
+        if (d === 'reaper') return 'error.main'
+        if (d === 'elite') return 'warning.main'
+        if (d === 'hard') return 'info.main'
+        return 'text.primary'
+      })()
+
       const memberCount = 1 + (lfm?.members?.length ?? 0)
 
       const participants = [lfm?.leader, ...(lfm?.members ?? [])]
@@ -180,6 +188,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         isRaid,
         difficulty,
         difficultyDisplay,
+        difficultyColor,
         reaperSkulls,
         leaderName,
         leaderGuildName,
@@ -279,7 +288,6 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
             <TableHead>
               <TableRow>
                 <TableCell>Quest</TableCell>
-                <TableCell>Difficulty</TableCell>
                 <TableCell>Leader</TableCell>
                 <TableCell align="right" sx={{ width: 96 }} />
                 <TableCell>Comment</TableCell>
@@ -290,7 +298,14 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                 <Fragment key={l.id}>
                   <TableRow
                     hover
-                    sx={{ bgcolor: l.hasFriendInside ? 'action.selected' : 'inherit' }}
+                    sx={{
+                      bgcolor: 'inherit',
+                      ...(l.hasFriendInside && {
+                        outline: '2px solid',
+                        outlineColor: 'success.main',
+                        outlineOffset: '-2px',
+                      }),
+                    }}
                     onClick={() => setSelectedLfm(l)}
                     style={{ cursor: 'pointer' }}
                   >
@@ -304,12 +319,14 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                             <Typography variant="caption" color="text.secondary">
                               {typeof l.questLevel === 'number' ? `Quest Lv ${l.questLevel}` : 'Quest Lv —'}
                             </Typography>
+                            <Typography variant="caption" fontWeight={600} sx={{ color: l.difficultyColor }}>
+                              {l.difficultyDisplay}
+                            </Typography>
                             {l.isRaid ? <Chip size="small" variant="outlined" label="Raid" /> : null}
                           </Stack>
                         </>
                       ) : null}
                     </TableCell>
-                    <TableCell>{l.difficultyDisplay}</TableCell>
                     <TableCell>
                       <Typography variant="body2" noWrap>
                         {l.leaderName}
@@ -338,11 +355,16 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                   {Array.isArray(l.friendPlayersInside) && l.friendPlayersInside.length ? (
                     <TableRow
                       hover
-                      sx={{ bgcolor: 'action.selected' }}
+                      sx={{
+                        bgcolor: 'inherit',
+                        outline: '2px solid',
+                        outlineColor: 'success.main',
+                        outlineOffset: '-2px',
+                      }}
                       onClick={() => setSelectedLfm(l)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <TableCell colSpan={5} sx={{ py: 0.5 }}>
+                      <TableCell colSpan={4} sx={{ py: 0.5 }}>
                         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                           <Typography variant="caption" color="text.secondary">
                             Friends inside:

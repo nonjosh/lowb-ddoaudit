@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Chip,
   Dialog,
@@ -18,7 +19,29 @@ import { EXPECTED_PLAYERS } from '../raidLogic'
 export default function LfmParticipantsDialog({ selectedLfm, onClose }) {
   return (
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{selectedLfm?.questName || 'LFM Group'}</DialogTitle>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="h6" component="div">
+            {selectedLfm?.questName || 'LFM Group'}
+          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="caption" color="text.secondary">
+              {typeof selectedLfm?.questLevel === 'number'
+                ? `Quest Lv ${selectedLfm.questLevel}`
+                : 'Quest Lv —'}
+            </Typography>
+            {selectedLfm?.difficultyDisplay && (
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                sx={{ color: selectedLfm.difficultyColor || 'text.primary' }}
+              >
+                {selectedLfm.difficultyDisplay}
+              </Typography>
+            )}
+          </Stack>
+        </Box>
+      </DialogTitle>
       <DialogContent dividers>
         <Table size="small" aria-label="lfm members">
           <TableHead>
