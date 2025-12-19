@@ -115,6 +115,7 @@ export function isEntryAvailable(entry: RaidEntry | null | undefined, now: Date)
 export interface RaidGroup {
   questId: string
   raidName: string
+  adventurePack?: string | null
   questLevel: number | null
   entries: RaidEntry[]
 }
@@ -157,6 +158,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
       const raidName = questsById?.[questId]?.name ?? `Unknown quest (${questId})`
       const questLevel = questsById?.[questId]?.level ?? null
+      const adventurePack = questsById?.[questId]?.required_adventure_pack ?? null
       if (typeof questLevel === 'number' && questLevel < 20) continue
 
       // Some raids exist as multiple quest_ids (e.g., different level versions).
@@ -166,6 +168,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       const existing = groups.get(groupKey) ?? {
         questId,
         raidName,
+        adventurePack,
         questLevel,
         entriesByCharacterId: new Map<string, RaidEntry>(),
       }
@@ -174,6 +177,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         existing.questId = questId
         existing.questLevel = questLevel
         existing.raidName = raidName
+        existing.adventurePack = adventurePack
       }
 
       const prev = existing.entriesByCharacterId.get(characterId)
@@ -228,7 +232,13 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       if (!a.lastTimestamp && !b.lastTimestamp) return 0
       return new Date(a.lastTimestamp!).getTime() - new Date(b.lastTimestamp!).getTime()
     })
-    return { questId: g.questId, raidName: g.raidName, questLevel: g.questLevel ?? null, entries }
+    return {
+      questId: g.questId,
+      raidName: g.raidName,
+      adventurePack: g.adventurePack ?? null,
+      questLevel: g.questLevel ?? null,
+      entries,
+    }
   })
 
   normalized.sort((a, b) => {

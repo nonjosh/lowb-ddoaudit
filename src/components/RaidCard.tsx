@@ -89,11 +89,18 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           </IconButton>
         }
         title={
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="h6">{g.raidName}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}
-            </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="h6">{g.raidName}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}
+              </Typography>
+            </Box>
+            {g.adventurePack && (
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                {g.adventurePack}
+              </Typography>
+            )}
           </Box>
         }
         subheader={
