@@ -129,9 +129,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                 {isOnline && (
                   <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
                 )}
-                <Typography variant="caption" color="text.secondary">
-                  ({group.chars.length})
-                </Typography>
+                <Chip label={group.chars.length} size="small" variant="outlined" sx={{ height: 20 }} />
                 {onlineInfo && (
                   <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
                     <Typography variant="caption" color="success.main" component="span">
