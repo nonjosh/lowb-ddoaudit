@@ -39,7 +39,7 @@ function App() {
   const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set<string>())
   const [collapsedRaids, setCollapsedRaids] = useState(() => new Set<string>())
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
-  const [showClassIcons, setShowClassIcons] = useState(false)
+  const [showClassIcons, setShowClassIcons] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
   const resetCharacterCollapseRef = useRef(true)
   const resetRaidCollapseRef = useRef(true)

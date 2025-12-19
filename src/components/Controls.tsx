@@ -1,4 +1,4 @@
-import { Alert, Button, Chip, FormControlLabel, Paper, Stack, Switch, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, FormControlLabel, Paper, Stack, Switch, Typography } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 
 import { formatLocalDateTime } from '../ddoAuditApi'
@@ -31,31 +31,41 @@ export default function Controls({
   return (
     <Paper sx={{ p: 2 }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'space-between', md: 'flex-start' } }}>
           <Button 
             variant="contained" 
             onClick={onRefresh} 
             disabled={loading}
             startIcon={<RefreshIcon />}
           >
-            {loading ? 'Refreshing…' : 'Refresh data'}
+            {loading ? 'Refreshing…' : 'Refresh'}
           </Button>
-          <FormControlLabel
-            control={<Switch checked={autoRefreshEnabled} onChange={onToggleAutoRefresh} disabled={loading} />}
-            label="Auto refresh"
-          />
-          <FormControlLabel
-            control={<Switch checked={showClassIcons} onChange={onToggleShowClassIcons} />}
-            label="Show class icons"
-          />
+          <Box>
+            <Typography variant="caption" display="block" color="text.secondary" lineHeight={1.2}>
+              Last updated:
+            </Typography>
+            <Typography variant="body2" lineHeight={1.2}>
+              {formatLocalDateTime(lastUpdatedAt, { includeSeconds: true })}
+            </Typography>
+          </Box>
         </Stack>
         
-        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-          <Chip label={`Characters: ${characterCount}`} variant="outlined" size="small" />
-          <Chip label={`Raids: ${raidCount}`} variant="outlined" size="small" />
-          <Typography variant="caption" color="text.secondary">
-            Updated: {formatLocalDateTime(lastUpdatedAt, { includeSeconds: true })}
-          </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-around', sm: 'flex-start' } }}>
+            <FormControlLabel
+              control={<Switch size="small" checked={autoRefreshEnabled} onChange={onToggleAutoRefresh} disabled={loading} />}
+              label={<Typography variant="body2">Auto refresh</Typography>}
+            />
+            <FormControlLabel
+              control={<Switch size="small" checked={showClassIcons} onChange={onToggleShowClassIcons} />}
+              label={<Typography variant="body2">Class icons</Typography>}
+            />
+          </Stack>
+          
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+            <Chip label={`Chars: ${characterCount}`} variant="outlined" size="small" />
+            <Chip label={`Raids: ${raidCount}`} variant="outlined" size="small" />
+          </Stack>
         </Stack>
       </Stack>
       {error ? <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert> : null}
