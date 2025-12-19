@@ -1,8 +1,8 @@
-import { memo } from 'react'
-import { Box, IconButton, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
 import CancelIcon from '@mui/icons-material/Cancel'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { Box, Collapse, IconButton, Table, TableBody, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
+import { memo } from 'react'
 
 import {
   addMs,
@@ -114,18 +114,18 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
 
   return (
     <>
-      <TableRow 
+      <TableRow
         onClick={() => onToggleCollapsed(pg.player)}
         sx={{ '& > *': { borderBottom: 'unset' }, bgcolor: 'action.hover', cursor: 'pointer' }}
       >
         <TableCell colSpan={5} sx={{ py: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={(e) => {
                 e.stopPropagation()
                 onToggleCollapsed(pg.player)
-              }} 
+              }}
               sx={{ transform: !collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}
             >
               <ExpandMoreIcon fontSize="small" />
@@ -137,56 +137,66 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
         </TableCell>
       </TableRow>
 
-      {!collapsed && displayEntries.map((e) => {
-        const available = isEntryAvailable(e, now)
-        const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
-        const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-        const remaining = readyAt ? readyAt.getTime() - nowTime : NaN
-        
-        const tooltipTitle = available ? null : (
-          <Box>
-            <Typography variant="body2">Last completion: {lastCompletionText}</Typography>
-          </Box>
-        )
+      <TableRow>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+          <Collapse in={!collapsed} timeout="auto" unmountOnExit>
+            <Table size="small" aria-label="characters">
+              <TableBody>
+                {displayEntries.map((e) => {
+                  const available = isEntryAvailable(e, now)
+                  const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
+                  const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
+                  const remaining = readyAt ? readyAt.getTime() - nowTime : NaN
 
-        return (
-          <TableRow key={e.characterId} hover>
-            <TableCell>
-              <Tooltip title={formatClasses(e?.classes)}>
-                <Typography variant="body2">{e.characterName}</Typography>
-              </Tooltip>
-            </TableCell>
-            <TableCell>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{e.totalLevel ?? '—'}</Typography>
-            </TableCell>
-            <TableCell>
-              {showClassIcons ? (
-                <ClassDisplay classes={e.classes} showIcons={true} />
-              ) : (
-                <Typography variant="body2">{formatClasses(e.classes)}</Typography>
-              )}
-            </TableCell>
-            <TableCell>
-              <Typography variant="body2">{e.race}</Typography>
-            </TableCell>
-            <TableCell>
-              <Tooltip title={tooltipTitle}>
-                <Box>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {formatTimeRemaining(remaining)}
-                    {!Number.isFinite(remaining) && <CheckCircleIcon color="success" sx={{ width: 14, height: 14 }} />}
-                  </Typography>
-                  {!available && readyAt ? (
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      {formatLocalDateTime(readyAt)}
-                    </Typography>
-                  ) : null}
-                </Box>
-              </Tooltip>
-            </TableCell>
-          </TableRow>
-        )
-      })}
+                  const tooltipTitle = available ? null : (
+                    <Box>
+                      <Typography variant="body2">Last completion: {lastCompletionText}</Typography>
+                    </Box>
+                  )
+
+                  return (
+                    <TableRow key={e.characterId} hover>
+                      <TableCell>
+                        <Tooltip title={formatClasses(e?.classes)}>
+                          <Typography variant="body2">{e.characterName}</Typography>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{e.totalLevel ?? '—'}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        {showClassIcons ? (
+                          <ClassDisplay classes={e.classes} showIcons={true} />
+                        ) : (
+                          <Typography variant="body2">{formatClasses(e.classes)}</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{e.race}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title={tooltipTitle}>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {formatTimeRemaining(remaining)}
+                              {!Number.isFinite(remaining) && <CheckCircleIcon color="success" sx={{ width: 14, height: 14 }} />}
+                            </Typography>
+                            {!available && readyAt ? (
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {formatLocalDateTime(readyAt)}
+                              </Typography>
+                            ) : null}
+                          </Box>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </Collapse>
+        </TableCell>
+      </TableRow>
     </>
   )
 }
