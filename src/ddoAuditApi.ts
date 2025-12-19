@@ -162,7 +162,7 @@ export interface Quest {
 }
 
 let questsByIdPromise: Promise<Record<string, Quest>> | null = null
-let areasByIdPromise: Promise<Record<string, { id: string; name: string }>> | null = null
+let areasByIdPromise: Promise<Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>> | null = null
 
 function parseNullableInt(value: any): number | null {
   if (value === null || value === undefined) return null
@@ -231,7 +231,7 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
  * Areas are loaded from JSON and mapped into a simple lookup table keyed by area id.
  * Returned values are normalized to the shape used by the UI.
  */
-export async function fetchAreasById(): Promise<Record<string, { id: string; name: string }>> {
+export async function fetchAreasById(): Promise<Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>> {
   if (areasByIdPromise) return areasByIdPromise
 
   areasByIdPromise = (async () => {
@@ -243,14 +243,19 @@ export async function fetchAreasById(): Promise<Record<string, { id: string; nam
     const data = await resp.json()
     const list = Array.isArray(data) ? data : []
 
-    const map: Record<string, { id: string; name: string }> = {}
+    const map: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }> = {}
 
     for (const a of list) {
       const id = String(a?.id ?? '').trim()
       const name = String(a?.name ?? '').trim()
       if (!id || id.toLowerCase() === 'null' || id === '0') continue
       if (!name) continue
-      map[id] = { id, name }
+      map[id] = {
+        id,
+        name,
+        is_public: !!a?.is_public,
+        is_wilderness: !!a?.is_wilderness,
+      }
     }
 
     return map

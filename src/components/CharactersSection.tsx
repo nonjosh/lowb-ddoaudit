@@ -13,6 +13,7 @@ import {
   ListSubheader,
   Paper,
   Skeleton,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
@@ -48,7 +49,7 @@ interface CharactersSectionProps {
 
 export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer, showClassIcons, characterCount }: CharactersSectionProps) {
   const [quests, setQuests] = useState<Record<string, Quest>>({})
-  const [areas, setAreas] = useState<Record<string, { id: string, name: string }>>({})
+  const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
 
   useEffect(() => {
@@ -167,14 +168,27 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
 
     const sortedAreas = Object.keys(groupsByArea).sort((a, b) => a.localeCompare(b))
 
-    return sortedAreas.map((areaName) => (
-      <Box key={areaName}>
-        <ListSubheader sx={{ lineHeight: '30px', bgcolor: 'inherit', opacity: 0.8 }}>
-          {areaName}
-        </ListSubheader>
-        {groupsByArea[areaName].map((g) => renderPlayerRow(g, false))}
-      </Box>
-    ))
+    return sortedAreas.map((areaName) => {
+      const firstGroup = groupsByArea[areaName][0]
+      const onlineChar = (firstGroup.chars ?? []).find((c) => c?.is_online)
+      const areaId = onlineChar?.location_id
+      const area = areaId ? areas[areaId] : null
+
+      let tooltipTitle = ''
+      if (area?.is_public) tooltipTitle = 'Public Area'
+      else if (area?.is_wilderness) tooltipTitle = 'Wilderness'
+
+      return (
+        <Box key={areaName}>
+          <Tooltip title={tooltipTitle} arrow placement="top">
+            <ListSubheader sx={{ lineHeight: '30px', bgcolor: 'inherit', opacity: 0.8, cursor: tooltipTitle ? 'help' : 'default' }}>
+              {areaName}
+            </ListSubheader>
+          </Tooltip>
+          {groupsByArea[areaName].map((g) => renderPlayerRow(g, false))}
+        </Box>
+      )
+    })
   }
 
   const sortedQuests = Object.keys(onlineByQuest).sort((a, b) => {
