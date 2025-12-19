@@ -281,7 +281,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       {error ? <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert> : null}
 
       {!raidLfms.length ? (
-        loading || !hasFetched ? (
+        !hasFetched ? (
           <Stack spacing={1.5}>
             {[1, 2].map((i) => (
               <Skeleton key={i} variant="rectangular" height={64} sx={{ borderRadius: 1 }} />
