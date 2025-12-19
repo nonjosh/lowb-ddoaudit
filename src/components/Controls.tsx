@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Chip, FormControlLabel, Paper, Stack, Switch, Typography, ToggleButton, Tooltip } from '@mui/material'
+import { Alert, Box, Button, FormControlLabel, Paper, Stack, Switch, Typography, ToggleButton, Tooltip } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SyncIcon from '@mui/icons-material/Sync'
 import SyncDisabledIcon from '@mui/icons-material/SyncDisabled'
@@ -12,8 +12,6 @@ interface ControlsProps {
   onToggleAutoRefresh: () => void
   showClassIcons: boolean
   onToggleShowClassIcons: () => void
-  characterCount: number
-  raidCount: number
   lastUpdatedAt: Date | null
   error: string
 }
@@ -25,8 +23,6 @@ export default function Controls({
   onToggleAutoRefresh,
   showClassIcons,
   onToggleShowClassIcons,
-  characterCount,
-  raidCount,
   lastUpdatedAt,
   error,
 }: ControlsProps) {
@@ -70,11 +66,6 @@ export default function Controls({
               control={<Switch size="small" checked={showClassIcons} onChange={onToggleShowClassIcons} />}
               label={<Typography variant="body2">Class icons</Typography>}
             />
-          </Stack>
-          
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-            <Chip label={`Chars: ${characterCount}`} variant="outlined" size="small" />
-            <Chip label={`Raids: ${raidCount}`} variant="outlined" size="small" />
           </Stack>
         </Stack>
       </Stack>

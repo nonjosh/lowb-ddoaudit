@@ -239,8 +239,6 @@ function App() {
         onToggleAutoRefresh={() => setAutoRefreshEnabled((v) => !v)}
         showClassIcons={showClassIcons}
         onToggleShowClassIcons={() => setShowClassIcons((v) => !v)}
-        characterCount={characterIds.length}
-        raidCount={raidGroups.length}
         lastUpdatedAt={lastUpdatedAt}
         error={error}
       />
@@ -263,6 +261,7 @@ function App() {
                 isPlayerCollapsed={isCharacterPlayerCollapsed}
                 togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
                 showClassIcons={showClassIcons}
+                characterCount={characterIds.length}
               />
             </Paper>
           </Grid>

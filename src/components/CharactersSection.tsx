@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Box,
+  Chip,
   CircularProgress,
   List,
   ListItem,
@@ -42,9 +43,10 @@ interface CharactersSectionProps {
   isPlayerCollapsed: (playerName: string) => boolean
   togglePlayerCollapsed: (playerName: string) => void
   showClassIcons: boolean
+  characterCount: number
 }
 
-export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer, showClassIcons }: CharactersSectionProps) {
+export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer, showClassIcons, characterCount }: CharactersSectionProps) {
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
@@ -156,6 +158,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
         <Typography variant="h5" sx={{ mb: 0 }}>Characters</Typography>
+        <Chip label={characterCount} size="small" variant="outlined" />
         {loading && <CircularProgress size={20} />}
       </Box>
 
