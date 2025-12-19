@@ -279,8 +279,8 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
             <TableHead>
               <TableRow>
                 <TableCell>Quest</TableCell>
-                <TableCell>Leader</TableCell>
                 <TableCell>Difficulty</TableCell>
+                <TableCell>Leader</TableCell>
                 <TableCell align="right" sx={{ width: 96 }} />
                 <TableCell>Comment</TableCell>
               </TableRow>
@@ -309,6 +309,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                         </>
                       ) : null}
                     </TableCell>
+                    <TableCell>{l.difficultyDisplay}</TableCell>
                     <TableCell>
                       <Typography variant="body2" noWrap>
                         {l.leaderName}
@@ -324,7 +325,6 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                         </Typography>
                       ) : null}
                     </TableCell>
-                    <TableCell>{l.difficultyDisplay}</TableCell>
                     <TableCell align="right">
                       {l.memberCount}/{l.maxPlayers}
                     </TableCell>
