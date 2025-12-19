@@ -1,5 +1,5 @@
-import { memo } from 'react'
 import { Box, Tooltip, Typography } from '@mui/material'
+import { memo } from 'react'
 import { CharacterClass, formatClasses } from '../raidLogic'
 
 interface ClassDisplayProps {
@@ -27,7 +27,7 @@ function ClassDisplay({ classes, showIcons, hideLevels = false }: ClassDisplayPr
           <Box component="span" sx={{ position: 'relative', display: 'inline-flex', width: 24, height: 24 }}>
             <Box
               component="img"
-              src={`/class-icons/${c.name.toLowerCase().replace(/\s+/g, '-')}.png`}
+              src={`${import.meta.env.BASE_URL}class-icons/${c.name.toLowerCase().replace(/\s+/g, '-')}.png`}
               alt={c.name}
               sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
               onError={(e) => {
