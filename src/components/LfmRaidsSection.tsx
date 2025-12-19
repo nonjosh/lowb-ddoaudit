@@ -1,4 +1,3 @@
-import { Fragment, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -17,6 +16,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
+import { Fragment, useMemo, useState } from 'react'
 
 import { Quest } from '../ddoAuditApi'
 import { EXPECTED_PLAYERS, formatClasses, getPlayerDisplayName, getPlayerName } from '../raidLogic'
@@ -314,9 +314,8 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                     sx={{
                       bgcolor: 'inherit',
                       ...(l.hasFriendInside && {
-                        outline: '2px solid',
-                        outlineColor: 'success.main',
-                        outlineOffset: '-2px',
+                        boxShadow: (theme) =>
+                          `inset 0 2px 0 0 ${theme.palette.success.main}, inset 2px 0 0 0 ${theme.palette.success.main}, inset -2px 0 0 0 ${theme.palette.success.main}`,
                       }),
                     }}
                     onClick={() => setSelectedLfm(l)}
@@ -372,9 +371,8 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                       hover
                       sx={{
                         bgcolor: 'inherit',
-                        outline: '2px solid',
-                        outlineColor: 'success.main',
-                        outlineOffset: '-2px',
+                        boxShadow: (theme) =>
+                          `inset 0 -2px 0 0 ${theme.palette.success.main}, inset 2px 0 0 0 ${theme.palette.success.main}, inset -2px 0 0 0 ${theme.palette.success.main}`,
                       }}
                       onClick={() => setSelectedLfm(l)}
                       style={{ cursor: 'pointer' }}
