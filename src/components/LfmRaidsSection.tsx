@@ -331,7 +331,9 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                             <Typography variant="caption" fontWeight={600} sx={{ color: l.difficultyColor }}>
                               {l.difficultyDisplay}
                             </Typography>
-                            {l.isRaid ? <Chip size="small" variant="outlined" label="Raid" /> : null}
+                            {l.isRaid && questFilter !== 'raid' ? (
+                              <Chip size="small" variant="outlined" label="Raid" />
+                            ) : null}
                           </Stack>
                         </>
                       ) : null}
