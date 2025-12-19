@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Box, Container, Grid, Paper } from '@mui/material'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   fetchCharactersByIds,
@@ -231,7 +231,7 @@ function App() {
   }, [])
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
       <Controls
         loading={loading}
         onRefresh={load}

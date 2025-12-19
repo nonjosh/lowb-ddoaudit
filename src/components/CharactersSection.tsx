@@ -124,10 +124,10 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
 
     return (
       <ListItem key={group.player} disablePadding>
-        <ListItemButton onClick={() => handlePlayerClick(group)}>
+        <ListItemButton onClick={() => handlePlayerClick(group)} sx={{ px: 1 }}>
           <ListItemText
             primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                 {isOnline && (
                   <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
                 )}
@@ -135,7 +135,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                   {getPlayerDisplayName(group.player)}
                 </Typography>
                 {onlineInfo && (
-                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 0.5 }}>
                     <Typography variant="body2" color="success.main" component="span">
                       {onlineInfo}
                     </Typography>
