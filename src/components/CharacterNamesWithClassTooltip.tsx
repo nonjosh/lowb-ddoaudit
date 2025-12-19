@@ -1,4 +1,5 @@
 import { Tooltip } from '@mui/material'
+
 import { formatClasses } from '../raidLogic'
 
 interface CharacterItem {

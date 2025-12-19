@@ -1,6 +1,7 @@
-import RaidCard from './RaidCard'
-import { Typography, Box, Stack, CircularProgress, Skeleton } from '@mui/material'
+import { Box, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+
 import { RaidGroup } from '../raidLogic'
+import RaidCard from './RaidCard'
 
 interface RaidTimerSectionProps {
   loading: boolean

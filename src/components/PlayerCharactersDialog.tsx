@@ -1,7 +1,23 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material'
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tooltip,
+} from '@mui/material'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
-import { formatClasses } from '../raidLogic'
+
 import { formatAge, formatLocalDateTime } from '../ddoAuditApi'
+import { formatClasses } from '../raidLogic'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 

@@ -1,16 +1,24 @@
-import { useState, useEffect, useMemo } from 'react'
-import { formatClasses, getPlayerDisplayName } from '../raidLogic'
-import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
-import PlayerCharactersDialog from './PlayerCharactersDialog'
-import { 
-  Typography, Box, CircularProgress, Skeleton, 
-  List, ListItem, ListItemText, ListItemButton, ListSubheader,
-  Paper
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Box,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListSubheader,
+  Paper,
+  Skeleton,
+  Typography,
 } from '@mui/material'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
+
+import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
+import { formatClasses, getPlayerDisplayName } from '../raidLogic'
+import PlayerCharactersDialog from './PlayerCharactersDialog'
 
 interface Character {
   name: string

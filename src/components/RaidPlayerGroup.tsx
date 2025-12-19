@@ -1,16 +1,16 @@
+import { Box, IconButton, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
+import CancelIcon from '@mui/icons-material/Cancel'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+
 import {
   addMs,
   formatLocalDateTime,
   formatTimeRemaining,
   RAID_LOCKOUT_MS,
 } from '../ddoAuditApi'
-
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
-import { TableRow, TableCell, IconButton, Typography, Box, Tooltip } from '@mui/material'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import CancelIcon from '@mui/icons-material/Cancel'
 
 interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup

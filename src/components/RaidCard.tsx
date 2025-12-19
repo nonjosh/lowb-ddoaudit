@@ -1,8 +1,24 @@
-import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable, RaidGroup, RaidEntry } from '../raidLogic'
+import {
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  Collapse,
+  IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+
+import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../raidLogic'
 import { getRaidNotesForRaidName } from '../raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
-import { Card, CardHeader, CardContent, Collapse, IconButton, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
 interface RaidCardProps {
   raidGroup: RaidGroup

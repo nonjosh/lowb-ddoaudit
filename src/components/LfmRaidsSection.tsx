@@ -4,22 +4,23 @@ import {
   Box,
   Chip,
   CircularProgress,
+  Paper,
   Skeleton,
   Stack,
-  Typography,
-  ToggleButton,
-  ToggleButtonGroup,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from '@mui/material'
+
+import { Quest } from '../ddoAuditApi'
 import { EXPECTED_PLAYERS, formatClasses, getPlayerDisplayName, getPlayerName } from '../raidLogic'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
-import { Quest } from '../ddoAuditApi'
 
 function isRaidQuest(quest: Quest | null) {
   const type = String(quest?.type ?? '').trim().toLowerCase()
