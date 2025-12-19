@@ -25,7 +25,8 @@
 				"christian-kohler.path-intellisense",
 				"christian-kohler.npm-intellisense",
 				"bradlc.vscode-tailwindcss",
-				"mhutchie.git-graph"
+				"mhutchie.git-graph",
+				"tal7aouy.indent-colorizer"
 			]
 		}
 	}
