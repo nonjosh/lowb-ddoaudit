@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import {
   Box,
   Chip,
@@ -12,15 +15,12 @@ import {
   Skeleton,
   Typography,
 } from '@mui/material'
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
-import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
-import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
+import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
 import { getPlayerDisplayName } from '../raidLogic'
-import PlayerCharactersDialog from './PlayerCharactersDialog'
 import ClassDisplay from './ClassDisplay'
+import PlayerCharactersDialog from './PlayerCharactersDialog'
 
 interface Character {
   name: string
@@ -62,7 +62,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     const offline: PlayerGroup[] = []
 
     // Sort by player name first to ensure consistent order
-    const sortedGroups = [...charactersByPlayer].sort((a, b) => 
+    const sortedGroups = [...charactersByPlayer].sort((a, b) =>
       getPlayerDisplayName(a.player).localeCompare(getPlayerDisplayName(b.player))
     )
 
@@ -94,23 +94,27 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     setSelectedPlayerGroup(null)
   }
 
-  const renderPlayerRow = (group: PlayerGroup) => {
+  const renderPlayerRow = (group: PlayerGroup, showLocation = true) => {
     const onlineChars = (group.chars ?? []).filter((c) => c?.is_online)
     const isOnline = onlineChars.length > 0
-    
+
     let onlineInfo: React.ReactNode = null
+    let locationSuffix: React.ReactNode = null
+
     if (isOnline) {
+      const firstChar = onlineChars[0]
+      const questName = quests[firstChar.location_id]?.name
+      const areaName = areas[firstChar.location_id]?.name
+      // Quest name is already shown in the group header.
+      if (!questName && showLocation) {
+        locationSuffix = ` @ ${areaName || 'Unknown Area'}`
+      }
+
       onlineInfo = onlineChars
         .map((c, idx) => {
-          const questName = quests[c.location_id]?.name
-          const areaName = areas[c.location_id]?.name
-          
-          // Quest name is already shown in the group header.
-          const locationSuffix = questName ? '' : ` @ ${areaName || 'Unknown Area'}`
-          
           return (
             <span key={c.name}>
-              {c.name} ({c.race} <ClassDisplay classes={c.classes} showIcons={showClassIcons} hideLevels />){locationSuffix}
+              {c.name} (<ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={20} />)
               {idx < onlineChars.length - 1 ? ', ' : ''}
             </span>
           )
@@ -120,29 +124,58 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     return (
       <ListItem key={group.player} disablePadding>
         <ListItemButton onClick={() => handlePlayerClick(group)}>
-          <ListItemText 
+          <ListItemText
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  {getPlayerDisplayName(group.player)}
-                </Typography>
                 {isOnline && (
                   <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
                 )}
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                  {getPlayerDisplayName(group.player)}
+                </Typography>
                 <Chip label={group.chars.length} size="small" variant="outlined" sx={{ height: 20 }} />
                 {onlineInfo && (
                   <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                    <Typography variant="caption" color="success.main" component="span">
+                    <Typography variant="body2" color="success.main" component="span">
                       {onlineInfo}
                     </Typography>
                   </Box>
                 )}
               </Box>
             }
+            secondary={
+              locationSuffix && (
+                <Typography variant="caption" color="text.secondary" component="div" sx={{ ml: 1 }}>
+                  {locationSuffix}
+                </Typography>
+              )
+            }
           />
         </ListItemButton>
       </ListItem>
     )
+  }
+
+  const renderNotInQuestGroups = (groups: PlayerGroup[]) => {
+    const groupsByArea: Record<string, PlayerGroup[]> = {}
+    groups.forEach((group) => {
+      const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
+      const areaId = onlineChar?.location_id
+      const areaName = (areaId && areas[areaId]?.name) || 'Unknown Area'
+      if (!groupsByArea[areaName]) groupsByArea[areaName] = []
+      groupsByArea[areaName].push(group)
+    })
+
+    const sortedAreas = Object.keys(groupsByArea).sort((a, b) => a.localeCompare(b))
+
+    return sortedAreas.map((areaName) => (
+      <Box key={areaName}>
+        <ListSubheader sx={{ lineHeight: '30px', bgcolor: 'inherit', opacity: 0.8 }}>
+          {areaName}
+        </ListSubheader>
+        {groupsByArea[areaName].map((g) => renderPlayerRow(g, false))}
+      </Box>
+    ))
   }
 
   const sortedQuests = Object.keys(onlineByQuest).sort((a, b) => {
@@ -184,26 +217,28 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                       ) : (
                         <LocalOfferOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
                       )}
-                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-                      {questName}
-                    </Typography>
-                    {showPackLine && (
-                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                        {packName}
-                      </Typography>
-                    )}
-                  </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
+                          {questName}
+                        </Typography>
+                        {showPackLine && (
+                          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
+                            {packName}
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
                   )
                 })()}
               </ListSubheader>
               <List dense disablePadding>
-                {onlineByQuest[questName].map(renderPlayerRow)}
+                {questName === 'Not in quest'
+                  ? renderNotInQuestGroups(onlineByQuest[questName])
+                  : onlineByQuest[questName].map((g) => renderPlayerRow(g))}
               </List>
             </Paper>
           ))}
-          
+
           {offlineGroups.length > 0 && (
             <Paper
               key="offline"
@@ -219,7 +254,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                 </ListSubheader>
               )}
               <List dense disablePadding>
-                {offlineGroups.map(renderPlayerRow)}
+                {offlineGroups.map((g) => renderPlayerRow(g))}
               </List>
             </Paper>
           )}

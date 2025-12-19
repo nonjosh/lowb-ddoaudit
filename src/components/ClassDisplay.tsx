@@ -6,9 +6,10 @@ interface ClassDisplayProps {
   classes: CharacterClass[]
   showIcons: boolean
   hideLevels?: boolean
+  iconSize?: number
 }
 
-function ClassDisplay({ classes, showIcons, hideLevels = false }: ClassDisplayProps) {
+function ClassDisplay({ classes, showIcons, hideLevels = false, iconSize = 24 }: ClassDisplayProps) {
   if (!showIcons) {
     return <Typography variant="body2" component="span">{formatClasses(classes)}</Typography>
   }
@@ -24,7 +25,7 @@ function ClassDisplay({ classes, showIcons, hideLevels = false }: ClassDisplayPr
     <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', verticalAlign: 'middle' }}>
       {filtered.map((c, idx) => (
         <Tooltip key={idx} title={`${c.name} ${c.level}`}>
-          <Box component="span" sx={{ position: 'relative', display: 'inline-flex', width: 24, height: 24 }}>
+          <Box component="span" sx={{ position: 'relative', display: 'inline-flex', width: iconSize, height: iconSize }}>
             <Box
               component="img"
               src={`${import.meta.env.BASE_URL}class-icons/${c.name.toLowerCase().replace(/\s+/g, '-')}.png`}
@@ -42,7 +43,7 @@ function ClassDisplay({ classes, showIcons, hideLevels = false }: ClassDisplayPr
                   position: 'absolute',
                   bottom: -2,
                   right: -2,
-                  fontSize: '0.75rem',
+                  fontSize: `${iconSize * 0.5}px`,
                   fontWeight: 900,
                   lineHeight: 1,
                   color: '#fff',
