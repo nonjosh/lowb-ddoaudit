@@ -133,7 +133,6 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                   {getPlayerDisplayName(group.player)}
                 </Typography>
-                <Chip label={group.chars.length} size="small" variant="outlined" sx={{ height: 20 }} />
                 {onlineInfo && (
                   <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
                     <Typography variant="body2" color="success.main" component="span">
