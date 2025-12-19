@@ -196,6 +196,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         id: String(lfm?.id ?? questId),
         questId,
         questName,
+        adventurePack: quest?.required_adventure_pack ?? null,
         questLevel: level,
         isRaid,
         difficulty,

@@ -32,6 +32,7 @@ interface LfmParticipant {
 
 interface LfmGroup {
   questName: string
+  adventurePack?: string | null
   questLevel: number | null
   difficultyDisplay: string
   difficultyColor: string
@@ -49,9 +50,16 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography variant="h6" component="div">
-            {selectedLfm?.questName || 'LFM Group'}
-          </Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={2}>
+            <Typography variant="h6" component="div">
+              {selectedLfm?.questName || 'LFM Group'}
+            </Typography>
+            {selectedLfm?.adventurePack && (
+              <Typography variant="caption" color="text.secondary">
+                {selectedLfm.adventurePack}
+              </Typography>
+            )}
+          </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary">
               {typeof selectedLfm?.questLevel === 'number'
