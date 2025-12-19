@@ -11,15 +11,17 @@ import {
 } from '../ddoAuditApi'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
+import ClassDisplay from './ClassDisplay'
 
 interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup
   now: Date
   collapsed: boolean
   onToggleCollapsed: () => void
+  showClassIcons: boolean
 }
 
-export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }: RaidPlayerGroupProps) {
+export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showClassIcons }: RaidPlayerGroupProps) {
   const pg = playerGroup
   const entries = pg.entries ?? []
   const nowTime = now.getTime()
@@ -74,7 +76,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
       return (
         <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
           <CheckCircleIcon color="success" sx={{ width: 16, height: 16 }} />
-          <CharacterNamesWithClassTooltip items={availableItems} />
+          <CharacterNamesWithClassTooltip items={availableItems} showClassIcons={showClassIcons} />
         </Box>
       )
     }
@@ -157,7 +159,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{e.totalLevel ?? '—'}</Typography>
             </TableCell>
             <TableCell>
-              <Typography variant="body2">{formatClasses(e.classes)}</Typography>
+              <ClassDisplay classes={e.classes} showIcons={showClassIcons} />
             </TableCell>
             <TableCell>
               <Typography variant="body2">{e.race}</Typography>

@@ -8,6 +8,8 @@ interface ControlsProps {
   onRefresh: () => void
   autoRefreshEnabled: boolean
   onToggleAutoRefresh: () => void
+  showClassIcons: boolean
+  onToggleShowClassIcons: () => void
   characterCount: number
   raidCount: number
   lastUpdatedAt: Date | null
@@ -19,6 +21,8 @@ export default function Controls({
   onRefresh,
   autoRefreshEnabled,
   onToggleAutoRefresh,
+  showClassIcons,
+  onToggleShowClassIcons,
   characterCount,
   raidCount,
   lastUpdatedAt,
@@ -39,6 +43,10 @@ export default function Controls({
           <FormControlLabel
             control={<Switch checked={autoRefreshEnabled} onChange={onToggleAutoRefresh} disabled={loading} />}
             label="Auto refresh"
+          />
+          <FormControlLabel
+            control={<Switch checked={showClassIcons} onChange={onToggleShowClassIcons} />}
+            label="Show class icons"
           />
         </Stack>
         

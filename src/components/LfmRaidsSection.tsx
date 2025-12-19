@@ -91,9 +91,10 @@ interface LfmRaidsSectionProps {
   lfmsById: Record<string, any>
   questsById: Record<string, Quest>
   error: string
+  showClassIcons: boolean
 }
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error }: LfmRaidsSectionProps) {
+export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons }: LfmRaidsSectionProps) {
   const [questFilter, setQuestFilter] = useState('raid')
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
@@ -153,6 +154,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
             guildName: String(p?.guild_name ?? '').trim() || '',
             totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
             classesDisplay,
+            classes: p?.classes,
             isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
             race: p?.race ?? 'Unknown',
           }
@@ -401,7 +403,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         </TableContainer>
       )}
 
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} />
     </Paper>
   )
 }

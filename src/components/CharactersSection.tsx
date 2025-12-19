@@ -19,6 +19,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
 import { formatClasses, getPlayerDisplayName } from '../raidLogic'
 import PlayerCharactersDialog from './PlayerCharactersDialog'
+import ClassDisplay from './ClassDisplay'
 
 interface Character {
   name: string
@@ -40,9 +41,10 @@ interface CharactersSectionProps {
   charactersByPlayer: PlayerGroup[]
   isPlayerCollapsed: (playerName: string) => boolean
   togglePlayerCollapsed: (playerName: string) => void
+  showClassIcons: boolean
 }
 
-export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer }: CharactersSectionProps) {
+export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer, showClassIcons }: CharactersSectionProps) {
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
@@ -94,21 +96,23 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     const onlineChars = (group.chars ?? []).filter((c) => c?.is_online)
     const isOnline = onlineChars.length > 0
     
-    let onlineInfo = null
+    let onlineInfo: React.ReactNode = null
     if (isOnline) {
       onlineInfo = onlineChars
-        .map((c) => {
+        .map((c, idx) => {
           const questName = quests[c.location_id]?.name
           const areaName = areas[c.location_id]?.name
-          const classes = formatClasses(c?.classes)
-
+          
           // Quest name is already shown in the group header.
-          if (questName) return `${c.name} (${classes})`
-
-          const locationName = areaName || 'Unknown Area'
-          return `${c.name} ({c.race} ${classes}) @ ${locationName}`
+          const locationSuffix = questName ? '' : ` @ ${areaName || 'Unknown Area'}`
+          
+          return (
+            <span key={c.name}>
+              {c.name} ({c.race} <ClassDisplay classes={c.classes} showIcons={showClassIcons} hideLevels />){locationSuffix}
+              {idx < onlineChars.length - 1 ? ', ' : ''}
+            </span>
+          )
         })
-        .join(', ')
     }
 
     return (
@@ -128,7 +132,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
                 </Typography>
                 {onlineInfo && (
                   <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                    <Typography variant="caption" color="success.main">
+                    <Typography variant="caption" color="success.main" component="span">
                       {onlineInfo}
                     </Typography>
                   </Box>
@@ -236,6 +240,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
         onClose={handleCloseDialog}
         playerName={selectedPlayerGroup ? getPlayerDisplayName(selectedPlayerGroup.player) : ''}
         characters={selectedPlayerGroup?.chars ?? []}
+        showClassIcons={showClassIcons}
       />
     </>
   )

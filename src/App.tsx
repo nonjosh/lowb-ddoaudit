@@ -39,6 +39,7 @@ function App() {
   const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set<string>())
   const [collapsedRaids, setCollapsedRaids] = useState(() => new Set<string>())
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const [showClassIcons, setShowClassIcons] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const resetCharacterCollapseRef = useRef(true)
   const resetRaidCollapseRef = useRef(true)
@@ -236,6 +237,8 @@ function App() {
         onRefresh={load}
         autoRefreshEnabled={autoRefreshEnabled}
         onToggleAutoRefresh={() => setAutoRefreshEnabled((v) => !v)}
+        showClassIcons={showClassIcons}
+        onToggleShowClassIcons={() => setShowClassIcons((v) => !v)}
         characterCount={characterIds.length}
         raidCount={raidGroups.length}
         lastUpdatedAt={lastUpdatedAt}
@@ -259,6 +262,7 @@ function App() {
                 charactersByPlayer={charactersByPlayer}
                 isPlayerCollapsed={isCharacterPlayerCollapsed}
                 togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
+                showClassIcons={showClassIcons}
               />
             </Paper>
           </Grid>
@@ -271,6 +275,7 @@ function App() {
                 lfmsById={lfmsById}
                 questsById={questsById}
                 error={lfmError}
+                showClassIcons={showClassIcons}
               />
             </Box>
             <RaidTimerSection
@@ -282,6 +287,7 @@ function App() {
               toggleRaidCollapsed={toggleRaidCollapsed}
               isPlayerCollapsed={isCollapsed}
               togglePlayerCollapsed={toggleCollapsed}
+              showClassIcons={showClassIcons}
             />
           </Grid>
         </Grid>

@@ -16,6 +16,7 @@ import {
 } from '@mui/material'
 
 import { EXPECTED_PLAYERS } from '../raidLogic'
+import ClassDisplay from './ClassDisplay'
 
 interface LfmParticipant {
   characterName: string
@@ -24,6 +25,7 @@ interface LfmParticipant {
   guildName: string
   totalLevel: number | null
   classesDisplay: string
+  classes?: any[]
   isLeader: boolean
   race?: string
 }
@@ -39,9 +41,10 @@ interface LfmGroup {
 interface LfmParticipantsDialogProps {
   selectedLfm: LfmGroup | null
   onClose: () => void
+  showClassIcons: boolean
 }
 
-export default function LfmParticipantsDialog({ selectedLfm, onClose }: LfmParticipantsDialogProps) {
+export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons }: LfmParticipantsDialogProps) {
   return (
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
@@ -102,9 +105,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose }: LfmParti
                 </TableCell>
                 <TableCell align="right">{typeof p.totalLevel === 'number' ? p.totalLevel : '—'}</TableCell>
                 <TableCell>
-                  <Typography variant="body2" noWrap>
-                    {p.classesDisplay || '—'}
-                  </Typography>
+                  <ClassDisplay classes={p.classes ?? []} showIcons={showClassIcons} />
                 </TableCell>
                 <TableCell>{p.race}</TableCell>
               </TableRow>

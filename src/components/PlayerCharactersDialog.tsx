@@ -18,6 +18,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 
 import { formatAge, formatLocalDateTime } from '../ddoAuditApi'
 import { formatClasses } from '../raidLogic'
+import ClassDisplay from './ClassDisplay'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -26,9 +27,10 @@ interface PlayerCharactersDialogProps {
   onClose: () => void
   playerName: string
   characters: any[]
+  showClassIcons: boolean
 }
 
-export default function PlayerCharactersDialog({ open, onClose, playerName, characters }: PlayerCharactersDialogProps) {
+export default function PlayerCharactersDialog({ open, onClose, playerName, characters, showClassIcons }: PlayerCharactersDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{playerName ?? ''}</DialogTitle>
@@ -61,7 +63,9 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                         </Box>
                       </TableCell>
                       <TableCell>{c.total_level}</TableCell>
-                      <TableCell>{formatClasses(c.classes)}</TableCell>
+                      <TableCell>
+                        <ClassDisplay classes={c.classes} showIcons={showClassIcons} />
+                      </TableCell>
                       <TableCell>{c.race}</TableCell>
                       <TableCell>
                         {(() => {

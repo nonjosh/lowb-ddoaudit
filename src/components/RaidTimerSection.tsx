@@ -12,9 +12,10 @@ interface RaidTimerSectionProps {
   toggleRaidCollapsed: (questId: string) => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   togglePlayerCollapsed: (questId: string, playerName: string) => void
+  showClassIcons: boolean
 }
 
-export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed }: RaidTimerSectionProps) {
+export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed, showClassIcons }: RaidTimerSectionProps) {
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
@@ -44,6 +45,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
                 onToggleRaid={() => toggleRaidCollapsed(g.questId)}
                 isPlayerCollapsed={isPlayerCollapsed}
                 onTogglePlayer={togglePlayerCollapsed}
+                showClassIcons={showClassIcons}
               />
             </Box>
           ))}

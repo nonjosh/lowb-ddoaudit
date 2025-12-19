@@ -27,9 +27,10 @@ interface RaidCardProps {
   onToggleRaid: () => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   onTogglePlayer: (questId: string, playerName: string) => void
+  showClassIcons: boolean
 }
 
-export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer }: RaidCardProps) {
+export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons }: RaidCardProps) {
   const g = raidGroup
   const perPlayer = groupEntriesByPlayer(g.entries, now)
   const raidNotes = getRaidNotesForRaidName(g.raidName)
@@ -126,6 +127,7 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
                       now={now}
                       collapsed={collapsed}
                       onToggleCollapsed={() => onTogglePlayer(g.questId, pg.player)}
+                      showClassIcons={showClassIcons}
                     />
                   )
                 })}
