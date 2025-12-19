@@ -2,6 +2,17 @@ import { formatLocalDateTime } from '../ddoAuditApi'
 import { Paper, Button, Stack, Typography, Alert, FormControlLabel, Switch, Chip } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 
+interface ControlsProps {
+  loading: boolean
+  onRefresh: () => void
+  autoRefreshEnabled: boolean
+  onToggleAutoRefresh: () => void
+  characterCount: number
+  raidCount: number
+  lastUpdatedAt: Date | null
+  error: string
+}
+
 export default function Controls({
   loading,
   onRefresh,
@@ -11,7 +22,7 @@ export default function Controls({
   raidCount,
   lastUpdatedAt,
   error,
-}) {
+}: ControlsProps) {
   return (
     <Paper sx={{ p: 2 }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">

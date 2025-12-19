@@ -1,16 +1,24 @@
-import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable } from '../raidLogic'
+import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable, RaidGroup, RaidEntry } from '../raidLogic'
 import { getRaidNotesForRaidName } from '../raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
-import { Card, CardHeader, CardContent, Collapse, IconButton, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip } from '@mui/material'
+import { Card, CardHeader, CardContent, Collapse, IconButton, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import InfoIcon from '@mui/icons-material/Info'
 
-export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer }) {
+interface RaidCardProps {
+  raidGroup: RaidGroup
+  now: Date
+  isRaidCollapsed: boolean
+  onToggleRaid: () => void
+  isPlayerCollapsed: (questId: string, playerName: string) => boolean
+  onTogglePlayer: (questId: string, playerName: string) => void
+}
+
+export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer }: RaidCardProps) {
   const g = raidGroup
   const perPlayer = groupEntriesByPlayer(g.entries, now)
   const raidNotes = getRaidNotesForRaidName(g.raidName)
 
-  const renderNotesField = (label, items) => {
+  const renderNotesField = (label: string, items: string[] | undefined) => {
     const list = Array.isArray(items) ? items.filter(Boolean) : []
     if (list.length === 0) return null
     return (
@@ -25,7 +33,7 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
     )
   }
 
-  const isEligibleEntry = (e) => {
+  const isEligibleEntry = (e: RaidEntry) => {
     const lvl = e?.totalLevel
     return typeof lvl !== 'number' || lvl >= 30
   }

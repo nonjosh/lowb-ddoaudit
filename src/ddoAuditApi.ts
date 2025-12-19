@@ -6,43 +6,32 @@ const AREAS_JSON_URL =
 
 const MAX_CHARACTER_IDS_PER_REQUEST = 30
 
-/**
- * @template T
- * @param {T[]} items
- * @param {number} size
- */
-function chunk(items, size) {
+function chunk<T>(items: T[], size: number): T[][] {
   if (!Array.isArray(items) || items.length === 0) return []
   const chunkSize = Math.max(1, size | 0)
-  /** @type {T[][]} */
-  const out = []
+  const out: T[][] = []
   for (let i = 0; i < items.length; i += chunkSize) out.push(items.slice(i, i + chunkSize))
   return out
 }
 
-// User-specified lockout duration.
-export const RAID_LOCKOUT_MS = (2 * 24 + 18) * 60 * 60 * 1000
+const HOUR_IN_MS = 60 * 60 * 1000
+// User-specified lockout duration: 2 days + 18 hours.
+export const RAID_LOCKOUT_MS = (2 * 24 + 18) * HOUR_IN_MS
 
-/**
- * @param {string | number} value
- */
-export function normalizeCharacterId(value) {
+export function normalizeCharacterId(value: string | number | null | undefined): string | null {
   const text = String(value ?? '').trim()
   if (!text) return null
   if (!/^\d+$/.test(text)) return null
   return text
 }
 
-/**
- * @param {string} input
- */
-export function parseCharacterIds(input) {
+export function parseCharacterIds(input: string | null | undefined): string[] {
   const parts = String(input ?? '')
     .split(/[\s,]+/)
     .map((p) => p.trim())
     .filter(Boolean)
 
-  const unique = new Set()
+  const unique = new Set<string>()
   for (const part of parts) {
     const normalized = normalizeCharacterId(part)
     if (normalized) unique.add(normalized)
@@ -50,11 +39,11 @@ export function parseCharacterIds(input) {
   return Array.from(unique)
 }
 
-/**
- * @param {string[]} characterIds
- * @param {{ signal?: AbortSignal }} [options]
- */
-export async function fetchCharactersByIds(characterIds, options = {}) {
+export interface FetchOptions {
+  signal?: AbortSignal
+}
+
+export async function fetchCharactersByIds(characterIds: string[], options: FetchOptions = {}): Promise<Record<string, any>> {
   if (!characterIds?.length) return {}
 
   const batches = chunk(characterIds, MAX_CHARACTER_IDS_PER_REQUEST)
@@ -66,23 +55,19 @@ export async function fetchCharactersByIds(characterIds, options = {}) {
         throw new Error(`Failed to fetch characters (${resp.status})`)
       }
       const json = await resp.json()
-      return json?.data ?? {}
+      return (json?.data ?? {}) as Record<string, any>
     }),
   )
 
   // Efficiently merge all result objects into one
-  const merged = {};
+  const merged: Record<string, any> = {};
   for (const obj of results) {
     Object.assign(merged, obj);
   }
   return merged;
 }
 
-/**
- * @param {string[]} characterIds
- * @param {{ signal?: AbortSignal }} [options]
- */
-export async function fetchRaidActivity(characterIds, options = {}) {
+export async function fetchRaidActivity(characterIds: string[], options: FetchOptions = {}): Promise<any[]> {
   if (!characterIds?.length) return []
 
   const batches = chunk(characterIds, MAX_CHARACTER_IDS_PER_REQUEST)
@@ -96,7 +81,7 @@ export async function fetchRaidActivity(characterIds, options = {}) {
         throw new Error(`Failed to fetch raid activity (${resp.status})`)
       }
       const json = await resp.json()
-      return json?.data ?? []
+      return (json?.data ?? []) as any[]
     }),
   )
 
@@ -105,11 +90,8 @@ export async function fetchRaidActivity(characterIds, options = {}) {
 
 /**
  * Fetch current LFM (Looking For More) listings for a server.
- *
- * @param {string} serverName
- * @param {{ signal?: AbortSignal }} [options]
  */
-export async function fetchLfms(serverName = 'shadowdale', options = {}) {
+export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions = {}): Promise<Record<string, any>> {
   const server = String(serverName ?? '').trim() || 'shadowdale'
   const url = `${DDOAUDIT_BASE_URL}/lfms/${encodeURIComponent(server)}`
   const resp = await fetch(url, { signal: options.signal })
@@ -122,7 +104,7 @@ export async function fetchLfms(serverName = 'shadowdale', options = {}) {
    * Normalize possible response shapes into a record keyed by group id.
    * Some deployments return `{ data: { [id]: lfm } }` while others return `{ [id]: lfm }`.
    */
-  const normalize = (value) => {
+  const normalize = (value: any): Record<string, any> => {
     if (!value) return {}
 
     // Common wrapper: { data: ... }
@@ -132,8 +114,7 @@ export async function fetchLfms(serverName = 'shadowdale', options = {}) {
 
     // Sometimes: [ { id, quest_id, ... }, ... ]
     if (Array.isArray(value)) {
-      /** @type {Record<string, any>} */
-      const out = {}
+      const out: Record<string, any> = {}
       for (const item of value) {
         const id = item?.id ?? item?.group_id
         if (id === null || id === undefined) continue
@@ -170,10 +151,20 @@ export async function fetchLfms(serverName = 'shadowdale', options = {}) {
   return normalize(json)
 }
 
-let questsByIdPromise = null
-let areasByIdPromise = null
+export interface Quest {
+  id: string
+  name: string
+  type: string | null
+  level: number | null
+  heroicLevel: number | null
+  epicLevel: number | null
+  required_adventure_pack: string | null
+}
 
-function parseNullableInt(value) {
+let questsByIdPromise: Promise<Record<string, Quest>> | null = null
+let areasByIdPromise: Promise<Record<string, { id: string; name: string }>> | null = null
+
+function parseNullableInt(value: any): number | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null
   const text = String(value).trim()
@@ -186,7 +177,7 @@ function parseNullableInt(value) {
  * Quests are loaded from JSON and mapped into a simple lookup table keyed by quest id.
  * Returned values are normalized to the shape used by the UI.
  */
-export async function fetchQuestsById() {
+export async function fetchQuestsById(): Promise<Record<string, Quest>> {
   if (questsByIdPromise) return questsByIdPromise
 
   questsByIdPromise = (async () => {
@@ -198,8 +189,7 @@ export async function fetchQuestsById() {
     const data = await resp.json()
     const list = Array.isArray(data) ? data : []
 
-    /** @type {Record<string, { id: string, name: string, type: string | null, level: number | null, heroicLevel: number | null, epicLevel: number | null, required_adventure_pack: string | null }> } */
-    const map = {}
+    const map: Record<string, Quest> = {}
 
     for (const q of list) {
       const name = String(q?.name ?? '').trim()
@@ -216,7 +206,7 @@ export async function fetchQuestsById() {
 
       if (!name || ids.size === 0) continue
 
-      const questObj = {
+      const questObj: Quest = {
         id: primaryId,
         name,
         type: type || null,
@@ -241,7 +231,7 @@ export async function fetchQuestsById() {
  * Areas are loaded from JSON and mapped into a simple lookup table keyed by area id.
  * Returned values are normalized to the shape used by the UI.
  */
-export async function fetchAreasById() {
+export async function fetchAreasById(): Promise<Record<string, { id: string; name: string }>> {
   if (areasByIdPromise) return areasByIdPromise
 
   areasByIdPromise = (async () => {
@@ -253,8 +243,7 @@ export async function fetchAreasById() {
     const data = await resp.json()
     const list = Array.isArray(data) ? data : []
 
-    /** @type {Record<string, { id: string, name: string }> } */
-    const map = {}
+    const map: Record<string, { id: string; name: string }> = {}
 
     for (const a of list) {
       const id = String(a?.id ?? '').trim()
@@ -270,10 +259,7 @@ export async function fetchAreasById() {
   return areasByIdPromise
 }
 
-/**
- * @param {string | number | Date} ts
- */
-export function formatLocalDateTime(ts, options = {}) {
+export function formatLocalDateTime(ts: string | number | Date | null | undefined, options: { includeSeconds?: boolean } = {}): string {
   if (ts === null || ts === undefined || ts === '') return '—'
   const d = ts instanceof Date ? ts : new Date(ts)
   if (Number.isNaN(d.getTime())) return '—'
@@ -289,30 +275,21 @@ export function formatLocalDateTime(ts, options = {}) {
   })
 }
 
-/**
- * @param {string | number | Date} ts
- * @param {number} ms
- */
-export function addMs(ts, ms) {
+export function addMs(ts: string | number | Date | null | undefined, ms: number): Date | null {
   if (ts === null || ts === undefined || ts === '') return null
   const d = ts instanceof Date ? ts : new Date(ts)
   if (Number.isNaN(d.getTime())) return null
   return new Date(d.getTime() + ms)
 }
 
-/**
- * @param {string | number | Date} ts
- */
-export function formatReadyAt(ts) {
+export function formatReadyAt(ts: string | number | Date | null | undefined): string {
   const ready = addMs(ts, RAID_LOCKOUT_MS)
   if (!ready) return '—'
   return formatLocalDateTime(ready)
 }
 
-/**
- * @param {string | number | Date} ts
- */
-export function formatAge(ts) {
+export function formatAge(ts: string | number | Date | null | undefined): string {
+  if (ts === null || ts === undefined || ts === '') return '—'
   const d = ts instanceof Date ? ts : new Date(ts)
   const ms = Date.now() - d.getTime()
   if (!Number.isFinite(ms) || ms < 0) return '—'
@@ -325,10 +302,7 @@ export function formatAge(ts) {
   return `${minutes}m`
 }
 
-/**
- * @param {number} remainingMs
- */
-export function formatTimeRemaining(remainingMs) {
+export function formatTimeRemaining(remainingMs: number): string {
   if (!Number.isFinite(remainingMs)) return 'Available'
   if (remainingMs <= 0) return 'Ready'
 

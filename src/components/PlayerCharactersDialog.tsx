@@ -5,7 +5,14 @@ import { formatAge, formatLocalDateTime } from '../ddoAuditApi'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
-export default function PlayerCharactersDialog({ open, onClose, playerName, characters }) {
+interface PlayerCharactersDialogProps {
+  open: boolean
+  onClose: () => void
+  playerName: string
+  characters: any[]
+}
+
+export default function PlayerCharactersDialog({ open, onClose, playerName, characters }: PlayerCharactersDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{playerName ?? ''}</DialogTitle>
@@ -26,7 +33,7 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                   .slice()
                   .sort((a, b) => {
                     if (a.is_online !== b.is_online) return a.is_online ? -1 : 1
-                    return new Date(b.last_update) - new Date(a.last_update)
+                    return new Date(b.last_update).getTime() - new Date(a.last_update).getTime()
                   })
                   .map((c) => (
                     <TableRow key={c.id}>

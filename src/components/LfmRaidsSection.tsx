@@ -2,7 +2,6 @@ import { Fragment, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
-  Button,
   Chip,
   CircularProgress,
   Skeleton,
@@ -20,13 +19,14 @@ import {
 } from '@mui/material'
 import { EXPECTED_PLAYERS, formatClasses, getPlayerDisplayName, getPlayerName } from '../raidLogic'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
+import { Quest } from '../ddoAuditApi'
 
-function isRaidQuest(quest) {
+function isRaidQuest(quest: Quest | null) {
   const type = String(quest?.type ?? '').trim().toLowerCase()
   return type.includes('raid')
 }
 
-function getEffectiveLevel(lfm, quest) {
+function getEffectiveLevel(lfm: any, quest: Quest | null) {
   // Prefer a version-specific quest level when available.
   const leaderLevel = lfm?.leader?.total_level
   const heroicLevel = quest?.heroicLevel
@@ -52,7 +52,7 @@ function getEffectiveLevel(lfm, quest) {
   return null
 }
 
-function getGroupNames(lfm) {
+function getGroupNames(lfm: any) {
   const names = []
   const leaderName = lfm?.leader?.name
   if (leaderName) names.push(leaderName)
@@ -68,7 +68,7 @@ function getGroupNames(lfm) {
  * Best-effort: skull count is typically embedded in the LFM comment (e.g. "R10", "Reaper 3").
  * @param {string} text
  */
-function parseReaperSkulls(text) {
+function parseReaperSkulls(text: string | null) {
   const s = String(text ?? '')
   if (!s) return null
 
@@ -84,9 +84,17 @@ function parseReaperSkulls(text) {
   return best
 }
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error }) {
+interface LfmRaidsSectionProps {
+  loading: boolean
+  hasFetched: boolean
+  lfmsById: Record<string, any>
+  questsById: Record<string, Quest>
+  error: string
+}
+
+export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error }: LfmRaidsSectionProps) {
   const [questFilter, setQuestFilter] = useState('raid')
-  const [selectedLfm, setSelectedLfm] = useState(null)
+  const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   const raidLfms = useMemo(() => {

@@ -1,6 +1,6 @@
 import raidNotesRaw from './assets/raid_notes.txt?raw'
 
-function keyify(name) {
+function keyify(name: string | null | undefined): string {
   return String(name ?? '')
     .trim()
     .toLowerCase()
@@ -11,22 +11,27 @@ function keyify(name) {
     .replace(/\s+/g, ' ')
 }
 
+export interface RaidNotes {
+  raidName: string
+  augments: string[]
+  sets: string[]
+  notes: string[]
+}
+
 /**
- * @param {string} raw
- * @returns {Record<string, { raidName: string, augments: string[], sets: string[], notes: string[] }>}
+ * Parses the raw raid notes text into a lookup by normalized raid name.
+ *
+ * @param raw - The raw raid notes file contents.
+ * @returns A mapping from normalized raid name keys to their raid notes.
  */
-function parseRaidNotes(raw) {
+function parseRaidNotes(raw: string): Record<string, RaidNotes> {
   const lines = String(raw ?? '').replace(/\r\n/g, '\n').split('\n')
 
-  /** @type {Record<string, { raidName: string, augments: string[], sets: string[], notes: string[] }> } */
-  const out = {}
+  const out: Record<string, RaidNotes> = {}
 
-  /** @type {{ raidName: string, augments: string[], sets: string[], notes: string[] } | null} */
-  let current = null
-  /** @type {'augment' | 'set' | 'notes' | null} */
-  let section = null
-  /** @type {string | null} */
-  let pendingNoteLabel = null
+  let current: RaidNotes | null = null
+  let section: 'augment' | 'set' | 'notes' | null = null
+  let pendingNoteLabel: string | null = null
 
   const flushPendingLabel = () => {
     if (pendingNoteLabel && current) {
@@ -98,10 +103,7 @@ function parseRaidNotes(raw) {
 
 const RAID_NOTES_BY_KEY = parseRaidNotes(raidNotesRaw)
 
-/**
- * @param {string} raidName
- */
-export function getRaidNotesForRaidName(raidName) {
+export function getRaidNotesForRaidName(raidName: string): RaidNotes | null {
   const key = keyify(raidName)
   if (!key) return null
   return RAID_NOTES_BY_KEY[key] ?? null

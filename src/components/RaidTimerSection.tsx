@@ -1,7 +1,19 @@
 import RaidCard from './RaidCard'
 import { Typography, Box, Stack, CircularProgress, Skeleton } from '@mui/material'
+import { RaidGroup } from '../raidLogic'
 
-export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed }) {
+interface RaidTimerSectionProps {
+  loading: boolean
+  hasFetched: boolean
+  raidGroups: RaidGroup[]
+  now: Date
+  isRaidCollapsed: (questId: string) => boolean
+  toggleRaidCollapsed: (questId: string) => void
+  isPlayerCollapsed: (questId: string, playerName: string) => boolean
+  togglePlayerCollapsed: (questId: string, playerName: string) => void
+}
+
+export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed }: RaidTimerSectionProps) {
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>

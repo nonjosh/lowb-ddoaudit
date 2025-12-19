@@ -16,7 +16,30 @@ import {
 } from '@mui/material'
 import { EXPECTED_PLAYERS } from '../raidLogic'
 
-export default function LfmParticipantsDialog({ selectedLfm, onClose }) {
+interface LfmParticipant {
+  characterName: string
+  playerName: string
+  playerDisplayName: string
+  guildName: string
+  totalLevel: number | null
+  classesDisplay: string
+  isLeader: boolean
+}
+
+interface LfmGroup {
+  questName: string
+  questLevel: number | null
+  difficultyDisplay: string
+  difficultyColor: string
+  participants: LfmParticipant[]
+}
+
+interface LfmParticipantsDialogProps {
+  selectedLfm: LfmGroup | null
+  onClose: () => void
+}
+
+export default function LfmParticipantsDialog({ selectedLfm, onClose }: LfmParticipantsDialogProps) {
   return (
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>

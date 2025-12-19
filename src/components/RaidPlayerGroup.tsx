@@ -5,17 +5,24 @@ import {
   RAID_LOCKOUT_MS,
 } from '../ddoAuditApi'
 
-import { formatClasses, getPlayerDisplayName, isEntryAvailable } from '../raidLogic'
+import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 import { TableRow, TableCell, IconButton, Typography, Box, Tooltip } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import InfoIcon from '@mui/icons-material/Info'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
 
-export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }) {
+interface RaidPlayerGroupProps {
+  playerGroup: PlayerGroup
+  now: Date
+  collapsed: boolean
+  onToggleCollapsed: () => void
+}
+
+export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed }: RaidPlayerGroupProps) {
   const pg = playerGroup
   const entries = pg.entries ?? []
+  const nowTime = now.getTime()
 
   // Hide characters below level 30.
   const eligibleEntries = entries.filter((e) => {
@@ -41,8 +48,8 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
       // For unavailable characters, keep a useful order: soonest-to-ready first.
       const aReadyAt = addMs(a?.lastTimestamp, RAID_LOCKOUT_MS)
       const bReadyAt = addMs(b?.lastTimestamp, RAID_LOCKOUT_MS)
-      const aRemaining = aReadyAt ? aReadyAt.getTime() - now : Number.POSITIVE_INFINITY
-      const bRemaining = bReadyAt ? bReadyAt.getTime() - now : Number.POSITIVE_INFINITY
+      const aRemaining = aReadyAt ? aReadyAt.getTime() - nowTime : Number.POSITIVE_INFINITY
+      const bRemaining = bReadyAt ? bReadyAt.getTime() - nowTime : Number.POSITIVE_INFINITY
       if (aRemaining !== bRemaining) return aRemaining - bRemaining
       return String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? ''))
     })
@@ -79,7 +86,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
     for (const e of eligibleEntries) {
       const readyAt = addMs(e?.lastTimestamp, RAID_LOCKOUT_MS)
       if (!readyAt) continue
-      const remaining = readyAt.getTime() - now
+      const remaining = readyAt.getTime() - nowTime
       if (remaining > 0 && remaining < soonestRemaining) {
         soonest = e
         soonestRemaining = remaining
@@ -131,7 +138,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
         const available = isEntryAvailable(e, now)
         const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
         const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-        const remaining = readyAt ? readyAt.getTime() - now : NaN
+        const remaining = readyAt ? readyAt.getTime() - nowTime : NaN
         
         const tooltipTitle = available ? null : (
           <Box>

@@ -1,16 +1,16 @@
-import { addMs, RAID_LOCKOUT_MS } from './ddoAuditApi'
+import { addMs, RAID_LOCKOUT_MS, Quest } from './ddoAuditApi'
 
 export const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'OldMic']
 
-const PLAYER_DISPLAY_NAMES = {
+const PLAYER_DISPLAY_NAMES: Record<string, string> = {
   OldMic: '老mic',
 }
 
-export function getPlayerDisplayName(playerName) {
+export function getPlayerDisplayName(playerName: string): string {
   return PLAYER_DISPLAY_NAMES[playerName] ?? playerName
 }
 
-export const CHARACTERS_BY_PLAYER = {
+export const CHARACTERS_BY_PLAYER: Record<string, string[]> = {
   Johnson: ['nonjosh', 'nonjoshii', 'nonjoshiv', 'mvppiker'],
   Jonah: ['zenser', 'zenrar', 'zertiar', 'zevkar', 'magiz'],
   Michael: ['garei', 'tareos', 'karc', 'warkon', 'kayos'],
@@ -19,9 +19,8 @@ export const CHARACTERS_BY_PLAYER = {
   OldMic: ['ctenmiir', 'keviamin', 'graceella', 'castra'],
 }
 
-function buildPlayerByCharacterName(charactersByPlayer) {
-  /** @type {Record<string, string>} */
-  const map = {}
+function buildPlayerByCharacterName(charactersByPlayer: Record<string, string[]>): Record<string, string> {
+  const map: Record<string, string> = {}
   for (const [player, names] of Object.entries(charactersByPlayer ?? {})) {
     for (const rawName of names ?? []) {
       const key = String(rawName ?? '').trim().toLowerCase()
@@ -35,15 +34,34 @@ function buildPlayerByCharacterName(charactersByPlayer) {
 // Back-compat export: existing code expects character -> player.
 export const PLAYER_BY_CHARACTER_NAME = buildPlayerByCharacterName(CHARACTERS_BY_PLAYER)
 
-export function getPlayerName(characterName) {
+export function getPlayerName(characterName: string | null | undefined): string {
   const key = String(characterName ?? '').trim().toLowerCase()
   if (!key) return 'Unknown'
   return PLAYER_BY_CHARACTER_NAME[key] ?? 'Unknown'
 }
 
-export function groupEntriesByPlayer(entries, now) {
-  /** @type {Map<string, any[]>} */
-  const map = new Map()
+export interface CharacterClass {
+  name: string
+  level: number
+}
+
+export interface RaidEntry {
+  characterId: string
+  characterName: string
+  playerName: string
+  totalLevel: number | null
+  classes: CharacterClass[]
+  lastTimestamp: string | null
+}
+
+export interface PlayerGroup {
+  player: string
+  entries: RaidEntry[]
+}
+
+export function groupEntriesByPlayer(entries: RaidEntry[], now: Date): PlayerGroup[] {
+  const map = new Map<string, RaidEntry[]>()
+  const nowTime = now.getTime()
   for (const e of entries ?? []) {
     const player = e?.playerName ?? 'Unknown'
     const arr = map.get(player) ?? []
@@ -59,8 +77,8 @@ export function groupEntriesByPlayer(entries, now) {
 
       const aReadyAt = addMs(a.lastTimestamp, RAID_LOCKOUT_MS)
       const bReadyAt = addMs(b.lastTimestamp, RAID_LOCKOUT_MS)
-      const aRemaining = aReadyAt ? aReadyAt.getTime() - now : Number.POSITIVE_INFINITY
-      const bRemaining = bReadyAt ? bReadyAt.getTime() - now : Number.POSITIVE_INFINITY
+      const aRemaining = aReadyAt ? aReadyAt.getTime() - nowTime : Number.POSITIVE_INFINITY
+      const bRemaining = bReadyAt ? bReadyAt.getTime() - nowTime : Number.POSITIVE_INFINITY
 
       // Asc: less time remaining first.
       const byRemaining = aRemaining - bRemaining
@@ -80,31 +98,38 @@ export function groupEntriesByPlayer(entries, now) {
   return groups
 }
 
-export function formatClasses(classes) {
+export function formatClasses(classes: any[]): string {
   const list = Array.isArray(classes) ? classes : []
   const filtered = list.filter((c) => c?.name && c?.name !== 'Epic' && c?.name !== 'Legendary')
   if (!filtered.length) return '—'
   return filtered.map((c) => `${c.name} ${c.level}`).join(', ')
 }
 
-export function isEntryAvailable(entry, now) {
+export function isEntryAvailable(entry: RaidEntry | null | undefined, now: Date): boolean {
   const readyAt = addMs(entry?.lastTimestamp, RAID_LOCKOUT_MS)
   if (!readyAt) return true
-  return readyAt.getTime() - now <= 0
+  return readyAt.getTime() - now.getTime() <= 0
 }
 
-export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
+export interface RaidGroup {
+  questId: string
+  raidName: string
+  questLevel: number | null
+  entries: RaidEntry[]
+}
+
+export function buildRaidGroups({ raidActivity, questsById, charactersById }: { raidActivity: any[], questsById: Record<string, Quest>, charactersById: Record<string, any> }): RaidGroup[] {
   /**
    * groupKey: normalized raid name
    * value: { questId, raidName, questLevel, entries: Array<{ characterId, characterName, playerName, lastTimestamp }> }
    */
-  const groups = new Map()
+  const groups = new Map<string, any>()
 
-  function normalizeRaidKey(name) {
+  function normalizeRaidKey(name: string) {
     return String(name ?? '').trim().toLowerCase()
   }
 
-  function isBetterQuestLevel(nextLevel, currentLevel) {
+  function isBetterQuestLevel(nextLevel: number | null, currentLevel: number | null) {
     const a = typeof nextLevel === 'number' ? nextLevel : -1
     const b = typeof currentLevel === 'number' ? currentLevel : -1
     return a > b
@@ -140,7 +165,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
         questId,
         raidName,
         questLevel,
-        entriesByCharacterId: new Map(),
+        entriesByCharacterId: new Map<string, RaidEntry>(),
       }
 
       if (isBetterQuestLevel(questLevel, existing.questLevel)) {
@@ -188,7 +213,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
   }
 
   const normalized = Array.from(groups.values()).map((g) => {
-    const entries = Array.from(g.entriesByCharacterId.values()).sort((a, b) => {
+    const entries = Array.from(g.entriesByCharacterId.values() as Iterable<RaidEntry>).sort((a, b) => {
       const byPlayer = String(a.playerName).localeCompare(String(b.playerName))
       if (byPlayer !== 0) return byPlayer
       const byName = String(a.characterName).localeCompare(String(b.characterName))
@@ -196,7 +221,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }) {
       if (!a.lastTimestamp && b.lastTimestamp) return -1
       if (!b.lastTimestamp && a.lastTimestamp) return 1
       if (!a.lastTimestamp && !b.lastTimestamp) return 0
-      return new Date(a.lastTimestamp).getTime() - new Date(b.lastTimestamp).getTime()
+      return new Date(a.lastTimestamp!).getTime() - new Date(b.lastTimestamp!).getTime()
     })
     return { questId: g.questId, raidName: g.raidName, questLevel: g.questLevel ?? null, entries }
   })

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Container, Typography, Box, Grid, Paper } from '@mui/material'
-// import './App.css'
+import { Box, Container, Grid, Paper } from '@mui/material'
 
-import { fetchCharactersByIds, fetchLfms, fetchQuestsById, fetchRaidActivity, parseCharacterIds } from './ddoAuditApi'
-
-import Controls from './components/Controls'
-import CharactersSection from './components/CharactersSection'
-import LfmRaidsSection from './components/LfmRaidsSection'
-import RaidTimerSection from './components/RaidTimerSection'
-
+import {
+  fetchCharactersByIds,
+  fetchLfms,
+  fetchQuestsById,
+  fetchRaidActivity,
+  parseCharacterIds,
+  Quest,
+} from './ddoAuditApi'
 import {
   buildRaidGroups,
   EXPECTED_PLAYERS,
@@ -17,24 +17,29 @@ import {
   isEntryAvailable,
 } from './raidLogic'
 
+import CharactersSection from './components/CharactersSection'
+import Controls from './components/Controls'
+import LfmRaidsSection from './components/LfmRaidsSection'
+import RaidTimerSection from './components/RaidTimerSection'
+
 function App() {
   const [characterIdsInput] = useState(
     '81612777584,81612779875,81612799899,81612840713,111670413405,81612796054,81608349902,81612777715,81612777720,81612780583,81612780586,81612782737,81612795666,81612796057,81612811713,81613135800,111670193026,111670322311,111670420969,111670661572,111670702832,111670708744,111671237122,111671347683,111671471817,111671727098,111672061714,111672875879,111678077704,180388777114,180388801443,180388818353,180388822764,81612801618,81612777713,81612840693,180388831263',
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
-  const [charactersById, setCharactersById] = useState({})
-  const [raidActivity, setRaidActivity] = useState([])
-  const [questsById, setQuestsById] = useState({})
-  const [lfmsById, setLfmsById] = useState({})
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
+  const [charactersById, setCharactersById] = useState<Record<string, any>>({})
+  const [raidActivity, setRaidActivity] = useState<any[]>([])
+  const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
+  const [lfmsById, setLfmsById] = useState<Record<string, any>>({})
   const [lfmError, setLfmError] = useState('')
-  const [now, setNow] = useState(() => Date.now())
-  const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set())
-  const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set())
-  const [collapsedRaids, setCollapsedRaids] = useState(() => new Set())
+  const [now, setNow] = useState(() => new Date())
+  const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
+  const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set<string>())
+  const [collapsedRaids, setCollapsedRaids] = useState(() => new Set<string>())
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
-  const abortRef = useRef(null)
+  const abortRef = useRef<AbortController | null>(null)
   const resetCharacterCollapseRef = useRef(true)
   const resetRaidCollapseRef = useRef(true)
   const resetRaidCardCollapseRef = useRef(true)
@@ -49,8 +54,7 @@ function App() {
   const charactersByPlayer = useMemo(() => {
     const values = Object.values(charactersById ?? {})
 
-    /** @type {Map<string, any[]>} */
-    const map = new Map()
+    const map = new Map<string, any[]>()
     for (const c of values) {
       const player = getPlayerName(c?.name)
       const arr = map.get(player) ?? []
@@ -82,7 +86,7 @@ function App() {
     if (!resetRaidCollapseRef.current) return
     if (!raidGroups.length) return
 
-    const next = new Set()
+    const next = new Set<string>()
     for (const rg of raidGroups) {
       const perPlayer = groupEntriesByPlayer(rg.entries, now)
       for (const pg of perPlayer) next.add(`${rg.questId}:${pg.player}`)
@@ -96,11 +100,10 @@ function App() {
     if (!resetRaidCardCollapseRef.current) return
     if (!raidGroups.length) return
 
-    const next = new Set()
+    const next = new Set<string>()
     for (const rg of raidGroups) {
       const perPlayer = groupEntriesByPlayer(rg.entries, now)
-      /** @type {Map<string, boolean>} */
-      const playerHasAvailable = new Map()
+      const playerHasAvailable = new Map<string, boolean>()
       for (const pg of perPlayer) {
         const hasAvail = (pg.entries ?? []).some((e) => isEntryAvailable(e, now))
         playerHasAvailable.set(pg.player, hasAvail)
@@ -131,7 +134,7 @@ function App() {
         return
       }
 
-      let lfmFetchError = null
+      let lfmFetchError: any = null
       const [quests, characters, raids, lfms] = await Promise.all([
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
@@ -151,7 +154,7 @@ function App() {
       setRaidActivity(raids)
       setLfmsById(lfms ?? {})
       setLastUpdatedAt(new Date())
-    } catch (e) {
+    } catch (e: any) {
       if (e?.name === 'AbortError') return
       setError(e?.message ?? String(e))
     } finally {
@@ -165,7 +168,7 @@ function App() {
   }, [load])
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000)
+    const id = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(id)
   }, [])
 
@@ -185,11 +188,11 @@ function App() {
     return () => clearInterval(id)
   }, [autoRefreshEnabled, load])
 
-  function isCollapsed(questId, playerName) {
+  function isCollapsed(questId: string, playerName: string) {
     return collapsedPlayerGroups.has(`${questId}:${playerName}`)
   }
 
-  function toggleCollapsed(questId, playerName) {
+  function toggleCollapsed(questId: string, playerName: string) {
     const key = `${questId}:${playerName}`
     setCollapsedPlayerGroups((prev) => {
       const next = new Set(prev)
@@ -199,11 +202,11 @@ function App() {
     })
   }
 
-  function isCharacterPlayerCollapsed(playerName) {
+  function isCharacterPlayerCollapsed(playerName: string) {
     return collapsedCharacterPlayers.has(playerName)
   }
 
-  function toggleCharacterPlayerCollapsed(playerName) {
+  function toggleCharacterPlayerCollapsed(playerName: string) {
     setCollapsedCharacterPlayers((prev) => {
       const next = new Set(prev)
       if (next.has(playerName)) next.delete(playerName)
@@ -212,11 +215,11 @@ function App() {
     })
   }
 
-  function isRaidCollapsed(questId) {
+  function isRaidCollapsed(questId: string) {
     return collapsedRaids.has(String(questId))
   }
 
-  function toggleRaidCollapsed(questId) {
+  function toggleRaidCollapsed(questId: string) {
     const key = String(questId)
     setCollapsedRaids((prev) => {
       const next = new Set(prev)
@@ -242,12 +245,12 @@ function App() {
       <Box sx={{ mt: 4 }}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, sm: 4, md: 3, lg: 2.5 }}>
-            <Paper sx={{ 
-              p: 2, 
-              position: 'sticky', 
-              top: 16, 
-              maxHeight: 'calc(100vh - 32px)', 
-              overflowY: 'auto' 
+            <Paper sx={{
+              p: 2,
+              position: 'sticky',
+              top: 16,
+              maxHeight: 'calc(100vh - 32px)',
+              overflowY: 'auto'
             }}>
               <CharactersSection
                 loading={loading}
@@ -274,7 +277,7 @@ function App() {
               loading={loading}
               hasFetched={!!lastUpdatedAt}
               raidGroups={raidGroups}
-              now={now}
+              now={now ?? new Date()}
               isRaidCollapsed={isRaidCollapsed}
               toggleRaidCollapsed={toggleRaidCollapsed}
               isPlayerCollapsed={isCollapsed}

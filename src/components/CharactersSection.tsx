@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { formatClasses, getPlayerDisplayName } from '../raidLogic'
-import { fetchAreasById, fetchQuestsById } from '../ddoAuditApi'
+import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
 import PlayerCharactersDialog from './PlayerCharactersDialog'
 import { 
   Typography, Box, CircularProgress, Skeleton, 
@@ -12,10 +12,31 @@ import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 
-export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer }) {
-  const [quests, setQuests] = useState({})
-  const [areas, setAreas] = useState({})
-  const [selectedPlayerGroup, setSelectedPlayerGroup] = useState(null)
+interface Character {
+  name: string
+  is_online: boolean
+  location_id: string
+  classes: any[]
+}
+
+interface PlayerGroup {
+  player: string
+  chars: Character[]
+}
+
+interface CharactersSectionProps {
+  loading: boolean
+  hasFetched: boolean
+  charactersById: Record<string, any>
+  charactersByPlayer: PlayerGroup[]
+  isPlayerCollapsed: (playerName: string) => boolean
+  togglePlayerCollapsed: (playerName: string) => void
+}
+
+export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer }: CharactersSectionProps) {
+  const [quests, setQuests] = useState<Record<string, Quest>>({})
+  const [areas, setAreas] = useState<Record<string, { id: string, name: string }>>({})
+  const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
 
   useEffect(() => {
     fetchQuestsById().then(setQuests).catch(console.error)
@@ -23,9 +44,9 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
   }, [])
 
   const { onlineByQuest, questNameToPack, offlineGroups } = useMemo(() => {
-    const online = {}
-    const questMeta = {}
-    const offline = []
+    const online: Record<string, PlayerGroup[]> = {}
+    const questMeta: Record<string, string | null> = {}
+    const offline: PlayerGroup[] = []
 
     // Sort by player name first to ensure consistent order
     const sortedGroups = [...charactersByPlayer].sort((a, b) => 
@@ -52,7 +73,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     return { onlineByQuest: online, questNameToPack: questMeta, offlineGroups: offline }
   }, [charactersByPlayer, quests])
 
-  const handlePlayerClick = (group) => {
+  const handlePlayerClick = (group: PlayerGroup) => {
     setSelectedPlayerGroup(group)
   }
 
@@ -60,7 +81,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
     setSelectedPlayerGroup(null)
   }
 
-  const renderPlayerRow = (group) => {
+  const renderPlayerRow = (group: PlayerGroup) => {
     const onlineChars = (group.chars ?? []).filter((c) => c?.is_online)
     const isOnline = onlineChars.length > 0
     
@@ -205,7 +226,7 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
         open={!!selectedPlayerGroup}
         onClose={handleCloseDialog}
         playerName={selectedPlayerGroup ? getPlayerDisplayName(selectedPlayerGroup.player) : ''}
-        characters={selectedPlayerGroup?.chars}
+        characters={selectedPlayerGroup?.chars ?? []}
       />
     </>
   )

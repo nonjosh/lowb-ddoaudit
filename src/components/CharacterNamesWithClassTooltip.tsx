@@ -1,7 +1,17 @@
 import { Tooltip } from '@mui/material'
 import { formatClasses } from '../raidLogic'
 
-export default function CharacterNamesWithClassTooltip({ items }) {
+interface CharacterItem {
+  id?: string
+  name?: string
+  classes?: any
+}
+
+interface CharacterNamesWithClassTooltipProps {
+  items: CharacterItem[]
+}
+
+export default function CharacterNamesWithClassTooltip({ items }: CharacterNamesWithClassTooltipProps) {
   const list = Array.isArray(items) ? items : []
 
   return (
