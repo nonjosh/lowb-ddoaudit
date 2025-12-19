@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Tooltip } from '@mui/material'
 
 import { formatClasses } from '../raidLogic'
@@ -14,7 +15,7 @@ interface CharacterNamesWithClassTooltipProps {
   showClassIcons?: boolean
 }
 
-export default function CharacterNamesWithClassTooltip({ items, showClassIcons }: CharacterNamesWithClassTooltipProps) {
+function CharacterNamesWithClassTooltip({ items, showClassIcons }: CharacterNamesWithClassTooltipProps) {
   const list = Array.isArray(items) ? items : []
 
   return (
@@ -40,3 +41,5 @@ export default function CharacterNamesWithClassTooltip({ items, showClassIcons }
     </>
   )
 }
+
+export default memo(CharacterNamesWithClassTooltip)

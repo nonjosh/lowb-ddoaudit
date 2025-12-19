@@ -189,11 +189,11 @@ function App() {
     return () => clearInterval(id)
   }, [autoRefreshEnabled, load])
 
-  function isCollapsed(questId: string, playerName: string) {
+  const isCollapsed = useCallback((questId: string, playerName: string) => {
     return collapsedPlayerGroups.has(`${questId}:${playerName}`)
-  }
+  }, [collapsedPlayerGroups])
 
-  function toggleCollapsed(questId: string, playerName: string) {
+  const toggleCollapsed = useCallback((questId: string, playerName: string) => {
     const key = `${questId}:${playerName}`
     setCollapsedPlayerGroups((prev) => {
       const next = new Set(prev)
@@ -201,26 +201,26 @@ function App() {
       else next.add(key)
       return next
     })
-  }
+  }, [])
 
-  function isCharacterPlayerCollapsed(playerName: string) {
+  const isCharacterPlayerCollapsed = useCallback((playerName: string) => {
     return collapsedCharacterPlayers.has(playerName)
-  }
+  }, [collapsedCharacterPlayers])
 
-  function toggleCharacterPlayerCollapsed(playerName: string) {
+  const toggleCharacterPlayerCollapsed = useCallback((playerName: string) => {
     setCollapsedCharacterPlayers((prev) => {
       const next = new Set(prev)
       if (next.has(playerName)) next.delete(playerName)
       else next.add(playerName)
       return next
     })
-  }
+  }, [])
 
-  function isRaidCollapsed(questId: string) {
+  const isRaidCollapsed = useCallback((questId: string) => {
     return collapsedRaids.has(String(questId))
-  }
+  }, [collapsedRaids])
 
-  function toggleRaidCollapsed(questId: string) {
+  const toggleRaidCollapsed = useCallback((questId: string) => {
     const key = String(questId)
     setCollapsedRaids((prev) => {
       const next = new Set(prev)
@@ -228,7 +228,7 @@ function App() {
       else next.add(key)
       return next
     })
-  }
+  }, [])
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>

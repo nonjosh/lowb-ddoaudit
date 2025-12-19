@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Box, Tooltip, Typography } from '@mui/material'
 import { CharacterClass, formatClasses } from '../raidLogic'
 
@@ -7,7 +8,7 @@ interface ClassDisplayProps {
   hideLevels?: boolean
 }
 
-export default function ClassDisplay({ classes, showIcons, hideLevels = false }: ClassDisplayProps) {
+function ClassDisplay({ classes, showIcons, hideLevels = false }: ClassDisplayProps) {
   if (!showIcons) {
     return <Typography variant="body2" component="span">{formatClasses(classes)}</Typography>
   }
@@ -59,3 +60,5 @@ export default function ClassDisplay({ classes, showIcons, hideLevels = false }:
     </Box>
   )
 }
+
+export default memo(ClassDisplay)

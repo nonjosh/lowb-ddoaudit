@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import {
   Box,
   Card,
@@ -32,8 +33,12 @@ interface RaidCardProps {
 
 export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons }: RaidCardProps) {
   const g = raidGroup
-  const perPlayer = groupEntriesByPlayer(g.entries, now)
+  const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
   const raidNotes = getRaidNotesForRaidName(g.raidName)
+
+  const handleTogglePlayer = useCallback((playerName: string) => {
+    onTogglePlayer(g.questId, playerName)
+  }, [onTogglePlayer, g.questId])
 
   const renderNotesField = (label: string, items: string[] | undefined) => {
     const list = Array.isArray(items) ? items.filter(Boolean) : []
@@ -50,19 +55,21 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
     )
   }
 
-  const isEligibleEntry = (e: RaidEntry) => {
-    const lvl = e?.totalLevel
-    return typeof lvl !== 'number' || lvl >= 30
-  }
+  const perPlayerEligible = useMemo(() => {
+    const isEligibleEntry = (e: RaidEntry) => {
+      const lvl = e?.totalLevel
+      return typeof lvl !== 'number' || lvl >= 30
+    }
 
-  const perPlayerEligible = perPlayer
-    .map((pg) => ({ ...pg, entries: (pg.entries ?? []).filter(isEligibleEntry) }))
-    .filter((pg) => (pg.entries ?? []).length > 0)
+    return perPlayer
+      .map((pg) => ({ ...pg, entries: (pg.entries ?? []).filter(isEligibleEntry) }))
+      .filter((pg) => (pg.entries ?? []).length > 0)
+  }, [perPlayer])
 
-  const availablePlayers = EXPECTED_PLAYERS.filter((playerName) => {
+  const availablePlayers = useMemo(() => EXPECTED_PLAYERS.filter((playerName) => {
     const pg = perPlayerEligible.find((p) => p.player === playerName)
     return pg ? (pg.entries ?? []).some((e) => isEntryAvailable(e, now)) : false
-  }).length
+  }).length, [perPlayerEligible, now])
 
   return (
     <Card sx={{ mb: 2 }}>
@@ -126,7 +133,7 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
                       playerGroup={pg}
                       now={now}
                       collapsed={collapsed}
-                      onToggleCollapsed={() => onTogglePlayer(g.questId, pg.player)}
+                      onToggleCollapsed={handleTogglePlayer}
                       showClassIcons={showClassIcons}
                     />
                   )

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Box, IconButton, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
 import CancelIcon from '@mui/icons-material/Cancel'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
@@ -17,11 +18,11 @@ interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup
   now: Date
   collapsed: boolean
-  onToggleCollapsed: () => void
+  onToggleCollapsed: (playerName: string) => void
   showClassIcons: boolean
 }
 
-export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showClassIcons }: RaidPlayerGroupProps) {
+function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showClassIcons }: RaidPlayerGroupProps) {
   const pg = playerGroup
   const entries = pg.entries ?? []
   const nowTime = now.getTime()
@@ -114,7 +115,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
   return (
     <>
       <TableRow 
-        onClick={onToggleCollapsed}
+        onClick={() => onToggleCollapsed(pg.player)}
         sx={{ '& > *': { borderBottom: 'unset' }, bgcolor: 'action.hover', cursor: 'pointer' }}
       >
         <TableCell colSpan={5} sx={{ py: 0.5 }}>
@@ -123,7 +124,7 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
               size="small" 
               onClick={(e) => {
                 e.stopPropagation()
-                onToggleCollapsed()
+                onToggleCollapsed(pg.player)
               }} 
               sx={{ transform: !collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}
             >
@@ -159,7 +160,11 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{e.totalLevel ?? '—'}</Typography>
             </TableCell>
             <TableCell>
-              <ClassDisplay classes={e.classes} showIcons={showClassIcons} />
+              {showClassIcons ? (
+                <ClassDisplay classes={e.classes} showIcons={true} />
+              ) : (
+                <Typography variant="body2">{formatClasses(e.classes)}</Typography>
+              )}
             </TableCell>
             <TableCell>
               <Typography variant="body2">{e.race}</Typography>
@@ -185,3 +190,5 @@ export default function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleC
     </>
   )
 }
+
+export default memo(RaidPlayerGroup)
