@@ -1,6 +1,8 @@
 import CancelIcon from '@mui/icons-material/Cancel'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import { Box, Collapse, IconButton, Table, TableBody, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
 import { memo } from 'react'
 
@@ -26,6 +28,9 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
   const pg = playerGroup
   const entries = pg.entries ?? []
   const nowTime = now.getTime()
+
+  const isPlayerOnline = entries.some((e) => e.isOnline)
+  const isPlayerInRaid = entries.some((e) => e.isInRaid)
 
   // Hide characters below level 30.
   const eligibleEntries = entries.filter((e) => {
@@ -68,16 +73,37 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
       .sort((a, b) => String(a?.characterName ?? '').localeCompare(String(b?.characterName ?? '')))
 
     if (available.length) {
-      const availableItems = available.map((e) => ({
-        id: e?.characterId,
-        name: e?.characterName,
-        classes: e?.classes,
-      }))
+      const inRaid = available.filter((e) => e.isInRaid)
+      const notInRaid = available.filter((e) => !e.isInRaid)
 
       return (
-        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
-          <CheckCircleIcon color="success" sx={{ width: 16, height: 16 }} />
-          <CharacterNamesWithClassTooltip items={availableItems} showClassIcons={showClassIcons} />
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+          {inRaid.length > 0 && (
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <DirectionsRunIcon color="warning" sx={{ width: 16, height: 16 }} />
+              <CharacterNamesWithClassTooltip
+                items={inRaid.map((e) => ({
+                  id: e?.characterId,
+                  name: e?.characterName,
+                  classes: e?.classes,
+                }))}
+                showClassIcons={showClassIcons}
+              />
+            </Box>
+          )}
+          {notInRaid.length > 0 && (
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <CheckCircleIcon color="success" sx={{ width: 16, height: 16 }} />
+              <CharacterNamesWithClassTooltip
+                items={notInRaid.map((e) => ({
+                  id: e?.characterId,
+                  name: e?.characterName,
+                  classes: e?.classes,
+                }))}
+                showClassIcons={showClassIcons}
+              />
+            </Box>
+          )}
         </Box>
       )
     }
@@ -130,7 +156,22 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
             >
               <ExpandMoreIcon fontSize="small" />
             </IconButton>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{getPlayerDisplayName(pg.player)}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {isPlayerInRaid ? (
+                <Tooltip title="In Raid">
+                  <DirectionsRunIcon color="warning" sx={{ width: 16, height: 16 }} />
+                </Tooltip>
+              ) : isPlayerOnline ? (
+                <Tooltip title="Online">
+                  <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
+                </Tooltip>
+              ) : (
+                <Tooltip title="Offline">
+                  <FiberManualRecordIcon color="disabled" sx={{ width: 12, height: 12 }} />
+                </Tooltip>
+              )}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{getPlayerDisplayName(pg.player)}</Typography>
+            </Box>
             <Typography variant="caption" color="text.secondary">({availableCount}/{totalCount})</Typography>
             {collapsed ? collapsedAvailabilityNode : null}
           </Box>
@@ -157,9 +198,24 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
                   return (
                     <TableRow key={e.characterId} hover>
                       <TableCell>
-                        <Tooltip title={formatClasses(e?.classes)}>
-                          <Typography variant="body2">{e.characterName}</Typography>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {e.isInRaid ? (
+                            <Tooltip title="In Raid">
+                              <DirectionsRunIcon color="warning" sx={{ width: 16, height: 16 }} />
+                            </Tooltip>
+                          ) : e.isOnline ? (
+                            <Tooltip title="Online">
+                              <FiberManualRecordIcon color="success" sx={{ width: 10, height: 10 }} />
+                            </Tooltip>
+                          ) : (
+                            <Tooltip title="Offline">
+                              <FiberManualRecordIcon color="disabled" sx={{ width: 10, height: 10 }} />
+                            </Tooltip>
+                          )}
+                          <Tooltip title={formatClasses(e?.classes)}>
+                            <Typography variant="body2">{e.characterName}</Typography>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{e.totalLevel ?? '—'}</Typography>

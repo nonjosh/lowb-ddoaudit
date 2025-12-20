@@ -1,4 +1,4 @@
-import { addMs, RAID_LOCKOUT_MS, Quest } from './ddoAuditApi'
+import { addMs, Quest, RAID_LOCKOUT_MS } from './ddoAuditApi'
 
 export const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'OldMic']
 
@@ -53,6 +53,8 @@ export interface RaidEntry {
   classes: CharacterClass[]
   race: string
   lastTimestamp: string | null
+  isOnline: boolean
+  isInRaid: boolean
 }
 
 export interface PlayerGroup {
@@ -182,6 +184,12 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
       const prev = existing.entriesByCharacterId.get(characterId)
       if (!prev || new Date(ts).getTime() > new Date(prev.lastTimestamp).getTime()) {
+        const quest = questsById?.[questId]
+        const questAreaId = quest?.areaId
+        const isOnline = !!character?.is_online
+        const locationId = character?.location_id ? String(character.location_id) : null
+        const isInRaid = !!(locationId && (locationId === questId || (questAreaId && locationId === questAreaId)))
+
         existing.entriesByCharacterId.set(characterId, {
           characterId,
           characterName,
@@ -190,6 +198,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           classes,
           race,
           lastTimestamp: ts,
+          isOnline,
+          isInRaid,
         })
       }
 
@@ -201,6 +211,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
   const allCharacterIds = Object.keys(charactersById ?? {})
     .map(String)
   for (const g of groups.values()) {
+    const quest = questsById?.[g.questId]
+    const questAreaId = quest?.areaId
+
     for (const characterId of allCharacterIds) {
       if (g.entriesByCharacterId.has(characterId)) continue
       const character = charactersById?.[characterId]
@@ -209,6 +222,11 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       const totalLevel = character?.total_level ?? null
       const classes = character?.classes ?? []
       const race = character?.race ?? 'Unknown'
+
+      const isOnline = !!character?.is_online
+      const locationId = character?.location_id ? String(character.location_id) : null
+      const isInRaid = !!(locationId && (locationId === g.questId || (questAreaId && locationId === questAreaId)))
+
       g.entriesByCharacterId.set(characterId, {
         characterId,
         characterName,
@@ -217,6 +235,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         classes,
         race,
         lastTimestamp: null,
+        isOnline,
+        isInRaid,
       })
     }
   }

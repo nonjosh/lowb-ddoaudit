@@ -159,6 +159,7 @@ export interface Quest {
   heroicLevel: number | null
   epicLevel: number | null
   required_adventure_pack: string | null
+  areaId: string | null
 }
 
 let questsByIdPromise: Promise<Record<string, Quest>> | null = null
@@ -214,6 +215,7 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
         heroicLevel: heroicCr,
         epicLevel: epicCr,
         required_adventure_pack: pack,
+        areaId: areaId && areaId.toLowerCase() !== 'null' && areaId !== '0' ? areaId : null,
       }
 
       for (const id of ids) {
