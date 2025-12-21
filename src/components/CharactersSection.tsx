@@ -128,9 +128,10 @@ export default function CharactersSection({ loading, hasFetched, charactersById,
           <ListItemText
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                {isOnline && (
-                  <FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />
-                )}
+                <FiberManualRecordIcon
+                  color={isOnline ? 'success' : 'disabled'}
+                  sx={{ width: 12, height: 12 }}
+                />
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                   {getPlayerDisplayName(group.player)}
                 </Typography>
