@@ -1,8 +1,8 @@
 const DDOAUDIT_BASE_URL = 'https://api.ddoaudit.com/v1'
 const QUESTS_JSON_URL =
-  'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.json'
+  'https://api.ddoaudit.com/v1/quests?force=false'
 const AREAS_JSON_URL =
-  'https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/areas.json'
+  'https://api.ddoaudit.com/v1/areas?force=false'
 
 const MAX_CHARACTER_IDS_PER_REQUEST = 30
 
@@ -188,7 +188,7 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
     }
 
     const data = await resp.json()
-    const list = Array.isArray(data) ? data : []
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : [])
 
     const map: Record<string, Quest> = {}
 
@@ -243,7 +243,7 @@ export async function fetchAreasById(): Promise<Record<string, { id: string; nam
     }
 
     const data = await resp.json()
-    const list = Array.isArray(data) ? data : []
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : [])
 
     const map: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }> = {}
 
