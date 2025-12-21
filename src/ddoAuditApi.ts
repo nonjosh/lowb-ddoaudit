@@ -1,8 +1,6 @@
 const DDOAUDIT_BASE_URL = 'https://api.ddoaudit.com/v1'
-const QUESTS_JSON_URL =
-  'https://api.ddoaudit.com/v1/quests?force=false'
-const AREAS_JSON_URL =
-  'https://api.ddoaudit.com/v1/areas?force=false'
+const QUESTS_JSON_URL = '/data/quests.json'
+const AREAS_JSON_URL = '/data/areas.json'
 
 const MAX_CHARACTER_IDS_PER_REQUEST = 30
 
