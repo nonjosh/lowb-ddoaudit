@@ -257,11 +257,16 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
                       )}
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                         <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-                          {questName}
+                          {questName.replace(/ \((Heroic|Epic)\)$/, '')}
                         </Typography>
-                        {showPackLine && (
+                        {levelInfo && (
                           <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                            {[levelInfo, packName].filter(Boolean).join(' • ')}
+                            {levelInfo}
+                          </Typography>
+                        )}
+                        {packName && (
+                          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
+                            {packName}
                           </Typography>
                         )}
                       </Box>
