@@ -22,9 +22,10 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
-import { useCharacter } from '../contexts/CharacterContext'
-import { getPlayerDisplayName } from '../raidLogic'
+import { useCharacter, PlayerGroup } from '../contexts/CharacterContext'
+import { formatClasses, getPlayerDisplayName, getPlayerName } from '../raidLogic'
 import ClassDisplay from './ClassDisplay'
+import LfmParticipantsDialog from './LfmParticipantsDialog'
 import PlayerCharactersDialog from './PlayerCharactersDialog'
 
 interface CharactersSectionProps {
@@ -34,29 +35,116 @@ interface CharactersSectionProps {
   characterCount: number
 }
 
+function parseReaperSkulls(text: string | null) {
+  const s = String(text ?? '')
+  if (!s) return null
+  const re = /\b(?:r|reaper)\s*([1-9]|10)\b/gi
+  let m
+  let best = null
+  while ((m = re.exec(s))) {
+    const n = Number.parseInt(m[1], 10)
+    if (!Number.isFinite(n)) continue
+    best = best === null ? n : Math.max(best, n)
+  }
+  return best
+}
+
+function getEffectiveLevel(lfm: any, quest: Quest | null) {
+  const leaderLevel = lfm?.leader?.total_level
+  const heroicLevel = quest?.heroicLevel
+  const epicLevel = quest?.epicLevel
+
+  if (typeof heroicLevel === 'number' && typeof epicLevel === 'number') {
+    if (typeof leaderLevel === 'number' && leaderLevel >= 20) return epicLevel
+    return heroicLevel
+  }
+  if (typeof epicLevel === 'number') return epicLevel
+  if (typeof heroicLevel === 'number') return heroicLevel
+
+  const questLevel = quest?.level
+  if (typeof questLevel === 'number') return questLevel
+
+  const max = lfm?.maximum_level
+  if (typeof max === 'number') return max
+  const min = lfm?.minimum_level
+  if (typeof min === 'number') return min
+
+  return null
+}
+
 export default function CharactersSection({ loading, hasFetched, showClassIcons, characterCount }: CharactersSectionProps) {
   const { charactersById, charactersByPlayer, lfms } = useCharacter()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
+  const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
 
   useEffect(() => {
     fetchQuestsById().then(setQuests).catch(console.error)
     fetchAreasById().then(setAreas).catch(console.error)
   }, [])
 
-  const characterLfmStatus = useMemo(() => {
-    const status = new Set<string>()
+  const lfmByCharacterName = useMemo(() => {
+    const map = new Map<string, any>()
     Object.values(lfms || {}).forEach((lfm: any) => {
-      if (lfm.leader?.name) status.add(lfm.leader.name)
+      if (lfm.leader?.name) map.set(lfm.leader.name, lfm)
       if (Array.isArray(lfm.members)) {
         lfm.members.forEach((m: any) => {
-          if (m.name) status.add(m.name)
+          if (m.name) map.set(m.name, lfm)
         })
       }
     })
-    return status
+    return map
   }, [lfms])
+
+  const handleLfmClick = (lfm: any) => {
+    const questId = String(lfm?.quest_id ?? '')
+    const quest = quests[questId] ?? null
+
+    const participants = [lfm?.leader, ...(lfm?.members ?? [])]
+      .filter(Boolean)
+      .map((p: any) => {
+        const characterName = String(p?.name ?? '').trim() || '—'
+        const playerName = getPlayerName(characterName)
+        const classesDisplay = formatClasses(p?.classes)
+        return {
+          characterName,
+          playerName,
+          playerDisplayName: getPlayerDisplayName(playerName),
+          guildName: String(p?.guild_name ?? '').trim() || '',
+          totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
+          classesDisplay,
+          classes: p?.classes,
+          isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
+          race: p?.race ?? 'Unknown',
+        }
+      })
+
+    const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
+    const comment = String(lfm?.comment ?? '').trim() || ''
+    const reaperSkulls = difficulty.toLowerCase() === 'reaper' ? parseReaperSkulls(comment) : null
+    const difficultyDisplay =
+      difficulty.toLowerCase() === 'reaper' && typeof reaperSkulls === 'number'
+        ? `Reaper ${reaperSkulls}`
+        : difficulty
+
+    const difficultyColor = (() => {
+      const d = difficulty.toLowerCase()
+      if (d === 'reaper') return 'error.main'
+      if (d === 'elite') return 'warning.main'
+      if (d === 'hard') return 'info.main'
+      return 'text.primary'
+    })()
+
+    setSelectedLfm({
+      questName: quest?.name || 'Unknown Quest',
+      adventurePack: quest?.required_adventure_pack,
+      questLevel: getEffectiveLevel(lfm, quest),
+      difficultyDisplay,
+      difficultyColor,
+      participants,
+    })
+  }
 
   const { onlineByQuest, questNameToPack, questLevels, offlineGroups } = useMemo(() => {
     const online: Record<string, PlayerGroup[]> = {}
@@ -138,6 +226,7 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
     let locationSuffix: React.ReactNode = null
     let isInParty = false
     let isInLfm = false
+    let lfmForCharacter: any = null
 
     if (isOnline) {
       const firstChar = onlineChars[0]
@@ -149,7 +238,11 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
       }
 
       isInParty = onlineChars.some((c) => c.group_id || c.is_in_party)
-      isInLfm = onlineChars.some((c) => characterLfmStatus.has(c.name))
+      const charInLfm = onlineChars.find((c) => lfmByCharacterName.has(c.name))
+      if (charInLfm) {
+        lfmForCharacter = lfmByCharacterName.get(charInLfm.name)
+        isInLfm = true
+      }
 
       onlineInfo = onlineChars
         .map((c, idx) => {
@@ -181,8 +274,15 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
                   </Tooltip>
                 )}
                 {isInLfm && (
-                  <Tooltip title="In LFM">
-                    <ListAltIcon color="action" sx={{ width: 16, height: 16 }} />
+                  <Tooltip title="In LFM (Click to view)">
+                    <ListAltIcon
+                      color="action"
+                      sx={{ width: 16, height: 16, cursor: 'pointer' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (lfmForCharacter) handleLfmClick(lfmForCharacter)
+                      }}
+                    />
                   </Tooltip>
                 )}
                 {onlineInfo && (
@@ -349,6 +449,12 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
         onClose={handleCloseDialog}
         playerName={selectedPlayerGroup ? getPlayerDisplayName(selectedPlayerGroup.player) : ''}
         characters={selectedPlayerGroup?.chars ?? []}
+        showClassIcons={showClassIcons}
+      />
+
+      <LfmParticipantsDialog
+        selectedLfm={selectedLfm}
+        onClose={() => setSelectedLfm(null)}
         showClassIcons={showClassIcons}
       />
     </>
