@@ -1,4 +1,5 @@
 import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+import TimerIcon from '@mui/icons-material/Timer'
 
 import { RaidGroup } from '../raidLogic'
 import RaidCard from './RaidCard'
@@ -19,7 +20,10 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-        <Typography variant="h5" sx={{ mb: 0 }}>Raid Timers</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <TimerIcon />
+          <Typography variant="h5" sx={{ mb: 0 }}>Raid Timers</Typography>
+        </Box>
         <Chip label={raidGroups.length} size="small" variant="outlined" />
         {loading && <CircularProgress size={20} />}
       </Box>

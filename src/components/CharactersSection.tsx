@@ -1,5 +1,6 @@
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
+import PeopleIcon from '@mui/icons-material/People'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import {
@@ -221,7 +222,10 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-        <Typography variant="h5" sx={{ mb: 0 }}>Characters</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PeopleIcon />
+          <Typography variant="h5" sx={{ mb: 0 }}>Characters</Typography>
+        </Box>
         <Chip label={characterCount} size="small" variant="outlined" />
         {loading && <CircularProgress size={20} />}
       </Box>

@@ -16,6 +16,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
+import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import { Fragment, useMemo, useState } from 'react'
 
 import { Quest } from '../ddoAuditApi'
@@ -256,9 +257,12 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-        <Typography variant="h5" sx={{ mb: 0 }}>
-          LFMs
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <GroupAddIcon />
+          <Typography variant="h5" sx={{ mb: 0 }}>
+            LFMs
+          </Typography>
+        </Box>
         {loading && <CircularProgress size={20} />}
         <Chip size="small" variant="outlined" label={`Showing ${shownCount} out of ${totalCount}`} />
 
