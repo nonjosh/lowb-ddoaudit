@@ -19,35 +19,20 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
+import { useCharacter } from '../contexts/CharacterContext'
 import { getPlayerDisplayName } from '../raidLogic'
 import ClassDisplay from './ClassDisplay'
 import PlayerCharactersDialog from './PlayerCharactersDialog'
 
-interface Character {
-  name: string
-  is_online: boolean
-  location_id: string
-  classes: any[]
-  race: string
-}
-
-interface PlayerGroup {
-  player: string
-  chars: Character[]
-}
-
 interface CharactersSectionProps {
   loading: boolean
   hasFetched: boolean
-  charactersById: Record<string, any>
-  charactersByPlayer: PlayerGroup[]
-  isPlayerCollapsed: (playerName: string) => boolean
-  togglePlayerCollapsed: (playerName: string) => void
   showClassIcons: boolean
   characterCount: number
 }
 
-export default function CharactersSection({ loading, hasFetched, charactersById, charactersByPlayer, showClassIcons, characterCount }: CharactersSectionProps) {
+export default function CharactersSection({ loading, hasFetched, showClassIcons, characterCount }: CharactersSectionProps) {
+  const { charactersById, charactersByPlayer } = useCharacter()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)

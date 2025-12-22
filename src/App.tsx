@@ -22,7 +22,7 @@ import Controls from './components/Controls'
 import LfmRaidsSection from './components/LfmRaidsSection'
 import RaidTimerSection from './components/RaidTimerSection'
 
-import { PlayerStatusProvider } from './contexts/PlayerStatusContext'
+import { CharacterProvider } from './contexts/CharacterContext'
 
 function App() {
   const [characterIdsInput] = useState(
@@ -38,12 +38,10 @@ function App() {
   const [lfmError, setLfmError] = useState('')
   const [now, setNow] = useState(() => new Date())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
-  const [collapsedCharacterPlayers, setCollapsedCharacterPlayers] = useState(() => new Set<string>())
   const [collapsedRaids, setCollapsedRaids] = useState(() => new Set<string>())
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [showClassIcons, setShowClassIcons] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
-  const resetCharacterCollapseRef = useRef(true)
   const resetRaidCollapseRef = useRef(true)
   const resetRaidCardCollapseRef = useRef(true)
   const loadingRef = useRef(false)
@@ -53,37 +51,6 @@ function App() {
   const raidGroups = useMemo(() => {
     return buildRaidGroups({ raidActivity, questsById, charactersById })
   }, [raidActivity, questsById, charactersById])
-
-  const charactersByPlayer = useMemo(() => {
-    const values = Object.values(charactersById ?? {})
-
-    const map = new Map<string, any[]>()
-    for (const c of values) {
-      const player = getPlayerName(c?.name)
-      const arr = map.get(player) ?? []
-      arr.push(c)
-      map.set(player, arr)
-    }
-
-    const groups = Array.from(map.entries()).map(([player, chars]) => {
-      const sorted = chars.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)))
-      return { player, chars: sorted }
-    })
-
-    groups.sort((a, b) => {
-      if (a.player === 'Unknown' && b.player !== 'Unknown') return 1
-      if (b.player === 'Unknown' && a.player !== 'Unknown') return -1
-      return a.player.localeCompare(b.player)
-    })
-    return groups
-  }, [charactersById])
-
-  useEffect(() => {
-    if (!resetCharacterCollapseRef.current) return
-    if (!charactersByPlayer.length) return
-    setCollapsedCharacterPlayers(new Set(charactersByPlayer.map((g) => g.player)))
-    resetCharacterCollapseRef.current = false
-  }, [charactersByPlayer])
 
   useEffect(() => {
     if (!resetRaidCollapseRef.current) return
@@ -205,19 +172,6 @@ function App() {
     })
   }, [])
 
-  const isCharacterPlayerCollapsed = useCallback((playerName: string) => {
-    return collapsedCharacterPlayers.has(playerName)
-  }, [collapsedCharacterPlayers])
-
-  const toggleCharacterPlayerCollapsed = useCallback((playerName: string) => {
-    setCollapsedCharacterPlayers((prev) => {
-      const next = new Set(prev)
-      if (next.has(playerName)) next.delete(playerName)
-      else next.add(playerName)
-      return next
-    })
-  }, [])
-
   const isRaidCollapsed = useCallback((questId: string) => {
     return collapsedRaids.has(String(questId))
   }, [collapsedRaids])
@@ -233,7 +187,7 @@ function App() {
   }, [])
 
   return (
-    <PlayerStatusProvider charactersById={charactersById}>
+    <CharacterProvider charactersById={charactersById}>
       <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
         <Controls
           loading={loading}
@@ -259,10 +213,6 @@ function App() {
                 <CharactersSection
                   loading={loading}
                   hasFetched={!!lastUpdatedAt}
-                  charactersById={charactersById}
-                  charactersByPlayer={charactersByPlayer}
-                  isPlayerCollapsed={isCharacterPlayerCollapsed}
-                  togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
                   showClassIcons={showClassIcons}
                   characterCount={characterIds.length}
                 />
@@ -295,7 +245,7 @@ function App() {
           </Grid>
         </Box>
       </Container>
-    </PlayerStatusProvider>
+    </CharacterProvider>
   )
 }
 

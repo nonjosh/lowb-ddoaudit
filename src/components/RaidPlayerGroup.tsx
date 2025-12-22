@@ -12,7 +12,7 @@ import {
   formatTimeRemaining,
   RAID_LOCKOUT_MS,
 } from '../ddoAuditApi'
-import { usePlayerStatus } from '../contexts/PlayerStatusContext'
+import { useCharacter } from '../contexts/CharacterContext'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../raidLogic'
 import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
 import ClassDisplay from './ClassDisplay'
@@ -26,7 +26,7 @@ interface RaidPlayerGroupProps {
 }
 
 function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showClassIcons }: RaidPlayerGroupProps) {
-  const { isPlayerOnline: checkPlayerOnline } = usePlayerStatus()
+  const { isPlayerOnline: checkPlayerOnline } = useCharacter()
   const pg = playerGroup
   const entries = pg.entries ?? []
   const nowTime = now.getTime()
