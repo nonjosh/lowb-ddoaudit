@@ -42,9 +42,10 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
     fetchAreasById().then(setAreas).catch(console.error)
   }, [])
 
-  const { onlineByQuest, questNameToPack, offlineGroups } = useMemo(() => {
+  const { onlineByQuest, questNameToPack, questLevels, offlineGroups } = useMemo(() => {
     const online: Record<string, PlayerGroup[]> = {}
     const questMeta: Record<string, string | null> = {}
+    const levels: Record<string, string | null> = {}
     const offline: PlayerGroup[] = []
 
     // Sort by player name first to ensure consistent order
@@ -56,20 +57,53 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
       const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
       if (onlineChar) {
         const quest = quests[onlineChar.location_id]
-        const questName = quest?.name || 'Not in quest'
+        let questName = quest?.name || 'Not in quest'
+        let isHeroic = false
+        let isEpic = false
+
+        if (quest?.name && quest.heroicLevel && quest.epicLevel) {
+          const charLevel = (onlineChar.classes || []).reduce((sum: number, cls: any) => sum + (cls.level || 0), 0)
+          const distHeroic = Math.abs(charLevel - quest.heroicLevel)
+          const distEpic = Math.abs(charLevel - quest.epicLevel)
+          if (distHeroic <= distEpic) {
+            questName = `${quest.name} (Heroic)`
+            isHeroic = true
+          } else {
+            questName = `${quest.name} (Epic)`
+            isEpic = true
+          }
+        }
+
         if (!online[questName]) online[questName] = []
         online[questName].push(group)
 
-        if (quest?.name && questMeta[questName] == null) {
-          const pack = quest?.required_adventure_pack
-          questMeta[questName] = typeof pack === 'string' && pack.trim() ? pack.trim() : null
+        if (quest?.name) {
+          if (questMeta[questName] == null) {
+            const pack = quest?.required_adventure_pack
+            questMeta[questName] = typeof pack === 'string' && pack.trim() ? pack.trim() : null
+          }
+          if (levels[questName] == null) {
+            let levelStr = ''
+            if (isHeroic) {
+              levelStr = `Level ${quest.heroicLevel}`
+            } else if (isEpic) {
+              levelStr = `Level ${quest.epicLevel}`
+            } else if (quest.level) {
+              levelStr = `Level ${quest.level}`
+            } else if (quest.heroicLevel) {
+              levelStr = `Level ${quest.heroicLevel}`
+            } else if (quest.epicLevel) {
+              levelStr = `Level ${quest.epicLevel}`
+            }
+            levels[questName] = levelStr || null
+          }
         }
       } else {
         offline.push(group)
       }
     })
 
-    return { onlineByQuest: online, questNameToPack: questMeta, offlineGroups: offline }
+    return { onlineByQuest: online, questNameToPack: questMeta, questLevels: levels, offlineGroups: offline }
   }, [charactersByPlayer, quests])
 
   const handlePlayerClick = (group: PlayerGroup) => {
@@ -207,7 +241,8 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
               <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
                 {(() => {
                   const packName = questNameToPack[questName]
-                  const showPackLine = questName !== 'Not in quest' && !!packName
+                  const levelInfo = questLevels[questName]
+                  const showPackLine = questName !== 'Not in quest' && (!!packName || !!levelInfo)
 
                   return (
                     <Box sx={{ display: 'flex', alignItems: showPackLine ? 'flex-start' : 'center', gap: 1 }}>
@@ -222,7 +257,7 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
                         </Typography>
                         {showPackLine && (
                           <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                            {packName}
+                            {[levelInfo, packName].filter(Boolean).join(' • ')}
                           </Typography>
                         )}
                       </Box>
