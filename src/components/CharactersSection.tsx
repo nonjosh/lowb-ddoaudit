@@ -1,4 +1,6 @@
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import GroupsIcon from '@mui/icons-material/Groups'
+import ListAltIcon from '@mui/icons-material/ListAlt'
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import PeopleIcon from '@mui/icons-material/People'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
@@ -33,7 +35,7 @@ interface CharactersSectionProps {
 }
 
 export default function CharactersSection({ loading, hasFetched, showClassIcons, characterCount }: CharactersSectionProps) {
-  const { charactersById, charactersByPlayer } = useCharacter()
+  const { charactersById, charactersByPlayer, lfms } = useCharacter()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
@@ -42,6 +44,19 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
     fetchQuestsById().then(setQuests).catch(console.error)
     fetchAreasById().then(setAreas).catch(console.error)
   }, [])
+
+  const characterLfmStatus = useMemo(() => {
+    const status = new Set<string>()
+    Object.values(lfms || {}).forEach((lfm: any) => {
+      if (lfm.leader?.name) status.add(lfm.leader.name)
+      if (Array.isArray(lfm.members)) {
+        lfm.members.forEach((m: any) => {
+          if (m.name) status.add(m.name)
+        })
+      }
+    })
+    return status
+  }, [lfms])
 
   const { onlineByQuest, questNameToPack, questLevels, offlineGroups } = useMemo(() => {
     const online: Record<string, PlayerGroup[]> = {}
@@ -121,6 +136,8 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
 
     let onlineInfo: React.ReactNode = null
     let locationSuffix: React.ReactNode = null
+    let isInParty = false
+    let isInLfm = false
 
     if (isOnline) {
       const firstChar = onlineChars[0]
@@ -130,6 +147,9 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
       if (!questName && showLocation) {
         locationSuffix = ` @ ${areaName || 'Unknown Area'}`
       }
+
+      isInParty = onlineChars.some((c) => c.group_id || c.is_in_party)
+      isInLfm = onlineChars.some((c) => characterLfmStatus.has(c.name))
 
       onlineInfo = onlineChars
         .map((c, idx) => {
@@ -155,6 +175,16 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                   {getPlayerDisplayName(group.player)}
                 </Typography>
+                {isInParty && (
+                  <Tooltip title="In Party">
+                    <GroupsIcon color="action" sx={{ width: 16, height: 16 }} />
+                  </Tooltip>
+                )}
+                {isInLfm && (
+                  <Tooltip title="In LFM">
+                    <ListAltIcon color="action" sx={{ width: 16, height: 16 }} />
+                  </Tooltip>
+                )}
                 {onlineInfo && (
                   <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 0.5 }}>
                     <Typography variant="body2" color="success.main" component="span">

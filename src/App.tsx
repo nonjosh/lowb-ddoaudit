@@ -187,7 +187,7 @@ function App() {
   }, [])
 
   return (
-    <CharacterProvider charactersById={charactersById}>
+    <CharacterProvider charactersById={charactersById} lfms={lfmsById}>
       <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
         <Controls
           loading={loading}

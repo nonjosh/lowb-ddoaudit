@@ -19,6 +19,7 @@ interface CharacterContextType {
   charactersById: Record<string, Character>
   charactersByPlayer: PlayerGroup[]
   isPlayerOnline: (playerName: string) => boolean
+  lfms: Record<string, any>
 }
 
 const CharacterContext = createContext<CharacterContextType | null>(null)
@@ -33,10 +34,11 @@ export function useCharacter() {
 
 interface CharacterProviderProps {
   charactersById: Record<string, any>
+  lfms?: Record<string, any>
   children: React.ReactNode
 }
 
-export function CharacterProvider({ charactersById, children }: CharacterProviderProps) {
+export function CharacterProvider({ charactersById, lfms = {}, children }: CharacterProviderProps) {
   const charactersByPlayer = useMemo(() => {
     const values = Object.values(charactersById ?? {})
 
@@ -84,6 +86,7 @@ export function CharacterProvider({ charactersById, children }: CharacterProvide
         charactersById,
         charactersByPlayer,
         isPlayerOnline,
+        lfms,
       }}
     >
       {children}
