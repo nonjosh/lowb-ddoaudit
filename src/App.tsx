@@ -22,6 +22,8 @@ import Controls from './components/Controls'
 import LfmRaidsSection from './components/LfmRaidsSection'
 import RaidTimerSection from './components/RaidTimerSection'
 
+import { PlayerStatusProvider } from './contexts/PlayerStatusContext'
+
 function App() {
   const [characterIdsInput] = useState(
     '81612777584,81612779875,81612799899,81612840713,111670413405,81612796054,81608349902,81612777715,81612777720,81612780583,81612780586,81612782737,81612795666,81612796057,81612811713,81613135800,111670193026,111670322311,111670420969,111670661572,111670702832,111670708744,111671237122,111671347683,111671471817,111671727098,111672061714,111672875879,111678077704,180388777114,180388801443,180388818353,180388822764,81612801618,81612777713,81612840693,180388831263',
@@ -231,67 +233,69 @@ function App() {
   }, [])
 
   return (
-    <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
-      <Controls
-        loading={loading}
-        onRefresh={load}
-        autoRefreshEnabled={autoRefreshEnabled}
-        onToggleAutoRefresh={() => setAutoRefreshEnabled((v) => !v)}
-        showClassIcons={showClassIcons}
-        onToggleShowClassIcons={() => setShowClassIcons((v) => !v)}
-        lastUpdatedAt={lastUpdatedAt}
-        error={error}
-      />
+    <PlayerStatusProvider charactersById={charactersById}>
+      <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
+        <Controls
+          loading={loading}
+          onRefresh={load}
+          autoRefreshEnabled={autoRefreshEnabled}
+          onToggleAutoRefresh={() => setAutoRefreshEnabled((v) => !v)}
+          showClassIcons={showClassIcons}
+          onToggleShowClassIcons={() => setShowClassIcons((v) => !v)}
+          lastUpdatedAt={lastUpdatedAt}
+          error={error}
+        />
 
-      <Box sx={{ mt: 4 }}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, sm: 4, md: 3, lg: 2.5 }}>
-            <Paper sx={{
-              p: 2,
-              position: 'sticky',
-              top: 16,
-              maxHeight: 'calc(100vh - 32px)',
-              overflowY: 'auto'
-            }}>
-              <CharactersSection
+        <Box sx={{ mt: 4 }}>
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, sm: 4, md: 3, lg: 2.5 }}>
+              <Paper sx={{
+                p: 2,
+                position: 'sticky',
+                top: 16,
+                maxHeight: 'calc(100vh - 32px)',
+                overflowY: 'auto'
+              }}>
+                <CharactersSection
+                  loading={loading}
+                  hasFetched={!!lastUpdatedAt}
+                  charactersById={charactersById}
+                  charactersByPlayer={charactersByPlayer}
+                  isPlayerCollapsed={isCharacterPlayerCollapsed}
+                  togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
+                  showClassIcons={showClassIcons}
+                  characterCount={characterIds.length}
+                />
+              </Paper>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 8, md: 9, lg: 9.5 }}>
+              <Box sx={{ mb: 3 }}>
+                <LfmRaidsSection
+                  loading={loading}
+                  hasFetched={!!lastUpdatedAt}
+                  lfmsById={lfmsById}
+                  questsById={questsById}
+                  error={lfmError}
+                  showClassIcons={showClassIcons}
+                />
+              </Box>
+              <RaidTimerSection
                 loading={loading}
                 hasFetched={!!lastUpdatedAt}
-                charactersById={charactersById}
-                charactersByPlayer={charactersByPlayer}
-                isPlayerCollapsed={isCharacterPlayerCollapsed}
-                togglePlayerCollapsed={toggleCharacterPlayerCollapsed}
-                showClassIcons={showClassIcons}
-                characterCount={characterIds.length}
-              />
-            </Paper>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 8, md: 9, lg: 9.5 }}>
-            <Box sx={{ mb: 3 }}>
-              <LfmRaidsSection
-                loading={loading}
-                hasFetched={!!lastUpdatedAt}
-                lfmsById={lfmsById}
-                questsById={questsById}
-                error={lfmError}
+                raidGroups={raidGroups}
+                now={now ?? new Date()}
+                isRaidCollapsed={isRaidCollapsed}
+                toggleRaidCollapsed={toggleRaidCollapsed}
+                isPlayerCollapsed={isCollapsed}
+                togglePlayerCollapsed={toggleCollapsed}
                 showClassIcons={showClassIcons}
               />
-            </Box>
-            <RaidTimerSection
-              loading={loading}
-              hasFetched={!!lastUpdatedAt}
-              raidGroups={raidGroups}
-              now={now ?? new Date()}
-              isRaidCollapsed={isRaidCollapsed}
-              toggleRaidCollapsed={toggleRaidCollapsed}
-              isPlayerCollapsed={isCollapsed}
-              togglePlayerCollapsed={toggleCollapsed}
-              showClassIcons={showClassIcons}
-            />
+            </Grid>
           </Grid>
-        </Grid>
-      </Box>
-    </Container>
+        </Box>
+      </Container>
+    </PlayerStatusProvider>
   )
 }
 
