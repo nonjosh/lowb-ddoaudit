@@ -4,7 +4,7 @@
 Augment:
 Ultimatum - Tower Shield: Petrification Immunity
 Set:
-Strange Tidings - Ring: +3 Artifact bonus to Dexterity 
+Strange Tidings - Ring: +3 Artifact bonus to Dexterity
 
 ## Mark of Death
 Augment:
@@ -14,13 +14,13 @@ Epic Litany of the Dead - Trinket: Litany of the Dead II - Ability Bonus
 Augment:
 Cobalt Guard - Boot: Improved Quelling Strikes
 Set:
-Guided Sight - Trinket: +15% Artifact bonus to Doublestrike and Doubleshot 
+Guided Sight - Trinket: +15% Artifact bonus to Doublestrike and Doubleshot
 
 ## Temple of the Deathwyrm
 Augment:
 Dark Diversion - Necklace: Occultation (-20% all threat)
 Set:
-Dumathoin's Bracers - Bracer: +30 Artifact bonus to Physical Resistance Rating 
+Dumathoin's Bracers - Bracer: +30 Artifact bonus to Physical Resistance Rating
 
 ## Fire on Thunder Peak
 Augment:
@@ -30,22 +30,22 @@ Dethek Runestone - Shield: Runic Revitalization
 Augment:
 The Invisible Cloak of Strahd - Cloak: Invisibility Guard
 Set:
-Vestments of Ravenloft - Light Armor: +3 Artifact Bonus to Sneak Attack Dice 
+Vestments of Ravenloft - Light Armor: +3 Artifact Bonus to Sneak Attack Dice
 
 ## Killing Time
 Augment:
 Nullscale Armor - Heavy Armor: Nullmagic Guard
 Set:
-Mail of the Mroranon - Medium Armor: +3 Artifact bonus to Strength 
+Mail of the Mroranon - Medium Armor: +3 Artifact bonus to Strength
 Cloak of the Mountain - Cloak: +3 Artifact Bonus to all Spell DCs
 
 ## The Curse of Strahd
 Augment:
 The Masque - Goggle: Soundproof
 Set:
-Mantle of Escher - Robe: +30 Magical Resistance Rating Cap 
-Coat of Van Richten - Medium Armor: +15 Artifact Bonus to Melee and Ranged Power 
-Platemail of Strahd - Heavy Armor: +15% Artifact Bonus to Armor Class 
+Mantle of Escher - Robe: +30 Magical Resistance Rating Cap
+Coat of Van Richten - Medium Armor: +15 Artifact Bonus to Melee and Ranged Power
+Platemail of Strahd - Heavy Armor: +15% Artifact Bonus to Armor Class
 
 ## Too Hot to Handle
 Augment:
@@ -55,22 +55,22 @@ Constellation, Cursed Blade - Greatsword: Improved Destruction
 Set:
 Tattered Scrolls of the Broken One - Bracer: +3 Artifact Bonus to Charisma
 Citadel's Gaze - Helm: +30 Artifact bonus to MRR
-Crystalline Gauntlets - Glove: +3 Artifact bonus to Wisdom 
+Crystalline Gauntlets - Glove: +3 Artifact bonus to Wisdom
 
 ## Project Nemesis
 Augment:
 Cracked Core - Necklace: Alchemical Conservation
 Set:
-The Family's Blessing - Necklace: +15% Artifact bonus to damage vs the Helpless 
-Staggershockers - Glove: +3 Artifact bonus to Intelligence 
-Attunement's Gaze- Goggle: +25 Artifact bonus to Universal Spell Power 
-Helm of the Final Watcher - Helm: +15% Artifact bonus to Fortification Bypass 
+The Family's Blessing - Necklace: +15% Artifact bonus to damage vs the Helpless
+Staggershockers - Glove: +3 Artifact bonus to Intelligence
+Attunement's Gaze- Goggle: +25 Artifact bonus to Universal Spell Power
+Helm of the Final Watcher - Helm: +15% Artifact bonus to Fortification Bypass
 
 ## Legendary Lord of Blades
 Augment:
 Spear of the Mournlands - Quarterstaff: Touch of the Mournlands
 Set:
-Quori-Infused Core  - Trinket: +3 Artifact bonus to Constitution 
+Quori-Infused Core  - Trinket: +3 Artifact bonus to Constitution
 
 ## Legendary Vision of Destruction
 Augment:
@@ -80,12 +80,12 @@ Champion of the Twins - Shield: Healers Bounty
 Augment:
 Pomura's Memento - Ring: Insightful Spell Lore V
 Set:
-The Stablestone  - Trinket: +10% Legendary bonus to Maximum Hit Points 
+The Stablestone  - Trinket: +10% Legendary bonus to Maximum Hit Points
 
 ## Fire Over Morgrave
 Set:
-Page Regalia: Exiled Tactica - Cloak: +3 Artifact bonus to Tactical DCs 
-Page Regalia: Unsanctioned Arcana - Cloak: +3 Artifact bonus to Assassinate DCs 
+Page Regalia: Exiled Tactica - Cloak: +3 Artifact bonus to Tactical DCs
+Page Regalia: Unsanctioned Arcana - Cloak: +3 Artifact bonus to Assassinate DCs
 
 ## Skeletons in the Closet
 Set:
