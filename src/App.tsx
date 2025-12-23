@@ -9,7 +9,7 @@ import {
   parseCharacterIds,
   Quest,
 } from './api/ddoAuditApi'
-import { DEFAULT_CHARACTER_IDS } from './config/characterIds'
+import { CHARACTERS } from './config/characters'
 import {
   buildRaidGroups,
   groupEntriesByPlayer
@@ -23,7 +23,7 @@ import Controls from './components/shared/Controls'
 import { CharacterProvider } from './contexts/CharacterContext'
 
 function App() {
-  const [characterIdsInput] = useState(DEFAULT_CHARACTER_IDS.join(','))
+  const [characterIdsInput] = useState(Object.keys(CHARACTERS).join(','))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)

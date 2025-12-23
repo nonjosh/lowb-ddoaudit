@@ -1,29 +1,19 @@
 import { addMs, Quest, RAID_LOCKOUT_MS } from '../../api/ddoAuditApi'
-import { CHARACTERS_BY_PLAYER, PLAYER_DISPLAY_NAMES } from '../../config/players'
+import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '../../config/characters'
 
 export function getPlayerDisplayName(playerName: string): string {
   return PLAYER_DISPLAY_NAMES[playerName] ?? playerName
 }
 
-function buildPlayerByCharacterName(charactersByPlayer: Record<string, string[]>): Record<string, string> {
-  const map: Record<string, string> = {}
-  for (const [player, names] of Object.entries(charactersByPlayer ?? {})) {
-    for (const rawName of names ?? []) {
-      const key = String(rawName ?? '').trim().toLowerCase()
-      if (!key) continue
-      map[key] = player
-    }
-  }
-  return map
-}
-
-// Back-compat export: existing code expects character -> player.
-export const PLAYER_BY_CHARACTER_NAME = buildPlayerByCharacterName(CHARACTERS_BY_PLAYER)
-
+// Lookup player by character name using CHARACTERS mapping
 export function getPlayerName(characterName: string | null | undefined): string {
-  const key = String(characterName ?? '').trim().toLowerCase()
-  if (!key) return 'Unknown'
-  return PLAYER_BY_CHARACTER_NAME[key] ?? 'Unknown'
+  const name = String(characterName ?? '').trim()
+  if (!name) return 'Unknown'
+  // Find the character in CHARACTERS by name (case-insensitive)
+  const found = Object.values(CHARACTERS).find(
+    (c) => c.name.toLowerCase() === name.toLowerCase()
+  )
+  return found?.player ?? 'Unknown'
 }
 
 export interface CharacterClass {
