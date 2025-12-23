@@ -21,9 +21,9 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
+import { fetchAreasById, fetchQuestsById, Quest } from '../../api/ddoAuditApi'
 import { PlayerGroup, useCharacter } from '../../contexts/CharacterContext'
-import { fetchAreasById, fetchQuestsById, Quest } from '../../ddoAuditApi'
-import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../raidLogic'
+import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
 import ClassDisplay from '../shared/ClassDisplay'
 import PlayerCharactersDialog from './PlayerCharactersDialog'

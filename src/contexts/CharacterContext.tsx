@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from 'react'
-import { getPlayerName } from '../raidLogic'
+import { getPlayerName } from '../domains/raids/raidLogic'
 
 export interface Character {
   name: string

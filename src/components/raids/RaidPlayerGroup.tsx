@@ -11,9 +11,9 @@ import {
   formatLocalDateTime,
   formatTimeRemaining,
   RAID_LOCKOUT_MS,
-} from '../../ddoAuditApi'
+} from '../../api/ddoAuditApi'
 import { useCharacter } from '../../contexts/CharacterContext'
-import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../../raidLogic'
+import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../../domains/raids/raidLogic'
 import CharacterNamesWithClassTooltip from '../shared/CharacterNamesWithClassTooltip'
 import ClassDisplay from '../shared/ClassDisplay'
 

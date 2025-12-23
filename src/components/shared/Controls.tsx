@@ -1,9 +1,9 @@
-import { Alert, Box, Button, FormControlLabel, Paper, Stack, Switch, Typography, ToggleButton, Tooltip } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SyncIcon from '@mui/icons-material/Sync'
 import SyncDisabledIcon from '@mui/icons-material/SyncDisabled'
+import { Alert, Box, Button, FormControlLabel, Paper, Stack, Switch, ToggleButton, Tooltip, Typography } from '@mui/material'
 
-import { formatLocalDateTime } from '../../ddoAuditApi'
+import { formatLocalDateTime } from '../../api/ddoAuditApi'
 
 interface ControlsProps {
   loading: boolean

@@ -15,7 +15,7 @@ import {
   Typography,
 } from '@mui/material'
 
-import { EXPECTED_PLAYERS } from '../../raidLogic'
+import { EXPECTED_PLAYERS } from '../../config/players'
 import ClassDisplay from '../shared/ClassDisplay'
 
 interface LfmParticipant {

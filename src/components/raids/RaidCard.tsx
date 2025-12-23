@@ -17,8 +17,9 @@ import {
 } from '@mui/material'
 import { useCallback, useMemo } from 'react'
 
-import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../raidLogic'
-import { getRaidNotesForRaidName } from '../../raidNotes'
+import { EXPECTED_PLAYERS } from '../../config/players'
+import { groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
+import { getRaidNotesForRaidName } from '../../domains/raids/raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
 
 interface RaidCardProps {

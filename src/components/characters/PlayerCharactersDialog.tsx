@@ -17,7 +17,7 @@ import {
   Tooltip,
 } from '@mui/material'
 
-import { formatAge, formatLocalDateTime } from '../../ddoAuditApi'
+import { formatAge, formatLocalDateTime } from '../../api/ddoAuditApi'
 import ClassDisplay from '../shared/ClassDisplay'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000

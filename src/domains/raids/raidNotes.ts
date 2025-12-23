@@ -1,4 +1,4 @@
-import raidNotesRaw from './assets/raid_notes.txt?raw'
+import raidNotesRaw from '../../assets/raid_notes.txt?raw'
 
 function keyify(name: string | null | undefined): string {
   return String(name ?? '')

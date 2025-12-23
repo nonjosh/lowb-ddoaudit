@@ -1,22 +1,8 @@
-import { addMs, Quest, RAID_LOCKOUT_MS } from './ddoAuditApi'
-
-export const EXPECTED_PLAYERS = ['Johnson', 'Jonah', 'Michael', 'Ken', 'Renz', 'OldMic']
-
-const PLAYER_DISPLAY_NAMES: Record<string, string> = {
-  OldMic: '老mic',
-}
+import { addMs, Quest, RAID_LOCKOUT_MS } from '../../api/ddoAuditApi'
+import { CHARACTERS_BY_PLAYER, PLAYER_DISPLAY_NAMES } from '../../config/players'
 
 export function getPlayerDisplayName(playerName: string): string {
   return PLAYER_DISPLAY_NAMES[playerName] ?? playerName
-}
-
-export const CHARACTERS_BY_PLAYER: Record<string, string[]> = {
-  Johnson: ['nonjosh', 'nonjoshii', 'nonjoshiv', 'mvppiker'],
-  Jonah: ['zenser', 'zenrar', 'zertiar', 'zevkar', 'magiz'],
-  Michael: ['garei', 'tareos', 'karc', 'warkon', 'kayos'],
-  Ken: ['kenami', 'nekamisama', 'nekami', 'amiken', 'feldspars', 'waven', 'fatslayer', 'fateslayer', 'temor', 'nameisfree'],
-  Renz: ['hako', 'renz', 'okah', 'zner', 'zneri', 'znerii', 'zneriii', 'zneriv', 'znery'],
-  OldMic: ['ctenmiir', 'keviamin', 'graceella', 'castra'],
 }
 
 function buildPlayerByCharacterName(charactersByPlayer: Record<string, string[]>): Record<string, string> {

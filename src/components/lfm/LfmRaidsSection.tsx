@@ -1,3 +1,4 @@
+import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import {
   Alert,
   Box,
@@ -16,11 +17,11 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
-import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import { Fragment, useMemo, useState } from 'react'
 
-import { Quest } from '../../ddoAuditApi'
-import { EXPECTED_PLAYERS, formatClasses, getPlayerDisplayName, getPlayerName } from '../../raidLogic'
+import { Quest } from '../../api/ddoAuditApi'
+import { EXPECTED_PLAYERS } from '../../config/players'
+import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 function isRaidQuest(quest: Quest | null) {
