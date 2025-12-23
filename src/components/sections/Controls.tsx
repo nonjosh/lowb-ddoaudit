@@ -30,9 +30,9 @@ export default function Controls({
     <Paper sx={{ p: 2 }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
         <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'space-between', md: 'flex-start' } }}>
-          <Button 
-            variant="contained" 
-            onClick={onRefresh} 
+          <Button
+            variant="contained"
+            onClick={onRefresh}
             disabled={loading}
             startIcon={<RefreshIcon />}
           >
@@ -47,7 +47,7 @@ export default function Controls({
             </Typography>
           </Box>
         </Stack>
-        
+
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
           <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-around', sm: 'flex-start' } }}>
             <Tooltip title={autoRefreshEnabled ? "Disable auto refresh" : "Enable auto refresh"}>

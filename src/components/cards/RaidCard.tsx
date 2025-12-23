@@ -109,7 +109,7 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           </Typography>
         }
       />
-      
+
       <Collapse in={!isRaidCollapsed} timeout="auto" unmountOnExit>
         <CardContent>
           {raidNotes ? (

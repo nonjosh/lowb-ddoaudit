@@ -24,8 +24,8 @@ function CharacterNamesWithClassTooltip({ items, showClassIcons }: CharacterName
         const key = item?.id ?? item?.name ?? `item-${idx}`
         const name = item?.name ?? 'Unknown'
         const isLast = idx === list.length - 1
-        
-        const title = showClassIcons 
+
+        const title = showClassIcons
           ? <ClassDisplay classes={item?.classes} showIcons={true} />
           : formatClasses(item?.classes)
 
