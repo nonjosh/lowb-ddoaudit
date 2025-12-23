@@ -71,8 +71,12 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
     return pg ? (pg.entries ?? []).some((e) => isEntryAvailable(e, now)) : false
   }).length, [perPlayerEligible, now])
 
+  const hasPlayersInRaid = useMemo(() => {
+    return g.entries.some((e) => e.isInRaid)
+  }, [g.entries])
+
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card sx={{ mb: 2, border: hasPlayersInRaid ? '2px solid' : 'none', borderColor: 'success.main' }}>
       <CardHeader
         onClick={onToggleRaid}
         sx={{ cursor: 'pointer' }}
