@@ -49,6 +49,11 @@ function parseReaperSkulls(text: string | null) {
   return best
 }
 
+function isRaidQuest(quest: Quest | null) {
+  const type = String(quest?.type ?? '').trim().toLowerCase()
+  return type.includes('raid')
+}
+
 function getEffectiveLevel(lfm: any, quest: Quest | null) {
   const leaderLevel = lfm?.leader?.total_level
   const heroicLevel = quest?.heroicLevel
@@ -100,6 +105,8 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
   const handleLfmClick = (lfm: any) => {
     const questId = String(lfm?.quest_id ?? '')
     const quest = quests[questId] ?? null
+    const isRaid = isRaidQuest(quest)
+    const maxPlayers = isRaid ? 12 : 6
 
     const participants = [lfm?.leader, ...(lfm?.members ?? [])]
       .filter(Boolean)
@@ -143,6 +150,7 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
       difficultyDisplay,
       difficultyColor,
       participants,
+      maxPlayers,
     })
   }
 

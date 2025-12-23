@@ -37,6 +37,7 @@ interface LfmGroup {
   difficultyDisplay: string
   difficultyColor: string
   participants: LfmParticipant[]
+  maxPlayers?: number
 }
 
 interface LfmParticipantsDialogProps {
@@ -53,6 +54,11 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={2}>
             <Typography variant="h6" component="div">
               {selectedLfm?.questName || 'LFM Group'}
+              {selectedLfm && (
+                <Typography component="span" variant="body1" color="text.secondary" sx={{ ml: 1 }}>
+                  ({selectedLfm.participants.length}/{selectedLfm.maxPlayers ?? 6})
+                </Typography>
+              )}
             </Typography>
             {selectedLfm?.adventurePack && (
               <Typography variant="caption" color="text.secondary">
