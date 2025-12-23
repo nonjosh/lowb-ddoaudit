@@ -11,16 +11,13 @@ import {
 } from './ddoAuditApi'
 import {
   buildRaidGroups,
-  EXPECTED_PLAYERS,
-  getPlayerName,
-  groupEntriesByPlayer,
-  isEntryAvailable,
+  groupEntriesByPlayer
 } from './raidLogic'
 
 import CharactersSection from './components/characters/CharactersSection'
-import Controls from './components/shared/Controls'
 import LfmRaidsSection from './components/lfm/LfmRaidsSection'
 import RaidTimerSection from './components/raids/RaidTimerSection'
+import Controls from './components/shared/Controls'
 
 import { CharacterProvider } from './contexts/CharacterContext'
 
@@ -72,15 +69,7 @@ function App() {
 
     const next = new Set<string>()
     for (const rg of raidGroups) {
-      const perPlayer = groupEntriesByPlayer(rg.entries, now)
-      const playerHasAvailable = new Map<string, boolean>()
-      for (const pg of perPlayer) {
-        const hasAvail = (pg.entries ?? []).some((e) => isEntryAvailable(e, now))
-        playerHasAvailable.set(pg.player, hasAvail)
-      }
-
-      const allSixAvailable = EXPECTED_PLAYERS.every((p) => playerHasAvailable.get(p) === true)
-      if (allSixAvailable) next.add(String(rg.questId))
+      next.add(String(rg.questId))
     }
 
     setCollapsedRaids(next)
