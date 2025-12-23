@@ -18,7 +18,7 @@ import {
 } from '@mui/material'
 
 import { formatAge, formatLocalDateTime } from '../../ddoAuditApi'
-import ClassDisplay from '../ui/ClassDisplay'
+import ClassDisplay from '../shared/ClassDisplay'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 

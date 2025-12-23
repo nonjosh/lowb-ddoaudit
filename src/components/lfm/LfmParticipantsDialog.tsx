@@ -16,7 +16,7 @@ import {
 } from '@mui/material'
 
 import { EXPECTED_PLAYERS } from '../../raidLogic'
-import ClassDisplay from '../ui/ClassDisplay'
+import ClassDisplay from '../shared/ClassDisplay'
 
 interface LfmParticipant {
   characterName: string

@@ -17,10 +17,10 @@ import {
   isEntryAvailable,
 } from './raidLogic'
 
-import CharactersSection from './components/sections/CharactersSection'
-import Controls from './components/sections/Controls'
-import LfmRaidsSection from './components/sections/LfmRaidsSection'
-import RaidTimerSection from './components/sections/RaidTimerSection'
+import CharactersSection from './components/characters/CharactersSection'
+import Controls from './components/shared/Controls'
+import LfmRaidsSection from './components/lfm/LfmRaidsSection'
+import RaidTimerSection from './components/raids/RaidTimerSection'
 
 import { CharacterProvider } from './contexts/CharacterContext'
 

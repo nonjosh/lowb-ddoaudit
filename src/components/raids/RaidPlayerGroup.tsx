@@ -14,8 +14,8 @@ import {
 } from '../../ddoAuditApi'
 import { useCharacter } from '../../contexts/CharacterContext'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../../raidLogic'
-import CharacterNamesWithClassTooltip from '../ui/CharacterNamesWithClassTooltip'
-import ClassDisplay from '../ui/ClassDisplay'
+import CharacterNamesWithClassTooltip from '../shared/CharacterNamesWithClassTooltip'
+import ClassDisplay from '../shared/ClassDisplay'
 
 interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup

@@ -24,9 +24,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchAreasById, fetchQuestsById, Quest } from '../../ddoAuditApi'
 import { useCharacter, PlayerGroup } from '../../contexts/CharacterContext'
 import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../raidLogic'
-import ClassDisplay from '../ui/ClassDisplay'
-import LfmParticipantsDialog from '../dialogs/LfmParticipantsDialog'
-import PlayerCharactersDialog from '../dialogs/PlayerCharactersDialog'
+import ClassDisplay from '../shared/ClassDisplay'
+import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
+import PlayerCharactersDialog from './PlayerCharactersDialog'
 
 interface CharactersSectionProps {
   loading: boolean

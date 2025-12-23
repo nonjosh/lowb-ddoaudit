@@ -21,7 +21,7 @@ import { Fragment, useMemo, useState } from 'react'
 
 import { Quest } from '../../ddoAuditApi'
 import { EXPECTED_PLAYERS, formatClasses, getPlayerDisplayName, getPlayerName } from '../../raidLogic'
-import LfmParticipantsDialog from '../dialogs/LfmParticipantsDialog'
+import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 function isRaidQuest(quest: Quest | null) {
   const type = String(quest?.type ?? '').trim().toLowerCase()
