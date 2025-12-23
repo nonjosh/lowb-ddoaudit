@@ -3,7 +3,7 @@ import RefreshIcon from '@mui/icons-material/Refresh'
 import SyncIcon from '@mui/icons-material/Sync'
 import SyncDisabledIcon from '@mui/icons-material/SyncDisabled'
 
-import { formatLocalDateTime } from '../ddoAuditApi'
+import { formatLocalDateTime } from '../../ddoAuditApi'
 
 interface ControlsProps {
   loading: boolean

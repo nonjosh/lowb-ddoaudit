@@ -1,8 +1,8 @@
 import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
 import TimerIcon from '@mui/icons-material/Timer'
 
-import { RaidGroup } from '../raidLogic'
-import RaidCard from './RaidCard'
+import { RaidGroup } from '../../raidLogic'
+import RaidCard from '../cards/RaidCard'
 
 interface RaidTimerSectionProps {
   loading: boolean

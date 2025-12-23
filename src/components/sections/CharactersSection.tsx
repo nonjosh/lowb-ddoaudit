@@ -21,12 +21,12 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchAreasById, fetchQuestsById, Quest } from '../ddoAuditApi'
-import { useCharacter, PlayerGroup } from '../contexts/CharacterContext'
-import { formatClasses, getPlayerDisplayName, getPlayerName } from '../raidLogic'
-import ClassDisplay from './ClassDisplay'
-import LfmParticipantsDialog from './LfmParticipantsDialog'
-import PlayerCharactersDialog from './PlayerCharactersDialog'
+import { fetchAreasById, fetchQuestsById, Quest } from '../../ddoAuditApi'
+import { useCharacter, PlayerGroup } from '../../contexts/CharacterContext'
+import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../raidLogic'
+import ClassDisplay from '../ui/ClassDisplay'
+import LfmParticipantsDialog from '../dialogs/LfmParticipantsDialog'
+import PlayerCharactersDialog from '../dialogs/PlayerCharactersDialog'
 
 interface CharactersSectionProps {
   loading: boolean

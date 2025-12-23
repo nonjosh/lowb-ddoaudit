@@ -15,8 +15,8 @@ import {
   Typography,
 } from '@mui/material'
 
-import { EXPECTED_PLAYERS } from '../raidLogic'
-import ClassDisplay from './ClassDisplay'
+import { EXPECTED_PLAYERS } from '../../raidLogic'
+import ClassDisplay from '../ui/ClassDisplay'
 
 interface LfmParticipant {
   characterName: string

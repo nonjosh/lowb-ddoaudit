@@ -1,13 +1,13 @@
 import { memo } from 'react'
 import { Tooltip } from '@mui/material'
 
-import { formatClasses } from '../raidLogic'
+import { CharacterClass, formatClasses } from '../../raidLogic'
 import ClassDisplay from './ClassDisplay'
 
 interface CharacterItem {
   id?: string
   name?: string
-  classes?: any
+  classes?: CharacterClass[]
 }
 
 interface CharacterNamesWithClassTooltipProps {
