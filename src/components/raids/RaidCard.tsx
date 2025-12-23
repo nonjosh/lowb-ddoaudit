@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
   Box,
   Card,
@@ -15,7 +15,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { useCallback, useMemo } from 'react'
 
 import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../raidLogic'
 import { getRaidNotesForRaidName } from '../../raidNotes'

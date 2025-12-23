@@ -35,12 +35,11 @@ function App() {
   const [lfmError, setLfmError] = useState('')
   const [now, setNow] = useState(() => new Date())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
-  const [collapsedRaids, setCollapsedRaids] = useState(() => new Set<string>())
+  const [expandedRaids, setExpandedRaids] = useState(() => new Set<string>())
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [showClassIcons, setShowClassIcons] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
   const resetRaidCollapseRef = useRef(true)
-  const resetRaidCardCollapseRef = useRef(true)
   const loadingRef = useRef(false)
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
@@ -60,20 +59,6 @@ function App() {
     }
     setCollapsedPlayerGroups(next)
     resetRaidCollapseRef.current = false
-    // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
-  }, [raidGroups, now])
-
-  useEffect(() => {
-    if (!resetRaidCardCollapseRef.current) return
-    if (!raidGroups.length) return
-
-    const next = new Set<string>()
-    for (const rg of raidGroups) {
-      next.add(String(rg.questId))
-    }
-
-    setCollapsedRaids(next)
-    resetRaidCardCollapseRef.current = false
     // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
   }, [raidGroups, now])
 
@@ -162,12 +147,12 @@ function App() {
   }, [])
 
   const isRaidCollapsed = useCallback((questId: string) => {
-    return collapsedRaids.has(String(questId))
-  }, [collapsedRaids])
+    return !expandedRaids.has(String(questId))
+  }, [expandedRaids])
 
   const toggleRaidCollapsed = useCallback((questId: string) => {
     const key = String(questId)
-    setCollapsedRaids((prev) => {
+    setExpandedRaids((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)

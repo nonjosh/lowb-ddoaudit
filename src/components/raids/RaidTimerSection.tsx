@@ -1,5 +1,5 @@
-import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
 import TimerIcon from '@mui/icons-material/Timer'
+import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
 
 import { RaidGroup } from '../../raidLogic'
 import RaidCard from './RaidCard'
