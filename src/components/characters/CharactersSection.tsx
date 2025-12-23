@@ -21,11 +21,11 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
+import { PlayerGroup, useCharacter } from '../../contexts/CharacterContext'
 import { fetchAreasById, fetchQuestsById, Quest } from '../../ddoAuditApi'
-import { useCharacter, PlayerGroup } from '../../contexts/CharacterContext'
 import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../raidLogic'
-import ClassDisplay from '../shared/ClassDisplay'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
+import ClassDisplay from '../shared/ClassDisplay'
 import PlayerCharactersDialog from './PlayerCharactersDialog'
 
 interface CharactersSectionProps {
@@ -260,34 +260,36 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
         <ListItemButton onClick={() => handlePlayerClick(group)} sx={{ px: 1 }}>
           <ListItemText
             primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                <FiberManualRecordIcon
-                  color={isOnline ? 'success' : 'disabled'}
-                  sx={{ width: 12, height: 12 }}
-                />
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  {getPlayerDisplayName(group.player)}
-                </Typography>
-                {isInParty && (
-                  <Tooltip title="In Party">
-                    <GroupsIcon color="action" sx={{ width: 16, height: 16 }} />
-                  </Tooltip>
-                )}
-                {isInLfm && (
-                  <Tooltip title="In LFM (Click to view)">
-                    <ListAltIcon
-                      color="action"
-                      sx={{ width: 16, height: 16, cursor: 'pointer' }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (lfmForCharacter) handleLfmClick(lfmForCharacter)
-                      }}
-                    />
-                  </Tooltip>
-                )}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                  <FiberManualRecordIcon
+                    color={isOnline ? 'success' : 'disabled'}
+                    sx={{ width: 12, height: 12 }}
+                  />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    {getPlayerDisplayName(group.player)}
+                  </Typography>
+                  {isInParty && (
+                    <Tooltip title="In Party">
+                      <GroupsIcon color="action" sx={{ width: 16, height: 16 }} />
+                    </Tooltip>
+                  )}
+                  {isInLfm && (
+                    <Tooltip title="In LFM (Click to view)">
+                      <ListAltIcon
+                        color="action"
+                        sx={{ width: 16, height: 16, cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (lfmForCharacter) handleLfmClick(lfmForCharacter)
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                </Box>
                 {onlineInfo && (
-                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', ml: 0.5 }}>
-                    <Typography variant="body2" color="success.main" component="span">
+                  <Box sx={{ ml: 2.5 }}>
+                    <Typography variant="body2" color="success.main">
                       {onlineInfo}
                     </Typography>
                   </Box>
