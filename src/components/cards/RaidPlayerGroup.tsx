@@ -11,11 +11,11 @@ import {
   formatLocalDateTime,
   formatTimeRemaining,
   RAID_LOCKOUT_MS,
-} from '../ddoAuditApi'
-import { useCharacter } from '../contexts/CharacterContext'
-import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../raidLogic'
-import CharacterNamesWithClassTooltip from './CharacterNamesWithClassTooltip'
-import ClassDisplay from './ClassDisplay'
+} from '../../ddoAuditApi'
+import { useCharacter } from '../../contexts/CharacterContext'
+import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../../raidLogic'
+import CharacterNamesWithClassTooltip from '../ui/CharacterNamesWithClassTooltip'
+import ClassDisplay from '../ui/ClassDisplay'
 
 interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup

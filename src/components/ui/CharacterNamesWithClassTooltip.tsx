@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Tooltip } from '@mui/material'
 
-import { formatClasses } from '../raidLogic'
+import { formatClasses } from '../../raidLogic'
 import ClassDisplay from './ClassDisplay'
 
 interface CharacterItem {

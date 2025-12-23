@@ -1,6 +1,6 @@
 import { Box, Tooltip, Typography } from '@mui/material'
 import { memo } from 'react'
-import { CharacterClass, formatClasses } from '../raidLogic'
+import { CharacterClass, formatClasses } from '../../raidLogic'
 
 interface ClassDisplayProps {
   classes: CharacterClass[]

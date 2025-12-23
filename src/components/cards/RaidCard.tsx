@@ -17,8 +17,8 @@ import {
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
-import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../raidLogic'
-import { getRaidNotesForRaidName } from '../raidNotes'
+import { EXPECTED_PLAYERS, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../raidLogic'
+import { getRaidNotesForRaidName } from '../../raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
 
 interface RaidCardProps {
