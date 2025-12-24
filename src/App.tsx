@@ -6,6 +6,7 @@ import {
   fetchLfms,
   fetchQuestsById,
   fetchRaidActivity,
+  fetchServerInfo,
   parseCharacterIds,
   Quest,
 } from './api/ddoAuditApi'
@@ -32,6 +33,7 @@ function App() {
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
   const [lfmsById, setLfmsById] = useState<Record<string, any>>({})
   const [lfmError, setLfmError] = useState('')
+  const [serverPlayers, setServerPlayers] = useState<number | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
   const [expandedRaids, setExpandedRaids] = useState(() => new Set<string>())
@@ -78,7 +80,7 @@ function App() {
       }
 
       let lfmFetchError: any = null
-      const [quests, characters, raids, lfms] = await Promise.all([
+      const [quests, characters, raids, lfms, serverInfo] = await Promise.all([
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
         fetchRaidActivity(ids, { signal: controller.signal }),
@@ -86,6 +88,7 @@ function App() {
           lfmFetchError = e
           return null
         }),
+        fetchServerInfo('shadowdale', { signal: controller.signal }).catch(() => null),
       ])
 
       if (lfmFetchError) {
@@ -96,6 +99,7 @@ function App() {
       setCharactersById(characters)
       setRaidActivity(raids)
       setLfmsById(lfms ?? {})
+      setServerPlayers(serverInfo?.character_count ?? null)
       setLastUpdatedAt(new Date())
     } catch (e: any) {
       if (e?.name === 'AbortError') return
@@ -201,6 +205,7 @@ function App() {
                   questsById={questsById}
                   error={lfmError}
                   showClassIcons={showClassIcons}
+                  serverPlayers={serverPlayers}
                 />
               </Box>
               <RaidTimerSection

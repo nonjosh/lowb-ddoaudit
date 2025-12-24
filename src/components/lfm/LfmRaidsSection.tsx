@@ -18,7 +18,6 @@ import {
   Typography,
 } from '@mui/material'
 import { Fragment, useMemo, useState } from 'react'
-
 import { Quest } from '../../api/ddoAuditApi'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../domains/raids/raidLogic'
@@ -94,9 +93,11 @@ interface LfmRaidsSectionProps {
   questsById: Record<string, Quest>
   error: string
   showClassIcons: boolean
+  serverPlayers?: number | null
 }
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons }: LfmRaidsSectionProps) {
+
+export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers }: LfmRaidsSectionProps) {
   const [questFilter, setQuestFilter] = useState('raid')
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
@@ -264,8 +265,9 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
             LFMs
           </Typography>
         </Box>
-        {loading && <CircularProgress size={20} />}
         <Chip size="small" variant="outlined" label={`Showing ${shownCount} out of ${totalCount}`} />
+        <Chip size="small" variant="outlined" label={`Players: ${serverPlayers ?? '—'}`} sx={{ ml: 1 }} />
+        {loading && <CircularProgress size={20} />}
 
         <Box sx={{ ml: 'auto' }} />
         <ToggleButtonGroup

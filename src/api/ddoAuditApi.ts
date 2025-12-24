@@ -320,3 +320,44 @@ export function formatTimeRemaining(remainingMs: number): string {
   if (hours > 0) return `${hours}h ${minutes}m`
   return `${minutes}m`
 }
+
+export interface ServerInfo {
+  is_online?: boolean | null
+  character_count?: number | null
+  last_status_check?: string | null
+}
+
+/**
+ * Fetch server info (health / online player count) for a server.
+ */
+export async function fetchServerInfo(serverName: string, options: FetchOptions = {}): Promise<ServerInfo | null> {
+  const server = serverName.trim()
+  const url = new URL(`${DDOAUDIT_BASE_URL}/game/server-info`)
+  url.searchParams.set('server', server)
+
+  const resp = await fetch(url.toString(), { signal: options.signal })
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch server info (${resp.status})`)
+  }
+
+  const json = await resp.json()
+
+  if (!json) return null
+
+  // If the response is wrapped in { data: { <server>: { ... } } }
+  const top = json?.data && typeof json.data === 'object' ? json.data : json
+
+  // The API returns a map keyed by server name; pick the requested server when present.
+  const key = server.toLowerCase()
+  if (top && typeof top === 'object' && key in top) {
+    return top[key] as ServerInfo
+  }
+
+  // Otherwise, if the top-level shape already looks like a single server object, return it.
+  // Heuristic: presence of is_online or character_count.
+  if (top && typeof top === 'object' && ('is_online' in top || 'character_count' in top)) {
+    return top as ServerInfo
+  }
+
+  return null
+}
