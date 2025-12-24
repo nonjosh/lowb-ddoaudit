@@ -86,6 +86,7 @@ function parseReaperSkulls(text: string | null) {
   return best
 }
 
+
 interface LfmRaidsSectionProps {
   loading: boolean
   hasFetched: boolean
@@ -94,10 +95,11 @@ interface LfmRaidsSectionProps {
   error: string
   showClassIcons: boolean
   serverPlayers?: number | null
+  isServerOnline?: boolean | null
 }
 
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers }: LfmRaidsSectionProps) {
+export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers, isServerOnline }: LfmRaidsSectionProps) {
   const [questFilter, setQuestFilter] = useState('raid')
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
@@ -255,6 +257,23 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
 
   const shownCount = raidLfms.length
   const totalCount = rawCount
+
+  // If server is offline, show message and do not render LFM table.
+  if (isServerOnline === false) {
+    return (
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+          <GroupAddIcon />
+          <Typography variant="h5" sx={{ mb: 0 }}>
+            LFMs
+          </Typography>
+        </Box>
+        <Alert severity="error" sx={{ mt: 2 }}>
+          The Shadowdale server is currently <b>offline</b>. LFM data is unavailable.
+        </Alert>
+      </Paper>
+    )
+  }
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>

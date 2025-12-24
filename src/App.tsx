@@ -34,6 +34,7 @@ function App() {
   const [lfmsById, setLfmsById] = useState<Record<string, any>>({})
   const [lfmError, setLfmError] = useState('')
   const [serverPlayers, setServerPlayers] = useState<number | null>(null)
+  const [isServerOnline, setIsServerOnline] = useState<boolean | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
   const [expandedRaids, setExpandedRaids] = useState(() => new Set<string>())
@@ -79,16 +80,30 @@ function App() {
         return
       }
 
+      // Always fetch server info first
+      const serverInfo = await fetchServerInfo('shadowdale', { signal: controller.signal }).catch(() => null)
+      setIsServerOnline(serverInfo?.is_online ?? null)
+      setServerPlayers(serverInfo?.character_count ?? null)
+
+
+      // If server is offline, avoid calling the LFM API but still fetch quests/characters/raids
       let lfmFetchError: any = null
-      const [quests, characters, raids, lfms, serverInfo] = await Promise.all([
+      const lfmPromise = serverInfo?.is_online === false
+        ? Promise.resolve(null)
+        : fetchLfms('shadowdale', { signal: controller.signal }).catch((e) => {
+          lfmFetchError = e
+          return null
+        })
+
+      if (serverInfo?.is_online === false) {
+        setLfmError('Server is offline. LFM data is unavailable.')
+      }
+
+      const [quests, characters, raids, lfms] = await Promise.all([
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
         fetchRaidActivity(ids, { signal: controller.signal }),
-        fetchLfms('shadowdale', { signal: controller.signal }).catch((e) => {
-          lfmFetchError = e
-          return null
-        }),
-        fetchServerInfo('shadowdale', { signal: controller.signal }).catch(() => null),
+        lfmPromise,
       ])
 
       if (lfmFetchError) {
@@ -99,7 +114,6 @@ function App() {
       setCharactersById(characters)
       setRaidActivity(raids)
       setLfmsById(lfms ?? {})
-      setServerPlayers(serverInfo?.character_count ?? null)
       setLastUpdatedAt(new Date())
     } catch (e: any) {
       if (e?.name === 'AbortError') return
@@ -124,16 +138,15 @@ function App() {
   }, [loading])
 
   useEffect(() => {
-    if (!autoRefreshEnabled) return
+    if (!autoRefreshEnabled || isServerOnline === false) return
 
     const id = setInterval(() => {
-      // Avoid constantly aborting in-flight requests; manual refresh can still interrupt.
       if (loadingRef.current) return
       load()
     }, 10_000)
 
     return () => clearInterval(id)
-  }, [autoRefreshEnabled, load])
+  }, [autoRefreshEnabled, load, isServerOnline])
 
   const isCollapsed = useCallback((questId: string, playerName: string) => {
     return collapsedPlayerGroups.has(`${questId}:${playerName}`)
@@ -206,6 +219,7 @@ function App() {
                   error={lfmError}
                   showClassIcons={showClassIcons}
                   serverPlayers={serverPlayers}
+                  isServerOnline={isServerOnline}
                 />
               </Box>
               <RaidTimerSection
