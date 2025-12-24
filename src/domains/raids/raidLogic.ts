@@ -1,4 +1,4 @@
-import { addMs, Quest, RAID_LOCKOUT_MS } from '../../api/ddoAuditApi'
+import { addMs, Quest, RAID_LOCKOUT_MS } from '../../api/ddoAudit'
 import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '../../config/characters'
 
 export function getPlayerDisplayName(playerName: string): string {

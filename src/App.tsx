@@ -9,7 +9,7 @@ import {
   fetchServerInfo,
   parseCharacterIds,
   Quest,
-} from './api/ddoAuditApi'
+} from './api/ddoAudit'
 import { CHARACTERS } from './config/characters'
 import {
   buildRaidGroups,

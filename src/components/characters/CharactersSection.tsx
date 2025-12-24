@@ -21,7 +21,7 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchAreasById, fetchQuestsById, Quest } from '../../api/ddoAuditApi'
+import { fetchAreasById, fetchQuestsById, Quest } from '../../api/ddoAudit'
 import { PlayerGroup, useCharacter } from '../../contexts/CharacterContext'
 import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'

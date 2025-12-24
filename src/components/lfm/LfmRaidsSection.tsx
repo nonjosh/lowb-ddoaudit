@@ -18,7 +18,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Fragment, useMemo, useState } from 'react'
-import { Quest } from '../../api/ddoAuditApi'
+import { Quest } from '../../api/ddoAudit'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
