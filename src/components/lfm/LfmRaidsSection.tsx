@@ -101,6 +101,7 @@ interface LfmRaidsSectionProps {
 
 export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers, isServerOnline }: LfmRaidsSectionProps) {
   const [questFilter, setQuestFilter] = useState('raid')
+  const [tierFilter, setTierFilter] = useState('legendary')
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
@@ -235,6 +236,21 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       filtered = filtered.filter((x) => x.isRaid)
     }
 
+    // Filter by tier based on quest level.
+    // heroic: <20, epic: 20-29, legendary: >30
+    if (typeof tierFilter === 'string' && tierFilter !== 'all') {
+      filtered = filtered.filter((x) => {
+        const lvl = typeof x.questLevel === 'number' ? x.questLevel : null
+        if (lvl === null) return false
+
+        if (tierFilter === 'heroic') return lvl < 20
+        if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
+        if (tierFilter === 'legendary') return lvl > 30
+
+        return true
+      })
+    }
+
     // Sort by quest level desc (then most recently updated, then name).
     filtered.sort((a, b) => {
       const aHasName = Boolean(String(a.questName ?? '').trim())
@@ -253,7 +269,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
     })
 
     return filtered
-  }, [lfmsById, questsById, questFilter])
+  }, [lfmsById, questsById, questFilter, tierFilter])
 
   const shownCount = raidLfms.length
   const totalCount = rawCount
@@ -288,23 +304,47 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         <Chip size="small" variant="outlined" label={`Players: ${serverPlayers ?? '—'}`} sx={{ ml: 1 }} />
         {loading && <CircularProgress size={20} />}
 
-        <Box sx={{ ml: 'auto' }} />
-        <ToggleButtonGroup
-          size="small"
-          value={questFilter}
-          exclusive
-          onChange={(_, v) => {
-            if (v) setQuestFilter(v)
-          }}
-          aria-label="quest filter"
-        >
-          <ToggleButton value="raid" aria-label="raids only">
-            Raids
-          </ToggleButton>
-          <ToggleButton value="all" aria-label="all quests">
-            All
-          </ToggleButton>
-        </ToggleButtonGroup>
+        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ToggleButtonGroup
+            size="small"
+            value={tierFilter}
+            exclusive
+            onChange={(_, v) => {
+              if (v) setTierFilter(v)
+            }}
+            aria-label="tier filter"
+          >
+            <ToggleButton value="heroic" aria-label="heroic tier">
+              Heroic
+            </ToggleButton>
+            <ToggleButton value="epic" aria-label="epic tier">
+              Epic
+            </ToggleButton>
+            <ToggleButton value="legendary" aria-label="legendary tier">
+              Legendary
+            </ToggleButton>
+            <ToggleButton value="all" aria-label="all tiers">
+              All
+            </ToggleButton>
+          </ToggleButtonGroup>
+
+          <ToggleButtonGroup
+            size="small"
+            value={questFilter}
+            exclusive
+            onChange={(_, v) => {
+              if (v) setQuestFilter(v)
+            }}
+            aria-label="quest filter"
+          >
+            <ToggleButton value="raid" aria-label="raids only">
+              Raids
+            </ToggleButton>
+            <ToggleButton value="all" aria-label="all quests">
+              All
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
 
       {error ? <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert> : null}
