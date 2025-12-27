@@ -1,6 +1,6 @@
 import TimerIcon from '@mui/icons-material/Timer'
-import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
-import { useMemo } from 'react'
+import { Box, Chip, CircularProgress, Skeleton, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { useMemo, useState } from 'react'
 
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { useCharacter } from '../../contexts/CharacterContext'
@@ -32,13 +32,25 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
    */
   const { lfms } = useCharacter()
 
+  const [tierFilter, setTierFilter] = useState('legendary')
+
   const sortedRaidGroups = useMemo(() => {
     const lfmsById = lfms ?? {}
-    const list = raidGroups.map((g, idx) => {
-      const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
-      const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
-      return { g, idx, hasFriendInside, hasLfm }
-    })
+    const list = raidGroups
+      .map((g, idx) => {
+        const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
+        const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
+        return { g, idx, hasFriendInside, hasLfm }
+      })
+      .filter((item) => {
+        if (!tierFilter || tierFilter === 'all') return true
+        const lvl = typeof item.g.questLevel === 'number' ? item.g.questLevel : null
+        if (lvl === null) return false
+        if (tierFilter === 'heroic') return lvl < 20
+        if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
+        if (tierFilter === 'legendary') return lvl > 30
+        return true
+      })
 
     list.sort((a, b) => {
       if (a.hasFriendInside !== b.hasFriendInside) return a.hasFriendInside ? -1 : 1
@@ -47,7 +59,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
     })
 
     return list.map((x) => x.g)
-  }, [raidGroups, lfms])
+  }, [raidGroups, lfms, tierFilter])
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
@@ -57,6 +69,22 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
         </Box>
         <Chip label={raidGroups.length} size="small" variant="outlined" />
         {loading && <CircularProgress size={20} />}
+        <Box sx={{ ml: 'auto' }}>
+          <ToggleButtonGroup
+            size="small"
+            value={tierFilter}
+            exclusive
+            onChange={(_, v) => {
+              if (v) setTierFilter(v)
+            }}
+            aria-label="tier filter"
+          >
+            <ToggleButton value="heroic" aria-label="heroic tier">Heroic</ToggleButton>
+            <ToggleButton value="epic" aria-label="epic tier">Epic</ToggleButton>
+            <ToggleButton value="legendary" aria-label="legendary tier">Legendary</ToggleButton>
+            <ToggleButton value="all" aria-label="all tiers">All</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
       {!raidGroups.length ? (
         (loading || !hasFetched) ? (
