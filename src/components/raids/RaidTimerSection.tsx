@@ -104,14 +104,23 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
     })
 
     const list = initial.filter((item) => {
-      // Always include notes-only placeholder raids so their notes are visible.
-      if (String(item.g.questId).startsWith('notes:')) return true
-      if (!tierFilter || tierFilter === 'all') return true
+      const isNotesOnly = String(item.g.questId).startsWith('notes:')
+
+      // Determine level for filtering. For notes-only placeholders we use the
+      // questLevel that may have been looked up from `questsByIdLocal`.
       const lvl = typeof item.g.questLevel === 'number' ? item.g.questLevel : null
+
+      // If tierFilter is unset or 'all', include everything (including notes-only)
+      if (!tierFilter || tierFilter === 'all') return true
+
+      // If this is a notes-only raid and we couldn't determine a level, don't
+      // include it for non-'all' filters.
+      if (isNotesOnly && lvl === null) return false
+
       if (lvl === null) return false
       if (tierFilter === 'heroic') return lvl < 20
       if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
-      if (tierFilter === 'legendary') return lvl > 30
+      if (tierFilter === 'legendary') return lvl >= 30
       return true
     })
 
