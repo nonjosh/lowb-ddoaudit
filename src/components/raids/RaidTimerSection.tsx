@@ -2,6 +2,9 @@ import TimerIcon from '@mui/icons-material/Timer'
 import { Box, Chip, CircularProgress, Skeleton, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useMemo, useState } from 'react'
 
+import { useEffect } from 'react'
+import { fetchQuestsById, Quest } from '../../api/ddoAudit'
+import raidNotesRaw from '../../assets/raid_notes.txt?raw'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { useCharacter } from '../../contexts/CharacterContext'
 import { RaidGroup } from '../../domains/raids/raidLogic'
@@ -33,28 +36,95 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
   const { lfms } = useCharacter()
 
   const [tierFilter, setTierFilter] = useState('legendary')
+  const [questsByIdLocal, setQuestsByIdLocal] = useState<Record<string, Quest>>({})
+
+  useEffect(() => {
+    let mounted = true
+    fetchQuestsById().then((q) => {
+      if (!mounted) return
+      setQuestsByIdLocal(q ?? {})
+    }).catch(() => {
+      if (!mounted) return
+      setQuestsByIdLocal({})
+    })
+    return () => { mounted = false }
+  }, [])
 
   const sortedRaidGroups = useMemo(() => {
     const lfmsById = lfms ?? {}
-    const list = raidGroups
+    const initial = raidGroups
       .map((g, idx) => {
         const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
         const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
-        return { g, idx, hasFriendInside, hasLfm }
+        const hasTimer = (g.entries ?? []).some((e) => Boolean((e as any)?.lastTimestamp))
+        return { g, idx, hasFriendInside, hasLfm, hasTimer }
       })
-      .filter((item) => {
-        if (!tierFilter || tierFilter === 'all') return true
-        const lvl = typeof item.g.questLevel === 'number' ? item.g.questLevel : null
-        if (lvl === null) return false
-        if (tierFilter === 'heroic') return lvl < 20
-        if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
-        if (tierFilter === 'legendary') return lvl > 30
-        return true
-      })
+
+    // Parse raid names from raid_notes.txt (lines starting with "## ") and
+    // add placeholder raid groups for any raids mentioned in notes but not
+    // present in the API `raidGroups` response. These placeholders allow
+    // notes to be displayed even when no API data exists for that raid.
+    const notesRaidNames: string[] = []
+    if (raidNotesRaw) {
+      const re = /^##\s+(.+)$/gm
+      let m: RegExpExecArray | null
+      while ((m = re.exec(raidNotesRaw)) !== null) {
+        const name = (m[1] || '').trim()
+        if (name) notesRaidNames.push(name)
+      }
+    }
+
+    const normalize = (s: string) => String(s ?? '').trim().toLowerCase()
+    const existingKeys = new Set(initial.map((it) => normalize(it.g.raidName)))
+    const startIdx = initial.length
+    notesRaidNames.forEach((rn, i) => {
+      const key = normalize(rn)
+      if (!existingKeys.has(key)) {
+        // Try to look up quest level and pack from fetched quests
+        let qLevel: number | null = null
+        let pack: string | null = null
+        try {
+          const found = Object.values(questsByIdLocal ?? {}).find((q) => normalize(String(q?.name)) === key)
+          if (found) {
+            qLevel = typeof found.level === 'number' ? found.level : null
+            pack = found.required_adventure_pack ?? null
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        initial.push({
+          g: { questId: `notes:${key}`, raidName: rn, adventurePack: pack, questLevel: qLevel, entries: [] },
+          idx: startIdx + i,
+          hasFriendInside: false,
+          hasLfm: false,
+          hasTimer: false,
+        })
+      }
+    })
+
+    const list = initial.filter((item) => {
+      // Always include notes-only placeholder raids so their notes are visible.
+      if (String(item.g.questId).startsWith('notes:')) return true
+      if (!tierFilter || tierFilter === 'all') return true
+      const lvl = typeof item.g.questLevel === 'number' ? item.g.questLevel : null
+      if (lvl === null) return false
+      if (tierFilter === 'heroic') return lvl < 20
+      if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
+      if (tierFilter === 'legendary') return lvl > 30
+      return true
+    })
 
     list.sort((a, b) => {
       if (a.hasFriendInside !== b.hasFriendInside) return a.hasFriendInside ? -1 : 1
       if (a.hasLfm !== b.hasLfm) return a.hasLfm ? -1 : 1
+
+      const aLevel = typeof a.g.questLevel === 'number' ? a.g.questLevel : -1
+      const bLevel = typeof b.g.questLevel === 'number' ? b.g.questLevel : -1
+      if (aLevel !== bLevel) return bLevel - aLevel // higher level first
+
+      if (a.hasTimer !== b.hasTimer) return a.hasTimer ? -1 : 1
+
       return a.idx - b.idx
     })
 
@@ -67,7 +137,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
           <TimerIcon />
           <Typography variant="h5" sx={{ mb: 0 }}>Raid Timers</Typography>
         </Box>
-        <Chip label={raidGroups.length} size="small" variant="outlined" />
+        <Chip label={sortedRaidGroups.length} size="small" variant="outlined" />
         {loading && <CircularProgress size={20} />}
         <Box sx={{ ml: 'auto' }}>
           <ToggleButtonGroup

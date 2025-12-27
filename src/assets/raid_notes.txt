@@ -6,7 +6,7 @@ Ultimatum - Tower Shield: Petrification Immunity
 Set:
 Strange Tidings - Ring: +3 Artifact bonus to Dexterity
 
-## Mark of Death
+## The Mark of Death
 Augment:
 Epic Litany of the Dead - Trinket: Litany of the Dead II - Ability Bonus
 

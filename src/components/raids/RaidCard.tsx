@@ -109,9 +109,11 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           </Box>
         }
         subheader={
-          <Typography variant="body2" color={availablePlayers === EXPECTED_PLAYERS.length ? 'success.main' : 'text.secondary'}>
-            Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
-          </Typography>
+          availablePlayers > 0 ? (
+            <Typography variant="body2" color={availablePlayers === EXPECTED_PLAYERS.length ? 'success.main' : 'text.secondary'}>
+              Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
+            </Typography>
+          ) : null
         }
       />
 
@@ -125,34 +127,36 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
             </Box>
           ) : null}
 
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Character</TableCell>
-                  <TableCell>Level</TableCell>
-                  <TableCell>Classes</TableCell>
-                  <TableCell>Race</TableCell>
-                  <TableCell>Time remaining</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {perPlayerEligible.map((pg) => {
-                  const collapsed = isPlayerCollapsed(g.questId, pg.player)
-                  return (
-                    <RaidPlayerGroup
-                      key={pg.player}
-                      playerGroup={pg}
-                      now={now}
-                      collapsed={collapsed}
-                      onToggleCollapsed={handleTogglePlayer}
-                      showClassIcons={showClassIcons}
-                    />
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          {availablePlayers > 0 ? (
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Character</TableCell>
+                    <TableCell>Level</TableCell>
+                    <TableCell>Classes</TableCell>
+                    <TableCell>Race</TableCell>
+                    <TableCell>Time remaining</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {perPlayerEligible.map((pg) => {
+                    const collapsed = isPlayerCollapsed(g.questId, pg.player)
+                    return (
+                      <RaidPlayerGroup
+                        key={pg.player}
+                        playerGroup={pg}
+                        now={now}
+                        collapsed={collapsed}
+                        onToggleCollapsed={handleTogglePlayer}
+                        showClassIcons={showClassIcons}
+                      />
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : null}
         </CardContent>
       </Collapse>
     </Card>
