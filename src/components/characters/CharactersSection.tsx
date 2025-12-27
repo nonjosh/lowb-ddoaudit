@@ -168,33 +168,41 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
     sortedGroups.forEach((group) => {
       const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
       if (onlineChar) {
+        const area = areas[onlineChar.location_id]
         const quest = quests[onlineChar.location_id]
-        let questName = quest?.name || 'Not in quest'
+        let groupKey = 'Not in quest'
         let isHeroic = false
         let isEpic = false
 
-        if (quest?.name && quest.heroicLevel && quest.epicLevel) {
-          const charLevel = (onlineChar.classes || []).reduce((sum: number, cls: any) => sum + (cls.level || 0), 0)
-          const distHeroic = Math.abs(charLevel - quest.heroicLevel)
-          const distEpic = Math.abs(charLevel - quest.epicLevel)
-          if (distHeroic <= distEpic) {
-            questName = `${quest.name} (Heroic)`
-            isHeroic = true
-          } else {
-            questName = `${quest.name} (Epic)`
-            isEpic = true
+        // Prefer area classification if public or wilderness
+        if (area && (area.is_public || area.is_wilderness)) {
+          groupKey = area.name
+        } else if (quest?.name) {
+          groupKey = quest.name
+          if (quest.heroicLevel && quest.epicLevel) {
+            const charLevel = (onlineChar.classes || []).reduce((sum: number, cls: any) => sum + (cls.level || 0), 0)
+            const distHeroic = Math.abs(charLevel - quest.heroicLevel)
+            const distEpic = Math.abs(charLevel - quest.epicLevel)
+            if (distHeroic <= distEpic) {
+              groupKey = `${quest.name} (Heroic)`
+              isHeroic = true
+            } else {
+              groupKey = `${quest.name} (Epic)`
+              isEpic = true
+            }
           }
         }
 
-        if (!online[questName]) online[questName] = []
-        online[questName].push(group)
+        if (!online[groupKey]) online[groupKey] = []
+        online[groupKey].push(group)
 
-        if (quest?.name) {
-          if (questMeta[questName] == null) {
+        // Only set quest meta/levels if this is a quest
+        if (quest?.name && groupKey.startsWith(quest.name)) {
+          if (questMeta[groupKey] == null) {
             const pack = quest?.required_adventure_pack
-            questMeta[questName] = typeof pack === 'string' && pack.trim() ? pack.trim() : null
+            questMeta[groupKey] = typeof pack === 'string' && pack.trim() ? pack.trim() : null
           }
-          if (levels[questName] == null) {
+          if (levels[groupKey] == null) {
             let levelStr = ''
             if (isHeroic) {
               levelStr = `Level ${quest.heroicLevel}`
@@ -207,7 +215,7 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
             } else if (quest.epicLevel) {
               levelStr = `Level ${quest.epicLevel}`
             }
-            levels[questName] = levelStr || null
+            levels[groupKey] = levelStr || null
           }
         }
       } else {
