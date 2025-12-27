@@ -90,8 +90,6 @@ Page Regalia: Unsanctioned Arcana - Cloak: +3 Artifact bonus to Assassinate DCs
 ## Skeletons in the Closet
 Set:
 Kelas' Volatile Mixture  - Orb: +3 Artifact bonus to bonus Imbue Dice
-Project Nemesis Sequence:
-Dark Red / Off ⇨ Green ⇨ Blue ⇨ Yellow ⇨ Red ⇨ Purple ⇨ Green
 
 ## Project Nemesis
 Sequence:
