@@ -1,6 +1,9 @@
 import TimerIcon from '@mui/icons-material/Timer'
 import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+import { useMemo } from 'react'
 
+import { EXPECTED_PLAYERS } from '../../config/characters'
+import { useCharacter } from '../../contexts/CharacterContext'
 import { RaidGroup } from '../../domains/raids/raidLogic'
 import RaidCard from './RaidCard'
 
@@ -17,6 +20,34 @@ interface RaidTimerSectionProps {
 }
 
 export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed, showClassIcons }: RaidTimerSectionProps) {
+  /**
+   * Raid sorting rules
+   *
+   * The UI displays raids in the following preferred order:
+   *  1. Raids that contain any of the `EXPECTED_PLAYERS` currently in-raid (friends) — highest priority.
+   *  2. Raids that have active LFMs (looking-for-members) — medium priority.
+   *  3. All remaining raids — lowest priority.
+   *
+   * The sort is stable: when two raids have equal priority their original order is preserved.
+   */
+  const { lfms } = useCharacter()
+
+  const sortedRaidGroups = useMemo(() => {
+    const lfmsById = lfms ?? {}
+    const list = raidGroups.map((g, idx) => {
+      const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
+      const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
+      return { g, idx, hasFriendInside, hasLfm }
+    })
+
+    list.sort((a, b) => {
+      if (a.hasFriendInside !== b.hasFriendInside) return a.hasFriendInside ? -1 : 1
+      if (a.hasLfm !== b.hasLfm) return a.hasLfm ? -1 : 1
+      return a.idx - b.idx
+    })
+
+    return list.map((x) => x.g)
+  }, [raidGroups, lfms])
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
@@ -41,7 +72,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
         )
       ) : (
         <Stack spacing={2}>
-          {raidGroups.map((g) => (
+          {sortedRaidGroups.map((g) => (
             <Box key={g.questId}>
               <RaidCard
                 raidGroup={g}
