@@ -84,6 +84,15 @@ export function formatClasses(classes: any[]): string {
   return filtered.map((c) => `${c.name} ${c.level}`).join(', ')
 }
 
+export function isLevelInTier(lvl: number | null, tierFilter: string | null | undefined): boolean {
+  if (!tierFilter || tierFilter === 'all') return true
+  if (lvl === null) return false
+  if (tierFilter === 'heroic') return lvl < 20
+  if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
+  if (tierFilter === 'legendary') return lvl >= 30
+  return true
+}
+
 export function isEntryAvailable(entry: RaidEntry | null | undefined, now: Date): boolean {
   const readyAt = addMs(entry?.lastTimestamp, RAID_LOCKOUT_MS)
   if (!readyAt) return true

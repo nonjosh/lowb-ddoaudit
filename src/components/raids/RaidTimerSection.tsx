@@ -7,7 +7,7 @@ import { fetchQuestsById, Quest } from '../../api/ddoAudit'
 import raidNotesRaw from '../../assets/raid_notes.txt?raw'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { useCharacter } from '../../contexts/CharacterContext'
-import { RaidGroup } from '../../domains/raids/raidLogic'
+import { isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
 import RaidCard from './RaidCard'
 
 interface RaidTimerSectionProps {
@@ -117,11 +117,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
       // include it for non-'all' filters.
       if (isNotesOnly && lvl === null) return false
 
-      if (lvl === null) return false
-      if (tierFilter === 'heroic') return lvl < 20
-      if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
-      if (tierFilter === 'legendary') return lvl >= 30
-      return true
+      return isLevelInTier(lvl, tierFilter)
     })
 
     list.sort((a, b) => {

@@ -20,7 +20,7 @@ import {
 import { Fragment, useMemo, useState } from 'react'
 import { Quest } from '../../api/ddoAudit'
 import { EXPECTED_PLAYERS } from '../../config/characters'
-import { formatClasses, getPlayerDisplayName, getPlayerName } from '../../domains/raids/raidLogic'
+import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 function isRaidQuest(quest: Quest | null) {
@@ -239,16 +239,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
     // Filter by tier based on quest level.
     // heroic: <20, epic: 20-29, legendary: >30
     if (typeof tierFilter === 'string' && tierFilter !== 'all') {
-      filtered = filtered.filter((x) => {
-        const lvl = typeof x.questLevel === 'number' ? x.questLevel : null
-        if (lvl === null) return false
-
-        if (tierFilter === 'heroic') return lvl < 20
-        if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
-        if (tierFilter === 'legendary') return lvl >= 30
-
-        return true
-      })
+      filtered = filtered.filter((x) => isLevelInTier(typeof x.questLevel === 'number' ? x.questLevel : null, tierFilter))
     }
 
     // Sort by quest level desc (then most recently updated, then name).
