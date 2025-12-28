@@ -245,7 +245,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
 
         if (tierFilter === 'heroic') return lvl < 20
         if (tierFilter === 'epic') return lvl >= 20 && lvl <= 29
-        if (tierFilter === 'legendary') return lvl > 30
+        if (tierFilter === 'legendary') return lvl >= 30
 
         return true
       })
