@@ -1,4 +1,4 @@
-import { addMs, Quest, RAID_LOCKOUT_MS } from '../../api/ddoAudit'
+import { addMs, Quest, RAID_LOCKOUT_MS, isTimerIgnored } from '../../api/ddoAudit'
 import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '../../config/characters'
 
 export function getPlayerDisplayName(playerName: string): string {
@@ -94,7 +94,15 @@ export function isLevelInTier(lvl: number | null, tierFilter: string | null | un
 }
 
 export function isEntryAvailable(entry: RaidEntry | null | undefined, now: Date): boolean {
-  const readyAt = addMs(entry?.lastTimestamp, RAID_LOCKOUT_MS)
+  if (!entry) return true
+  // If the exact characterId + lastTimestamp pair is ignored by the client, treat as available.
+  try {
+    if (isTimerIgnored(entry.characterId, entry.lastTimestamp)) return true
+  } catch (err) {
+    // ignore errors and fall back to default logic
+  }
+
+  const readyAt = addMs(entry.lastTimestamp, RAID_LOCKOUT_MS)
   if (!readyAt) return true
   return readyAt.getTime() - now.getTime() <= 0
 }

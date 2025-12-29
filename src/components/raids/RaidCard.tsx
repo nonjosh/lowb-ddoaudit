@@ -15,7 +15,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
@@ -35,6 +35,13 @@ interface RaidCardProps {
 export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons }: RaidCardProps) {
   const g = raidGroup
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
+  const [ignoredVersion, setIgnoredVersion] = useState(0)
+
+  useEffect(() => {
+    const handler = () => setIgnoredVersion((v) => v + 1)
+    window.addEventListener('ddoaudit:ignoredTimersChanged', handler)
+    return () => window.removeEventListener('ddoaudit:ignoredTimersChanged', handler)
+  }, [])
   const raidNotes = getRaidNotesForRaidName(g.raidName)
 
   const handleTogglePlayer = useCallback((playerName: string) => {
@@ -65,7 +72,7 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
     return perPlayer
       .map((pg) => ({ ...pg, entries: (pg.entries ?? []).filter(isEligibleEntry) }))
       .filter((pg) => (pg.entries ?? []).length > 0)
-  }, [perPlayer])
+  }, [perPlayer, ignoredVersion])
 
   const availablePlayers = useMemo(() => EXPECTED_PLAYERS.filter((playerName) => {
     const pg = perPlayerEligible.find((p) => p.player === playerName)

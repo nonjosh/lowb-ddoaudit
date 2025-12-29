@@ -94,3 +94,45 @@ export function formatTimeRemaining(remainingMs: number): string {
   if (hours > 0) return `${hours}h ${minutes}m`
   return `${minutes}m`
 }
+
+// --- Ignored timers (client-side localStorage) ---
+export interface IgnoredTimerRecord {
+  characterId: string
+  lastTimestamp: string | null
+}
+
+const IGNORED_TIMERS_KEY = 'ddoaudit_ignoredTimers_v1'
+
+export function getIgnoredTimers(): IgnoredTimerRecord[] {
+  try {
+    const raw = localStorage.getItem(IGNORED_TIMERS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(Boolean).map((p: any) => ({ characterId: String(p.characterId ?? ''), lastTimestamp: p.lastTimestamp ?? null }))
+  } catch (err) {
+    return []
+  }
+}
+
+export function isTimerIgnored(characterId: string, lastTimestamp: string | null): boolean {
+  if (!characterId) return false
+  const list = getIgnoredTimers()
+  return list.some((r) => r.characterId === characterId && r.lastTimestamp === lastTimestamp)
+}
+
+export function addIgnoredTimer(characterId: string, lastTimestamp: string | null): void {
+  if (!characterId) return
+  try {
+    const list = getIgnoredTimers()
+    const exists = list.some((r) => r.characterId === characterId && r.lastTimestamp === lastTimestamp)
+    if (!exists) {
+      list.push({ characterId, lastTimestamp })
+      localStorage.setItem(IGNORED_TIMERS_KEY, JSON.stringify(list))
+      // Notify other listeners in the page
+      try { window.dispatchEvent(new Event('ddoaudit:ignoredTimersChanged')) } catch (e) { /* ignore */ }
+    }
+  } catch (err) {
+    // ignore
+  }
+}
