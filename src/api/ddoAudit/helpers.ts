@@ -136,3 +136,15 @@ export function addIgnoredTimer(characterId: string, lastTimestamp: string | nul
     // ignore
   }
 }
+
+export function removeIgnoredTimer(characterId: string, lastTimestamp: string | null): void {
+  if (!characterId) return
+  try {
+    const list = getIgnoredTimers()
+    const filtered = list.filter((r) => !(r.characterId === characterId && r.lastTimestamp === lastTimestamp))
+    localStorage.setItem(IGNORED_TIMERS_KEY, JSON.stringify(filtered))
+    try { window.dispatchEvent(new Event('ddoaudit:ignoredTimersChanged')) } catch (e) { /* ignore */ }
+  } catch (err) {
+    // ignore
+  }
+}

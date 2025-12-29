@@ -3,16 +3,18 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import RestoreIcon from '@mui/icons-material/Restore'
 import { Box, Collapse, IconButton, Table, TableBody, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
 import { memo, useEffect, useState } from 'react'
 
 import {
+  addIgnoredTimer,
   addMs,
   formatLocalDateTime,
   formatTimeRemaining,
-  RAID_LOCKOUT_MS,
-  addIgnoredTimer,
   isTimerIgnored,
+  RAID_LOCKOUT_MS,
+  removeIgnoredTimer,
 } from '../../api/ddoAudit'
 import { useCharacter } from '../../contexts/CharacterContext'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../../domains/raids/raidLogic'
@@ -36,10 +38,24 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
     return () => window.removeEventListener('ddoaudit:ignoredTimersChanged', handler)
   }, [])
 
-  try {
-    if (isTimerIgnored(characterId, lastTimestamp)) return null
-  } catch (err) {
-    // ignore
+  const ignored = (() => {
+    try { return isTimerIgnored(characterId, lastTimestamp) } catch (err) { return false }
+  })()
+
+  if (ignored) {
+    return (
+      <Tooltip title="Restore this timer (undo ignore)">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation()
+            try { removeIgnoredTimer(characterId, lastTimestamp) } catch (err) { /* ignore */ }
+          }}
+        >
+          <RestoreIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    )
   }
 
   return (
