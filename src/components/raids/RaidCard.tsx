@@ -1,9 +1,11 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ListAltIcon from '@mui/icons-material/ListAlt'
 import {
   Box,
   Card,
   CardContent,
   CardHeader,
+  Chip,
   Collapse,
   IconButton,
   Paper,
@@ -18,7 +20,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { EXPECTED_PLAYERS } from '../../config/characters'
-import { groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
+import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '../../domains/raids/raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
 
@@ -30,10 +32,12 @@ interface RaidCardProps {
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   onTogglePlayer: (questId: string, playerName: string) => void
   showClassIcons: boolean
+  hasFriendInside?: boolean
+  hasLfm?: boolean
+  onLfmClick?: (questId: string) => void
 }
 
-export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons }: RaidCardProps) {
-  const g = raidGroup
+export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
   const [ignoredVersion, setIgnoredVersion] = useState(0)
 
@@ -43,6 +47,11 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
     return () => window.removeEventListener('ddoaudit:ignoredTimersChanged', handler)
   }, [])
   const raidNotes = getRaidNotesForRaidName(g.raidName)
+
+  const friendsInRaid = useMemo(() => {
+    const present = new Set<string>((g.entries ?? []).filter((e: any) => e?.isInRaid).map((e: any) => String(e?.playerName ?? '')))
+    return EXPECTED_PLAYERS.filter((p) => present.has(p)).map((p) => getPlayerDisplayName(p))
+  }, [g.entries])
 
   const handleTogglePlayer = useCallback((playerName: string) => {
     onTogglePlayer(g.questId, playerName)
@@ -83,8 +92,20 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
     return g.entries.some((e) => e.isInRaid)
   }, [g.entries])
 
+  const highlight = Boolean(hasFriendInside || hasLfm)
+
   return (
-    <Card sx={{ mb: 2, border: hasPlayersInRaid ? '2px solid' : 'none', borderColor: 'success.main' }}>
+    <Card
+      variant="outlined"
+      sx={{
+        mb: 2,
+        ...(hasPlayersInRaid ? { borderColor: 'success.main' } : { borderColor: 'transparent' }),
+        ...(highlight && {
+          boxShadow: (theme: any) =>
+            `inset 0 2px 0 0 ${theme.palette.primary.main}, inset 2px 0 0 0 ${theme.palette.primary.main}, inset -2px 0 0 0 ${theme.palette.primary.main}`,
+        }),
+      }}
+    >
       <CardHeader
         onClick={onToggleRaid}
         sx={{ cursor: 'pointer' }}
@@ -104,6 +125,16 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
               <Typography variant="h6">{g.raidName}</Typography>
+              {hasLfm && onLfmClick ? (
+                <ListAltIcon
+                  color="action"
+                  sx={{ width: 18, height: 18, cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onLfmClick(g.questId)
+                  }}
+                />
+              ) : null}
               <Typography variant="caption" color="text.secondary">
                 Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}
               </Typography>
@@ -116,7 +147,13 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           </Box>
         }
         subheader={
-          availablePlayers > 0 ? (
+          isRaidCollapsed && friendsInRaid.length > 0 ? (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              {friendsInRaid.map((f) => (
+                <Chip key={f} size="small" label={f} />
+              ))}
+            </Box>
+          ) : availablePlayers > 0 ? (
             <Typography variant="body2" color={availablePlayers === EXPECTED_PLAYERS.length ? 'success.main' : 'text.secondary'}>
               Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
             </Typography>

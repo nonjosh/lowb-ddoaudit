@@ -7,7 +7,8 @@ import { fetchQuestsById, Quest } from '../../api/ddoAudit'
 import raidNotesRaw from '../../assets/raid_notes.txt?raw'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { useCharacter } from '../../contexts/CharacterContext'
-import { isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
+import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
+import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
 import RaidCard from './RaidCard'
 
 interface RaidTimerSectionProps {
@@ -135,6 +136,61 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
 
     return list.map((x) => x.g)
   }, [raidGroups, lfms, tierFilter])
+  const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
+
+  const handleLfmClick = (questId: string) => {
+    const lfmsById = lfms ?? {}
+    let lfm: any = lfmsById[questId]
+    if (!lfm) {
+      lfm = Object.values(lfmsById ?? {}).find((l: any) => String(l?.quest_id ?? '') === String(questId))
+    }
+    if (!lfm) return
+
+    const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
+    const type = String(quest?.type ?? '').trim().toLowerCase()
+    const isRaid = type.includes('raid')
+    const maxPlayers = isRaid ? 12 : 6
+
+    const participants = [lfm?.leader, ...(lfm?.members ?? [])]
+      .filter(Boolean)
+      .map((p: any) => {
+        const characterName = String(p?.name ?? '').trim() || '—'
+        const playerName = getPlayerName(characterName)
+        const classesDisplay = formatClasses(p?.classes)
+        return {
+          characterName,
+          playerName,
+          playerDisplayName: getPlayerDisplayName(playerName),
+          guildName: String(p?.guild_name ?? '').trim() || '',
+          totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
+          classesDisplay,
+          classes: p?.classes,
+          isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
+          race: p?.race ?? 'Unknown',
+        }
+      })
+
+    const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
+    const difficultyDisplay = difficulty
+
+    const difficultyColor = (() => {
+      const d = difficulty.toLowerCase()
+      if (d === 'reaper') return 'error.main'
+      if (d === 'elite') return 'warning.main'
+      if (d === 'hard') return 'info.main'
+      return 'text.primary'
+    })()
+
+    setSelectedLfm({
+      questName: quest?.name || 'Unknown Quest',
+      adventurePack: quest?.required_adventure_pack,
+      questLevel: typeof quest?.level === 'number' ? quest.level : null,
+      difficultyDisplay,
+      difficultyColor,
+      participants,
+      maxPlayers,
+    })
+  }
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
@@ -174,22 +230,31 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
           </Typography>
         )
       ) : (
-        <Stack spacing={2}>
-          {sortedRaidGroups.map((g) => (
-            <Box key={g.questId}>
-              <RaidCard
-                raidGroup={g}
-                now={now}
-                isRaidCollapsed={isRaidCollapsed(g.questId)}
-                onToggleRaid={() => toggleRaidCollapsed(g.questId)}
-                isPlayerCollapsed={isPlayerCollapsed}
-                onTogglePlayer={togglePlayerCollapsed}
-                showClassIcons={showClassIcons}
-              />
-            </Box>
-          ))}
+        <Stack>
+          {sortedRaidGroups.map((g) => {
+            const lfmsById = lfms ?? {}
+            const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
+            const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
+            return (
+              <Box key={g.questId}>
+                <RaidCard
+                  raidGroup={g}
+                  now={now}
+                  isRaidCollapsed={isRaidCollapsed(g.questId)}
+                  onToggleRaid={() => toggleRaidCollapsed(g.questId)}
+                  isPlayerCollapsed={isPlayerCollapsed}
+                  onTogglePlayer={togglePlayerCollapsed}
+                  showClassIcons={showClassIcons}
+                  hasFriendInside={hasFriendInside}
+                  hasLfm={hasLfm}
+                  onLfmClick={(qid) => handleLfmClick(qid)}
+                />
+              </Box>
+            )
+          })}
         </Stack>
       )}
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} />
     </>
   )
 }
