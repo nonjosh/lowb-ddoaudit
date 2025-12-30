@@ -230,7 +230,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
           </Typography>
         )
       ) : (
-        <Stack spacing={2}>
+        <Stack>
           {sortedRaidGroups.map((g) => {
             const lfmsById = lfms ?? {}
             const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
