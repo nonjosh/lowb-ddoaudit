@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Chip,
   Collapse,
   IconButton,
   Paper,
@@ -19,7 +20,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { EXPECTED_PLAYERS } from '../../config/characters'
-import { groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
+import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '../../domains/raids/raidNotes'
 import RaidPlayerGroup from './RaidPlayerGroup'
 
@@ -46,6 +47,11 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
     return () => window.removeEventListener('ddoaudit:ignoredTimersChanged', handler)
   }, [])
   const raidNotes = getRaidNotesForRaidName(g.raidName)
+
+  const friendsInRaid = useMemo(() => {
+    const present = new Set<string>((g.entries ?? []).filter((e: any) => e?.isInRaid).map((e: any) => String(e?.playerName ?? '')))
+    return EXPECTED_PLAYERS.filter((p) => present.has(p)).map((p) => getPlayerDisplayName(p))
+  }, [g.entries])
 
   const handleTogglePlayer = useCallback((playerName: string) => {
     onTogglePlayer(g.questId, playerName)
@@ -141,7 +147,13 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
           </Box>
         }
         subheader={
-          availablePlayers > 0 ? (
+          isRaidCollapsed && friendsInRaid.length > 0 ? (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              {friendsInRaid.map((f) => (
+                <Chip key={f} size="small" label={f} />
+              ))}
+            </Box>
+          ) : availablePlayers > 0 ? (
             <Typography variant="body2" color={availablePlayers === EXPECTED_PLAYERS.length ? 'success.main' : 'text.secondary'}>
               Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
             </Typography>
