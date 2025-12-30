@@ -1,4 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ListAltIcon from '@mui/icons-material/ListAlt'
 import {
   Box,
   Card,
@@ -30,10 +31,12 @@ interface RaidCardProps {
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   onTogglePlayer: (questId: string, playerName: string) => void
   showClassIcons: boolean
+  hasFriendInside?: boolean
+  hasLfm?: boolean
+  onLfmClick?: (questId: string) => void
 }
 
-export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons }: RaidCardProps) {
-  const g = raidGroup
+export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
   const [ignoredVersion, setIgnoredVersion] = useState(0)
 
@@ -83,8 +86,20 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
     return g.entries.some((e) => e.isInRaid)
   }, [g.entries])
 
+  const highlight = Boolean(hasFriendInside || hasLfm)
+
   return (
-    <Card sx={{ mb: 2, border: hasPlayersInRaid ? '2px solid' : 'none', borderColor: 'success.main' }}>
+    <Card
+      sx={{
+        mb: 2,
+        border: hasPlayersInRaid ? '2px solid' : 'none',
+        borderColor: 'success.main',
+        ...(highlight && {
+          boxShadow: (theme: any) =>
+            `inset 0 2px 0 0 ${theme.palette.primary.main}, inset 2px 0 0 0 ${theme.palette.primary.main}, inset -2px 0 0 0 ${theme.palette.primary.main}`,
+        }),
+      }}
+    >
       <CardHeader
         onClick={onToggleRaid}
         sx={{ cursor: 'pointer' }}
@@ -104,6 +119,16 @@ export default function RaidCard({ raidGroup, now, isRaidCollapsed, onToggleRaid
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
               <Typography variant="h6">{g.raidName}</Typography>
+              {hasLfm && onLfmClick ? (
+                <ListAltIcon
+                  color="action"
+                  sx={{ width: 18, height: 18, cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onLfmClick(g.questId)
+                  }}
+                />
+              ) : null}
               <Typography variant="caption" color="text.secondary">
                 Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}
               </Typography>
