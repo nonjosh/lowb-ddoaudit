@@ -96,10 +96,10 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
 
   return (
     <Card
+      variant="outlined"
       sx={{
         mb: 2,
-        border: hasPlayersInRaid ? '2px solid' : 'none',
-        borderColor: 'success.main',
+        ...(hasPlayersInRaid ? { borderColor: 'success.main' } : { borderColor: 'transparent' }),
         ...(highlight && {
           boxShadow: (theme: any) =>
             `inset 0 2px 0 0 ${theme.palette.primary.main}, inset 2px 0 0 0 ${theme.palette.primary.main}, inset -2px 0 0 0 ${theme.palette.primary.main}`,
