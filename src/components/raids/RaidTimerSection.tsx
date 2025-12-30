@@ -171,7 +171,6 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
       })
 
     const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
-    const comment = String(lfm?.comment ?? '').trim() || ''
     const difficultyDisplay = difficulty
 
     const difficultyColor = (() => {
