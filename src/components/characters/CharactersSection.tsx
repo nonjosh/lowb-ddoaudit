@@ -154,8 +154,19 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
     })
   }
 
-  const { onlineByQuest, questNameToPack, questLevels, offlineGroups } = useMemo(() => {
-    const online: Record<string, PlayerGroup[]> = {}
+  const {
+    publicAreaGroups,
+    wildernessAreaGroups,
+    notInQuestGroups,
+    questGroups,
+    questNameToPack,
+    questLevels,
+    offlineGroups,
+  } = useMemo(() => {
+    const publicAreas: Record<string, PlayerGroup[]> = {}
+    const wildernessAreas: Record<string, PlayerGroup[]> = {}
+    const notInQuest: PlayerGroup[] = []
+    const questsMap: Record<string, PlayerGroup[]> = {}
     const questMeta: Record<string, string | null> = {}
     const levels: Record<string, string | null> = {}
     const offline: PlayerGroup[] = []
@@ -170,15 +181,29 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
       if (onlineChar) {
         const area = areas[onlineChar.location_id]
         const quest = quests[onlineChar.location_id]
-        let groupKey = 'Not in quest'
-        let isHeroic = false
-        let isEpic = false
 
-        // Prefer area classification if public or wilderness
-        if (area && (area.is_public || area.is_wilderness)) {
-          groupKey = area.name
-        } else if (quest?.name) {
-          groupKey = quest.name
+        // Public areas first
+        if (area && area.is_public) {
+          const name = area.name || 'Unknown Area'
+          if (!publicAreas[name]) publicAreas[name] = []
+          publicAreas[name].push(group)
+          return
+        }
+
+        // Wilderness areas next
+        if (area && area.is_wilderness) {
+          const name = area.name || 'Unknown Area'
+          if (!wildernessAreas[name]) wildernessAreas[name] = []
+          wildernessAreas[name].push(group)
+          return
+        }
+
+        // Quests (one group per quest)
+        if (quest?.name) {
+          let groupKey = quest.name
+          let isHeroic = false
+          let isEpic = false
+
           if (quest.heroicLevel && quest.epicLevel) {
             const charLevel = (onlineChar.classes || []).reduce((sum: number, cls: any) => sum + (cls.level || 0), 0)
             const distHeroic = Math.abs(charLevel - quest.heroicLevel)
@@ -191,40 +216,45 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
               isEpic = true
             }
           }
-        }
 
-        if (!online[groupKey]) online[groupKey] = []
-        online[groupKey].push(group)
+          if (!questsMap[groupKey]) questsMap[groupKey] = []
+          questsMap[groupKey].push(group)
 
-        // Only set quest meta/levels if this is a quest
-        if (quest?.name && groupKey.startsWith(quest.name)) {
+          // Only set quest meta/levels if this is a quest
           if (questMeta[groupKey] == null) {
             const pack = quest?.required_adventure_pack
             questMeta[groupKey] = typeof pack === 'string' && pack.trim() ? pack.trim() : null
           }
           if (levels[groupKey] == null) {
             let levelStr = ''
-            if (isHeroic) {
-              levelStr = `Level ${quest.heroicLevel}`
-            } else if (isEpic) {
-              levelStr = `Level ${quest.epicLevel}`
-            } else if (quest.level) {
-              levelStr = `Level ${quest.level}`
-            } else if (quest.heroicLevel) {
-              levelStr = `Level ${quest.heroicLevel}`
-            } else if (quest.epicLevel) {
-              levelStr = `Level ${quest.epicLevel}`
-            }
+            if (isHeroic) levelStr = `Level ${quest.heroicLevel}`
+            else if (isEpic) levelStr = `Level ${quest.epicLevel}`
+            else if (quest.level) levelStr = `Level ${quest.level}`
+            else if (quest.heroicLevel) levelStr = `Level ${quest.heroicLevel}`
+            else if (quest.epicLevel) levelStr = `Level ${quest.epicLevel}`
             levels[groupKey] = levelStr || null
           }
+
+          return
         }
+
+        // Not in quest (and not public/wilderness)
+        notInQuest.push(group)
       } else {
         offline.push(group)
       }
     })
 
-    return { onlineByQuest: online, questNameToPack: questMeta, questLevels: levels, offlineGroups: offline }
-  }, [charactersByPlayer, quests])
+    return {
+      publicAreaGroups: publicAreas,
+      wildernessAreaGroups: wildernessAreas,
+      notInQuestGroups: notInQuest,
+      questGroups: questsMap,
+      questNameToPack: questMeta,
+      questLevels: levels,
+      offlineGroups: offline,
+    }
+  }, [charactersByPlayer, quests, areas])
 
   const handlePlayerClick = (group: PlayerGroup) => {
     setSelectedPlayerGroup(group)
@@ -360,12 +390,11 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
     })
   }
 
-  const sortedQuests = Object.keys(onlineByQuest).sort((a, b) => {
-    if (a === b) return 0
-    if (a === 'Not in quest') return -1
-    if (b === 'Not in quest') return 1
-    return a.localeCompare(b)
-  })
+  // Prepare sorted keys for each category
+  const sortedPublicAreas = Object.keys(publicAreaGroups || {}).sort((a, b) => a.localeCompare(b))
+  const sortedWildernessAreas = Object.keys(wildernessAreaGroups || {}).sort((a, b) => a.localeCompare(b))
+  const sortedNotInQuest = (notInQuestGroups || []).length ? ['Not in quest'] : []
+  const sortedQuestNames = Object.keys(questGroups || {}).sort((a, b) => a.localeCompare(b))
 
   return (
     <>
@@ -380,42 +409,98 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
 
       {Object.keys(charactersById ?? {}).length ? (
         <Box sx={{ mt: 2 }}>
-          {sortedQuests.map((questName) => (
+          {/* Public areas: single top-level panel with per-area subgroups */}
+          {sortedPublicAreas.length > 0 && (
+            <Paper key="public-areas" variant="outlined" sx={{ mb: 2, overflow: 'hidden', borderColor: 'success.main' }}>
+              <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PlaceOutlinedIcon sx={{ fontSize: 18 }} />
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>Public Areas</Typography>
+                  </Box>
+                </Box>
+              </ListSubheader>
+              <List dense disablePadding>
+                {sortedPublicAreas.map((areaName) => (
+                  <Box key={`public-sub-${areaName}`}>
+                    <ListSubheader sx={{ lineHeight: '30px', bgcolor: 'inherit', opacity: 0.8 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle2">{areaName}</Typography>
+                      </Box>
+                    </ListSubheader>
+                    {(publicAreaGroups[areaName] || []).map((g) => renderPlayerRow(g, false))}
+                  </Box>
+                ))}
+              </List>
+            </Paper>
+          )}
+
+          {/* Wilderness areas: single top-level panel with per-area subgroups */}
+          {sortedWildernessAreas.length > 0 && (
+            <Paper key="wilderness-areas" variant="outlined" sx={{ mb: 2, overflow: 'hidden', borderColor: 'info.main' }}>
+              <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PlaceOutlinedIcon sx={{ fontSize: 18 }} />
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>Wilderness Areas</Typography>
+                  </Box>
+                </Box>
+              </ListSubheader>
+              <List dense disablePadding>
+                {sortedWildernessAreas.map((areaName) => (
+                  <Box key={`wild-sub-${areaName}`}>
+                    <ListSubheader sx={{ lineHeight: '30px', bgcolor: 'inherit', opacity: 0.8 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle2">{areaName}</Typography>
+                      </Box>
+                    </ListSubheader>
+                    {(wildernessAreaGroups[areaName] || []).map((g) => renderPlayerRow(g, false))}
+                  </Box>
+                ))}
+              </List>
+            </Paper>
+          )}
+
+          {/* Not in quest (online but not public/wilderness/quest) */}
+          {notInQuestGroups.length > 0 && (
+            <Paper
+              key="not-in-quest"
+              variant="outlined"
+              sx={{ mb: 2, overflow: 'hidden', borderColor: 'success.main' }}
+            >
+              <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PlaceOutlinedIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="subtitle2">Not in quest</Typography>
+                </Box>
+              </ListSubheader>
+              <List dense disablePadding>{renderNotInQuestGroups(notInQuestGroups)}</List>
+            </Paper>
+          )}
+
+          {/* Quests */}
+          {sortedQuestNames.map((questName) => (
             <Paper
               key={questName}
               variant="outlined"
-              sx={{
-                mb: 2,
-                overflow: 'hidden',
-                borderColor: questName === 'Not in quest' ? 'success.main' : 'info.main',
-              }}
+              sx={{ mb: 2, overflow: 'hidden', borderColor: 'info.main' }}
             >
               <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
                 {(() => {
                   const packName = questNameToPack[questName]
                   const levelInfo = questLevels[questName]
-                  const showPackLine = questName !== 'Not in quest' && (!!packName || !!levelInfo)
+                  const showPackLine = !!packName || !!levelInfo
 
                   return (
                     <Box sx={{ display: 'flex', alignItems: showPackLine ? 'flex-start' : 'center', gap: 1 }}>
-                      {questName === 'Not in quest' ? (
-                        <PlaceOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
-                      ) : (
-                        <LocalOfferOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
-                      )}
+                      <LocalOfferOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-                          {questName.replace(/ \((Heroic|Epic)\)$/, '')}
-                        </Typography>
+                        <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>{questName.replace(/ \((Heroic|Epic)\)$/, '')}</Typography>
                         {levelInfo && (
-                          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                            {levelInfo}
-                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>{levelInfo}</Typography>
                         )}
                         {packName && (
-                          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
-                            {packName}
-                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>{packName}</Typography>
                         )}
                       </Box>
                     </Box>
@@ -423,20 +508,15 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
                 })()}
               </ListSubheader>
               <List dense disablePadding>
-                {questName === 'Not in quest'
-                  ? renderNotInQuestGroups(onlineByQuest[questName])
-                  : onlineByQuest[questName].map((g) => renderPlayerRow(g))}
+                {(questGroups[questName] || []).map((g) => renderPlayerRow(g))}
               </List>
             </Paper>
           ))}
 
+          {/* Offline */}
           {offlineGroups.length > 0 && (
-            <Paper
-              key="offline"
-              variant="outlined"
-              sx={{ mb: 2, overflow: 'hidden', borderColor: 'text.disabled' }}
-            >
-              {sortedQuests.length > 0 && (
+            <Paper key="offline" variant="outlined" sx={{ mb: 2, overflow: 'hidden', borderColor: 'text.disabled' }}>
+              {(sortedPublicAreas.length > 0 || sortedWildernessAreas.length > 0 || sortedQuestNames.length > 0 || notInQuestGroups.length > 0) && (
                 <ListSubheader sx={{ bgcolor: 'action.hover', lineHeight: '32px', borderBottom: 1, borderColor: 'divider' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <RemoveCircleOutlineIcon sx={{ fontSize: 18 }} />
