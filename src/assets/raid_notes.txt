@@ -65,6 +65,8 @@ The Family's Blessing - Necklace: +15% Artifact bonus to damage vs the Helpless
 Staggershockers - Glove: +3 Artifact bonus to Intelligence
 Attunement's Gaze- Goggle: +25 Artifact bonus to Universal Spell Power
 Helm of the Final Watcher - Helm: +15% Artifact bonus to Fortification Bypass
+Sequence:
+Dark Red / Off ⇨ Green ⇨ Blue ⇨ Yellow ⇨ Red ⇨ Purple ⇨ Green
 
 ## Legendary Lord of Blades
 Augment:
@@ -90,10 +92,6 @@ Page Regalia: Unsanctioned Arcana - Cloak: +3 Artifact bonus to Assassinate DCs
 ## Skeletons in the Closet
 Set:
 Kelas' Volatile Mixture  - Orb: +3 Artifact bonus to bonus Imbue Dice
-
-## Project Nemesis
-Sequence:
-Dark Red / Off ⇨ Green ⇨ Blue ⇨ Yellow ⇨ Red ⇨ Purple ⇨ Green
 
 ## Relentless
 No timer data available yet
