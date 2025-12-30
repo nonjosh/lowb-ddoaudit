@@ -161,10 +161,12 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
     questGroups,
     questNameToPack,
     questLevels,
+    wildernessAreaPacks,
     offlineGroups,
   } = useMemo(() => {
     const publicAreas: Record<string, PlayerGroup[]> = {}
     const wildernessAreas: Record<string, PlayerGroup[]> = {}
+    const wildernessPacks: Record<string, string | null> = {}
     const notInQuest: PlayerGroup[] = []
     const questsMap: Record<string, PlayerGroup[]> = {}
     const questMeta: Record<string, string | null> = {}
@@ -195,6 +197,11 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
           const name = area.name || 'Unknown Area'
           if (!wildernessAreas[name]) wildernessAreas[name] = []
           wildernessAreas[name].push(group)
+          // try to capture an adventure pack for this wilderness (if available via quest mapping)
+          const pack = quest?.required_adventure_pack
+          if (wildernessPacks[name] == null) {
+            wildernessPacks[name] = typeof pack === 'string' && pack.trim() ? pack.trim() : null
+          }
           return
         }
 
@@ -252,6 +259,7 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
       questGroups: questsMap,
       questNameToPack: questMeta,
       questLevels: levels,
+      wildernessAreaPacks: wildernessPacks,
       offlineGroups: offline,
     }
   }, [charactersByPlayer, quests, areas])
@@ -393,7 +401,6 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
   // Prepare sorted keys for each category
   const sortedPublicAreas = Object.keys(publicAreaGroups || {}).sort((a, b) => a.localeCompare(b))
   const sortedWildernessAreas = Object.keys(wildernessAreaGroups || {}).sort((a, b) => a.localeCompare(b))
-  const sortedNotInQuest = (notInQuestGroups || []).length ? ['Not in quest'] : []
   const sortedQuestNames = Object.keys(questGroups || {}).sort((a, b) => a.localeCompare(b))
 
   return (
@@ -447,16 +454,29 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
                 </Box>
               </ListSubheader>
               <List dense disablePadding>
-                {sortedWildernessAreas.map((areaName) => (
-                  <Box key={`wild-sub-${areaName}`}>
+                {sortedWildernessAreas.map((areaName) => {
+                  const packName = wildernessAreaPacks?.[areaName] ?? null
+                  const header = (
                     <ListSubheader sx={{ lineHeight: '30px', bgcolor: 'inherit', opacity: 0.8 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="subtitle2">{areaName}</Typography>
                       </Box>
                     </ListSubheader>
-                    {(wildernessAreaGroups[areaName] || []).map((g) => renderPlayerRow(g, false))}
-                  </Box>
-                ))}
+                  )
+
+                  return (
+                    <Box key={`wild-sub-${areaName}`}>
+                      {packName ? (
+                        <Tooltip title={packName} arrow placement="top">
+                          {header}
+                        </Tooltip>
+                      ) : (
+                        header
+                      )}
+                      {(wildernessAreaGroups[areaName] || []).map((g) => renderPlayerRow(g, false))}
+                    </Box>
+                  )
+                })}
               </List>
             </Paper>
           )}
