@@ -87,6 +87,14 @@ export const CHARACTERS_BY_PLAYER: Record<string, PlayerCharactersValue> = {
       { id: '111672875879', name: 'Castra' },
     ],
   },
+  LY: {
+    chars: [
+      // { id: 'croxies', name: 'croxies' },
+      // { id: 'orbbital', name: 'orbbital' },
+      { id: '231929725166', name: 'Orbbizzz-1' },
+      // { id: 'oriabito', name: 'oriabito' },
+    ],
+  },
 }
 
 // Auto-generate the flat CHARACTERS map from the grouped definition above.
