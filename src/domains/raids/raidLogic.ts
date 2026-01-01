@@ -246,8 +246,18 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       return new Date(a.lastTimestamp!).getTime() - new Date(b.lastTimestamp!).getTime()
     })
 
+    return {
+      questId: g.questId,
+      raidName: g.raidName,
+      adventurePack: g.adventurePack ?? null,
+      questLevel: g.questLevel ?? null,
+      entries,
+    }
+  })
+
   // Include raid-type quests from `questsById` even when there's no activity
-  // so the UI can display raids that have no timers or notes yet.
+  // so the UI can display raids that have no timers or notes yet, and to
+  // surface characters currently inside a raid without recorded timers.
   try {
     const existingKeys = new Set(normalized.map((n) => normalizeRaidKey(n.raidName)))
     const allQuestObjs = Object.values(questsById ?? {})
@@ -256,6 +266,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       if (qType !== 'raid') continue
       const key = normalizeRaidKey(String((q as any)?.name ?? ''))
       if (!key || existingKeys.has(key)) continue
+
+      const questId = String((q as any)?.id ?? '')
+      const questAreaId = (q as any)?.areaId ? String((q as any)?.areaId) : null
 
       const entries: RaidEntry[] = []
       const allCharacterIds = Object.keys(charactersById ?? {}).map(String)
@@ -267,7 +280,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         const classes = character?.classes ?? []
         const race = character?.race ?? 'Unknown'
         const isOnline = !!character?.is_online
-        const isInRaid = false
+        const locationId = character?.location_id ? String(character.location_id) : null
+        const isInRaid = !!(locationId && (locationId === questId || (questAreaId && locationId === questAreaId)))
 
         entries.push({
           characterId,
@@ -283,7 +297,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       }
 
       normalized.push({
-        questId: String((q as any)?.id ?? ''),
+        questId,
         raidName: String((q as any)?.name ?? ''),
         adventurePack: (q as any)?.required_adventure_pack ?? null,
         questLevel: (q as any)?.level ?? null,
@@ -294,14 +308,6 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
   } catch (err) {
     // ignore and continue
   }
-    return {
-      questId: g.questId,
-      raidName: g.raidName,
-      adventurePack: g.adventurePack ?? null,
-      questLevel: g.questLevel ?? null,
-      entries,
-    }
-  })
 
   normalized.sort((a, b) => {
     const aLevel = typeof a.questLevel === 'number' ? a.questLevel : -1

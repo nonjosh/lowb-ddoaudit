@@ -92,6 +92,13 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
     return g.entries.some((e) => e.isInRaid)
   }, [g.entries])
 
+  const allEligibleEntries = useMemo(() => perPlayerEligible.flatMap((pg) => pg.entries ?? []), [perPlayerEligible])
+  const allAvailable = useMemo(
+    () => allEligibleEntries.length > 0 && allEligibleEntries.every((e) => isEntryAvailable(e, now)),
+    [allEligibleEntries, now]
+  )
+  const shouldShowTable = allEligibleEntries.length > 0 && (!allAvailable || hasPlayersInRaid || hasLfm)
+
   const highlight = Boolean(hasFriendInside || hasLfm)
 
   return (
@@ -153,8 +160,8 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
                 <Chip key={f} size="small" label={f} />
               ))}
             </Box>
-          ) : availablePlayers > 0 ? (
-            <Typography variant="body2" color={availablePlayers === EXPECTED_PLAYERS.length ? 'success.main' : 'text.secondary'}>
+          ) : availablePlayers > 0 && availablePlayers < EXPECTED_PLAYERS.length ? (
+            <Typography variant="body2" color="text.secondary">
               Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
             </Typography>
           ) : null
@@ -171,7 +178,7 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
             </Box>
           ) : null}
 
-          {availablePlayers > 0 ? (
+          {shouldShowTable ? (
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead>
