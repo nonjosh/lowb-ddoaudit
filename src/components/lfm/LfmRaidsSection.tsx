@@ -88,6 +88,13 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           : difficulty
 
       const difficultyColor = getDifficultyColor(difficulty)
+      const adventureActiveRaw = lfm?.adventure_active_time
+      const adventureActiveSeconds = typeof adventureActiveRaw === 'string' ? Number(adventureActiveRaw) : adventureActiveRaw
+      let adventureActiveMinutes: number | null = null
+      if (typeof adventureActiveSeconds === 'number' && !Number.isNaN(adventureActiveSeconds)) {
+        const minutes = Math.max(0, Math.round(adventureActiveSeconds / 60))
+        adventureActiveMinutes = minutes > 0 ? minutes : null
+      }
 
       const memberCount = 1 + (lfm?.members?.length ?? 0)
 
@@ -152,6 +159,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         difficulty,
         difficultyDisplay,
         difficultyColor,
+        adventureActiveMinutes,
         reaperSkulls,
         leaderName,
         leaderGuildName,
@@ -361,9 +369,16 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                       {l.memberCount}/{l.maxPlayers}
                     </TableCell>
                     <TableCell sx={{ maxWidth: 360 }}>
-                      <Typography variant="body2" noWrap>
-                        {l.comment || '—'}
-                      </Typography>
+                      <Stack spacing={0.25}>
+                        <Typography variant="body2" noWrap>
+                          {l.comment || '—'}
+                        </Typography>
+                        {typeof l.adventureActiveMinutes === 'number' ? (
+                          <Typography variant="caption" sx={{ color: 'info.main' }} noWrap>
+                            Active {l.adventureActiveMinutes} min
+                          </Typography>
+                        ) : null}
+                      </Stack>
                     </TableCell>
                   </TableRow>
 

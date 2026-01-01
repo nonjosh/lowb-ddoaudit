@@ -18,6 +18,7 @@ export interface PreparedLfmData {
   questName: string
   adventurePack?: string | null
   questLevel: number | null
+  adventureActiveMinutes?: number | null
   difficultyDisplay: string
   difficultyColor: string
   participants: LfmParticipant[]
@@ -60,11 +61,19 @@ export function prepareLfmParticipants(lfm: any, quest: Quest | null): PreparedL
       : difficulty
 
   const difficultyColor = getDifficultyColor(difficulty)
+  const adventureActiveRaw = lfm?.adventure_active_time
+  const adventureActiveSeconds = typeof adventureActiveRaw === 'string' ? Number(adventureActiveRaw) : adventureActiveRaw
+  let adventureActiveMinutes: number | null = null
+  if (typeof adventureActiveSeconds === 'number' && !Number.isNaN(adventureActiveSeconds)) {
+    const minutes = Math.max(0, Math.round(adventureActiveSeconds / 60))
+    adventureActiveMinutes = minutes > 0 ? minutes : null
+  }
 
   return {
     questName: quest?.name || 'Unknown Quest',
     adventurePack: quest?.required_adventure_pack,
     questLevel: getEffectiveLevel(lfm, quest),
+    adventureActiveMinutes,
     difficultyDisplay,
     difficultyColor,
     participants,

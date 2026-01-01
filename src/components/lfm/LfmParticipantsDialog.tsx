@@ -34,6 +34,7 @@ interface LfmGroup {
   questName: string
   adventurePack?: string | null
   questLevel: number | null
+  adventureActiveMinutes?: number | null
   difficultyDisplay: string
   difficultyColor: string
   participants: LfmParticipant[]
@@ -81,6 +82,11 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
                 {selectedLfm.difficultyDisplay}
               </Typography>
             )}
+            {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
+              <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 600 }}>
+                Active {selectedLfm.adventureActiveMinutes} min
+              </Typography>
+            ) : null}
           </Stack>
         </Box>
       </DialogTitle>
