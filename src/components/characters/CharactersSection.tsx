@@ -8,11 +8,11 @@ import { groupCharactersByLocation } from '../../domains/characters/characterGro
 import { createLfmByCharacterNameMap, prepareLfmParticipants } from '../../domains/lfm/lfmHelpers'
 import { getPlayerDisplayName } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
-import LocationGroupCard from './LocationGroupCard'
-import NotInQuestGroupCard from './NotInQuestGroupCard'
-import OfflineGroupCard from './OfflineGroupCard'
-import PlayerCharactersDialog from './PlayerCharactersDialog'
-import QuestGroupCard from './QuestGroupCard'
+import PlayerCharactersDialog from './dialogs/PlayerCharactersDialog'
+import LocationGroupCard from './groups/LocationGroupCard'
+import NotInQuestGroupCard from './groups/NotInQuestGroupCard'
+import OfflineGroupCard from './groups/OfflineGroupCard'
+import QuestGroupCard from './groups/QuestGroupCard'
 
 interface CharactersSectionProps {
   loading: boolean

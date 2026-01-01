@@ -1,7 +1,7 @@
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
 import { Box, List, ListSubheader, Paper, Typography } from '@mui/material'
-import { Quest } from '../../api/ddoAudit'
-import { PlayerGroup } from '../../contexts/CharacterContext'
+import { Quest } from '../../../api/ddoAudit'
+import { PlayerGroup } from '../../../contexts/CharacterContext'
 import PlayerRow from './PlayerRow'
 
 interface QuestGroupCardProps {

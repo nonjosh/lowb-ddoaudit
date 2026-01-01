@@ -2,10 +2,10 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import GroupsIcon from '@mui/icons-material/Groups'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import { Box, ListItem, ListItemButton, ListItemText, Tooltip, Typography } from '@mui/material'
-import { Quest } from '../../api/ddoAudit'
-import { PlayerGroup } from '../../contexts/CharacterContext'
-import { getPlayerDisplayName } from '../../domains/raids/raidLogic'
-import ClassDisplay from '../shared/ClassDisplay'
+import { Quest } from '../../../api/ddoAudit'
+import { PlayerGroup } from '../../../contexts/CharacterContext'
+import { getPlayerDisplayName } from '../../../domains/raids/raidLogic'
+import ClassDisplay from '../../shared/ClassDisplay'
 
 interface PlayerRowProps {
   group: PlayerGroup
