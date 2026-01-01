@@ -12,11 +12,13 @@ export interface LfmParticipant {
   classes: any
   isLeader: boolean
   race: string
+  location_id: number
 }
 
 export interface PreparedLfmData {
   questName: string
   adventurePack?: string | null
+  areaId: string
   questLevel: number | null
   adventureActiveMinutes?: number | null
   difficultyDisplay: string
@@ -49,6 +51,7 @@ export function prepareLfmParticipants(lfm: any, quest: Quest | null): PreparedL
         classes: p?.classes,
         isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
         race: p?.race ?? 'Unknown',
+        location_id: typeof p?.location_id === 'number' ? p.location_id : 0,
       }
     })
 
@@ -72,6 +75,7 @@ export function prepareLfmParticipants(lfm: any, quest: Quest | null): PreparedL
   return {
     questName: quest?.name || 'Unknown Quest',
     adventurePack: quest?.required_adventure_pack,
+    areaId: quest?.areaId || '',
     questLevel: getEffectiveLevel(lfm, quest),
     adventureActiveMinutes,
     difficultyDisplay,
