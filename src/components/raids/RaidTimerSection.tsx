@@ -16,7 +16,6 @@ interface RaidTimerSectionProps {
   loading: boolean
   hasFetched: boolean
   raidGroups: RaidGroup[]
-  now: Date
   isRaidCollapsed: (questId: string) => boolean
   toggleRaidCollapsed: (questId: string) => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
@@ -24,7 +23,7 @@ interface RaidTimerSectionProps {
   showClassIcons: boolean
 }
 
-export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed, showClassIcons }: RaidTimerSectionProps) {
+export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed, showClassIcons }: RaidTimerSectionProps) {
   /**
    * Raid sorting rules
    *
@@ -39,6 +38,12 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
 
   const [tierFilter, setTierFilter] = useState('legendary')
   const [questsByIdLocal, setQuestsByIdLocal] = useState<Record<string, Quest>>({})
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -210,7 +215,6 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
               <Box key={g.questId}>
                 <RaidCard
                   raidGroup={g}
-                  now={now}
                   isRaidCollapsed={isRaidCollapsed(g.questId)}
                   onToggleRaid={() => toggleRaidCollapsed(g.questId)}
                   isPlayerCollapsed={isPlayerCollapsed}

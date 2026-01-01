@@ -22,7 +22,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 function getGroupNames(lfm: any) {
@@ -47,15 +47,20 @@ interface LfmRaidsSectionProps {
   serverPlayers?: number | null
   isServerOnline?: boolean | null
   raidGroups: any[]
-  now: Date
 }
 
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers, isServerOnline, raidGroups, now }: LfmRaidsSectionProps) {
+export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers, isServerOnline, raidGroups }: LfmRaidsSectionProps) {
+  const [now, setNow] = useState(() => new Date())
   const [questFilter, setQuestFilter] = useState('raid')
   const [tierFilter, setTierFilter] = useState('legendary')
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   const selectedRaidData = useMemo(() => {
     if (!selectedLfm) return null

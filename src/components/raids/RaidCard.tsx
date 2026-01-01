@@ -20,7 +20,6 @@ import RaidTimerTable from './RaidTimerTable'
 
 interface RaidCardProps {
   raidGroup: RaidGroup
-  now: Date
   isRaidCollapsed: boolean
   onToggleRaid: () => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
@@ -31,9 +30,15 @@ interface RaidCardProps {
   onLfmClick?: (questId: string) => void
 }
 
-export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
+export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
+  const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
   const [ignoredVersion, setIgnoredVersion] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     const handler = () => setIgnoredVersion((v) => v + 1)
@@ -180,7 +185,6 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
           {shouldShowTable ? (
             <RaidTimerTable
               perPlayerEligible={perPlayerEligible}
-              now={now}
               isPlayerCollapsed={isPlayerCollapsed}
               onTogglePlayer={onTogglePlayer}
               showClassIcons={showClassIcons}
