@@ -220,6 +220,8 @@ function App() {
                   showClassIcons={showClassIcons}
                   serverPlayers={serverPlayers}
                   isServerOnline={isServerOnline}
+                  raidGroups={raidGroups}
+                  now={now}
                 />
               </Box>
               <RaidTimerSection

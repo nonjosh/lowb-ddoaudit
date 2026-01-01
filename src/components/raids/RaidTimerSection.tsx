@@ -8,7 +8,7 @@ import raidNotesRaw from '../../assets/raid_notes.txt?raw'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { useCharacter } from '../../contexts/CharacterContext'
 import { prepareLfmParticipants } from '../../domains/lfm/lfmHelpers'
-import { isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
+import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
 import RaidCard from './RaidCard'
 
@@ -140,6 +140,12 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 
+  const selectedRaidData = useMemo(() => {
+    if (!selectedRaidGroup) return null
+    const perPlayerEligible = groupEntriesByPlayer(selectedRaidGroup.entries, now)
+    return { raidGroup: selectedRaidGroup, perPlayerEligible }
+  }, [selectedRaidGroup, now])
+
   const handleLfmClick = (questId: string) => {
     const lfmsById = lfms ?? {}
     let lfm: any = lfmsById[questId]
@@ -219,7 +225,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
           })}
         </Stack>
       )}
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} now={now} />
     </>
   )
 }

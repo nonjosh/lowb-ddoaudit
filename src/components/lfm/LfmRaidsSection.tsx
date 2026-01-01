@@ -22,7 +22,7 @@ import { Quest } from '../../api/ddoAudit'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { getDifficultyColor } from '../../domains/lfm/lfmHelpers'
 import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '../../domains/quests/questHelpers'
-import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '../../domains/raids/raidLogic'
+import { formatClasses, getPlayerDisplayName, getPlayerName, groupEntriesByPlayer, isLevelInTier } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 function getGroupNames(lfm: any) {
@@ -46,14 +46,25 @@ interface LfmRaidsSectionProps {
   showClassIcons: boolean
   serverPlayers?: number | null
   isServerOnline?: boolean | null
+  raidGroups: any[]
+  now: Date
 }
 
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers, isServerOnline }: LfmRaidsSectionProps) {
+export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers, isServerOnline, raidGroups, now }: LfmRaidsSectionProps) {
   const [questFilter, setQuestFilter] = useState('raid')
   const [tierFilter, setTierFilter] = useState('legendary')
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
+
+  const selectedRaidData = useMemo(() => {
+    if (!selectedLfm) return null
+    const questId = String(selectedLfm.questId ?? '')
+    const raidGroup = raidGroups.find(rg => rg.questId === questId)
+    if (!raidGroup) return null
+    const perPlayerEligible = groupEntriesByPlayer(raidGroup.entries, now)
+    return { raidGroup, perPlayerEligible }
+  }, [selectedLfm, raidGroups, now])
 
   const raidLfms = useMemo(() => {
     const lfms = Object.values(lfmsById ?? {})
@@ -420,7 +431,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         </TableContainer>
       )}
 
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} now={now} />
     </Paper>
   )
 }
