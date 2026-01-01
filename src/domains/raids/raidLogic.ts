@@ -245,6 +245,55 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       if (!a.lastTimestamp && !b.lastTimestamp) return 0
       return new Date(a.lastTimestamp!).getTime() - new Date(b.lastTimestamp!).getTime()
     })
+
+  // Include raid-type quests from `questsById` even when there's no activity
+  // so the UI can display raids that have no timers or notes yet.
+  try {
+    const existingKeys = new Set(normalized.map((n) => normalizeRaidKey(n.raidName)))
+    const allQuestObjs = Object.values(questsById ?? {})
+    for (const q of allQuestObjs) {
+      const qType = String((q as any)?.type ?? '').toLowerCase()
+      if (qType !== 'raid') continue
+      const key = normalizeRaidKey(String((q as any)?.name ?? ''))
+      if (!key || existingKeys.has(key)) continue
+
+      const entries: RaidEntry[] = []
+      const allCharacterIds = Object.keys(charactersById ?? {}).map(String)
+      for (const characterId of allCharacterIds) {
+        const character = charactersById?.[characterId]
+        const characterName = character?.name ?? characterId
+        const playerName = getPlayerName(characterName)
+        const totalLevel = character?.total_level ?? null
+        const classes = character?.classes ?? []
+        const race = character?.race ?? 'Unknown'
+        const isOnline = !!character?.is_online
+        const isInRaid = false
+
+        entries.push({
+          characterId,
+          characterName,
+          playerName,
+          totalLevel,
+          classes,
+          race,
+          lastTimestamp: null,
+          isOnline,
+          isInRaid,
+        })
+      }
+
+      normalized.push({
+        questId: String((q as any)?.id ?? ''),
+        raidName: String((q as any)?.name ?? ''),
+        adventurePack: (q as any)?.required_adventure_pack ?? null,
+        questLevel: (q as any)?.level ?? null,
+        entries,
+      })
+      existingKeys.add(key)
+    }
+  } catch (err) {
+    // ignore and continue
+  }
     return {
       questId: g.questId,
       raidName: g.raidName,
