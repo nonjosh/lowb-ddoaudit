@@ -1,4 +1,4 @@
-import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined'
+import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import { Box, List, ListSubheader, Paper, Typography } from '@mui/material'
 import { Quest } from '../../../api/ddoAudit'
 import { PlayerGroup } from '../../../contexts/CharacterContext'
@@ -38,7 +38,7 @@ export default function QuestGroupCard({
     <Paper variant="outlined" sx={{ mb: 2, overflow: 'hidden', borderColor: 'info.main' }}>
       <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
         <Box sx={{ display: 'flex', alignItems: showPackLine ? 'flex-start' : 'center', gap: 1 }}>
-          <LocalOfferOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
+          <EmojiEventsOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
               {questName.replace(/ \((Heroic|Epic)\)$/, '')}

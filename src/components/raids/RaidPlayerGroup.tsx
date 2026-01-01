@@ -1,6 +1,6 @@
 import CancelIcon from '@mui/icons-material/Cancel'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
+import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import RestoreIcon from '@mui/icons-material/Restore'
@@ -130,7 +130,7 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
         <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
           {inRaid.length > 0 && (
             <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <DirectionsRunIcon color="warning" sx={{ width: 16, height: 16 }} />
+              <EmojiEventsOutlinedIcon color="warning" sx={{ width: 16, height: 16 }} />
               <CharacterNamesWithClassTooltip
                 items={inRaid.map((e) => ({
                   id: e?.characterId,
@@ -209,7 +209,7 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               {isPlayerInRaid ? (
                 <Tooltip title="In Raid">
-                  <DirectionsRunIcon color="warning" sx={{ width: 16, height: 16 }} />
+                  <EmojiEventsOutlinedIcon color="warning" sx={{ width: 16, height: 16 }} />
                 </Tooltip>
               ) : isPlayerOnline ? (
                 <Tooltip title="Online">
@@ -254,7 +254,7 @@ function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showC
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           {e.isInRaid ? (
                             <Tooltip title="In Raid">
-                              <DirectionsRunIcon color="warning" sx={{ width: 16, height: 16 }} />
+                              <EmojiEventsOutlinedIcon color="warning" sx={{ width: 16, height: 16 }} />
                             </Tooltip>
                           ) : e.isOnline ? (
                             <Tooltip title="Online">
