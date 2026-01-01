@@ -7,7 +7,8 @@ import { fetchQuestsById, Quest } from '../../api/ddoAudit'
 import raidNotesRaw from '../../assets/raid_notes.txt?raw'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { useCharacter } from '../../contexts/CharacterContext'
-import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
+import { prepareLfmParticipants } from '../../domains/lfm/lfmHelpers'
+import { isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
 import RaidCard from './RaidCard'
 
@@ -147,49 +148,8 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
     if (!lfm) return
 
     const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
-    const type = String(quest?.type ?? '').trim().toLowerCase()
-    const isRaid = type.includes('raid')
-    const maxPlayers = isRaid ? 12 : 6
-
-    const participants = [lfm?.leader, ...(lfm?.members ?? [])]
-      .filter(Boolean)
-      .map((p: any) => {
-        const characterName = String(p?.name ?? '').trim() || '—'
-        const playerName = getPlayerName(characterName)
-        const classesDisplay = formatClasses(p?.classes)
-        return {
-          characterName,
-          playerName,
-          playerDisplayName: getPlayerDisplayName(playerName),
-          guildName: String(p?.guild_name ?? '').trim() || '',
-          totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
-          classesDisplay,
-          classes: p?.classes,
-          isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
-          race: p?.race ?? 'Unknown',
-        }
-      })
-
-    const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
-    const difficultyDisplay = difficulty
-
-    const difficultyColor = (() => {
-      const d = difficulty.toLowerCase()
-      if (d === 'reaper') return 'error.main'
-      if (d === 'elite') return 'warning.main'
-      if (d === 'hard') return 'info.main'
-      return 'text.primary'
-    })()
-
-    setSelectedLfm({
-      questName: quest?.name || 'Unknown Quest',
-      adventurePack: quest?.required_adventure_pack,
-      questLevel: typeof quest?.level === 'number' ? quest.level : null,
-      difficultyDisplay,
-      difficultyColor,
-      participants,
-      maxPlayers,
-    })
+    const preparedLfm = prepareLfmParticipants(lfm, quest)
+    setSelectedLfm(preparedLfm)
   }
   return (
     <>

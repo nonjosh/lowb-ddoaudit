@@ -20,39 +20,10 @@ import {
 import { Fragment, useMemo, useState } from 'react'
 import { Quest } from '../../api/ddoAudit'
 import { EXPECTED_PLAYERS } from '../../config/characters'
+import { getDifficultyColor } from '../../domains/lfm/lfmHelpers'
+import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '../../domains/quests/questHelpers'
 import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
-
-function isRaidQuest(quest: Quest | null) {
-  const type = String(quest?.type ?? '').trim().toLowerCase()
-  return type.includes('raid')
-}
-
-function getEffectiveLevel(lfm: any, quest: Quest | null) {
-  // Prefer a version-specific quest level when available.
-  const leaderLevel = lfm?.leader?.total_level
-  const heroicLevel = quest?.heroicLevel
-  const epicLevel = quest?.epicLevel
-
-  if (typeof heroicLevel === 'number' && typeof epicLevel === 'number') {
-    // Heuristic: epic content is generally aimed at level 20+.
-    if (typeof leaderLevel === 'number' && leaderLevel >= 20) return epicLevel
-    return heroicLevel
-  }
-  if (typeof epicLevel === 'number') return epicLevel
-  if (typeof heroicLevel === 'number') return heroicLevel
-
-  // Fall back to the combined/max quest level if the split fields aren't present.
-  const questLevel = quest?.level
-  if (typeof questLevel === 'number') return questLevel
-
-  const max = lfm?.maximum_level
-  if (typeof max === 'number') return max
-  const min = lfm?.minimum_level
-  if (typeof min === 'number') return min
-
-  return null
-}
 
 function getGroupNames(lfm: any) {
   const names = []
@@ -65,27 +36,6 @@ function getGroupNames(lfm: any) {
 
   return names
 }
-
-/**
- * Best-effort: skull count is typically embedded in the LFM comment (e.g. "R10", "Reaper 3").
- * @param {string} text
- */
-function parseReaperSkulls(text: string | null) {
-  const s = String(text ?? '')
-  if (!s) return null
-
-  // Capture 1-10 in common formats: R10, R 5, Reaper1, Reaper 3
-  const re = /\b(?:r|reaper)\s*([1-9]|10)\b/gi
-  let m
-  let best = null
-  while ((m = re.exec(s))) {
-    const n = Number.parseInt(m[1], 10)
-    if (!Number.isFinite(n)) continue
-    best = best === null ? n : Math.max(best, n)
-  }
-  return best
-}
-
 
 interface LfmRaidsSectionProps {
   loading: boolean
@@ -137,13 +87,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
           ? `Reaper ${reaperSkulls}`
           : difficulty
 
-      const difficultyColor = (() => {
-        const d = difficulty.toLowerCase()
-        if (d === 'reaper') return 'error.main'
-        if (d === 'elite') return 'warning.main'
-        if (d === 'hard') return 'info.main'
-        return 'text.primary'
-      })()
+      const difficultyColor = getDifficultyColor(difficulty)
 
       const memberCount = 1 + (lfm?.members?.length ?? 0)
 
