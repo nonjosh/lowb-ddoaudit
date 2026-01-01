@@ -92,6 +92,3 @@ Page Regalia: Unsanctioned Arcana - Cloak: +3 Artifact bonus to Assassinate DCs
 ## Skeletons in the Closet
 Set:
 Kelas' Volatile Mixture  - Orb: +3 Artifact bonus to bonus Imbue Dice
-
-## Relentless
-No timer data available yet
