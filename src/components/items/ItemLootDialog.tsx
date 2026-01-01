@@ -63,9 +63,10 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                 {items.length} item{items.length !== 1 ? 's' : ''} found
               </Typography>
               <List dense>
-                {items.map((item, index) => {
-                  // Create a more stable key by combining multiple properties
-                  const itemKey = `${item.name}-${item.ml}-${item.slot}-${index}`
+                {items.map((item) => {
+                  // Create a stable key using only item properties (no index)
+                  // Combine multiple properties to ensure uniqueness
+                  const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
                   return (
                     <ListItem
                       key={itemKey}

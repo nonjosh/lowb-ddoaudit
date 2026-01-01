@@ -34,8 +34,13 @@ export default function ItemDetailsDialog({ open, onClose, item }: ItemDetailsDi
   let wikiUrl: string | null = null
   if (item.url && typeof item.url === 'string') {
     const urlStr = item.url.trim()
-    // Only allow relative paths starting with /page/ from DDO Wiki
-    if (urlStr.startsWith('/page/') || urlStr.startsWith('/Page/')) {
+    // Only allow relative paths starting with /page/ or /Page/ from DDO Wiki
+    // Validate that it doesn't contain path traversal or other suspicious patterns
+    const isSafePath = (urlStr.startsWith('/page/') || urlStr.startsWith('/Page/')) && 
+                       !urlStr.includes('..') && 
+                       !urlStr.includes('//') &&
+                       urlStr.indexOf('/page/') === 0 || urlStr.indexOf('/Page/') === 0
+    if (isSafePath) {
       wikiUrl = `https://ddowiki.com${urlStr}`
     }
   }
