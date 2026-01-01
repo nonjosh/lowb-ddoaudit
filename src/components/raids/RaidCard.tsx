@@ -9,13 +9,6 @@ import {
   Chip,
   Collapse,
   IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from '@mui/material'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -23,7 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '../../domains/raids/raidNotes'
-import RaidPlayerGroup from './RaidPlayerGroup'
+import RaidTimerTable from './RaidTimerTable'
 
 interface RaidCardProps {
   raidGroup: RaidGroup
@@ -185,34 +178,14 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
           ) : null}
 
           {shouldShowTable ? (
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Character</TableCell>
-                    <TableCell>Level</TableCell>
-                    <TableCell>Classes</TableCell>
-                    <TableCell>Race</TableCell>
-                    <TableCell>Time remaining</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {perPlayerEligible.map((pg) => {
-                    const collapsed = isPlayerCollapsed(g.questId, pg.player)
-                    return (
-                      <RaidPlayerGroup
-                        key={pg.player}
-                        playerGroup={pg}
-                        now={now}
-                        collapsed={collapsed}
-                        onToggleCollapsed={handleTogglePlayer}
-                        showClassIcons={showClassIcons}
-                      />
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <RaidTimerTable
+              perPlayerEligible={perPlayerEligible}
+              now={now}
+              isPlayerCollapsed={isPlayerCollapsed}
+              onTogglePlayer={onTogglePlayer}
+              showClassIcons={showClassIcons}
+              questId={g.questId}
+            />
           ) : null}
         </CardContent>
       </Collapse>

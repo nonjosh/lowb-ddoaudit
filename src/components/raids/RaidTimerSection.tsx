@@ -138,6 +138,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
     return list.map((x) => x.g)
   }, [raidGroups, lfms, tierFilter])
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
+  const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 
   const handleLfmClick = (questId: string) => {
     const lfmsById = lfms ?? {}
@@ -150,6 +151,10 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
     const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
     const preparedLfm = prepareLfmParticipants(lfm, quest)
     setSelectedLfm(preparedLfm)
+
+    // Find the corresponding raid group
+    const raidGroup = sortedRaidGroups.find((g) => g.questId === questId)
+    setSelectedRaidGroup(raidGroup || null)
   }
   return (
     <>
