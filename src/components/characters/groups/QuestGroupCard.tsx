@@ -1,8 +1,8 @@
+import { Quest } from '@/api/ddoAudit'
+import { PlayerGroup } from '@/contexts/CharacterContext'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import { Box, List, ListSubheader, Paper, Typography } from '@mui/material'
-import { Quest } from '../../../api/ddoAudit'
-import { PlayerGroup } from '../../../contexts/CharacterContext'
-import ItemLootButton from '../../items/ItemLootButton'
+import ItemLootButton from '@/components/items/ItemLootButton'
 import PlayerRow from './PlayerRow'
 
 interface QuestGroupCardProps {

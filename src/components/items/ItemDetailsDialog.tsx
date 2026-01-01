@@ -19,7 +19,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { Item } from '../../utils/itemLootHelpers'
+import { Item } from '@/utils/itemLootHelpers'
 
 interface ItemDetailsDialogProps {
   open: boolean

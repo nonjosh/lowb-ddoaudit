@@ -2,13 +2,13 @@ import TimerIcon from '@mui/icons-material/Timer'
 import { Box, Chip, CircularProgress, Skeleton, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useMemo, useState } from 'react'
 
+import { fetchQuestsById, Quest } from '@/api/ddoAudit'
+import raidNotesRaw from '@/assets/raid_notes.txt?raw'
+import { EXPECTED_PLAYERS } from '@/config/characters'
+import { useCharacter } from '@/contexts/CharacterContext'
+import { prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
+import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 import { useEffect } from 'react'
-import { fetchQuestsById, Quest } from '../../api/ddoAudit'
-import raidNotesRaw from '../../assets/raid_notes.txt?raw'
-import { EXPECTED_PLAYERS } from '../../config/characters'
-import { useCharacter } from '../../contexts/CharacterContext'
-import { prepareLfmParticipants } from '../../domains/lfm/lfmHelpers'
-import { isLevelInTier, RaidGroup } from '../../domains/raids/raidLogic'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
 import RaidCard from './RaidCard'
 
@@ -16,7 +16,6 @@ interface RaidTimerSectionProps {
   loading: boolean
   hasFetched: boolean
   raidGroups: RaidGroup[]
-  now: Date
   isRaidCollapsed: (questId: string) => boolean
   toggleRaidCollapsed: (questId: string) => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
@@ -24,7 +23,7 @@ interface RaidTimerSectionProps {
   showClassIcons: boolean
 }
 
-export default function RaidTimerSection({ loading, hasFetched, raidGroups, now, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed, showClassIcons }: RaidTimerSectionProps) {
+export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed, showClassIcons }: RaidTimerSectionProps) {
   /**
    * Raid sorting rules
    *
@@ -39,6 +38,12 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
 
   const [tierFilter, setTierFilter] = useState('legendary')
   const [questsByIdLocal, setQuestsByIdLocal] = useState<Record<string, Quest>>({})
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -140,6 +145,12 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
   const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
   const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 
+  const selectedRaidData = useMemo(() => {
+    if (!selectedRaidGroup) return null
+    const perPlayerEligible = groupEntriesByPlayer(selectedRaidGroup.entries, now)
+    return { raidGroup: selectedRaidGroup, perPlayerEligible }
+  }, [selectedRaidGroup, now])
+
   const handleLfmClick = (questId: string) => {
     const lfmsById = lfms ?? {}
     let lfm: any = lfmsById[questId]
@@ -204,7 +215,6 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
               <Box key={g.questId}>
                 <RaidCard
                   raidGroup={g}
-                  now={now}
                   isRaidCollapsed={isRaidCollapsed(g.questId)}
                   onToggleRaid={() => toggleRaidCollapsed(g.questId)}
                   isPlayerCollapsed={isPlayerCollapsed}
@@ -219,7 +229,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
           })}
         </Stack>
       )}
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} />
     </>
   )
 }

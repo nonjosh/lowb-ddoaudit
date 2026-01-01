@@ -13,7 +13,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useState } from 'react'
-import { getItemsForQuest, Item } from '../../utils/itemLootHelpers'
+import { getItemsForQuest, Item } from '@/utils/itemLootHelpers'
 import ItemDetailsDialog from './ItemDetailsDialog'
 
 interface ItemLootDialogProps {

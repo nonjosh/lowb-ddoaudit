@@ -220,13 +220,13 @@ function App() {
                   showClassIcons={showClassIcons}
                   serverPlayers={serverPlayers}
                   isServerOnline={isServerOnline}
+                  raidGroups={raidGroups}
                 />
               </Box>
               <RaidTimerSection
                 loading={loading}
                 hasFetched={!!lastUpdatedAt}
                 raidGroups={raidGroups}
-                now={now ?? new Date()}
                 isRaidCollapsed={isRaidCollapsed}
                 toggleRaidCollapsed={toggleRaidCollapsed}
                 isPlayerCollapsed={isCollapsed}

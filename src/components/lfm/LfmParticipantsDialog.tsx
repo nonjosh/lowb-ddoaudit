@@ -16,8 +16,9 @@ import {
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 
-import { fetchAreasById } from '../../api/ddoAudit'
-import { EXPECTED_PLAYERS } from '../../config/characters'
+import { fetchAreasById } from '@/api/ddoAudit'
+import { EXPECTED_PLAYERS } from '@/config/characters'
+import RaidTimerTable from '../raids/RaidTimerTable'
 import ClassDisplay from '../shared/ClassDisplay'
 
 interface LfmParticipant {
@@ -43,16 +44,44 @@ interface LfmGroup {
   difficultyColor: string
   participants: LfmParticipant[]
   maxPlayers?: number
+  isRaid: boolean
+  questId: string
 }
 
 interface LfmParticipantsDialogProps {
   selectedLfm: LfmGroup | null
   onClose: () => void
   showClassIcons: boolean
+  selectedRaidData: { raidGroup: any; perPlayerEligible: any[] } | null
 }
 
-export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons }: LfmParticipantsDialogProps) {
+export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons, selectedRaidData }: LfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
+  const [collapsedPlayers, setCollapsedPlayers] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (selectedRaidData?.perPlayerEligible) {
+      const next = new Set<string>()
+      for (const pg of selectedRaidData.perPlayerEligible) {
+        next.add(pg.player)
+      }
+      setCollapsedPlayers(next)
+    }
+  }, [selectedRaidData])
+
+  const isPlayerCollapsed = (_questId: string, playerName: string) => collapsedPlayers.has(playerName)
+
+  const onTogglePlayer = (_questId: string, playerName: string) => {
+    setCollapsedPlayers(prev => {
+      const next = new Set(prev)
+      if (next.has(playerName)) {
+        next.delete(playerName)
+      } else {
+        next.add(playerName)
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
     fetchAreasById().then(setAreas).catch(console.error)
@@ -151,6 +180,20 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
             ))}
           </TableBody>
         </Table>
+        {selectedLfm?.isRaid && selectedRaidData ? (
+          <>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+              Raid Timers
+            </Typography>
+            <RaidTimerTable
+              perPlayerEligible={selectedRaidData.perPlayerEligible}
+              isPlayerCollapsed={isPlayerCollapsed}
+              onTogglePlayer={onTogglePlayer}
+              showClassIcons={showClassIcons}
+              questId={selectedLfm.questId}
+            />
+          </>
+        ) : null}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>

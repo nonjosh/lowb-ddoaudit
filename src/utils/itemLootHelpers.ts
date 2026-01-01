@@ -1,4 +1,4 @@
-import itemsData from '../assets/items.json'
+import itemsData from '@/assets/items.json'
 
 export interface ItemAffix {
   name: string

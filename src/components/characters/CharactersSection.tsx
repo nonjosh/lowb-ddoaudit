@@ -2,11 +2,11 @@ import PeopleIcon from '@mui/icons-material/People'
 import { Box, Chip, CircularProgress, Skeleton, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchAreasById, fetchQuestsById, Quest } from '../../api/ddoAudit'
-import { PlayerGroup, useCharacter } from '../../contexts/CharacterContext'
-import { groupCharactersByLocation } from '../../domains/characters/characterGrouping'
-import { createLfmByCharacterNameMap, prepareLfmParticipants } from '../../domains/lfm/lfmHelpers'
-import { getPlayerDisplayName } from '../../domains/raids/raidLogic'
+import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
+import { PlayerGroup, useCharacter } from '@/contexts/CharacterContext'
+import { groupCharactersByLocation } from '@/domains/characters/characterGrouping'
+import { createLfmByCharacterNameMap, prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
+import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
 import PlayerCharactersDialog from './dialogs/PlayerCharactersDialog'
 import LocationGroupCard from './groups/LocationGroupCard'
@@ -177,6 +177,7 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
         selectedLfm={selectedLfm}
         onClose={() => setSelectedLfm(null)}
         showClassIcons={showClassIcons}
+        selectedRaidData={null}
       />
     </>
   )

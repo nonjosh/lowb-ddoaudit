@@ -11,17 +11,16 @@ import {
   IconButton,
   Typography,
 } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { EXPECTED_PLAYERS } from '../../config/characters'
-import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
-import { getRaidNotesForRaidName } from '../../domains/raids/raidNotes'
-import ItemLootButton from '../items/ItemLootButton'
+import { EXPECTED_PLAYERS } from '@/config/characters'
+import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
+import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
+import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from './RaidTimerTable'
 
 interface RaidCardProps {
   raidGroup: RaidGroup
-  now: Date
   isRaidCollapsed: boolean
   onToggleRaid: () => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
@@ -32,9 +31,15 @@ interface RaidCardProps {
   onLfmClick?: (questId: string) => void
 }
 
-export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
+export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
+  const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
   const [ignoredVersion, setIgnoredVersion] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     const handler = () => setIgnoredVersion((v) => v + 1)
@@ -47,10 +52,6 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
     const present = new Set<string>((g.entries ?? []).filter((e: any) => e?.isInRaid).map((e: any) => String(e?.playerName ?? '')))
     return EXPECTED_PLAYERS.filter((p) => present.has(p)).map((p) => getPlayerDisplayName(p))
   }, [g.entries])
-
-  const handleTogglePlayer = useCallback((playerName: string) => {
-    onTogglePlayer(g.questId, playerName)
-  }, [onTogglePlayer, g.questId])
 
   const renderNotesField = (label: string, items: string[] | undefined) => {
     const list = Array.isArray(items) ? items.filter(Boolean) : []
@@ -184,7 +185,6 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
           {shouldShowTable ? (
             <RaidTimerTable
               perPlayerEligible={perPlayerEligible}
-              now={now}
               isPlayerCollapsed={isPlayerCollapsed}
               onTogglePlayer={onTogglePlayer}
               showClassIcons={showClassIcons}
