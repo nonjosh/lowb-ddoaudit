@@ -30,7 +30,15 @@ interface ItemDetailsDialogProps {
 export default function ItemDetailsDialog({ open, onClose, item }: ItemDetailsDialogProps) {
   if (!item) return null
 
-  const wikiUrl = item.url ? `https://ddowiki.com${item.url}` : null
+  // Validate and sanitize wiki URL - ensure it's a valid DDO Wiki path
+  let wikiUrl: string | null = null
+  if (item.url && typeof item.url === 'string') {
+    const urlStr = item.url.trim()
+    // Only allow relative paths starting with /page/ from DDO Wiki
+    if (urlStr.startsWith('/page/') || urlStr.startsWith('/Page/')) {
+      wikiUrl = `https://ddowiki.com${urlStr}`
+    }
+  }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
