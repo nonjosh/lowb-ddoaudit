@@ -13,10 +13,10 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
+import ItemLootButton from '@/components/items/ItemLootButton'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
-import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from './RaidTimerTable'
 
 interface RaidCardProps {

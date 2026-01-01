@@ -1,4 +1,5 @@
 import { Quest } from '@/api/ddoAudit'
+import ItemLootButton from '@/components/items/ItemLootButton'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getDifficultyColor } from '@/domains/lfm/lfmHelpers'
 import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/quests/questHelpers'
@@ -23,7 +24,6 @@ import {
   Typography,
 } from '@mui/material'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import ItemLootButton from '@/components/items/ItemLootButton'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 function getGroupNames(lfm: any) {
