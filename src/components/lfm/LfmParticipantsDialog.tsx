@@ -82,21 +82,23 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
               {areas && areas[selectedLfm.areaId]?.name}
             </Typography>
           )}
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="caption" color="text.secondary">
-              {typeof selectedLfm?.questLevel === 'number'
-                ? `Quest Lv ${selectedLfm.questLevel}`
-                : 'Quest Lv —'}
-            </Typography>
-            {selectedLfm?.difficultyDisplay && (
-              <Typography
-                variant="caption"
-                fontWeight={600}
-                sx={{ color: selectedLfm.difficultyColor || 'text.primary' }}
-              >
-                {selectedLfm.difficultyDisplay}
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="caption" color="text.secondary">
+                {typeof selectedLfm?.questLevel === 'number'
+                  ? `Quest Lv ${selectedLfm.questLevel}`
+                  : 'Quest Lv —'}
               </Typography>
-            )}
+              {selectedLfm?.difficultyDisplay && (
+                <Typography
+                  variant="caption"
+                  fontWeight={600}
+                  sx={{ color: selectedLfm.difficultyColor || 'text.primary' }}
+                >
+                  {selectedLfm.difficultyDisplay}
+                </Typography>
+              )}
+            </Stack>
             {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
               <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 600 }}>
                 Active {selectedLfm.adventureActiveMinutes} min
