@@ -225,7 +225,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, now,
           })}
         </Stack>
       )}
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} now={now} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} />
     </>
   )
 }

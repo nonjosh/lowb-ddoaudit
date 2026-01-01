@@ -431,7 +431,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         </TableContainer>
       )}
 
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} now={now} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} />
     </Paper>
   )
 }

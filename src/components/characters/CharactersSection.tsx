@@ -177,6 +177,7 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
         selectedLfm={selectedLfm}
         onClose={() => setSelectedLfm(null)}
         showClassIcons={showClassIcons}
+        selectedRaidData={null}
       />
     </>
   )

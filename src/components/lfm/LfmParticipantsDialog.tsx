@@ -53,10 +53,9 @@ interface LfmParticipantsDialogProps {
   onClose: () => void
   showClassIcons: boolean
   selectedRaidData: { raidGroup: any; perPlayerEligible: any[] } | null
-  now: Date
 }
 
-export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons, selectedRaidData, now }: LfmParticipantsDialogProps) {
+export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons, selectedRaidData }: LfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [collapsedPlayers, setCollapsedPlayers] = useState<Set<string>>(new Set())
 
@@ -188,7 +187,6 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
             </Typography>
             <RaidTimerTable
               perPlayerEligible={selectedRaidData.perPlayerEligible}
-              now={now}
               isPlayerCollapsed={isPlayerCollapsed}
               onTogglePlayer={onTogglePlayer}
               showClassIcons={showClassIcons}

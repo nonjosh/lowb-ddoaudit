@@ -23,14 +23,13 @@ import ClassDisplay from '../shared/ClassDisplay'
 
 interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup
-  now: Date
   collapsed: boolean
   onToggleCollapsed: (playerName: string) => void
   showClassIcons: boolean
 }
 
 function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string; lastTimestamp: string | null; sx?: any }) {
-  const [version, setVersion] = useState(0)
+  const [_version, setVersion] = useState(0)
 
   useEffect(() => {
     const handler = () => setVersion((v) => v + 1)
@@ -47,6 +46,7 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
       <Tooltip title="Restore this timer (undo ignore)">
         <IconButton
           size="small"
+          sx={sx}
           onClick={(e) => {
             e.stopPropagation()
             try { removeIgnoredTimer(characterId, lastTimestamp) } catch (err) { /* ignore */ }
@@ -62,6 +62,7 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
     <Tooltip title="Ignore this timer (show character as available)">
       <IconButton
         size="small"
+        sx={sx}
         onClick={(e) => {
           e.stopPropagation()
           try { addIgnoredTimer(characterId, lastTimestamp) } catch (err) { /* ignore */ }
@@ -73,10 +74,11 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
   )
 }
 
-function RaidPlayerGroup({ playerGroup, now, collapsed, onToggleCollapsed, showClassIcons }: RaidPlayerGroupProps) {
+function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed, showClassIcons }: RaidPlayerGroupProps) {
   const { isPlayerOnline: checkPlayerOnline } = useCharacter()
   const pg = playerGroup
   const entries = pg.entries ?? []
+  const now = new Date()
   const nowTime = now.getTime()
 
   const isPlayerOnline = checkPlayerOnline(pg.player)
