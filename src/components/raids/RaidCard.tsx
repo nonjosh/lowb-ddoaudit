@@ -1,4 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import {
   Box,
@@ -157,7 +158,12 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
           isRaidCollapsed && friendsInRaid.length > 0 ? (
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               {friendsInRaid.map((f) => (
-                <Chip key={f} size="small" label={f} />
+                <Chip
+                  key={f}
+                  size="small"
+                  label={f}
+                  icon={<FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />}
+                />
               ))}
             </Box>
           ) : availablePlayers > 0 && availablePlayers < EXPECTED_PLAYERS.length ? (
