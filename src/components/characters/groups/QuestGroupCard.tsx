@@ -2,6 +2,7 @@ import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import { Box, List, ListSubheader, Paper, Typography } from '@mui/material'
 import { Quest } from '../../../api/ddoAudit'
 import { PlayerGroup } from '../../../contexts/CharacterContext'
+import ItemLootButton from '../../items/ItemLootButton'
 import PlayerRow from './PlayerRow'
 
 interface QuestGroupCardProps {
@@ -39,10 +40,13 @@ export default function QuestGroupCard({
       <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
         <Box sx={{ display: 'flex', alignItems: showPackLine ? 'flex-start' : 'center', gap: 1 }}>
           <EmojiEventsOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-              {questName.replace(/ \((Heroic|Epic)\)$/, '')}
-            </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
+                {questName.replace(/ \((Heroic|Epic)\)$/, '')}
+              </Typography>
+              <ItemLootButton questName={questName.replace(/ \((Heroic|Epic)\)$/, '')} />
+            </Box>
             {levelInfo && (
               <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
                 {levelInfo}

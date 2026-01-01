@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '../../domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '../../domains/raids/raidNotes'
+import ItemLootButton from '../items/ItemLootButton'
 import RaidTimerTable from './RaidTimerTable'
 
 interface RaidCardProps {
@@ -125,7 +126,10 @@ export default function RaidCard({ raidGroup: g, now, isRaidCollapsed, onToggleR
         title={
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
-              <Typography variant="h6">{g.raidName}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="h6">{g.raidName}</Typography>
+                <ItemLootButton questName={g.raidName} />
+              </Box>
               {hasLfm && onLfmClick ? (
                 <ListAltIcon
                   color="action"
