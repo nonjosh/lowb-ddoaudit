@@ -114,6 +114,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
             classes: p?.classes,
             isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
             race: p?.race ?? 'Unknown',
+            location_id: typeof p?.location_id === 'number' ? p.location_id : 0,
           }
         })
 

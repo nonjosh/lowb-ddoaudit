@@ -14,7 +14,9 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
+import { useEffect, useState } from 'react'
 
+import { fetchAreasById } from '../../api/ddoAudit'
 import { EXPECTED_PLAYERS } from '../../config/characters'
 import ClassDisplay from '../shared/ClassDisplay'
 
@@ -28,6 +30,7 @@ interface LfmParticipant {
   classes?: any[]
   isLeader: boolean
   race?: string
+  location_id: number
 }
 
 interface LfmGroup {
@@ -48,8 +51,14 @@ interface LfmParticipantsDialogProps {
 }
 
 export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons }: LfmParticipantsDialogProps) {
+  const [areas, setAreas] = useState<Record<string, { name: string }>>({})
+
+  useEffect(() => {
+    fetchAreasById().then(setAreas).catch(console.error)
+  }, [])
+
   return (
-    <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={2}>
@@ -100,6 +109,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
               </TableCell>
               <TableCell>Classes</TableCell>
               <TableCell>Race</TableCell>
+              <TableCell>Location</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -128,6 +138,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
                   <ClassDisplay classes={p.classes ?? []} showIcons={showClassIcons} />
                 </TableCell>
                 <TableCell>{p.race}</TableCell>
+                <TableCell>{areas[String(p.location_id)]?.name || 'Unknown'}</TableCell>
               </TableRow>
             ))}
           </TableBody>
