@@ -16,8 +16,8 @@ import {
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 
-import { fetchAreasById } from '../../api/ddoAudit'
-import { EXPECTED_PLAYERS } from '../../config/characters'
+import { fetchAreasById } from '@/api/ddoAudit'
+import { EXPECTED_PLAYERS } from '@/config/characters'
 import RaidTimerTable from '../raids/RaidTimerTable'
 import ClassDisplay from '../shared/ClassDisplay'
 

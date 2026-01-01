@@ -3,7 +3,7 @@ import SyncIcon from '@mui/icons-material/Sync'
 import SyncDisabledIcon from '@mui/icons-material/SyncDisabled'
 import { Alert, Box, Button, FormControlLabel, Paper, Stack, Switch, ToggleButton, Tooltip, Typography } from '@mui/material'
 
-import { formatLocalDateTime } from '../../api/ddoAudit'
+import { formatLocalDateTime } from '@/api/ddoAudit'
 
 interface ControlsProps {
   loading: boolean

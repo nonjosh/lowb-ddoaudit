@@ -15,9 +15,9 @@ import {
   isTimerIgnored,
   RAID_LOCKOUT_MS,
   removeIgnoredTimer,
-} from '../../api/ddoAudit'
-import { useCharacter } from '../../contexts/CharacterContext'
-import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '../../domains/raids/raidLogic'
+} from '@/api/ddoAudit'
+import { useCharacter } from '@/contexts/CharacterContext'
+import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '@/domains/raids/raidLogic'
 import CharacterNamesWithClassTooltip from '../shared/CharacterNamesWithClassTooltip'
 import ClassDisplay from '../shared/ClassDisplay'
 
