@@ -11,7 +11,7 @@ import {
   IconButton,
   Typography,
 } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
@@ -51,10 +51,6 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
     const present = new Set<string>((g.entries ?? []).filter((e: any) => e?.isInRaid).map((e: any) => String(e?.playerName ?? '')))
     return EXPECTED_PLAYERS.filter((p) => present.has(p)).map((p) => getPlayerDisplayName(p))
   }, [g.entries])
-
-  const handleTogglePlayer = useCallback((playerName: string) => {
-    onTogglePlayer(g.questId, playerName)
-  }, [onTogglePlayer, g.questId])
 
   const renderNotesField = (label: string, items: string[] | undefined) => {
     const list = Array.isArray(items) ? items.filter(Boolean) : []
