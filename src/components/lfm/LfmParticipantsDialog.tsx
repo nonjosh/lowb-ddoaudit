@@ -36,6 +36,7 @@ interface LfmParticipant {
 interface LfmGroup {
   questName: string
   adventurePack?: string | null
+  areaId: string
   questLevel: number | null
   adventureActiveMinutes?: number | null
   difficultyDisplay: string
@@ -76,6 +77,11 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
               </Typography>
             )}
           </Stack>
+          {selectedLfm?.areaId && areas && areas[selectedLfm.areaId]?.name && (
+            <Typography variant="body2" color="text.secondary">
+              {areas && areas[selectedLfm.areaId]?.name}
+            </Typography>
+          )}
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary">
               {typeof selectedLfm?.questLevel === 'number'
