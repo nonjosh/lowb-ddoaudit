@@ -50,7 +50,7 @@ interface CraftingAffix {
 }
 
 export default function ItemLootDialog({ open, onClose, questName }: ItemLootDialogProps) {
-  const [nameFilter, setNameFilter] = useState('')
+  const [searchText, setSearchText] = useState('')
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [effectFilter, setEffectFilter] = useState<string[]>([])
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
@@ -81,7 +81,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
       const height = boxRef.current.offsetHeight
       setTableHeadTop(`${height}px`)
     }
-  }, [nameFilter, typeFilter, effectFilter]) // update when filters change, as height might change
+  }, [searchText, typeFilter, effectFilter]) // update when filters change, as height might change
 
   const items = useMemo(() => getItemsForQuest(questName), [questName])
 
@@ -117,15 +117,6 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
   }, [items])
 
-  const filteredItems = useMemo(() => {
-    return items.filter(item => {
-      const matchesName = item.name.toLowerCase().includes(nameFilter.toLowerCase())
-      const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
-      const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
-      return matchesName && matchesType && matchesEffect
-    })
-  }, [items, nameFilter, typeFilter, effectFilter])
-
   const formatAffix = (affix: ItemAffix) => {
     let text = affix.name
     if (affix.value && affix.value !== 1 && affix.value !== '1') {
@@ -136,6 +127,16 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     }
     return text
   }
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffix).join(' ')} ${item.crafting?.join(' ') || ''}`.toLowerCase()
+      const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
+      const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
+      const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
+      return matchesSearch && matchesType && matchesEffect
+    })
+  }, [items, searchText, typeFilter, effectFilter])
 
   const getWikiUrl = (url: string | undefined) => {
     if (!url) return null
@@ -230,11 +231,11 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             <Box ref={boxRef} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0 }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
-                  label="Filter by Name"
+                  label="Search"
                   variant="outlined"
                   size="small"
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
                   fullWidth
                 />
                 <FormControl size="small" fullWidth>
