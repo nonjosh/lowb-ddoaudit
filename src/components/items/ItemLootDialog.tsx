@@ -174,7 +174,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
 
   const filteredItems = useMemo(() => {
     return questItems.filter(item => {
-      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''}`.toLowerCase()
+      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
       const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
