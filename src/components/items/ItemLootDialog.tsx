@@ -234,7 +234,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
           </Box>
         </Box>
       </DialogTitle>
-      <DialogContent dividers>
+      <DialogContent dividers sx={{ minHeight: '60vh' }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress />
