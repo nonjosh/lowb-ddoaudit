@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react'
 
 import { fetchAreasById } from '@/api/ddoAudit'
 import { EXPECTED_PLAYERS } from '@/config/characters'
+import ItemLootButton from '../items/ItemLootButton'
 import RaidTimerTable from '../raids/RaidTimerTable'
 import ClassDisplay from '../shared/ClassDisplay'
 
@@ -92,14 +93,17 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
       <DialogTitle>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={2}>
-            <Typography variant="h6" component="div">
-              {selectedLfm?.questName || 'LFM Group'}
-              {selectedLfm && (
-                <Typography component="span" variant="body1" color="text.secondary" sx={{ ml: 1 }}>
-                  ({selectedLfm.participants.length}/{selectedLfm.maxPlayers ?? 6})
-                </Typography>
-              )}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="h6" component="div">
+                {selectedLfm?.questName || 'LFM Group'}
+                {selectedLfm && (
+                  <Typography component="span" variant="body1" color="text.secondary" sx={{ ml: 1 }}>
+                    ({selectedLfm.participants.length}/{selectedLfm.maxPlayers ?? 6})
+                  </Typography>
+                )}
+              </Typography>
+              {selectedLfm?.questName && <ItemLootButton questName={selectedLfm.questName} />}
+            </Box>
             {selectedLfm?.adventurePack && (
               <Typography variant="caption" color="text.secondary">
                 {selectedLfm.adventurePack}
