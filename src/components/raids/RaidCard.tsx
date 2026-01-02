@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import ItemLootButton from '@/components/items/ItemLootButton'
+import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
@@ -52,21 +53,6 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
     const present = new Set<string>((g.entries ?? []).filter((e: any) => e?.isInRaid).map((e: any) => String(e?.playerName ?? '')))
     return EXPECTED_PLAYERS.filter((p) => present.has(p)).map((p) => getPlayerDisplayName(p))
   }, [g.entries])
-
-  const renderNotesField = (label: string, items: string[] | undefined) => {
-    const list = Array.isArray(items) ? items.filter(Boolean) : []
-    if (list.length === 0) return null
-    return (
-      <Box sx={{ display: 'flex', gap: 1, mb: 0.5 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>{label}:</Typography>
-        <Box>
-          {list.map((x, idx) => (
-            <Typography key={idx} variant="body2" component="div">{x}</Typography>
-          ))}
-        </Box>
-      </Box>
-    )
-  }
 
   const perPlayerEligible = useMemo(() => {
     const isEligibleEntry = (e: RaidEntry) => {
@@ -174,13 +160,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
 
       <Collapse in={!isRaidCollapsed} timeout="auto" unmountOnExit>
         <CardContent>
-          {raidNotes ? (
-            <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
-              {renderNotesField('Augment', raidNotes.augments)}
-              {renderNotesField('Set', raidNotes.sets)}
-              {renderNotesField('Notes', raidNotes.notes)}
-            </Box>
-          ) : null}
+          <RaidNotesDisplay raidNotes={raidNotes} />
 
           {shouldShowTable ? (
             <RaidTimerTable

@@ -1,5 +1,7 @@
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
+import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
+import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
 import { getItemsForQuest } from '@/utils/itemLootHelpers'
 import CloseIcon from '@mui/icons-material/Close'
 import {
@@ -58,6 +60,8 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
 
   const questItems = useMemo(() => getItemsForQuest(items, questName), [items, questName])
 
+  const raidNotes = getRaidNotesForRaidName(questName)
+
   return (
     <Dialog
       open={open}
@@ -105,7 +109,10 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             </Typography>
           </Box>
         ) : (
-          <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} />
+          <>
+            <RaidNotesDisplay raidNotes={raidNotes} />
+            <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} />
+          </>
         )}
       </DialogContent>
     </Dialog>
