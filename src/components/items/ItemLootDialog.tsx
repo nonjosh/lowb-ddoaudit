@@ -254,6 +254,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                   <TableCell width="250">Name</TableCell>
                   <TableCell width="150">Type</TableCell>
                   <TableCell>Properties</TableCell>
+                  <TableCell width="200">Augments/Crafting</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -298,6 +299,10 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                               </Typography>
                             </li>
                           ))}
+                        </ul>
+                      </TableCell>
+                      <TableCell>
+                        <ul style={{ margin: 0, paddingLeft: 20 }}>
                           {item.crafting?.map((craft, idx) => {
                             const bgColor = getAugmentColor(craft)
                             return (
