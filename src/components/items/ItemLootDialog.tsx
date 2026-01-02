@@ -6,6 +6,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
   Box,
   Chip,
+  CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -57,6 +58,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   const [items, setItems] = useState<Item[]>([])
   const [craftingData, setCraftingData] = useState<any>(null)
   const [setsData, setSetsData] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
   const [tableHeadTop, setTableHeadTop] = useState('40px')
 
@@ -77,11 +79,12 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
       })
 
       // Fetch gear planner data
+      setLoading(true)
       Promise.all([
         fetchItems().then(setItems),
         fetchCrafting().then(setCraftingData),
         fetchSets().then(setSetsData)
-      ]).catch(console.error)
+      ]).catch(console.error).finally(() => setLoading(false))
     }
   }, [open, questName])
 
@@ -232,7 +235,14 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
         </Box>
       </DialogTitle>
       <DialogContent dividers>
-        {filteredItems.length === 0 ? (
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+            <CircularProgress />
+            <Typography variant="body2" sx={{ ml: 2 }}>
+              Loading item data...
+            </Typography>
+          </Box>
+        ) : filteredItems.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             No items found matching criteria.
           </Typography>
