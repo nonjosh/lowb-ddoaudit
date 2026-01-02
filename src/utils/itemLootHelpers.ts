@@ -1,4 +1,4 @@
-import itemsData from '@/assets/items.json'
+import { Item } from '@/api/ddoGearPlanner'
 
 export interface ItemAffix {
   name: string
@@ -6,29 +6,16 @@ export interface ItemAffix {
   value: string | number
 }
 
-export interface Item {
-  name: string
-  ml: number
-  quests?: string[]
-  slot: string
-  type?: string
-  affixes: ItemAffix[]
-  crafting?: string[]
-  url?: string
-  sets?: string[]
-}
-
 /**
  * Find items that drop from a specific quest
+ * @param items The array of items to search in
  * @param questName The quest name to search for
  * @returns Array of items that drop from that quest
  */
-export function getItemsForQuest(questName: string): Item[] {
+export function getItemsForQuest(items: Item[], questName: string): Item[] {
   if (!questName) return []
 
   const normalizedQuestName = questName.trim().toLowerCase()
-
-  const items = itemsData as Item[]
 
   const matches = items.filter((item) => {
     if (!item.quests || !Array.isArray(item.quests)) return false

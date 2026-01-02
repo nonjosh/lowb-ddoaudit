@@ -1,6 +1,5 @@
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import craftingData from '@/assets/crafting.json'
-import setsData from '@/assets/sets.json'
+import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
 import { getItemsForQuest, ItemAffix } from '@/utils/itemLootHelpers'
 import CloseIcon from '@mui/icons-material/Close'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
@@ -55,6 +54,9 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   const [effectFilter, setEffectFilter] = useState<string[]>([])
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
   const [areaName, setAreaName] = useState<string | null>(null)
+  const [items, setItems] = useState<Item[]>([])
+  const [craftingData, setCraftingData] = useState<any>(null)
+  const [setsData, setSetsData] = useState<any>(null)
   const boxRef = useRef<HTMLDivElement>(null)
   const [tableHeadTop, setTableHeadTop] = useState('40px')
 
@@ -73,6 +75,13 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
           }
         }
       })
+
+      // Fetch gear planner data
+      Promise.all([
+        fetchItems().then(setItems),
+        fetchCrafting().then(setCraftingData),
+        fetchSets().then(setSetsData)
+      ]).catch(console.error)
     }
   }, [open, questName])
 
@@ -83,11 +92,11 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     }
   }, [searchText, typeFilter, effectFilter]) // update when filters change, as height might change
 
-  const items = useMemo(() => getItemsForQuest(questName), [questName])
+  const questItems = useMemo(() => getItemsForQuest(items, questName), [items, questName])
 
   const uniqueTypes = useMemo(() => {
     const typeMap = new Map<string, { count: number, slot: string }>()
-    items.forEach(item => {
+    questItems.forEach(item => {
       const key = item.type || 'Unknown'
       const existing = typeMap.get(key)
       if (existing) {
@@ -105,17 +114,17 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
       if (a.category !== b.category) return a.category - b.category
       return a.display.localeCompare(b.display)
     })
-  }, [items])
+  }, [questItems])
 
   const uniqueEffects = useMemo(() => {
     const effectCount = new Map<string, number>()
-    items.forEach(item => {
+    questItems.forEach(item => {
       item.affixes.forEach(affix => {
         effectCount.set(affix.name, (effectCount.get(affix.name) || 0) + 1)
       })
     })
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
-  }, [items])
+  }, [questItems])
 
   const formatAffix = (affix: ItemAffix) => {
     let text = affix.name
@@ -129,14 +138,14 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   }
 
   const filteredItems = useMemo(() => {
-    return items.filter(item => {
+    return questItems.filter(item => {
       const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffix).join(' ')} ${item.crafting?.join(' ') || ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
       const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
       return matchesSearch && matchesType && matchesEffect
     })
-  }, [items, searchText, typeFilter, effectFilter])
+  }, [questItems, searchText, typeFilter, effectFilter])
 
   const getWikiUrl = (url: string | undefined) => {
     if (!url) return null
@@ -162,7 +171,8 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   }
 
   const getCraftingOptions = (craft: string) => {
-    const data = craftingData as any
+    if (!craftingData) return []
+    const data = craftingData
     if (data[craft] && data[craft]["*"]) {
       const affixMap = new Map<string, CraftingAffix>()
       data[craft]["*"].forEach((item: CraftingItem) => {
@@ -342,7 +352,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                                 <Tooltip
                                   title={
                                     <Box>
-                                      {(setsData as any)[setName]?.map((setItem: any, idx: number) => (
+                                      {setsData && (setsData as any)[setName]?.map((setItem: any, idx: number) => (
                                         <Box key={idx} sx={{ mb: idx < (setsData as any)[setName].length - 1 ? 2 : 0 }}>
                                           <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                                             {setItem.threshold} Piece{setItem.threshold > 1 ? 's' : ''} Equipped:
