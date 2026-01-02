@@ -51,16 +51,31 @@ export default function Controls({
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
           <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-around', sm: 'flex-start' } }}>
             <Tooltip title={autoRefreshEnabled ? "Disable auto refresh" : "Enable auto refresh"}>
-              <ToggleButton
-                value="check"
-                selected={autoRefreshEnabled}
-                onChange={() => onToggleAutoRefresh()}
-                disabled={loading}
-                size="small"
-                color="primary"
-              >
-                {autoRefreshEnabled ? <SyncIcon /> : <SyncDisabledIcon />}
-              </ToggleButton>
+              {loading ? (
+                <span>
+                  <ToggleButton
+                    value="check"
+                    selected={autoRefreshEnabled}
+                    onChange={() => onToggleAutoRefresh()}
+                    disabled={loading}
+                    size="small"
+                    color="primary"
+                  >
+                    {autoRefreshEnabled ? <SyncIcon /> : <SyncDisabledIcon />}
+                  </ToggleButton>
+                </span>
+              ) : (
+                <ToggleButton
+                  value="check"
+                  selected={autoRefreshEnabled}
+                  onChange={() => onToggleAutoRefresh()}
+                  disabled={loading}
+                  size="small"
+                  color="primary"
+                >
+                  {autoRefreshEnabled ? <SyncIcon /> : <SyncDisabledIcon />}
+                </ToggleButton>
+              )}
             </Tooltip>
             <FormControlLabel
               control={<Switch size="small" checked={showClassIcons} onChange={onToggleShowClassIcons} />}
