@@ -31,7 +31,7 @@ export default function ItemCraftingDisplay({ crafting, getAugmentColor, getCraf
         )
         return (
           <li key={`craft-${idx}`}>
-            {options.length > 0 ? (
+            {options.length > 0 && craft !== 'Nearly Finished' ? (
               <Tooltip
                 title={
                   <Box>

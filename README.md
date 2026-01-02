@@ -40,3 +40,7 @@ and then open the forwarded port from VS Code.
     - Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/items.json`
     - Crafting: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/crafting.json`
     - Sets: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/sets.json`
+
+## Known Issues
+
+- The "Nearly Finished" label in the augments/crafting column has hover text disabled due to a bug.
