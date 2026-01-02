@@ -60,7 +60,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   const [setsData, setSetsData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
-  const [tableHeadTop, setTableHeadTop] = useState('40px')
+  const [tableHeadTop, setTableHeadTop] = useState('50px')
 
   useEffect(() => {
     if (open && questName) {
@@ -248,7 +248,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
           </Typography>
         ) : (
           <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-            <Box ref={boxRef} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0 }}>
+            <Box ref={boxRef} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0, pt: 1.5, px: 1 }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   label="Search"
