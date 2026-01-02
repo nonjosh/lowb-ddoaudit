@@ -1,4 +1,4 @@
-import BackpackIcon from '@mui/icons-material/Backpack'
+import DiamondIcon from '@mui/icons-material/Diamond'
 import { IconButton, Tooltip } from '@mui/material'
 import { useState } from 'react'
 import ItemLootDialog from './ItemLootDialog'
@@ -27,10 +27,10 @@ export default function ItemLootButton({ questName }: ItemLootButtonProps) {
           onClick={handleClick}
           sx={{ ml: 0.5 }}
         >
-          <BackpackIcon sx={{ fontSize: 18 }} />
+          <DiamondIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </Tooltip>
-      
+
       <ItemLootDialog
         open={dialogOpen}
         onClose={handleClose}
