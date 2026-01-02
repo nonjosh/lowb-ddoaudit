@@ -1,5 +1,6 @@
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import craftingData from '@/assets/crafting.json'
+import setsData from '@/assets/sets.json'
 import { getItemsForQuest, ItemAffix } from '@/utils/itemLootHelpers'
 import CloseIcon from '@mui/icons-material/Close'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
@@ -333,6 +334,37 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                               </Typography>
                             </li>
                           ))}
+                          {(() => {
+                            const setName = item.sets?.[0]
+                            return setName ? (
+                              <li>
+                                <Tooltip
+                                  title={
+                                    <Box>
+                                      {(setsData as any)[setName]?.map((setItem: any, idx: number) => (
+                                        <Box key={idx} sx={{ mb: idx < (setsData as any)[setName].length - 1 ? 2 : 0 }}>
+                                          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                            {setItem.threshold} Piece{setItem.threshold > 1 ? 's' : ''} Equipped:
+                                          </Typography>
+                                          <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                            {setItem.affixes?.map((affix: any) => formatAffix(affix)).map((effect: string) => (
+                                              <li key={effect} style={{ fontSize: '0.75rem' }}>
+                                                {effect}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </Box>
+                                      ))}
+                                    </Box>
+                                  }
+                                >
+                                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', cursor: 'pointer', border: 1, borderColor: 'primary.main', px: 0.5, borderRadius: 0.5 }}>
+                                    {setName}
+                                  </Typography>
+                                </Tooltip>
+                              </li>
+                            ) : null
+                          })()}
                         </ul>
                       </TableCell>
                       <TableCell>

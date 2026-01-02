@@ -15,6 +15,7 @@ export interface Item {
   affixes: ItemAffix[]
   crafting?: string[]
   url?: string
+  sets?: string[]
 }
 
 /**
