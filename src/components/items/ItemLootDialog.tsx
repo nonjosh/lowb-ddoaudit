@@ -1,4 +1,5 @@
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
+import craftingData from '@/assets/crafting.json'
 import { getItemsForQuest, ItemAffix } from '@/utils/itemLootHelpers'
 import CloseIcon from '@mui/icons-material/Close'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
@@ -34,6 +35,17 @@ interface ItemLootDialogProps {
   open: boolean
   onClose: () => void
   questName: string
+}
+
+interface CraftingItem {
+  name?: string
+  affixes: ItemAffix[]
+}
+
+interface CraftingAffix {
+  name: string
+  type: string
+  value: number | string
 }
 
 export default function ItemLootDialog({ open, onClose, questName }: ItemLootDialogProps) {
@@ -145,6 +157,28 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     if (lower.includes('orange augment slot')) return '#ff9800'
     if (lower.includes('colorless augment slot')) return '#e0e0e0'
     return undefined
+  }
+
+  const getCraftingOptions = (craft: string) => {
+    const data = craftingData as any
+    if (data[craft] && data[craft]["*"]) {
+      const affixMap = new Map<string, CraftingAffix>()
+      data[craft]["*"].forEach((item: CraftingItem) => {
+        if (item.affixes) {
+          item.affixes.forEach(affix => {
+            const key = `${affix.name}-${affix.type}`
+            const existing = affixMap.get(key)
+            const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+            const existingValue = existing ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value) : 0
+            if (!existing || currentValue > existingValue) {
+              affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
+            }
+          })
+        }
+      })
+      return Array.from(affixMap.values()).map(affix => formatAffix(affix))
+    }
+    return []
   }
 
   return (
@@ -305,24 +339,44 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                         <ul style={{ margin: 0, paddingLeft: 20 }}>
                           {item.crafting?.map((craft, idx) => {
                             const bgColor = getAugmentColor(craft)
+                            const options = getCraftingOptions(craft)
+                            const content = bgColor ? (
+                              <Box component="span" sx={{
+                                bgcolor: bgColor,
+                                color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
+                                px: 0.5,
+                                borderRadius: 0.5,
+                                fontSize: '0.75rem',
+                                display: 'inline-block',
+                                lineHeight: 1.2
+                              }}>
+                                {craft}
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="info.main" sx={{ fontSize: '0.8125rem' }}>
+                                {craft}
+                              </Typography>
+                            )
                             return (
                               <li key={`craft-${idx}`}>
-                                {bgColor ? (
-                                  <Box component="span" sx={{
-                                    bgcolor: bgColor,
-                                    color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
-                                    px: 0.5,
-                                    borderRadius: 0.5,
-                                    fontSize: '0.75rem',
-                                    display: 'inline-block',
-                                    lineHeight: 1.2
-                                  }}>
-                                    {craft}
-                                  </Box>
+                                {options.length > 0 ? (
+                                  <Tooltip
+                                    title={
+                                      <Box>
+                                        <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                          {options.map((name: string) => (
+                                            <li key={name} style={{ fontSize: '0.75rem' }}>
+                                              {name}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </Box>
+                                    }
+                                  >
+                                    {content}
+                                  </Tooltip>
                                 ) : (
-                                  <Typography variant="body2" color="info.main" sx={{ fontSize: '0.8125rem' }}>
-                                    {craft}
-                                  </Typography>
+                                  content
                                 )}
                               </li>
                             )
