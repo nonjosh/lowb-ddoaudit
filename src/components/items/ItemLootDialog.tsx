@@ -275,212 +275,217 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             </Typography>
           </Box>
         ) : (
-          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-            <Box ref={boxRef} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0, pt: 1.5, px: 1 }}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  label="Search"
-                  variant="outlined"
-                  size="small"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  fullWidth
-                />
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Filter by Type</InputLabel>
-                  <Select
-                    multiple
-                    value={typeFilter}
-                    input={<OutlinedInput label="Filter by Type" />}
-                    renderValue={(selected) => selected.join(', ')}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setTypeFilter(typeof value === 'string' ? value.split(',') : value)
-                    }}
-                  >
-                    {(() => {
-                      let prevCategory = -1
-                      return uniqueTypes.flatMap(({ type, count, display, category }) => {
-                        const items = []
-                        if (category !== prevCategory && prevCategory !== -1) {
-                          items.push(<Divider key={`divider-${type}`} />)
-                        }
-                        items.push(<MenuItem key={type} value={type}>{display} ({count})</MenuItem>)
-                        prevCategory = category
-                        return items
-                      })
-                    })()}
-                  </Select>
-                </FormControl>
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Filter by Effect</InputLabel>
-                  <Select
-                    multiple
-                    value={effectFilter}
-                    input={<OutlinedInput label="Filter by Effect" />}
-                    renderValue={(selected) => selected.join(', ')}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setEffectFilter(typeof value === 'string' ? value.split(',') : value)
-                    }}
-                  >
-                    {uniqueEffects.map(({ effect, count }) => (
-                      <MenuItem key={effect} value={effect}>{effect} ({count})</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-            </Box>
-            <Table size="small">
-              <TableHead sx={{ position: 'sticky', top: tableHeadTop, zIndex: 5, bgcolor: 'background.paper' }}>
-                <TableRow>
-                  <TableCell width="60">ML</TableCell>
-                  <TableCell width="250">Name</TableCell>
-                  <TableCell width="150">Type</TableCell>
-                  <TableCell>Properties</TableCell>
-                  <TableCell width="200">Augments/Crafting</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredItems.length === 0 ? (
+          <>
+            <Typography variant="h6" sx={{ mb: 1, px: 1 }}>
+              Available Loots (Excluding augments and misc)
+            </Typography>
+            <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+              <Box ref={boxRef} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0, pt: 1.5, px: 1 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    label="Search"
+                    variant="outlined"
+                    size="small"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    fullWidth
+                  />
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Filter by Type</InputLabel>
+                    <Select
+                      multiple
+                      value={typeFilter}
+                      input={<OutlinedInput label="Filter by Type" />}
+                      renderValue={(selected) => selected.join(', ')}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setTypeFilter(typeof value === 'string' ? value.split(',') : value)
+                      }}
+                    >
+                      {(() => {
+                        let prevCategory = -1
+                        return uniqueTypes.flatMap(({ type, count, display, category }) => {
+                          const items = []
+                          if (category !== prevCategory && prevCategory !== -1) {
+                            items.push(<Divider key={`divider-${type}`} />)
+                          }
+                          items.push(<MenuItem key={type} value={type}>{display} ({count})</MenuItem>)
+                          prevCategory = category
+                          return items
+                        })
+                      })()}
+                    </Select>
+                  </FormControl>
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Filter by Effect</InputLabel>
+                    <Select
+                      multiple
+                      value={effectFilter}
+                      input={<OutlinedInput label="Filter by Effect" />}
+                      renderValue={(selected) => selected.join(', ')}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setEffectFilter(typeof value === 'string' ? value.split(',') : value)
+                      }}
+                    >
+                      {uniqueEffects.map(({ effect, count }) => (
+                        <MenuItem key={effect} value={effect}>{effect} ({count})</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+              </Box>
+              <Table size="small">
+                <TableHead sx={{ position: 'sticky', top: tableHeadTop, zIndex: 5, bgcolor: 'background.paper' }}>
                   <TableRow>
-                    <TableCell colSpan={5}>
-                      <Typography variant="body2" color="text.secondary">
-                        No items found matching criteria.
-                      </Typography>
-                    </TableCell>
+                    <TableCell width="60">ML</TableCell>
+                    <TableCell width="250">Name</TableCell>
+                    <TableCell width="150">Type</TableCell>
+                    <TableCell>Properties</TableCell>
+                    <TableCell width="200">Augments/Crafting</TableCell>
                   </TableRow>
-                ) : (
-                  filteredItems.map((item) => {
-                    const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
-                    const wikiUrl = getWikiUrl(item.url)
-                    return (
-                      <TableRow key={itemKey} hover>
-                        <TableCell>{item.ml}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {highlightText(item.name, searchText)}
-                            </Typography>
-                            {wikiUrl && (
-                              <Tooltip title="Open in DDO Wiki">
-                                <Link
-                                  href={wikiUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  color="inherit"
-                                  sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-                                >
-                                  <OpenInNewIcon sx={{ fontSize: 16 }} />
-                                </Link>
-                              </Tooltip>
+                </TableHead>
+                <TableBody>
+                  {filteredItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Typography variant="body2" color="text.secondary">
+                          No items found matching criteria.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredItems.map((item) => {
+                      const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
+                      const wikiUrl = getWikiUrl(item.url)
+                      return (
+                        <TableRow key={itemKey} hover>
+                          <TableCell>{item.ml}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {highlightText(item.name, searchText)}
+                              </Typography>
+                              {wikiUrl && (
+                                <Tooltip title="Open in DDO Wiki">
+                                  <Link
+                                    href={wikiUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    color="inherit"
+                                    sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                  >
+                                    <OpenInNewIcon sx={{ fontSize: 16 }} />
+                                  </Link>
+                                </Tooltip>
+                              )}
+                            </Box>
+                            {item.slot && (
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {item.slot}
+                              </Typography>
                             )}
-                          </Box>
-                          {item.slot && (
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              {item.slot}
-                            </Typography>
-                          )}
-                          {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
-                        </TableCell>
-                        <TableCell>{highlightText(item.type || '', searchText)}</TableCell>
-                        <TableCell>
-                          <ul style={{ margin: 0, paddingLeft: 20 }}>
-                            {item.affixes.map((affix, idx) => (
-                              <li key={idx}>
-                                <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-                                  {formatAffix(affix, searchText)}
-                                </Typography>
-                              </li>
-                            ))}
-                            {(() => {
-                              const setName = item.sets?.[0]
-                              return setName ? (
-                                <li>
-                                  <Tooltip
-                                    title={
-                                      <Box>
-                                        {setsData && (setsData as any)[setName]?.map((setItem: any, idx: number) => (
-                                          <Box key={idx} sx={{ mb: idx < (setsData as any)[setName].length - 1 ? 2 : 0 }}>
-                                            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                                              {setItem.threshold} Piece{setItem.threshold > 1 ? 's' : ''} Equipped:
-                                            </Typography>
+                            {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
+                          </TableCell>
+                          <TableCell>{highlightText(item.type || '', searchText)}</TableCell>
+                          <TableCell>
+                            <ul style={{ margin: 0, paddingLeft: 20 }}>
+                              {item.affixes.map((affix, idx) => (
+                                <li key={idx}>
+                                  <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                                    {formatAffix(affix, searchText)}
+                                  </Typography>
+                                </li>
+                              ))}
+                              {(() => {
+                                const setName = item.sets?.[0]
+                                return setName ? (
+                                  <li>
+                                    <Tooltip
+                                      title={
+                                        <Box>
+                                          {setsData && (setsData as any)[setName]?.map((setItem: any, idx: number) => (
+                                            <Box key={idx} sx={{ mb: idx < (setsData as any)[setName].length - 1 ? 2 : 0 }}>
+                                              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                                {setItem.threshold} Piece{setItem.threshold > 1 ? 's' : ''} Equipped:
+                                              </Typography>
+                                              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                                {setItem.affixes?.map((affix: any) => formatAffix(affix)).map((effect: string) => (
+                                                  <li key={effect} style={{ fontSize: '0.75rem' }}>
+                                                    {effect}
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            </Box>
+                                          ))}
+                                        </Box>
+                                      }
+                                    >
+                                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', cursor: 'pointer', border: 1, borderColor: 'primary.main', px: 0.5, borderRadius: 0.5 }}>
+                                        {setName}
+                                      </Typography>
+                                    </Tooltip>
+                                  </li>
+                                ) : null
+                              })()}
+                            </ul>
+                          </TableCell>
+                          <TableCell>
+                            <ul style={{ margin: 0, paddingLeft: 20 }}>
+                              {item.crafting?.map((craft, idx) => {
+                                const bgColor = getAugmentColor(craft)
+                                const options = getCraftingOptions(craft)
+                                const content = bgColor ? (
+                                  <Box component="span" sx={{
+                                    bgcolor: bgColor,
+                                    color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
+                                    px: 0.5,
+                                    borderRadius: 0.5,
+                                    fontSize: '0.75rem',
+                                    display: 'inline-block',
+                                    lineHeight: 1.2
+                                  }}>
+                                    {craft}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body2" color="info.main" sx={{ fontSize: '0.8125rem' }}>
+                                    {craft}
+                                  </Typography>
+                                )
+                                return (
+                                  <li key={`craft-${idx}`}>
+                                    {options.length > 0 ? (
+                                      <Tooltip
+                                        title={
+                                          <Box>
                                             <ul style={{ margin: 0, paddingLeft: 20 }}>
-                                              {setItem.affixes?.map((affix: any) => formatAffix(affix)).map((effect: string) => (
-                                                <li key={effect} style={{ fontSize: '0.75rem' }}>
-                                                  {effect}
+                                              {options.map((name: string) => (
+                                                <li key={name} style={{ fontSize: '0.75rem' }}>
+                                                  {name}
                                                 </li>
                                               ))}
                                             </ul>
                                           </Box>
-                                        ))}
-                                      </Box>
-                                    }
-                                  >
-                                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', cursor: 'pointer', border: 1, borderColor: 'primary.main', px: 0.5, borderRadius: 0.5 }}>
-                                      {setName}
-                                    </Typography>
-                                  </Tooltip>
-                                </li>
-                              ) : null
-                            })()}
-                          </ul>
-                        </TableCell>
-                        <TableCell>
-                          <ul style={{ margin: 0, paddingLeft: 20 }}>
-                            {item.crafting?.map((craft, idx) => {
-                              const bgColor = getAugmentColor(craft)
-                              const options = getCraftingOptions(craft)
-                              const content = bgColor ? (
-                                <Box component="span" sx={{
-                                  bgcolor: bgColor,
-                                  color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
-                                  px: 0.5,
-                                  borderRadius: 0.5,
-                                  fontSize: '0.75rem',
-                                  display: 'inline-block',
-                                  lineHeight: 1.2
-                                }}>
-                                  {craft}
-                                </Box>
-                              ) : (
-                                <Typography variant="body2" color="info.main" sx={{ fontSize: '0.8125rem' }}>
-                                  {craft}
-                                </Typography>
-                              )
-                              return (
-                                <li key={`craft-${idx}`}>
-                                  {options.length > 0 ? (
-                                    <Tooltip
-                                      title={
-                                        <Box>
-                                          <ul style={{ margin: 0, paddingLeft: 20 }}>
-                                            {options.map((name: string) => (
-                                              <li key={name} style={{ fontSize: '0.75rem' }}>
-                                                {name}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </Box>
-                                      }
-                                    >
-                                      {content}
-                                    </Tooltip>
-                                  ) : (
-                                    content
-                                  )}
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                                        }
+                                      >
+                                        {content}
+                                      </Tooltip>
+                                    ) : (
+                                      content
+                                    )}
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
         )}
       </DialogContent>
     </Dialog>
