@@ -138,7 +138,19 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
   }, [questItems])
 
-  const formatAffix = (affix: ItemAffix) => {
+  const highlightText = (text: string, query: string) => {
+    if (!query) return text
+    const lowerText = text.toLowerCase()
+    const lowerQuery = query.toLowerCase()
+    const index = lowerText.indexOf(lowerQuery)
+    if (index === -1) return text
+    const before = text.slice(0, index)
+    const match = text.slice(index, index + query.length)
+    const after = text.slice(index + query.length)
+    return <>{before}<mark>{match}</mark>{after}</>
+  }
+
+  const formatAffixPlain = (affix: ItemAffix) => {
     let text = affix.name
     if (affix.value && affix.value !== 1 && affix.value !== '1') {
       text += ` +${affix.value}`
@@ -149,9 +161,20 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     return text
   }
 
+  const formatAffix = (affix: ItemAffix, query: string = '') => {
+    let text = highlightText(affix.name, query)
+    if (affix.value && affix.value !== 1 && affix.value !== '1') {
+      text = <>{text} +{affix.value}</>
+    }
+    if (affix.type && affix.type !== 'bool') {
+      text = <>{text} ({affix.type})</>
+    }
+    return text
+  }
+
   const filteredItems = useMemo(() => {
     return questItems.filter(item => {
-      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffix).join(' ')} ${item.crafting?.join(' ') || ''}`.toLowerCase()
+      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
       const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
@@ -200,7 +223,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
           })
         }
       })
-      return Array.from(affixMap.values()).map(affix => formatAffix(affix))
+      return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
     }
     return []
   }
@@ -337,7 +360,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <Typography variant="body2" fontWeight="bold">
-                              {item.name}
+                              {highlightText(item.name, searchText)}
                             </Typography>
                             {wikiUrl && (
                               <Tooltip title="Open in DDO Wiki">
@@ -360,13 +383,13 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                           )}
                           {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
                         </TableCell>
-                        <TableCell>{item.type}</TableCell>
+                        <TableCell>{highlightText(item.type || '', searchText)}</TableCell>
                         <TableCell>
                           <ul style={{ margin: 0, paddingLeft: 20 }}>
                             {item.affixes.map((affix, idx) => (
                               <li key={idx}>
                                 <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-                                  {formatAffix(affix)}
+                                  {formatAffix(affix, searchText)}
                                 </Typography>
                               </li>
                             ))}
