@@ -1,6 +1,6 @@
-import DiamondIcon from '@mui/icons-material/Diamond'
 import { IconButton, Tooltip } from '@mui/material'
 import { useState } from 'react'
+import { GiChest } from 'react-icons/gi'
 import ItemLootDialog from './ItemLootDialog'
 
 interface ItemLootButtonProps {
@@ -27,7 +27,7 @@ export default function ItemLootButton({ questName }: ItemLootButtonProps) {
           onClick={handleClick}
           sx={{ ml: 0.5 }}
         >
-          <DiamondIcon sx={{ fontSize: 18 }} />
+          <GiChest fontSize={18} />
         </IconButton>
       </Tooltip>
 
