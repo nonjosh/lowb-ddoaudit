@@ -380,14 +380,14 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                                 </Tooltip>
                               )}
                             </Box>
-                            {item.slot && (
+                            {item.slot && (item.slot === 'Weapon' || item.slot === 'Offhand') && (
                               <Typography variant="caption" color="text.secondary" display="block">
                                 {item.slot}
                               </Typography>
                             )}
                             {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
                           </TableCell>
-                          <TableCell>{highlightText(item.type || '', searchText)}</TableCell>
+                          <TableCell>{highlightText((item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand') ? item.slot : (item.type || ''), searchText)}</TableCell>
                           <TableCell>
                             <ul style={{ margin: 0, paddingLeft: 20 }}>
                               {item.affixes.map((affix, idx) => (
