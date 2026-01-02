@@ -209,21 +209,37 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     if (!craftingData) return []
     const data = craftingData
     if (data[craft] && data[craft]["*"]) {
-      const affixMap = new Map<string, CraftingAffix>()
-      data[craft]["*"].forEach((item: CraftingItem) => {
-        if (item.affixes) {
-          item.affixes.forEach(affix => {
-            const key = `${affix.name}-${affix.type}`
-            const existing = affixMap.get(key)
-            const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-            const existingValue = existing ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value) : 0
-            if (!existing || currentValue > existingValue) {
-              affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
-            }
+      const items = data[craft]["*"]
+      if (items.length > 0 && items[0].affixes) {
+        const affixMap = new Map<string, CraftingAffix>()
+        items.forEach((item: CraftingItem) => {
+          if (item.affixes) {
+            item.affixes.forEach(affix => {
+              const key = `${affix.name}-${affix.type}`
+              const existing = affixMap.get(key)
+              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+              const existingValue = existing ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value) : 0
+              if (!existing || currentValue > existingValue) {
+                affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
+              }
+            })
+          }
+        })
+        return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
+      } else {
+        return items.map((item: any) => item.name)
+      }
+    } else if (data[craft]) {
+      const options: string[] = []
+      for (const [itemName, sets] of Object.entries(data[craft])) {
+        options.push(`${itemName}:`)
+        if (Array.isArray(sets)) {
+          sets.forEach((set: any) => {
+            options.push(`- ${set.name}`)
           })
         }
-      })
-      return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
+      }
+      return options
     }
     return []
   }
@@ -458,13 +474,26 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                                       <Tooltip
                                         title={
                                           <Box>
-                                            <ul style={{ margin: 0, paddingLeft: 20 }}>
-                                              {options.map((name: string) => (
-                                                <li key={name} style={{ fontSize: '0.75rem' }}>
-                                                  {name}
-                                                </li>
-                                              ))}
-                                            </ul>
+                                            {options[0]?.endsWith(':') ? (
+                                              <>
+                                                <Typography variant="body2" fontWeight="bold">{options[0].slice(0, -1)}</Typography>
+                                                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                                  {options.slice(1).map((name: string) => (
+                                                    <li key={name} style={{ fontSize: '0.75rem' }}>
+                                                      {name.slice(2)}
+                                                    </li>
+                                                  ))}
+                                                </ul>
+                                              </>
+                                            ) : (
+                                              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                                {options.map((name: string) => (
+                                                  <li key={name} style={{ fontSize: '0.75rem' }}>
+                                                    {name}
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            )}
                                           </Box>
                                         }
                                       >
