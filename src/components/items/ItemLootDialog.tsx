@@ -1,8 +1,7 @@
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
-import { getItemsForQuest, ItemAffix } from '@/utils/itemLootHelpers'
+import { getItemsForQuest } from '@/utils/itemLootHelpers'
 import CloseIcon from '@mui/icons-material/Close'
-import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
   Box,
   Chip,
@@ -10,27 +9,12 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Divider,
-  FormControl,
   IconButton,
-  InputLabel,
-  Link,
-  MenuItem,
-  OutlinedInput,
-  Paper,
-  Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
   Typography
 } from '@mui/material'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import ItemLootTable from './ItemLootTable'
 
 interface ItemLootDialogProps {
   open: boolean
@@ -38,29 +22,13 @@ interface ItemLootDialogProps {
   questName: string
 }
 
-interface CraftingItem {
-  name?: string
-  affixes: ItemAffix[]
-}
-
-interface CraftingAffix {
-  name: string
-  type: string
-  value: number | string
-}
-
 export default function ItemLootDialog({ open, onClose, questName }: ItemLootDialogProps) {
-  const [searchText, setSearchText] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string[]>([])
-  const [effectFilter, setEffectFilter] = useState<string[]>([])
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
   const [areaName, setAreaName] = useState<string | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [craftingData, setCraftingData] = useState<any>(null)
   const [setsData, setSetsData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const boxRef = useRef<HTMLDivElement>(null)
-  const [tableHeadTop, setTableHeadTop] = useState('50px')
 
   useEffect(() => {
     if (open && questName) {
@@ -88,161 +56,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     }
   }, [open, questName])
 
-  useEffect(() => {
-    if (boxRef.current) {
-      const height = boxRef.current.offsetHeight
-      setTableHeadTop(`${height}px`)
-    }
-  }, [searchText, typeFilter, effectFilter]) // update when filters change, as height might change
-
   const questItems = useMemo(() => getItemsForQuest(items, questName), [items, questName])
-
-  const uniqueTypes = useMemo(() => {
-    const typeMap = new Map<string, { count: number, slot: string }>()
-    questItems.forEach(item => {
-      const key = item.type || 'Unknown'
-      const existing = typeMap.get(key)
-      if (existing) {
-        existing.count++
-      } else {
-        typeMap.set(key, { count: 1, slot: item.slot || '' })
-      }
-    })
-    return Array.from(typeMap.entries()).map(([type, { count, slot }]) => {
-      const isWeapon = slot === 'Weapon'
-      const category = slot === 'Armor' ? -1 : (isWeapon ? 2 : (slot === 'Offhand' ? 1 : 0))
-      const display = (slot === 'Offhand' || slot === 'Armor') ? type : (slot && slot !== 'Weapon' ? slot : type)
-      return { type, count, display, category }
-    }).sort((a, b) => {
-      if (a.category !== b.category) return a.category - b.category
-      if (a.category === -1) {
-        const order = ['Docents', 'Cloth armor', 'Light armor', 'Medium armor', 'Heavy armor']
-        const aIndex = order.indexOf(a.display)
-        const bIndex = order.indexOf(b.display)
-        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
-        if (aIndex !== -1) return -1
-        if (bIndex !== -1) return 1
-        return a.display.localeCompare(b.display)
-      }
-      return a.display.localeCompare(b.display)
-    })
-  }, [questItems])
-
-  const uniqueEffects = useMemo(() => {
-    const effectCount = new Map<string, number>()
-    questItems.forEach(item => {
-      item.affixes.forEach(affix => {
-        effectCount.set(affix.name, (effectCount.get(affix.name) || 0) + 1)
-      })
-    })
-    return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
-  }, [questItems])
-
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text
-    const lowerText = text.toLowerCase()
-    const lowerQuery = query.toLowerCase()
-    const index = lowerText.indexOf(lowerQuery)
-    if (index === -1) return text
-    const before = text.slice(0, index)
-    const match = text.slice(index, index + query.length)
-    const after = text.slice(index + query.length)
-    return <>{before}<mark>{match}</mark>{after}</>
-  }
-
-  const formatAffixPlain = (affix: ItemAffix) => {
-    let text = affix.name
-    if (affix.value && affix.value !== 1 && affix.value !== '1') {
-      text += ` +${affix.value}`
-    }
-    if (affix.type && affix.type !== 'bool') {
-      text += ` (${affix.type})`
-    }
-    return text
-  }
-
-  const formatAffix = (affix: ItemAffix, query: string = '') => {
-    let text = highlightText(affix.name, query)
-    if (affix.value && affix.value !== 1 && affix.value !== '1') {
-      text = <>{text} +{affix.value}</>
-    }
-    if (affix.type && affix.type !== 'bool') {
-      text = <>{text} ({affix.type})</>
-    }
-    return text
-  }
-
-  const filteredItems = useMemo(() => {
-    return questItems.filter(item => {
-      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
-      const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
-      const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
-      const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
-      return matchesSearch && matchesType && matchesEffect
-    })
-  }, [questItems, searchText, typeFilter, effectFilter])
-
-  const getWikiUrl = (url: string | undefined) => {
-    if (!url) return null
-    const urlStr = url.trim()
-    if ((urlStr.startsWith('/page/') || urlStr.startsWith('/Page/')) &&
-      !urlStr.includes('..') &&
-      !urlStr.includes('//')) {
-      return `https://ddowiki.com${urlStr}`
-    }
-    return null
-  }
-
-  const getAugmentColor = (text: string) => {
-    const lower = text.toLowerCase()
-    if (lower.includes('blue augment slot')) return '#2196f3'
-    if (lower.includes('red augment slot')) return '#f44336'
-    if (lower.includes('yellow augment slot')) return '#ffeb3b'
-    if (lower.includes('green augment slot')) return '#4caf50'
-    if (lower.includes('purple augment slot')) return '#9c27b0'
-    if (lower.includes('orange augment slot')) return '#ff9800'
-    if (lower.includes('colorless augment slot')) return '#e0e0e0'
-    return undefined
-  }
-
-  const getCraftingOptions = (craft: string) => {
-    if (!craftingData) return []
-    const data = craftingData
-    if (data[craft] && data[craft]["*"]) {
-      const items = data[craft]["*"]
-      if (items.length > 0 && items[0].affixes) {
-        const affixMap = new Map<string, CraftingAffix>()
-        items.forEach((item: CraftingItem) => {
-          if (item.affixes) {
-            item.affixes.forEach(affix => {
-              const key = `${affix.name}-${affix.type}`
-              const existing = affixMap.get(key)
-              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-              const existingValue = existing ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value) : 0
-              if (!existing || currentValue > existingValue) {
-                affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
-              }
-            })
-          }
-        })
-        return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
-      } else {
-        return items.map((item: any) => item.name)
-      }
-    } else if (data[craft]) {
-      const options: string[] = []
-      for (const [itemName, sets] of Object.entries(data[craft])) {
-        options.push(`${itemName}:`)
-        if (Array.isArray(sets)) {
-          sets.forEach((set: any) => {
-            options.push(`- ${set.name}`)
-          })
-        }
-      }
-      return options
-    }
-    return []
-  }
 
   return (
     <Dialog
@@ -291,230 +105,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             </Typography>
           </Box>
         ) : (
-          <>
-            <Typography variant="h6" sx={{ mb: 1, px: 1 }}>
-              Available Loots (Excluding augments and misc)
-            </Typography>
-            <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh', overflow: 'auto' }}>
-              <Box ref={boxRef} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0, pt: 1.5, px: 1 }}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <TextField
-                    label="Search"
-                    variant="outlined"
-                    size="small"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    fullWidth
-                  />
-                  <FormControl size="small" fullWidth>
-                    <InputLabel>Filter by Type</InputLabel>
-                    <Select
-                      multiple
-                      value={typeFilter}
-                      input={<OutlinedInput label="Filter by Type" />}
-                      renderValue={(selected) => selected.join(', ')}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setTypeFilter(typeof value === 'string' ? value.split(',') : value)
-                      }}
-                    >
-                      {(() => {
-                        let prevCategory = -1
-                        return uniqueTypes.flatMap(({ type, count, display, category }) => {
-                          const items = []
-                          if (category !== prevCategory && prevCategory !== -1) {
-                            items.push(<Divider key={`divider-${type}`} />)
-                          }
-                          items.push(<MenuItem key={type} value={type}>{display} ({count})</MenuItem>)
-                          prevCategory = category
-                          return items
-                        })
-                      })()}
-                    </Select>
-                  </FormControl>
-                  <FormControl size="small" fullWidth>
-                    <InputLabel>Filter by Effect</InputLabel>
-                    <Select
-                      multiple
-                      value={effectFilter}
-                      input={<OutlinedInput label="Filter by Effect" />}
-                      renderValue={(selected) => selected.join(', ')}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setEffectFilter(typeof value === 'string' ? value.split(',') : value)
-                      }}
-                    >
-                      {uniqueEffects.map(({ effect, count }) => (
-                        <MenuItem key={effect} value={effect}>{effect} ({count})</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Stack>
-              </Box>
-              <Table size="small">
-                <TableHead sx={{ position: 'sticky', top: tableHeadTop, zIndex: 5, bgcolor: 'background.paper' }}>
-                  <TableRow>
-                    <TableCell width="60">ML</TableCell>
-                    <TableCell width="250">Name</TableCell>
-                    <TableCell width="150">Type</TableCell>
-                    <TableCell>Properties</TableCell>
-                    <TableCell width="200">Augments/Crafting</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5}>
-                        <Typography variant="body2" color="text.secondary">
-                          No items found matching criteria.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredItems.map((item) => {
-                      const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
-                      const wikiUrl = getWikiUrl(item.url)
-                      return (
-                        <TableRow key={itemKey} hover>
-                          <TableCell>{item.ml}</TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {highlightText(item.name, searchText)}
-                              </Typography>
-                              {wikiUrl && (
-                                <Tooltip title="Open in DDO Wiki">
-                                  <Link
-                                    href={wikiUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    color="inherit"
-                                    sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-                                  >
-                                    <OpenInNewIcon sx={{ fontSize: 16 }} />
-                                  </Link>
-                                </Tooltip>
-                              )}
-                            </Box>
-                            {item.slot && (item.slot === 'Weapon' || item.slot === 'Offhand') && (
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                {item.slot}
-                              </Typography>
-                            )}
-                            {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
-                          </TableCell>
-                          <TableCell>{highlightText((item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand') ? item.slot : (item.type || ''), searchText)}</TableCell>
-                          <TableCell>
-                            <ul style={{ margin: 0, paddingLeft: 20 }}>
-                              {item.affixes.map((affix, idx) => (
-                                <li key={idx}>
-                                  <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-                                    {formatAffix(affix, searchText)}
-                                  </Typography>
-                                </li>
-                              ))}
-                              {(() => {
-                                const setName = item.sets?.[0]
-                                return setName ? (
-                                  <li>
-                                    <Tooltip
-                                      title={
-                                        <Box>
-                                          {setsData && (setsData as any)[setName]?.map((setItem: any, idx: number) => (
-                                            <Box key={idx} sx={{ mb: idx < (setsData as any)[setName].length - 1 ? 2 : 0 }}>
-                                              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                                                {setItem.threshold} Piece{setItem.threshold > 1 ? 's' : ''} Equipped:
-                                              </Typography>
-                                              <ul style={{ margin: 0, paddingLeft: 20 }}>
-                                                {setItem.affixes?.map((affix: any) => formatAffix(affix)).map((effect: string) => (
-                                                  <li key={effect} style={{ fontSize: '0.75rem' }}>
-                                                    {effect}
-                                                  </li>
-                                                ))}
-                                              </ul>
-                                            </Box>
-                                          ))}
-                                        </Box>
-                                      }
-                                    >
-                                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', cursor: 'pointer', border: 1, borderColor: 'primary.main', px: 0.5, borderRadius: 0.5 }}>
-                                        {setName}
-                                      </Typography>
-                                    </Tooltip>
-                                  </li>
-                                ) : null
-                              })()}
-                            </ul>
-                          </TableCell>
-                          <TableCell>
-                            <ul style={{ margin: 0, paddingLeft: 20 }}>
-                              {item.crafting?.map((craft, idx) => {
-                                const bgColor = getAugmentColor(craft)
-                                const options = getCraftingOptions(craft)
-                                const content = bgColor ? (
-                                  <Box component="span" sx={{
-                                    bgcolor: bgColor,
-                                    color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
-                                    px: 0.5,
-                                    borderRadius: 0.5,
-                                    fontSize: '0.75rem',
-                                    display: 'inline-block',
-                                    lineHeight: 1.2
-                                  }}>
-                                    {craft}
-                                  </Box>
-                                ) : (
-                                  <Typography variant="body2" color="info.main" sx={{ fontSize: '0.8125rem' }}>
-                                    {craft}
-                                  </Typography>
-                                )
-                                return (
-                                  <li key={`craft-${idx}`}>
-                                    {options.length > 0 ? (
-                                      <Tooltip
-                                        title={
-                                          <Box>
-                                            {options[0]?.endsWith(':') ? (
-                                              <>
-                                                <Typography variant="body2" fontWeight="bold">{options[0].slice(0, -1)}</Typography>
-                                                <ul style={{ margin: 0, paddingLeft: 20 }}>
-                                                  {options.slice(1).map((name: string) => (
-                                                    <li key={name} style={{ fontSize: '0.75rem' }}>
-                                                      {name.slice(2)}
-                                                    </li>
-                                                  ))}
-                                                </ul>
-                                              </>
-                                            ) : (
-                                              <ul style={{ margin: 0, paddingLeft: 20 }}>
-                                                {options.map((name: string) => (
-                                                  <li key={name} style={{ fontSize: '0.75rem' }}>
-                                                    {name}
-                                                  </li>
-                                                ))}
-                                              </ul>
-                                            )}
-                                          </Box>
-                                        }
-                                      >
-                                        {content}
-                                      </Tooltip>
-                                    ) : (
-                                      content
-                                    )}
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </>
+          <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} />
         )}
       </DialogContent>
     </Dialog>
