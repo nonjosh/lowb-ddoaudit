@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
   IconButton,
   InputLabel,
@@ -24,9 +25,10 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography
 } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 interface ItemLootDialogProps {
   open: boolean
@@ -40,6 +42,8 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   const [effectFilter, setEffectFilter] = useState<string[]>([])
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
   const [areaName, setAreaName] = useState<string | null>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
+  const [tableHeadTop, setTableHeadTop] = useState('40px')
 
   useEffect(() => {
     if (open && questName) {
@@ -59,22 +63,45 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     }
   }, [open, questName])
 
+  useEffect(() => {
+    if (boxRef.current) {
+      const height = boxRef.current.offsetHeight
+      setTableHeadTop(`${height}px`)
+    }
+  }, [nameFilter, typeFilter, effectFilter]) // update when filters change, as height might change
+
   const items = useMemo(() => getItemsForQuest(questName), [questName])
 
   const uniqueTypes = useMemo(() => {
-    const types = new Set<string>()
+    const typeMap = new Map<string, { count: number, slot: string }>()
     items.forEach(item => {
-      if (item.type) types.add(item.type)
+      const key = item.type || 'Unknown'
+      const existing = typeMap.get(key)
+      if (existing) {
+        existing.count++
+      } else {
+        typeMap.set(key, { count: 1, slot: item.slot || '' })
+      }
     })
-    return Array.from(types).sort()
+    return Array.from(typeMap.entries()).map(([type, { count, slot }]) => {
+      const isWeapon = slot === 'Weapon'
+      const category = isWeapon ? 2 : (slot === 'Offhand' ? 1 : 0)
+      const display = slot === 'Offhand' ? type : (slot && slot !== 'Weapon' ? slot : type)
+      return { type, count, display, category }
+    }).sort((a, b) => {
+      if (a.category !== b.category) return a.category - b.category
+      return a.display.localeCompare(b.display)
+    })
   }, [items])
 
   const uniqueEffects = useMemo(() => {
-    const effects = new Set<string>()
+    const effectCount = new Map<string, number>()
     items.forEach(item => {
-      item.affixes.forEach(affix => effects.add(affix.name))
+      item.affixes.forEach(affix => {
+        effectCount.set(affix.name, (effectCount.get(affix.name) || 0) + 1)
+      })
     })
-    return Array.from(effects).sort()
+    return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
   }, [items])
 
   const filteredItems = useMemo(() => {
@@ -131,80 +158,97 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box>
-            <Typography variant="h6" component="div">
-              {questName}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="h6" component="div">
+                {questName}
+              </Typography>
+              {questInfo?.type === 'Raid' && <Chip label="Raid" size="small" variant="outlined" sx={{ ml: 1 }} />}
+            </Box>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-              {questInfo?.type && <Chip label={questInfo.type} size="small" variant="outlined" />}
               {questInfo?.level && <Chip label={`Level ${questInfo.level}`} size="small" color="primary" variant="outlined" />}
               {areaName && <Typography variant="caption" color="text.secondary">{areaName}</Typography>}
             </Stack>
           </Box>
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{ color: 'grey.500' }}
-          >
-            <CloseIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {questInfo?.required_adventure_pack && (
+              <Typography variant="caption" color="text.secondary">
+                {questInfo.required_adventure_pack}
+              </Typography>
+            )}
+            <IconButton
+              aria-label="close"
+              onClick={onClose}
+              sx={{ color: 'grey.500' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <Box sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', pb: 2, pt: 1, borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              label="Filter by Name"
-              variant="outlined"
-              size="small"
-              value={nameFilter}
-              onChange={(e) => setNameFilter(e.target.value)}
-              fullWidth
-            />
-            <FormControl size="small" fullWidth>
-              <InputLabel>Filter by Type</InputLabel>
-              <Select
-                multiple
-                value={typeFilter}
-                input={<OutlinedInput label="Filter by Type" />}
-                renderValue={(selected) => selected.join(', ')}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setTypeFilter(typeof value === 'string' ? value.split(',') : value)
-                }}
-              >
-                {uniqueTypes.map(type => (
-                  <MenuItem key={type} value={type}>{type}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" fullWidth>
-              <InputLabel>Filter by Effect</InputLabel>
-              <Select
-                multiple
-                value={effectFilter}
-                input={<OutlinedInput label="Filter by Effect" />}
-                renderValue={(selected) => selected.join(', ')}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setEffectFilter(typeof value === 'string' ? value.split(',') : value)
-                }}
-              >
-                {uniqueEffects.map(effect => (
-                  <MenuItem key={effect} value={effect}>{effect}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
-        </Box>
-
         {filteredItems.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             No items found matching criteria.
           </Typography>
         ) : (
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small" stickyHeader>
-              <TableHead>
+          <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+            <Box ref={boxRef} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Filter by Name"
+                  variant="outlined"
+                  size="small"
+                  value={nameFilter}
+                  onChange={(e) => setNameFilter(e.target.value)}
+                  fullWidth
+                />
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Filter by Type</InputLabel>
+                  <Select
+                    multiple
+                    value={typeFilter}
+                    input={<OutlinedInput label="Filter by Type" />}
+                    renderValue={(selected) => selected.join(', ')}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setTypeFilter(typeof value === 'string' ? value.split(',') : value)
+                    }}
+                  >
+                    {(() => {
+                      let prevCategory = -1
+                      return uniqueTypes.flatMap(({ type, count, display, category }) => {
+                        const items = []
+                        if (category !== prevCategory && prevCategory !== -1) {
+                          items.push(<Divider key={`divider-${type}`} />)
+                        }
+                        items.push(<MenuItem key={type} value={type}>{display} ({count})</MenuItem>)
+                        prevCategory = category
+                        return items
+                      })
+                    })()}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Filter by Effect</InputLabel>
+                  <Select
+                    multiple
+                    value={effectFilter}
+                    input={<OutlinedInput label="Filter by Effect" />}
+                    renderValue={(selected) => selected.join(', ')}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setEffectFilter(typeof value === 'string' ? value.split(',') : value)
+                    }}
+                  >
+                    {uniqueEffects.map(({ effect, count }) => (
+                      <MenuItem key={effect} value={effect}>{effect} ({count})</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            </Box>
+            <Table size="small">
+              <TableHead sx={{ position: 'sticky', top: tableHeadTop, zIndex: 5, bgcolor: 'background.paper' }}>
                 <TableRow>
                   <TableCell width="60">ML</TableCell>
                   <TableCell width="250">Name</TableCell>
@@ -225,15 +269,17 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                             {item.name}
                           </Typography>
                           {wikiUrl && (
-                            <Link
-                              href={wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              color="inherit"
-                              sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-                            >
-                              <OpenInNewIcon sx={{ fontSize: 16 }} />
-                            </Link>
+                            <Tooltip title="Open in DDO Wiki">
+                              <Link
+                                href={wikiUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                color="inherit"
+                                sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                              >
+                                <OpenInNewIcon sx={{ fontSize: 16 }} />
+                              </Link>
+                            </Tooltip>
                           )}
                         </Box>
                         {item.slot && (
