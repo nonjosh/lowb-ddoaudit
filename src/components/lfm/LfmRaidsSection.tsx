@@ -1,4 +1,5 @@
 import { Quest } from '@/api/ddoAudit'
+import ItemLootButton from '@/components/items/ItemLootButton'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getDifficultyColor } from '@/domains/lfm/lfmHelpers'
 import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/quests/questHelpers'
@@ -351,9 +352,12 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                     <TableCell sx={{ maxWidth: 320 }}>
                       {l.questName ? (
                         <>
-                          <Typography variant="body2" noWrap>
-                            {l.questName}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="body2" noWrap sx={{ flex: 1 }}>
+                              {l.questName}
+                            </Typography>
+                            <ItemLootButton questName={l.questName} />
+                          </Box>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Typography variant="caption" color="text.secondary">
                               {typeof l.questLevel === 'number' ? `Quest Lv ${l.questLevel}` : 'Quest Lv —'}

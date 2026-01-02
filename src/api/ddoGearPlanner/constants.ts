@@ -1,0 +1,3 @@
+export const ITEMS_JSON_URL = 'https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/items.json'
+export const CRAFTING_JSON_URL = 'https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/crafting.json'
+export const SETS_JSON_URL = 'https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/sets.json'

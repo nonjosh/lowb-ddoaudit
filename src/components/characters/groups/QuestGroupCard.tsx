@@ -1,7 +1,9 @@
 import { Quest } from '@/api/ddoAudit'
+import ItemLootDialog from '@/components/items/ItemLootDialog'
 import { PlayerGroup } from '@/contexts/CharacterContext'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import { Box, List, ListSubheader, Paper, Typography } from '@mui/material'
+import { useState } from 'react'
 import PlayerRow from './PlayerRow'
 
 interface QuestGroupCardProps {
@@ -32,17 +34,20 @@ export default function QuestGroupCard({
   onPlayerClick,
   onLfmClick,
 }: QuestGroupCardProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const showPackLine = !!packName || !!levelInfo
 
   return (
     <Paper variant="outlined" sx={{ mb: 2, overflow: 'hidden', borderColor: 'info.main' }}>
-      <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
+      <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, cursor: 'pointer' }} onClick={() => setDialogOpen(true)}>
         <Box sx={{ display: 'flex', alignItems: showPackLine ? 'flex-start' : 'center', gap: 1 }}>
           <EmojiEventsOutlinedIcon sx={{ fontSize: 18, mt: showPackLine ? '2px' : 0 }} />
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-              {questName.replace(/ \((Heroic|Epic)\)$/, '')}
-            </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
+                {questName.replace(/ \((Heroic|Epic)\)$/, '')}
+              </Typography>
+            </Box>
             {levelInfo && (
               <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
                 {levelInfo}
@@ -71,6 +76,11 @@ export default function QuestGroupCard({
           />
         ))}
       </List>
+      <ItemLootDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        questName={questName.replace(/ \((Heroic|Epic)\)$/, '')}
+      />
     </Paper>
   )
 }
