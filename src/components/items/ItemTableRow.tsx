@@ -68,12 +68,22 @@ export default function ItemTableRow({
           </Typography>
         )}
         {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
-        {raidNotes?.augments.some(augment => augment.includes(item.name)) && (
-          <Chip label="Soulforge" size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
-        )}
-        {raidNotes?.sets.some(set => set.includes(item.name)) && (
-          <Chip label="Set Augment" size="small" color="warning" variant="outlined" sx={{ mt: 0.5 }} />
-        )}
+        {(() => {
+          const augmentMatch = raidNotes?.augments.find(augment => augment.includes(item.name))
+          return augmentMatch ? (
+            <Tooltip title={augmentMatch.split(':').pop()?.trim()}>
+              <Chip label="Soulforge" size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
+            </Tooltip>
+          ) : null
+        })()}
+        {(() => {
+          const setMatch = raidNotes?.sets.find(set => set.includes(item.name))
+          return setMatch ? (
+            <Tooltip title={setMatch.split(':').pop()?.trim()}>
+              <Chip label="Set Augment" size="small" color="warning" variant="outlined" sx={{ mt: 0.5 }} />
+            </Tooltip>
+          ) : null
+        })()}
       </TableCell>
       <TableCell>{highlightText((item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand') ? item.slot : (item.type || ''), searchText)}</TableCell>
       <TableCell>
