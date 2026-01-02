@@ -1,4 +1,5 @@
 import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { RaidNotes } from '@/domains/raids/raidNotes'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
   Box,
@@ -17,6 +18,7 @@ interface ItemTableRowProps {
   item: Item
   searchText: string
   setsData: any
+  raidNotes: RaidNotes | null
   highlightText: (text: string, query: string) => string | React.ReactElement
   formatAffix: (affix: ItemAffix, query?: string) => string | React.ReactElement
   getWikiUrl: (url: string | undefined) => string | null
@@ -28,6 +30,7 @@ export default function ItemTableRow({
   item,
   searchText,
   setsData,
+  raidNotes,
   highlightText,
   formatAffix,
   getWikiUrl,
@@ -65,6 +68,12 @@ export default function ItemTableRow({
           </Typography>
         )}
         {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
+        {raidNotes?.augments.some(augment => augment.includes(item.name)) && (
+          <Chip label="Soulforge" size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
+        )}
+        {raidNotes?.sets.some(set => set.includes(item.name)) && (
+          <Chip label="Set Augment" size="small" color="warning" variant="outlined" sx={{ mt: 0.5 }} />
+        )}
       </TableCell>
       <TableCell>{highlightText((item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand') ? item.slot : (item.type || ''), searchText)}</TableCell>
       <TableCell>

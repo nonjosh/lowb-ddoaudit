@@ -1,4 +1,5 @@
 import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { RaidNotes } from '@/domains/raids/raidNotes'
 import {
   Paper,
   Table,
@@ -17,6 +18,7 @@ interface ItemLootTableProps {
   questItems: Item[]
   setsData: any
   craftingData: any
+  raidNotes: RaidNotes | null
 }
 
 interface CraftingItem {
@@ -30,7 +32,7 @@ interface CraftingAffix {
   value: number | string
 }
 
-export default function ItemLootTable({ questItems, setsData, craftingData }: ItemLootTableProps) {
+export default function ItemLootTable({ questItems, setsData, craftingData, raidNotes }: ItemLootTableProps) {
   const [searchText, setSearchText] = useState('')
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [effectFilter, setEffectFilter] = useState<string[]>([])
@@ -234,6 +236,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData }: It
                   item={item}
                   searchText={searchText}
                   setsData={setsData}
+                  raidNotes={raidNotes}
                   highlightText={highlightText}
                   formatAffix={formatAffix}
                   getWikiUrl={getWikiUrl}
