@@ -110,11 +110,20 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     })
     return Array.from(typeMap.entries()).map(([type, { count, slot }]) => {
       const isWeapon = slot === 'Weapon'
-      const category = isWeapon ? 2 : (slot === 'Offhand' ? 1 : 0)
-      const display = slot === 'Offhand' ? type : (slot && slot !== 'Weapon' ? slot : type)
+      const category = slot === 'Armor' ? -1 : (isWeapon ? 2 : (slot === 'Offhand' ? 1 : 0))
+      const display = (slot === 'Offhand' || slot === 'Armor') ? type : (slot && slot !== 'Weapon' ? slot : type)
       return { type, count, display, category }
     }).sort((a, b) => {
       if (a.category !== b.category) return a.category - b.category
+      if (a.category === -1) {
+        const order = ['Docents', 'Cloth armor', 'Light armor', 'Medium armor', 'Heavy armor']
+        const aIndex = order.indexOf(a.display)
+        const bIndex = order.indexOf(b.display)
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
+        if (aIndex !== -1) return -1
+        if (bIndex !== -1) return 1
+        return a.display.localeCompare(b.display)
+      }
       return a.display.localeCompare(b.display)
     })
   }, [questItems])
