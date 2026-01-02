@@ -16,6 +16,7 @@ export interface Item {
   crafting?: string[]
   url?: string
   sets?: string[]
+  artifact?: boolean
 }
 
 let itemsPromise: Promise<Item[]> | null = null

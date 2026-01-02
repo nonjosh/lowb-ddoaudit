@@ -353,6 +353,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                             {item.slot}
                           </Typography>
                         )}
+                        {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
                       </TableCell>
                       <TableCell>{item.type}</TableCell>
                       <TableCell>
