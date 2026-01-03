@@ -40,12 +40,14 @@ export default function ItemTableRow({
   const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
   const wikiUrl = getWikiUrl(item.url)
 
+  const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
+
   return (
     <TableRow key={itemKey} hover>
       <TableCell>{item.ml}</TableCell>
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography variant="body2" fontWeight="bold">
+          <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
             {highlightText(item.name, searchText)}
           </Typography>
           {wikiUrl && (

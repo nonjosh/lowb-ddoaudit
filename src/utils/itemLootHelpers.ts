@@ -10,9 +10,10 @@ export interface ItemAffix {
  * Find items that drop from a specific quest
  * @param items The array of items to search in
  * @param questName The quest name to search for
+ * @param craftingData The crafting data to also search for augments
  * @returns Array of items that drop from that quest
  */
-export function getItemsForQuest(items: Item[], questName: string): Item[] {
+export function getItemsForQuest(items: Item[], questName: string, craftingData?: any): Item[] {
   if (!questName) return []
 
   const normalizedQuestName = questName.trim().toLowerCase()
@@ -29,8 +30,45 @@ export function getItemsForQuest(items: Item[], questName: string): Item[] {
     })
   })
 
+  // Also search in crafting data for augments
+  const craftingMatches: Item[] = []
+  if (craftingData) {
+    for (const slot in craftingData) {
+      const slotData = craftingData[slot]
+      for (const subSlot in slotData) {
+        const subSlotItems = slotData[subSlot]
+        if (Array.isArray(subSlotItems)) {
+          for (const item of subSlotItems) {
+            if (item.quests && Array.isArray(item.quests)) {
+              const hasQuest = item.quests.some((q: string) => {
+                const normalizedQ = q.trim().toLowerCase()
+                return normalizedQ === normalizedQuestName ||
+                       normalizedQ.includes(normalizedQuestName) ||
+                       normalizedQuestName.includes(normalizedQ)
+              })
+              if (hasQuest) {
+                // Convert to Item format
+                craftingMatches.push({
+                  name: item.name,
+                  ml: item.ml,
+                  quests: item.quests,
+                  slot: 'Augment', // Use 'Augment' for slot
+                  affixes: item.affixes || [],
+                  type: slot, // Put the actual slot in type
+                  url: `/page/Item:${item.name.replace(/ /g, '_')}` // Add DDO wiki URL
+                })
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const allMatches = [...matches, ...craftingMatches]
+
   // Sort: exact matches first, then by minimum level descending, then by name
-  return matches.sort((a, b) => {
+  return allMatches.sort((a, b) => {
     // Check if either has an exact match
     const aExact = (a.quests ?? []).some((q) => q.trim().toLowerCase() === normalizedQuestName)
     const bExact = (b.quests ?? []).some((q) => q.trim().toLowerCase() === normalizedQuestName)

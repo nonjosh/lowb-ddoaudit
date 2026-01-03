@@ -58,7 +58,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
     }
   }, [open, questName])
 
-  const questItems = useMemo(() => getItemsForQuest(items, questName), [items, questName])
+  const questItems = useMemo(() => getItemsForQuest(items, questName, craftingData), [items, questName, craftingData])
 
   const raidNotes = getRaidNotesForRaidName(questName)
 

@@ -58,7 +58,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
   const uniqueTypes = useMemo(() => {
     const typeMap = new Map<string, { count: number, slot: string }>()
     questItems.forEach(item => {
-      const key = item.type || 'Unknown'
+      const key = item.slot === 'Augment' ? 'Augments' : (item.type || 'Unknown')
       const existing = typeMap.get(key)
       if (existing) {
         existing.count++
@@ -68,7 +68,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     })
     return Array.from(typeMap.entries()).map(([type, { count, slot }]) => {
       const isWeapon = slot === 'Weapon'
-      const category = slot === 'Armor' ? -1 : (isWeapon ? 2 : (slot === 'Offhand' ? 1 : 0))
+      const category = slot === 'Armor' ? -1 : (isWeapon ? 2 : (slot === 'Offhand' ? 1 : (type === 'Augments' ? -2 : 0)))
       const display = (slot === 'Offhand' || slot === 'Armor') ? type : (slot && slot !== 'Weapon' ? slot : type)
       return { type, count, display, category }
     }).sort((a, b) => {
@@ -142,7 +142,12 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     return questItems.filter(item => {
       const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
-      const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
+      const matchesType = typeFilter.length === 0 || (() => {
+        if (item.slot === 'Augment') {
+          return typeFilter.includes('Augments')
+        }
+        return item.type && typeFilter.includes(item.type)
+      })()
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
       const matchesML = mlFilter.length === 0 || mlFilter.includes(item.ml.toString())
       return matchesSearch && matchesType && matchesEffect && matchesML
