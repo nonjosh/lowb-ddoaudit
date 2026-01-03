@@ -48,6 +48,7 @@ interface LfmGroup {
   maxPlayers?: number
   isRaid: boolean
   questId: string
+  postedAt?: string | null
 }
 
 interface LfmParticipantsDialogProps {
@@ -60,6 +61,24 @@ interface LfmParticipantsDialogProps {
 export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons, selectedRaidData }: LfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [collapsedPlayers, setCollapsedPlayers] = useState<Set<string>>(new Set())
+
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} min`
+    }
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+  }
+
+  const getPostedMinutes = (postedAt: string | null): number | null => {
+    if (!postedAt) return null
+    const nowMs = Date.now()
+    const updateMs = Date.parse(postedAt)
+    if (isNaN(updateMs)) return null
+    const diffMs = nowMs - updateMs
+    return Math.max(0, Math.round(diffMs / 1000 / 60))
+  }
 
   useEffect(() => {
     if (selectedRaidData?.perPlayerEligible) {
@@ -134,11 +153,21 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
                 </Typography>
               )}
             </Stack>
-            {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
-              <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 600 }}>
-                Active {selectedLfm.adventureActiveMinutes} min
-              </Typography>
-            ) : null}
+            <Stack direction="column" alignItems="flex-end" spacing={0.5}>
+              {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
+                <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 600 }}>
+                  Active {formatDuration(selectedLfm.adventureActiveMinutes)}
+                </Typography>
+              ) : null}
+              {(() => {
+                const postedMinutes = getPostedMinutes(selectedLfm?.postedAt ?? null)
+                return typeof postedMinutes === 'number' ? (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Posted {formatDuration(postedMinutes)} ago
+                  </Typography>
+                ) : null
+              })()}
+            </Stack>
           </Stack>
         </Box>
       </DialogTitle>

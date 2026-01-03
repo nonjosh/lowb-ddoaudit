@@ -167,6 +167,21 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         new Set(groupNames.map(getPlayerName).filter((p) => EXPECTED_PLAYERS.includes(p))),
       ).sort((a, b) => a.localeCompare(b))
 
+      let postedTimestamp: string | null = null
+      if (lfm?.activity && Array.isArray(lfm.activity)) {
+        for (const act of lfm.activity) {
+          if (act.events && Array.isArray(act.events)) {
+            for (const event of act.events) {
+              if (event.tag === 'posted') {
+                postedTimestamp = act.timestamp
+                break
+              }
+            }
+            if (postedTimestamp) break
+          }
+        }
+      }
+
       normalized.push({
         id: String(lfm?.id ?? questId),
         questId,
@@ -193,7 +208,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         majorityGuildCount,
         hasMajorityGuild,
         leaderGuildIsMajority,
-        lastUpdate: lfm?.last_update ?? null,
+        postedAt: postedTimestamp,
         hasFriendInside,
         friendPlayersInside,
       })
@@ -223,8 +238,8 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       const bLevel = typeof b.questLevel === 'number' ? b.questLevel : -1
       if (aLevel !== bLevel) return bLevel - aLevel
 
-      const aTs = a.lastUpdate ? new Date(a.lastUpdate).getTime() : 0
-      const bTs = b.lastUpdate ? new Date(b.lastUpdate).getTime() : 0
+      const aTs = a.postedAt ? new Date(a.postedAt).getTime() : 0
+      const bTs = b.postedAt ? new Date(b.postedAt).getTime() : 0
       if (aTs !== bTs) return bTs - aTs
 
       return a.questName.localeCompare(b.questName)
