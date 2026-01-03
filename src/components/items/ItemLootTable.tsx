@@ -19,6 +19,7 @@ interface ItemLootTableProps {
   setsData: any
   craftingData: any
   raidNotes: RaidNotes | null
+  questLevel?: number
 }
 
 interface CraftingItem {
@@ -32,10 +33,18 @@ interface CraftingAffix {
   value: number | string
 }
 
-export default function ItemLootTable({ questItems, setsData, craftingData, raidNotes }: ItemLootTableProps) {
+export default function ItemLootTable({ questItems, setsData, craftingData, raidNotes, questLevel }: ItemLootTableProps) {
   const [searchText, setSearchText] = useState('')
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [effectFilter, setEffectFilter] = useState<string[]>([])
+  const [mlFilter, setMlFilter] = useState<string[]>(() => {
+    if (!questLevel) return []
+    const minML = questLevel - 6
+    return questItems
+      .filter(item => item.ml > minML)
+      .map(item => item.ml.toString())
+      .filter((value, index, self) => self.indexOf(value) === index) // unique
+  })
   const boxRef = useRef<HTMLDivElement>(null)
   const [tableHeadTop, setTableHeadTop] = useState('50px')
 
@@ -44,7 +53,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
       const height = boxRef.current.offsetHeight
       setTableHeadTop(`${height}px`)
     }
-  }, [searchText, typeFilter, effectFilter])
+  }, [searchText, typeFilter, effectFilter, mlFilter])
 
   const uniqueTypes = useMemo(() => {
     const typeMap = new Map<string, { count: number, slot: string }>()
@@ -87,6 +96,14 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
   }, [questItems])
 
+  const uniqueMLs = useMemo(() => {
+    const mlCount = new Map<number, number>()
+    questItems.forEach(item => {
+      mlCount.set(item.ml, (mlCount.get(item.ml) || 0) + 1)
+    })
+    return Array.from(mlCount.entries()).map(([ml, count]) => ({ ml, count })).sort((a, b) => a.ml - b.ml)
+  }, [questItems])
+
   const highlightText = (text: string, query: string) => {
     if (!query) return text
     const lowerText = text.toLowerCase()
@@ -127,9 +144,10 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
       const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
-      return matchesSearch && matchesType && matchesEffect
+      const matchesML = mlFilter.length === 0 || mlFilter.includes(item.ml.toString())
+      return matchesSearch && matchesType && matchesEffect && matchesML
     })
-  }, [questItems, searchText, typeFilter, effectFilter])
+  }, [questItems, searchText, typeFilter, effectFilter, mlFilter])
 
   const getWikiUrl = (url: string | undefined) => {
     if (!url) return null
@@ -209,6 +227,9 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
           setEffectFilter={setEffectFilter}
           uniqueTypes={uniqueTypes}
           uniqueEffects={uniqueEffects}
+          mlFilter={mlFilter}
+          setMlFilter={setMlFilter}
+          uniqueMLs={uniqueMLs}
         />
         <Table size="small">
           <TableHead sx={{ position: 'sticky', top: tableHeadTop, zIndex: 5, bgcolor: 'background.paper' }}>

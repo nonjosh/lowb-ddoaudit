@@ -20,6 +20,9 @@ interface ItemTableFiltersProps {
   setEffectFilter: (value: string[]) => void
   uniqueTypes: Array<{ type: string; count: number; display: string; category: number }>
   uniqueEffects: Array<{ effect: string; count: number }>
+  mlFilter: string[]
+  setMlFilter: (value: string[]) => void
+  uniqueMLs: Array<{ ml: number; count: number }>
 }
 
 const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
@@ -30,7 +33,10 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
   effectFilter,
   setEffectFilter,
   uniqueTypes,
-  uniqueEffects
+  uniqueEffects,
+  mlFilter,
+  setMlFilter,
+  uniqueMLs
 }, ref) => {
   return (
     <Box ref={ref} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0, pt: 1.5, px: 1 }}>
@@ -86,6 +92,25 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
             ))}
           </Select>
         </FormControl>
+        {uniqueMLs.length > 1 && (
+          <FormControl size="small" fullWidth>
+            <InputLabel>Filter by ML</InputLabel>
+            <Select
+              multiple
+              value={mlFilter}
+              input={<OutlinedInput label="Filter by ML" />}
+              renderValue={(selected) => selected.join(', ')}
+              onChange={(e) => {
+                const value = e.target.value
+                setMlFilter(typeof value === 'string' ? value.split(',') : value)
+              }}
+            >
+              {uniqueMLs.sort((a, b) => b.ml - a.ml).map(({ ml, count }) => (
+                <MenuItem key={ml} value={ml.toString()}>{ml} ({count})</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
       </Stack>
     </Box>
   )

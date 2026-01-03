@@ -113,7 +113,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
         ) : (
           <>
             <RaidNotesDisplay raidNotes={raidNotes} />
-            <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} />
+            <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} questLevel={questInfo?.level ?? undefined} />
           </>
         )}
       </DialogContent>
