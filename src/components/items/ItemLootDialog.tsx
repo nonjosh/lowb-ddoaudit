@@ -62,6 +62,8 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
 
   const raidNotes = getRaidNotesForRaidName(questName)
 
+  const dialogContentSx = questItems.length > 7 ? { minHeight: '60vh' } : {}
+
   return (
     <Dialog
       open={open}
@@ -100,7 +102,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
           </Box>
         </Box>
       </DialogTitle>
-      <DialogContent dividers sx={{ minHeight: '60vh' }}>
+      <DialogContent dividers sx={dialogContentSx}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress />
