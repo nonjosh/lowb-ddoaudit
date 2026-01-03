@@ -1,5 +1,6 @@
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
+import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
 import { getItemsForQuest } from '@/utils/itemLootHelpers'
@@ -80,6 +81,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
                 {questName}
               </Typography>
               {questInfo?.type === 'Raid' && <Chip label="Raid" size="small" variant="outlined" sx={{ ml: 1 }} />}
+              <DdoWikiLink questName={questName} />
             </Box>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
               {questInfo?.level && <Chip label={`Level ${questInfo.level}`} size="small" color="primary" variant="outlined" />}

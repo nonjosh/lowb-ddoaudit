@@ -1,10 +1,9 @@
 import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { RaidNotes } from '@/domains/raids/raidNotes'
-import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
   Box,
   Chip,
-  Link,
   TableCell,
   TableRow,
   Tooltip,
@@ -50,19 +49,7 @@ export default function ItemTableRow({
           <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
             {highlightText(item.name, searchText)}
           </Typography>
-          {wikiUrl && (
-            <Tooltip title="Open in DDO Wiki">
-              <Link
-                href={wikiUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                color="inherit"
-                sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-              >
-                <OpenInNewIcon sx={{ fontSize: 16 }} />
-              </Link>
-            </Tooltip>
-          )}
+          {wikiUrl && <DdoWikiLink wikiUrl={wikiUrl} />}
         </Box>
         {item.slot && (item.slot === 'Weapon' || item.slot === 'Offhand') && (
           <Typography variant="caption" color="text.secondary" display="block">

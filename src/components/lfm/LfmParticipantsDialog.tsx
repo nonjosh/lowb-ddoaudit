@@ -12,15 +12,16 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Typography,
+  Typography
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 
 import { fetchAreasById } from '@/api/ddoAudit'
+import ItemLootButton from '@/components/items/ItemLootButton'
+import RaidTimerTable from '@/components/raids/RaidTimerTable'
+import ClassDisplay from '@/components/shared/ClassDisplay'
+import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { EXPECTED_PLAYERS } from '@/config/characters'
-import ItemLootButton from '../items/ItemLootButton'
-import RaidTimerTable from '../raids/RaidTimerTable'
-import ClassDisplay from '../shared/ClassDisplay'
 
 interface LfmParticipant {
   characterName: string
@@ -103,6 +104,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
                 )}
               </Typography>
               {selectedLfm?.questName && <ItemLootButton questName={selectedLfm.questName} />}
+              {selectedLfm?.questName && <DdoWikiLink questName={selectedLfm.questName} />}
             </Box>
             {selectedLfm?.adventurePack && (
               <Typography variant="caption" color="text.secondary">
