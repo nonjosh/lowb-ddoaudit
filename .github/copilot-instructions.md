@@ -23,10 +23,11 @@ This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online
 
 ## Workflows
 
-- **Development**: `npm run dev` starts Vite dev server (listens on all interfaces for dev containers).
+- **Development**: The devcontainer automatically starts `npm run dev` in the terminal after attaching (listens on all interfaces). Do not start `npm run dev` or `npm run preview` during conversations.
 - **Build**: `npm run build` for production (sets base path for GitHub Pages).
 - **Linting**: `npm run lint` uses ESLint with React hooks and refresh plugins.
 - **Preview**: `npm run preview` serves built app.
+- **Error Checking**: After substantive changes, use `npm run build` or the get_errors tool to check for TypeScript compilation and linting errors. Fix any issues before proceeding.
 
 ## External Dependencies
 

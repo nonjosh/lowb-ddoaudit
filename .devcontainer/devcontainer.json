@@ -14,6 +14,9 @@
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "npm install",
 
+	// Use 'postAttachCommand' to run commands after attaching to the container.
+	"postAttachCommand": "npm run dev",
+
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
