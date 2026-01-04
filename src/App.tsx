@@ -209,7 +209,7 @@ function App() {
   }, [resetIdleTimer])
 
   return (
-    <CharacterProvider charactersById={charactersById} lfms={lfmsById}>
+    <CharacterProvider charactersById={charactersById} lfms={lfmsById} raidActivity={raidActivity} questsById={questsById}>
       <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
         <Controls
           loading={loading}

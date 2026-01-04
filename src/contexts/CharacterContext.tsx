@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo } from 'react'
 
 import { getPlayerName } from '@/domains/raids/raidLogic'
+import { Quest } from '@/api/ddoAudit'
 
 export interface Character {
   id: string
@@ -22,6 +23,8 @@ interface CharacterContextType {
   charactersByPlayer: PlayerGroup[]
   isPlayerOnline: (playerName: string) => boolean
   lfms: Record<string, any>
+  raidActivity: any[]
+  questsById: Record<string, Quest>
 }
 
 const CharacterContext = createContext<CharacterContextType | null>(null)
@@ -37,10 +40,12 @@ export function useCharacter() {
 interface CharacterProviderProps {
   charactersById: Record<string, any>
   lfms?: Record<string, any>
+  raidActivity: any[]
+  questsById: Record<string, Quest>
   children: React.ReactNode
 }
 
-export function CharacterProvider({ charactersById, lfms = {}, children }: CharacterProviderProps) {
+export function CharacterProvider({ charactersById, lfms = {}, raidActivity, questsById, children }: CharacterProviderProps) {
   const charactersByPlayer = useMemo(() => {
     const entries = Object.entries(charactersById ?? {})
 
@@ -89,6 +94,8 @@ export function CharacterProvider({ charactersById, lfms = {}, children }: Chara
         charactersByPlayer,
         isPlayerOnline,
         lfms,
+        raidActivity,
+        questsById,
       }}
     >
       {children}

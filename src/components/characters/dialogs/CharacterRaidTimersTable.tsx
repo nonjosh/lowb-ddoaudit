@@ -1,6 +1,5 @@
 import {
   Box,
-  CircularProgress,
   Table,
   TableBody,
   TableCell,
@@ -10,18 +9,15 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchQuestsById, fetchRaidActivity, Quest } from '@/api/ddoAudit'
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
+import { useCharacter } from '@/contexts/CharacterContext'
 
 interface CharacterRaidTimersTableProps {
   character: any
 }
 
 export default function CharacterRaidTimersTable({ character }: CharacterRaidTimersTableProps) {
-  const [questsByIdLocal, setQuestsByIdLocal] = useState<Record<string, Quest>>({})
-  const [raidActivity, setRaidActivity] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [hasFetched, setHasFetched] = useState(false)
+  const { raidActivity, questsById } = useCharacter()
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -29,45 +25,8 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
     return () => clearInterval(id)
   }, [])
 
-  useEffect(() => {
-    if (!character?.id) return
-
-    let mounted = true
-    setLoading(true)
-    setHasFetched(false)
-
-    fetchRaidActivity([character.id])
-      .then((activity) => {
-        if (!mounted) return
-        setRaidActivity(activity)
-        setHasFetched(true)
-      })
-      .catch(() => {
-        if (!mounted) return
-        setRaidActivity([])
-        setHasFetched(true)
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
-
-    return () => { mounted = false }
-  }, [character?.id])
-
-  useEffect(() => {
-    let mounted = true
-    fetchQuestsById().then((q) => {
-      if (!mounted) return
-      setQuestsByIdLocal(q ?? {})
-    }).catch(() => {
-      if (!mounted) return
-      setQuestsByIdLocal({})
-    })
-    return () => { mounted = false }
-  }, [])
-
   const timerEntries = useMemo(() => {
-    if (!character?.id || !hasFetched) return []
+    if (!character?.id) return []
 
     // Track the latest timestamp for each quest_id
     const questTimers = new Map<string, { questId: string; raidName: string; questLevel: number | null; lastTimestamp: string }>()
@@ -85,7 +44,7 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
         const questId = String(questIdRaw)
         if (!questId) continue
 
-        const quest = questsByIdLocal?.[questId]
+        const quest = questsById?.[questId]
         const raidName = quest?.name ?? `Unknown quest (${questId})`
         const questLevel = quest?.level ?? null
 
@@ -112,49 +71,42 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
     })
 
     return entries
-  }, [raidActivity, questsByIdLocal, character, hasFetched, now])
+  }, [raidActivity, questsById, character, now])
 
   // Don't render anything if no timers
-  if (!timerEntries.length && hasFetched && !loading) {
+  if (!timerEntries.length) {
     return null
   }
 
   return (
     <Box sx={{ mt: 1, mb: 2 }}>
-      {loading && !hasFetched && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-          <CircularProgress size={16} />
-        </Box>
-      )}
-      {timerEntries.length > 0 && (
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Raid Name ({timerEntries.length})</TableCell>
-                <TableCell>Time Remaining</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {timerEntries.map((entry) => {
-                return (
-                  <TableRow key={`${entry.questId}-${entry.lastTimestamp}`}>
-                    <TableCell>{entry.raidName}</TableCell>
-                    <TableCell>
-                      <TimeRemainingDisplay
-                        characterId={character.id}
-                        lastTimestamp={entry.lastTimestamp}
-                        available={false}
-                        showIgnoreButton={false}
-                      />
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Raid Name ({timerEntries.length})</TableCell>
+              <TableCell>Time Remaining</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {timerEntries.map((entry) => {
+              return (
+                <TableRow key={`${entry.questId}-${entry.lastTimestamp}`}>
+                  <TableCell>{entry.raidName}</TableCell>
+                  <TableCell>
+                    <TimeRemainingDisplay
+                      characterId={character.id}
+                      lastTimestamp={entry.lastTimestamp}
+                      available={false}
+                      showIgnoreButton={false}
+                    />
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   )
 }
