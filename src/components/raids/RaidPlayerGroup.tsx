@@ -3,75 +3,21 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
-import RestoreIcon from '@mui/icons-material/Restore'
 import { Box, Collapse, IconButton, Table, TableBody, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
-import { memo, useEffect, useState } from 'react'
+import { memo } from 'react'
 
-import {
-  addIgnoredTimer,
-  addMs,
-  formatLocalDateTime,
-  formatTimeRemaining,
-  isTimerIgnored,
-  RAID_LOCKOUT_MS,
-  removeIgnoredTimer,
-} from '@/api/ddoAudit'
+import { addMs, formatLocalDateTime, formatTimeRemaining, isTimerIgnored, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
 import { useCharacter } from '@/contexts/CharacterContext'
 import { useConfig } from '@/contexts/ConfigContext'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '@/domains/raids/raidLogic'
 import CharacterNamesWithClassTooltip from '../shared/CharacterNamesWithClassTooltip'
 import ClassDisplay from '../shared/ClassDisplay'
+import TimeRemainingDisplay from '../shared/TimeRemainingDisplay'
 
 interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup
   collapsed: boolean
   onToggleCollapsed: (playerName: string) => void
-}
-
-function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string; lastTimestamp: string | null; sx?: any }) {
-  const [_version, setVersion] = useState(0)
-
-  useEffect(() => {
-    const handler = () => setVersion((v) => v + 1)
-    window.addEventListener('ddoaudit:ignoredTimersChanged', handler)
-    return () => window.removeEventListener('ddoaudit:ignoredTimersChanged', handler)
-  }, [])
-
-  const ignored = (() => {
-    try { return isTimerIgnored(characterId, lastTimestamp) } catch (err) { return false }
-  })()
-
-  if (ignored) {
-    return (
-      <Tooltip title="Restore this timer (undo ignore)">
-        <IconButton
-          size="small"
-          sx={sx}
-          onClick={(e) => {
-            e.stopPropagation()
-            try { removeIgnoredTimer(characterId, lastTimestamp) } catch (err) { /* ignore */ }
-          }}
-        >
-          <RestoreIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    )
-  }
-
-  return (
-    <Tooltip title="Ignore this timer (show character as available)">
-      <IconButton
-        size="small"
-        sx={sx}
-        onClick={(e) => {
-          e.stopPropagation()
-          try { addIgnoredTimer(characterId, lastTimestamp) } catch (err) { /* ignore */ }
-        }}
-      >
-        <CancelIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
-  )
 }
 
 function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlayerGroupProps) {
@@ -239,15 +185,6 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlay
                     try { return isTimerIgnored(e.characterId, e.lastTimestamp) } catch (err) { return false }
                   })()
                   const available = ignored || isEntryAvailable(e, now)
-                  const lastCompletionText = formatLocalDateTime(e.lastTimestamp)
-                  const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
-                  const remaining = ignored ? NaN : (readyAt ? readyAt.getTime() - nowTime : NaN)
-
-                  const tooltipTitle = available ? null : (
-                    <Box>
-                      <Typography variant="body2">Last completion: {lastCompletionText}</Typography>
-                    </Box>
-                  )
 
                   return (
                     <TableRow key={e.characterId} hover>
@@ -285,28 +222,11 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlay
                         <Typography variant="body2">{e.race}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Tooltip title={tooltipTitle}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" sx={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              {formatTimeRemaining(remaining)}
-                              {!Number.isFinite(remaining) && <CheckCircleIcon color="success" sx={{ width: 14, height: 14 }} />}
-                            </Typography>
-                            {!available && readyAt ? (
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                {formatLocalDateTime(readyAt)}
-                              </Typography>
-                            ) : null}
-
-                            {/* Delete / ignore timer button (client-only) */}
-                            {e.lastTimestamp ? (
-                              <IgnoreButton
-                                characterId={e.characterId}
-                                lastTimestamp={e.lastTimestamp}
-                                sx={{ ml: 'auto' }}
-                              />
-                            ) : null}
-                          </Box>
-                        </Tooltip>
+                        <TimeRemainingDisplay
+                          characterId={e.characterId}
+                          lastTimestamp={e.lastTimestamp}
+                          available={available}
+                        />
                       </TableCell>
                     </TableRow>
                   )

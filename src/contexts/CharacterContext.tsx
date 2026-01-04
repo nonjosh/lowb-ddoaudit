@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo } from 'react'
 import { getPlayerName } from '../domains/raids/raidLogic'
 
 export interface Character {
+  id: string
   name: string
   is_online: boolean
   location_id: string
@@ -40,13 +41,13 @@ interface CharacterProviderProps {
 
 export function CharacterProvider({ charactersById, lfms = {}, children }: CharacterProviderProps) {
   const charactersByPlayer = useMemo(() => {
-    const values = Object.values(charactersById ?? {})
+    const entries = Object.entries(charactersById ?? {})
 
     const map = new Map<string, Character[]>()
-    for (const c of values) {
+    for (const [id, c] of entries) {
       const player = getPlayerName(c?.name)
       const arr = map.get(player) ?? []
-      arr.push(c)
+      arr.push({ ...c, id })
       map.set(player, arr)
     }
 
