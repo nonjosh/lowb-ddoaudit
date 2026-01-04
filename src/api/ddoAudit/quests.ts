@@ -37,9 +37,8 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
       const pack = String(q?.required_adventure_pack ?? '').trim() || null
 
       const primaryId = String(q?.id ?? '').trim()
-      const altId = String(q?.alt_id ?? '').trim()
       const areaId = String(q?.area_id ?? '').trim()
-      const ids = new Set([primaryId, altId, areaId].filter((x) => x && x.toLowerCase() !== 'null' && x !== '0'))
+      const ids = new Set([primaryId, areaId].filter((x) => x && x.toLowerCase() !== 'null' && x !== '0'))
 
       if (!name || ids.size === 0) continue
 
