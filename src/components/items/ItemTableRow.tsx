@@ -74,7 +74,7 @@ export default function ItemTableRow({
           ) : null
         })()}
       </TableCell>
-      <TableCell>{highlightText((item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand') ? item.slot : (item.type || ''), searchText)}</TableCell>
+      <TableCell>{highlightText((item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand') ? (item.slot === 'Augment' ? `Augment (${item.type})` : item.slot) : (item.type || ''), searchText)}</TableCell>
       <TableCell>
         <ul style={{ margin: 0, paddingLeft: 20 }}>
           {item.affixes.map((affix, idx) => (
