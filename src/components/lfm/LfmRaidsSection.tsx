@@ -1,9 +1,7 @@
 import { Quest } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
-import { EXPECTED_PLAYERS } from '@/config/characters'
-import { getDifficultyColor } from '@/domains/lfm/lfmHelpers'
-import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/quests/questHelpers'
-import { formatClasses, getPlayerDisplayName, getPlayerName, groupEntriesByPlayer, isLevelInTier } from '@/domains/raids/raidLogic'
+import { filterAndSortLfms, NormalizedLfm, normalizeLfm } from '@/domains/lfm/lfmHelpers'
+import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import {
   Alert,
@@ -26,18 +24,6 @@ import {
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
-function getGroupNames(lfm: any) {
-  const names = []
-  const leaderName = lfm?.leader?.name
-  if (leaderName) names.push(leaderName)
-
-  for (const m of lfm?.members ?? []) {
-    if (m?.name) names.push(m.name)
-  }
-
-  return names
-}
-
 interface LfmRaidsSectionProps {
   loading: boolean
   hasFetched: boolean
@@ -55,7 +41,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
   const [now, setNow] = useState(() => new Date())
   const [questFilter, setQuestFilter] = useState('raid')
   const [tierFilter, setTierFilter] = useState('legendary')
-  const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
+  const [selectedLfm, setSelectedLfm] = useState<NormalizedLfm | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   useEffect(() => {
@@ -74,178 +60,14 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
 
   const raidLfms = useMemo(() => {
     const lfms = Object.values(lfmsById ?? {})
-    const PARTY_SIZE = 6
-    const RAID_SIZE = 12
-
-    const normalized = []
+    const normalized: NormalizedLfm[] = []
     for (const lfm of lfms) {
-      const questId = String(lfm?.quest_id ?? '')
-      if (!questId) continue
-
-      const quest = questsById?.[questId] ?? null
-      const isRaid = isRaidQuest(quest)
-
-      const questName = String(quest?.name ?? '').trim() || ''
-
-      const maxPlayers = isRaid ? RAID_SIZE : PARTY_SIZE
-
-      const level = getEffectiveLevel(lfm, quest)
-
-      const leaderName = String(lfm?.leader?.name ?? '').trim() || '—'
-      const leaderGuildName = String(lfm?.leader?.guild_name ?? '').trim() || ''
-      const minLevel = typeof lfm?.minimum_level === 'number' ? lfm.minimum_level : null
-      const maxLevel = typeof lfm?.maximum_level === 'number' ? lfm.maximum_level : null
-      const comment = String(lfm?.comment ?? '').trim() || ''
-
-      const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
-      const reaperSkulls = difficulty.toLowerCase() === 'reaper' ? parseReaperSkulls(comment) : null
-      const difficultyDisplay =
-        difficulty.toLowerCase() === 'reaper' && typeof reaperSkulls === 'number'
-          ? `Reaper ${reaperSkulls}`
-          : difficulty
-
-      const difficultyColor = getDifficultyColor(difficulty)
-      const adventureActiveRaw = lfm?.adventure_active_time
-      const adventureActiveSeconds = typeof adventureActiveRaw === 'string' ? Number(adventureActiveRaw) : adventureActiveRaw
-      let adventureActiveMinutes: number | null = null
-      if (typeof adventureActiveSeconds === 'number' && !Number.isNaN(adventureActiveSeconds)) {
-        const minutes = Math.max(0, Math.round(adventureActiveSeconds / 60))
-        adventureActiveMinutes = minutes > 0 ? minutes : null
-      }
-
-      const memberCount = 1 + (lfm?.members?.length ?? 0)
-
-      const participants = [lfm?.leader, ...(lfm?.members ?? [])]
-        .filter(Boolean)
-        .map((p) => {
-          const characterName = String(p?.name ?? '').trim() || '—'
-          const playerName = getPlayerName(characterName)
-          const classesDisplay = formatClasses(p?.classes)
-          return {
-            characterName,
-            playerName,
-            playerDisplayName: getPlayerDisplayName(playerName),
-            guildName: String(p?.guild_name ?? '').trim() || '',
-            totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
-            classesDisplay,
-            classes: p?.classes,
-            isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
-            race: p?.race ?? 'Unknown',
-            location_id: typeof p?.location_id === 'number' ? p.location_id : 0,
-          }
-        })
-
-      /** @type {Map<string, number>} */
-      const guildCounts = new Map()
-      const leaderGuild = String(lfm?.leader?.guild_name ?? '').trim()
-      if (leaderGuild) guildCounts.set(leaderGuild, (guildCounts.get(leaderGuild) ?? 0) + 1)
-      for (const m of lfm?.members ?? []) {
-        const g = String(m?.guild_name ?? '').trim()
-        if (!g) continue
-        guildCounts.set(g, (guildCounts.get(g) ?? 0) + 1)
-      }
-
-      let majorityGuildName = ''
-      let majorityGuildCount = 0
-      for (const [g, c] of guildCounts.entries()) {
-        if (c > majorityGuildCount) {
-          majorityGuildName = g
-          majorityGuildCount = c
-        }
-      }
-
-      // Don't highlight guild "majority" when the leader is alone.
-      const hasMajorityGuild = memberCount > 1 && majorityGuildCount >= 3
-      const leaderGuildIsMajority =
-        hasMajorityGuild && leaderGuildName && majorityGuildName && leaderGuildName === majorityGuildName
-
-      const groupNames = getGroupNames(lfm)
-      const playersInGroup = new Set(groupNames.map(getPlayerName))
-      const hasFriendInside = EXPECTED_PLAYERS.some((p) => playersInGroup.has(p))
-
-      const friendPlayersInside = Array.from(
-        new Set(groupNames.map(getPlayerName).filter((p) => EXPECTED_PLAYERS.includes(p))),
-      ).sort((a, b) => a.localeCompare(b))
-
-      let postedTimestamp: string | null = null
-      if (lfm?.activity && Array.isArray(lfm.activity)) {
-        for (const act of lfm.activity) {
-          if (act.events && Array.isArray(act.events)) {
-            for (const event of act.events) {
-              if (event.tag === 'posted') {
-                postedTimestamp = act.timestamp
-                break
-              }
-            }
-            if (postedTimestamp) break
-          }
-        }
-      }
-
-      normalized.push({
-        id: String(lfm.id),
-        questId,
-        questName,
-        adventurePack: quest?.required_adventure_pack ?? null,
-        areaId: quest?.areaId ?? '',
-        questLevel: level,
-        isRaid,
-        difficulty,
-        difficultyDisplay,
-        difficultyColor,
-        adventureActiveMinutes,
-        reaperSkulls,
-        leaderName,
-        leaderGuildName,
-        minLevel,
-        maxLevel,
-        comment,
-        participants,
-        memberCount,
-        maxPlayers,
-        openSlots: Math.max(0, maxPlayers - memberCount),
-        majorityGuildName,
-        majorityGuildCount,
-        hasMajorityGuild,
-        leaderGuildIsMajority,
-        postedAt: postedTimestamp,
-        hasFriendInside,
-        friendPlayersInside,
-      })
+      const quest = questsById?.[String(lfm?.quest_id ?? '')] ?? null
+      const normalizedLfm = normalizeLfm(lfm, quest)
+      if (normalizedLfm) normalized.push(normalizedLfm)
     }
 
-    // Hide full groups.
-    let filtered = normalized.filter((x) => (x?.openSlots ?? 0) > 0)
-
-    // Toggle between raid-only and all quests.
-    if (questFilter === 'raid') {
-      filtered = filtered.filter((x) => x.isRaid)
-    }
-
-    // Filter by tier based on quest level.
-    // heroic: <20, epic: 20-29, legendary: >30
-    if (typeof tierFilter === 'string' && tierFilter !== 'all') {
-      filtered = filtered.filter((x) => isLevelInTier(typeof x.questLevel === 'number' ? x.questLevel : null, tierFilter))
-    }
-
-    // Sort by quest level desc (then most recently updated, then name).
-    filtered.sort((a, b) => {
-      const aHasName = Boolean(String(a.questName ?? '').trim())
-      const bHasName = Boolean(String(b.questName ?? '').trim())
-      if (aHasName !== bHasName) return aHasName ? -1 : 1
-
-      const aLevel = typeof a.questLevel === 'number' ? a.questLevel : -1
-      const bLevel = typeof b.questLevel === 'number' ? b.questLevel : -1
-      if (aLevel !== bLevel) return bLevel - aLevel
-
-      const aTs = a.postedAt ? new Date(a.postedAt).getTime() : 0
-      const bTs = b.postedAt ? new Date(b.postedAt).getTime() : 0
-      if (aTs !== bTs) return bTs - aTs
-
-      return a.questName.localeCompare(b.questName)
-    })
-
-    return filtered
+    return filterAndSortLfms(normalized, questFilter, tierFilter)
   }, [lfmsById, questsById, questFilter, tierFilter])
 
   const shownCount = raidLfms.length
