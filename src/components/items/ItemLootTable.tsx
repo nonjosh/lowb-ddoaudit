@@ -151,6 +151,22 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
       const matchesML = mlFilter.length === 0 || mlFilter.includes(item.ml.toString())
       return matchesSearch && matchesType && matchesEffect && matchesML
+    }).sort((a, b) => {
+      // Define category: augments (-2), armors (-1), accessories (0), offhand (1), weapons (2)
+      const getCategory = (item: Item) => {
+        if (item.slot === 'Augment') return -2
+        if (item.slot === 'Armor') return -1
+        if (item.slot === 'Offhand') return 1
+        if (item.slot === 'Weapon') return 2
+        return 0 // Accessories and others
+      }
+      const catA = getCategory(a)
+      const catB = getCategory(b)
+      if (catA !== catB) return catA - catB
+      // Then by ML descending
+      if (a.ml !== b.ml) return b.ml - a.ml
+      // Then by name
+      return a.name.localeCompare(b.name)
     })
   }, [questItems, searchText, typeFilter, effectFilter, mlFilter])
 
