@@ -23,7 +23,7 @@ export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions
     if (Array.isArray(value)) {
       const out: Record<string, any> = {}
       for (const item of value) {
-        const id = item?.id ?? item?.group_id
+        const id = item?.id
         if (id === null || id === undefined) continue
         out[String(id)] = item
       }

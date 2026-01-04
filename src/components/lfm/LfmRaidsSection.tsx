@@ -183,7 +183,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
       }
 
       normalized.push({
-        id: String(lfm?.id ?? questId),
+        id: String(lfm.id),
         questId,
         questName,
         adventurePack: quest?.required_adventure_pack ?? null,
