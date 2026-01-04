@@ -43,8 +43,18 @@ function App() {
   const abortRef = useRef<AbortController | null>(null)
   const resetRaidCollapseRef = useRef(true)
   const loadingRef = useRef(false)
+  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
+
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current)
+    }
+    idleTimeoutRef.current = setTimeout(() => {
+      setAutoRefreshEnabled(false)
+    }, 2 * 60 * 60 * 1000) // 2 hours
+  }, [])
 
   const raidGroups = useMemo(() => {
     return buildRaidGroups({ raidActivity, questsById, charactersById })
@@ -138,6 +148,21 @@ function App() {
   }, [loading])
 
   useEffect(() => {
+    // Set up idle detection
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
+    const resetTimer = () => resetIdleTimer()
+    events.forEach(event => document.addEventListener(event, resetTimer, true))
+    resetIdleTimer() // Start the timer initially
+
+    return () => {
+      events.forEach(event => document.removeEventListener(event, resetTimer, true))
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current)
+      }
+    }
+  }, [resetIdleTimer])
+
+  useEffect(() => {
     if (!autoRefreshEnabled || isServerOnline === false) return
 
     const id = setInterval(() => {
@@ -176,6 +201,16 @@ function App() {
     })
   }, [])
 
+  const handleToggleAutoRefresh = useCallback(() => {
+    setAutoRefreshEnabled((prev) => {
+      const newValue = !prev
+      if (newValue) {
+        resetIdleTimer()
+      }
+      return newValue
+    })
+  }, [resetIdleTimer])
+
   return (
     <CharacterProvider charactersById={charactersById} lfms={lfmsById}>
       <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
@@ -183,7 +218,7 @@ function App() {
           loading={loading}
           onRefresh={load}
           autoRefreshEnabled={autoRefreshEnabled}
-          onToggleAutoRefresh={() => setAutoRefreshEnabled((v) => !v)}
+          onToggleAutoRefresh={handleToggleAutoRefresh}
           showClassIcons={showClassIcons}
           onToggleShowClassIcons={() => setShowClassIcons((v) => !v)}
           lastUpdatedAt={lastUpdatedAt}
