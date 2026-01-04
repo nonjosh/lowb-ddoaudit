@@ -1,5 +1,6 @@
 import { Quest } from '@/api/ddoAudit'
 import { PlayerGroup } from '@/contexts/CharacterContext'
+import { useConfig } from '@/contexts/ConfigContext'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import GroupsIcon from '@mui/icons-material/Groups'
@@ -10,7 +11,6 @@ import ClassDisplay from '../../shared/ClassDisplay'
 interface PlayerRowProps {
   group: PlayerGroup
   showLocation?: boolean
-  showClassIcons: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, any>
@@ -25,13 +25,13 @@ interface PlayerRowProps {
 export default function PlayerRow({
   group,
   showLocation = true,
-  showClassIcons,
   quests,
   areas,
   lfmByCharacterName,
   onPlayerClick,
   onLfmClick,
 }: PlayerRowProps) {
+  const { showClassIcons } = useConfig()
   const onlineChars = (group.chars ?? []).filter((c) => c?.is_online)
   const isOnline = onlineChars.length > 0
 

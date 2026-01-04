@@ -11,7 +11,6 @@ interface QuestGroupCardProps {
   groups: PlayerGroup[]
   packName: string | null
   levelInfo: string | null
-  showClassIcons: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, any>
@@ -27,7 +26,6 @@ export default function QuestGroupCard({
   groups,
   packName,
   levelInfo,
-  showClassIcons,
   quests,
   areas,
   lfmByCharacterName,
@@ -67,7 +65,6 @@ export default function QuestGroupCard({
             key={g.player}
             group={g}
             showLocation={true}
-            showClassIcons={showClassIcons}
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}

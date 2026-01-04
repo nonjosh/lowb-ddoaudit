@@ -1,5 +1,6 @@
 import { Quest } from '@/api/ddoAudit'
 import { PlayerGroup } from '@/contexts/CharacterContext'
+import { useConfig } from '@/contexts/ConfigContext'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import { Box, List, ListSubheader, Paper, Tooltip, Typography } from '@mui/material'
 import PlayerRow from './PlayerRow'
@@ -8,7 +9,6 @@ interface LocationGroupCardProps {
   title: string
   groups: Record<string, PlayerGroup[]>
   borderColor: string
-  showClassIcons: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, any>
@@ -25,7 +25,6 @@ export default function LocationGroupCard({
   title,
   groups,
   borderColor,
-  showClassIcons,
   quests,
   areas,
   lfmByCharacterName,
@@ -33,6 +32,7 @@ export default function LocationGroupCard({
   onPlayerClick,
   onLfmClick,
 }: LocationGroupCardProps) {
+  const { showClassIcons } = useConfig()
   const sortedAreaNames = Object.keys(groups).sort((a, b) => a.localeCompare(b))
 
   if (sortedAreaNames.length === 0) return null

@@ -17,6 +17,7 @@ import {
   removeIgnoredTimer,
 } from '@/api/ddoAudit'
 import { useCharacter } from '@/contexts/CharacterContext'
+import { useConfig } from '@/contexts/ConfigContext'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '@/domains/raids/raidLogic'
 import CharacterNamesWithClassTooltip from '../shared/CharacterNamesWithClassTooltip'
 import ClassDisplay from '../shared/ClassDisplay'
@@ -25,7 +26,6 @@ interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup
   collapsed: boolean
   onToggleCollapsed: (playerName: string) => void
-  showClassIcons: boolean
 }
 
 function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string; lastTimestamp: string | null; sx?: any }) {
@@ -74,8 +74,9 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
   )
 }
 
-function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed, showClassIcons }: RaidPlayerGroupProps) {
+function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlayerGroupProps) {
   const { isPlayerOnline: checkPlayerOnline } = useCharacter()
+  const { showClassIcons } = useConfig()
   const pg = playerGroup
   const entries = pg.entries ?? []
   const now = new Date()
@@ -139,7 +140,6 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed, showClassI
                   name: e?.characterName,
                   classes: e?.classes,
                 }))}
-                showClassIcons={showClassIcons}
               />
             </Box>
           )}
@@ -152,7 +152,6 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed, showClassI
                   name: e?.characterName,
                   classes: e?.classes,
                 }))}
-                showClassIcons={showClassIcons}
               />
             </Box>
           )}

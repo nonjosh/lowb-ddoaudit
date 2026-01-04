@@ -14,10 +14,12 @@ import { fetchAreasById } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from '@/components/raids/RaidTimerTable'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
+import { useConfig } from '@/contexts/ConfigContext'
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
 
-export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons, selectedRaidData }: LfmParticipantsDialogProps) {
+export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData }: LfmParticipantsDialogProps) {
+  const { showClassIcons } = useConfig()
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [collapsedPlayers, setCollapsedPlayers] = useState<Set<string>>(new Set())
 
@@ -131,7 +133,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
         </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} showClassIcons={showClassIcons} />
+        <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} />
         {selectedLfm?.isRaid && selectedRaidData ? (
           <>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
@@ -141,7 +143,6 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
               perPlayerEligible={selectedRaidData.perPlayerEligible}
               isPlayerCollapsed={isPlayerCollapsed}
               onTogglePlayer={onTogglePlayer}
-              showClassIcons={showClassIcons}
               questId={selectedLfm.questId}
             />
           </>

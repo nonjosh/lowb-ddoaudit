@@ -18,6 +18,7 @@ import {
 } from '@mui/material'
 
 import { formatAge, formatLocalDateTime } from '@/api/ddoAudit'
+import { useConfig } from '@/contexts/ConfigContext'
 import ClassDisplay from '../../shared/ClassDisplay'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
@@ -27,10 +28,10 @@ interface PlayerCharactersDialogProps {
   onClose: () => void
   playerName: string
   characters: any[]
-  showClassIcons: boolean
 }
 
-export default function PlayerCharactersDialog({ open, onClose, playerName, characters, showClassIcons }: PlayerCharactersDialogProps) {
+export default function PlayerCharactersDialog({ open, onClose, playerName, characters }: PlayerCharactersDialogProps) {
+  const { showClassIcons } = useConfig()
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>

@@ -21,10 +21,9 @@ interface RaidTimerSectionProps {
   toggleRaidCollapsed: (questId: string) => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   togglePlayerCollapsed: (questId: string, playerName: string) => void
-  showClassIcons: boolean
 }
 
-export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed, showClassIcons }: RaidTimerSectionProps) {
+export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRaidCollapsed, toggleRaidCollapsed, isPlayerCollapsed, togglePlayerCollapsed }: RaidTimerSectionProps) {
   /**
    * Raid sorting rules
    *
@@ -207,7 +206,6 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
                   onToggleRaid={() => toggleRaidCollapsed(g.questId)}
                   isPlayerCollapsed={isPlayerCollapsed}
                   onTogglePlayer={togglePlayerCollapsed}
-                  showClassIcons={showClassIcons}
                   hasFriendInside={hasFriendInside}
                   hasLfm={hasLfm}
                   onLfmClick={(qid) => handleLfmClick(qid)}
@@ -217,7 +215,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
           })}
         </Stack>
       )}
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} selectedRaidData={selectedRaidData} />
     </>
   )
 }

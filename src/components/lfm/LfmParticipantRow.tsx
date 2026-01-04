@@ -2,15 +2,16 @@ import { Chip, Stack, TableCell, TableRow, Typography } from '@mui/material'
 
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
+import { useConfig } from '@/contexts/ConfigContext'
 import { LfmParticipant } from './types'
 
 interface LfmParticipantRowProps {
   participant: LfmParticipant
   areas: Record<string, { name: string }>
-  showClassIcons: boolean
 }
 
-export default function LfmParticipantRow({ participant, areas, showClassIcons }: LfmParticipantRowProps) {
+export default function LfmParticipantRow({ participant, areas }: LfmParticipantRowProps) {
+  const { showClassIcons } = useConfig()
   return (
     <TableRow>
       <TableCell>

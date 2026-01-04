@@ -39,7 +39,6 @@ function App() {
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
   const [expandedRaids, setExpandedRaids] = useState(() => new Set<string>())
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
-  const [showClassIcons, setShowClassIcons] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
   const resetRaidCollapseRef = useRef(true)
   const loadingRef = useRef(false)
@@ -219,8 +218,6 @@ function App() {
           onRefresh={load}
           autoRefreshEnabled={autoRefreshEnabled}
           onToggleAutoRefresh={handleToggleAutoRefresh}
-          showClassIcons={showClassIcons}
-          onToggleShowClassIcons={() => setShowClassIcons((v) => !v)}
           lastUpdatedAt={lastUpdatedAt}
           error={error}
         />
@@ -238,7 +235,6 @@ function App() {
                 <CharactersSection
                   loading={loading}
                   hasFetched={!!lastUpdatedAt}
-                  showClassIcons={showClassIcons}
                   characterCount={characterIds.length}
                 />
               </Paper>
@@ -252,7 +248,6 @@ function App() {
                   lfmsById={lfmsById}
                   questsById={questsById}
                   error={lfmError}
-                  showClassIcons={showClassIcons}
                   serverPlayers={serverPlayers}
                   isServerOnline={isServerOnline}
                   raidGroups={raidGroups}
@@ -266,7 +261,6 @@ function App() {
                 toggleRaidCollapsed={toggleRaidCollapsed}
                 isPlayerCollapsed={isCollapsed}
                 togglePlayerCollapsed={toggleCollapsed}
-                showClassIcons={showClassIcons}
               />
             </Grid>
           </Grid>

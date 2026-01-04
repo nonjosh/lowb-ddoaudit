@@ -6,7 +6,6 @@ import PlayerRow from './PlayerRow'
 
 interface NotInQuestGroupCardProps {
   groups: PlayerGroup[]
-  showClassIcons: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, any>
@@ -20,7 +19,6 @@ interface NotInQuestGroupCardProps {
  */
 export default function NotInQuestGroupCard({
   groups,
-  showClassIcons,
   quests,
   areas,
   lfmByCharacterName,
@@ -79,7 +77,6 @@ export default function NotInQuestGroupCard({
                   key={g.player}
                   group={g}
                   showLocation={false}
-                  showClassIcons={showClassIcons}
                   quests={quests}
                   areas={areas}
                   lfmByCharacterName={lfmByCharacterName}

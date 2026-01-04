@@ -17,11 +17,10 @@ import QuestGroupCard from './groups/QuestGroupCard'
 interface CharactersSectionProps {
   loading: boolean
   hasFetched: boolean
-  showClassIcons: boolean
   characterCount: number
 }
 
-export default function CharactersSection({ loading, hasFetched, showClassIcons, characterCount }: CharactersSectionProps) {
+export default function CharactersSection({ loading, hasFetched, characterCount }: CharactersSectionProps) {
   const { charactersById, charactersByPlayer, lfms } = useCharacter()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
@@ -91,7 +90,6 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
             title="Public Areas"
             groups={publicAreaGroups}
             borderColor="success.main"
-            showClassIcons={showClassIcons}
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
@@ -104,7 +102,6 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
             title="Wilderness Areas"
             groups={wildernessAreaGroups}
             borderColor="info.main"
-            showClassIcons={showClassIcons}
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
@@ -116,7 +113,6 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
           {/* Not in quest */}
           <NotInQuestGroupCard
             groups={notInQuestGroups}
-            showClassIcons={showClassIcons}
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
@@ -132,7 +128,6 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
               groups={questGroups[questName] || []}
               packName={questNameToPack[questName] ?? null}
               levelInfo={questLevels[questName] ?? null}
-              showClassIcons={showClassIcons}
               quests={quests}
               areas={areas}
               lfmByCharacterName={lfmByCharacterName}
@@ -144,7 +139,6 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
           {/* Offline */}
           <OfflineGroupCard
             groups={offlineGroups}
-            showClassIcons={showClassIcons}
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
@@ -170,13 +164,11 @@ export default function CharactersSection({ loading, hasFetched, showClassIcons,
         onClose={handleCloseDialog}
         playerName={selectedPlayerGroup ? getPlayerDisplayName(selectedPlayerGroup.player) : ''}
         characters={selectedPlayerGroup?.chars ?? []}
-        showClassIcons={showClassIcons}
       />
 
       <LfmParticipantsDialog
         selectedLfm={selectedLfm}
         onClose={() => setSelectedLfm(null)}
-        showClassIcons={showClassIcons}
         selectedRaidData={null}
       />
     </>

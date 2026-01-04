@@ -1,6 +1,7 @@
 import { Tooltip } from '@mui/material'
 import { memo } from 'react'
 
+import { useConfig } from '@/contexts/ConfigContext'
 import { CharacterClass, formatClasses } from '@/domains/raids/raidLogic'
 import ClassDisplay from './ClassDisplay'
 
@@ -16,6 +17,8 @@ interface CharacterNamesWithClassTooltipProps {
 }
 
 function CharacterNamesWithClassTooltip({ items, showClassIcons }: CharacterNamesWithClassTooltipProps) {
+  const { showClassIcons: globalShowClassIcons } = useConfig()
+  const effectiveShowClassIcons = showClassIcons ?? globalShowClassIcons
   const list = Array.isArray(items) ? items : []
 
   return (
@@ -26,7 +29,7 @@ function CharacterNamesWithClassTooltip({ items, showClassIcons }: CharacterName
         const isLast = idx === list.length - 1
 
         const safeClasses = Array.isArray(item?.classes) ? item.classes : []
-        const title = showClassIcons
+        const title = effectiveShowClassIcons
           ? <ClassDisplay classes={safeClasses} showIcons={true} />
           : formatClasses(safeClasses)
 

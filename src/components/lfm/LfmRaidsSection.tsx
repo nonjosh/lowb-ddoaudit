@@ -31,14 +31,13 @@ interface LfmRaidsSectionProps {
   lfmsById: Record<string, any>
   questsById: Record<string, Quest>
   error: string
-  showClassIcons: boolean
   serverPlayers?: number | null
   isServerOnline?: boolean | null
   raidGroups: any[]
 }
 
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, showClassIcons, serverPlayers, isServerOnline, raidGroups }: LfmRaidsSectionProps) {
+export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, serverPlayers, isServerOnline, raidGroups }: LfmRaidsSectionProps) {
   const [now, setNow] = useState(() => new Date())
   const [questFilter, setQuestFilter] = useState('raid')
   const [tierFilter, setTierFilter] = useState('legendary')
@@ -257,7 +256,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         </TableContainer>
       )}
 
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} showClassIcons={showClassIcons} selectedRaidData={selectedRaidData} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} selectedRaidData={selectedRaidData} />
     </Paper>
   )
 }

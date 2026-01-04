@@ -29,6 +29,5 @@ export interface LfmGroup {
 export interface LfmParticipantsDialogProps {
   selectedLfm: LfmGroup | null
   onClose: () => void
-  showClassIcons: boolean
   selectedRaidData: { raidGroup: any; perPlayerEligible: any[] } | null
 }

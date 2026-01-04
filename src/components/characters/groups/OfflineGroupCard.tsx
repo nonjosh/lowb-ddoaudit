@@ -6,7 +6,6 @@ import PlayerRow from './PlayerRow'
 
 interface OfflineGroupCardProps {
   groups: PlayerGroup[]
-  showClassIcons: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, any>
@@ -20,7 +19,6 @@ interface OfflineGroupCardProps {
  */
 export default function OfflineGroupCard({
   groups,
-  showClassIcons,
   quests,
   areas,
   lfmByCharacterName,
@@ -48,7 +46,6 @@ export default function OfflineGroupCard({
             key={g.player}
             group={g}
             showLocation={true}
-            showClassIcons={showClassIcons}
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}

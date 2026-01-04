@@ -26,13 +26,12 @@ interface RaidCardProps {
   onToggleRaid: () => void
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   onTogglePlayer: (questId: string, playerName: string) => void
-  showClassIcons: boolean
   hasFriendInside?: boolean
   hasLfm?: boolean
   onLfmClick?: (questId: string) => void
 }
 
-export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, showClassIcons, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
+export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
   const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
   const [ignoredVersion, setIgnoredVersion] = useState(0)
@@ -167,7 +166,6 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
               perPlayerEligible={perPlayerEligible}
               isPlayerCollapsed={isPlayerCollapsed}
               onTogglePlayer={onTogglePlayer}
-              showClassIcons={showClassIcons}
               questId={g.questId}
             />
           ) : null}

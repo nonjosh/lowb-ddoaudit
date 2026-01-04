@@ -6,10 +6,9 @@ import { LfmParticipant } from './types'
 interface LfmParticipantsTableProps {
   participants: LfmParticipant[]
   areas: Record<string, { name: string }>
-  showClassIcons: boolean
 }
 
-export default function LfmParticipantsTable({ participants, areas, showClassIcons }: LfmParticipantsTableProps) {
+export default function LfmParticipantsTable({ participants, areas }: LfmParticipantsTableProps) {
   return (
     <Table size="small" aria-label="lfm members">
       <TableHead>
@@ -25,7 +24,7 @@ export default function LfmParticipantsTable({ participants, areas, showClassIco
       </TableHead>
       <TableBody>
         {participants.map((p) => (
-          <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} showClassIcons={showClassIcons} />
+          <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} />
         ))}
       </TableBody>
     </Table>

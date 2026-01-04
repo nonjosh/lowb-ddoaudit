@@ -4,14 +4,13 @@ import SyncDisabledIcon from '@mui/icons-material/SyncDisabled'
 import { Alert, Box, Button, FormControlLabel, Paper, Stack, Switch, ToggleButton, Tooltip, Typography } from '@mui/material'
 
 import { formatLocalDateTime } from '@/api/ddoAudit'
+import { useConfig } from '@/contexts/ConfigContext'
 
 interface ControlsProps {
   loading: boolean
   onRefresh: () => void
   autoRefreshEnabled: boolean
   onToggleAutoRefresh: () => void
-  showClassIcons: boolean
-  onToggleShowClassIcons: () => void
   lastUpdatedAt: Date | null
   error: string
 }
@@ -21,11 +20,10 @@ export default function Controls({
   onRefresh,
   autoRefreshEnabled,
   onToggleAutoRefresh,
-  showClassIcons,
-  onToggleShowClassIcons,
   lastUpdatedAt,
   error,
 }: ControlsProps) {
+  const { showClassIcons, setShowClassIcons } = useConfig()
   return (
     <Paper sx={{ p: 2 }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
@@ -78,7 +76,7 @@ export default function Controls({
               )}
             </Tooltip>
             <FormControlLabel
-              control={<Switch size="small" checked={showClassIcons} onChange={onToggleShowClassIcons} />}
+              control={<Switch size="small" checked={showClassIcons} onChange={() => setShowClassIcons(v => !v)} />}
               label={<Typography variant="body2">Class icons</Typography>}
             />
           </Stack>

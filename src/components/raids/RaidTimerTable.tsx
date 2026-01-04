@@ -14,7 +14,6 @@ interface RaidTimerTableProps {
   perPlayerEligible: any[]
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   onTogglePlayer: (questId: string, playerName: string) => void
-  showClassIcons: boolean
   questId: string
 }
 
@@ -22,7 +21,6 @@ export default function RaidTimerTable({
   perPlayerEligible,
   isPlayerCollapsed,
   onTogglePlayer,
-  showClassIcons,
   questId,
 }: RaidTimerTableProps) {
   const handleTogglePlayer = (playerName: string) => {
@@ -50,7 +48,6 @@ export default function RaidTimerTable({
                 playerGroup={pg}
                 collapsed={collapsed}
                 onToggleCollapsed={handleTogglePlayer}
-                showClassIcons={showClassIcons}
               />
             )
           })}
