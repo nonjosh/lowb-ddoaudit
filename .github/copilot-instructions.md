@@ -4,6 +4,8 @@
 
 - **Do NOT start `npm run dev` or `npm run preview` during conversations.** The devcontainer automatically starts `npm run dev` after attaching. Manual starts are prohibited to avoid port conflicts and follow workflow guidelines.
 - **Organize imports after updating files**: Always organize imports using the IDE's organize imports feature (e.g., VS Code's "Organize Imports" command) after making changes to ensure clean, sorted imports.
+- **Check for unused variables and imports**: After substantive changes, run `npm run lint` to detect unused variables, imports, or other warnings, and fix them to maintain clean, error-free code.
+- **Remove trailing whitespace and ensure newline at end**: After editing files, remove any trailing whitespace from lines and ensure each file ends with a single newline character for consistent formatting.
 
 ## Project Overview
 
