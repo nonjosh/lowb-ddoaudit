@@ -24,6 +24,7 @@ import React, { useState } from 'react'
 import { formatAge, formatLocalDateTime } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { useConfig } from '@/contexts/ConfigContext'
+
 import CharacterRaidTimersTable from './CharacterRaidTimersTable'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000

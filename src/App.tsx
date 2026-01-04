@@ -10,18 +10,16 @@ import {
   parseCharacterIds,
   Quest,
 } from './api/ddoAudit'
-import { CHARACTERS } from './config/characters'
-import {
-  buildRaidGroups,
-  groupEntriesByPlayer
-} from './domains/raids/raidLogic'
-
 import CharactersSection from './components/characters/CharactersSection'
 import LfmRaidsSection from './components/lfm/LfmRaidsSection'
 import RaidTimerSection from './components/raids/RaidTimerSection'
 import Controls from './components/shared/Controls'
-
+import { CHARACTERS } from './config/characters'
 import { CharacterProvider } from './contexts/CharacterContext'
+import {
+  buildRaidGroups,
+  groupEntriesByPlayer
+} from './domains/raids/raidLogic'
 
 function App() {
   const [characterIdsInput] = useState(Object.keys(CHARACTERS).join(','))

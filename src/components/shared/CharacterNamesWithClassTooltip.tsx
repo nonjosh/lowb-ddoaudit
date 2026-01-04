@@ -3,6 +3,7 @@ import { memo } from 'react'
 
 import { useConfig } from '@/contexts/ConfigContext'
 import { CharacterClass, formatClasses } from '@/domains/raids/raidLogic'
+
 import ClassDisplay from './ClassDisplay'
 
 interface CharacterItem {

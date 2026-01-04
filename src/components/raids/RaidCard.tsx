@@ -18,6 +18,7 @@ import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
+
 import RaidTimerTable from './RaidTimerTable'
 
 interface RaidCardProps {

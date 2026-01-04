@@ -15,6 +15,7 @@ import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from '@/components/raids/RaidTimerTable'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useConfig } from '@/contexts/ConfigContext'
+
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
 

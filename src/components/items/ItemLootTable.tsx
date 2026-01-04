@@ -1,5 +1,3 @@
-import { Item, ItemAffix } from '@/api/ddoGearPlanner'
-import { RaidNotes } from '@/domains/raids/raidNotes'
 import {
   Paper,
   Table,
@@ -11,6 +9,10 @@ import {
   Typography
 } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
+
+import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { RaidNotes } from '@/domains/raids/raidNotes'
+
 import ItemTableFilters from './ItemTableFilters'
 import ItemTableRow from './ItemTableRow'
 

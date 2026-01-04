@@ -1,6 +1,7 @@
-import react from '@vitejs/plugin-react'
 import path from 'node:path'
 import process from 'node:process'
+
+import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
 const DEFAULT_REPO_NAME = 'lowb-ddoaudit'

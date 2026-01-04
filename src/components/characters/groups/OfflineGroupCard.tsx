@@ -1,7 +1,9 @@
-import { Quest } from '@/api/ddoAudit'
-import { PlayerGroup } from '@/contexts/CharacterContext'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import { Box, List, ListSubheader, Paper } from '@mui/material'
+
+import { Quest } from '@/api/ddoAudit'
+import { PlayerGroup } from '@/contexts/CharacterContext'
+
 import PlayerRow from './PlayerRow'
 
 interface OfflineGroupCardProps {

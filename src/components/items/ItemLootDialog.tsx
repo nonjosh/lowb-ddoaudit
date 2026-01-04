@@ -1,9 +1,3 @@
-import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
-import DdoWikiLink from '@/components/shared/DdoWikiLink'
-import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
-import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
-import { getItemsForQuest } from '@/utils/itemLootHelpers'
 import CloseIcon from '@mui/icons-material/Close'
 import {
   Box,
@@ -17,6 +11,14 @@ import {
   Typography
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
+
+import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
+import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
+import DdoWikiLink from '@/components/shared/DdoWikiLink'
+import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
+import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
+import { getItemsForQuest } from '@/utils/itemLootHelpers'
+
 import ItemLootTable from './ItemLootTable'
 
 interface ItemLootDialogProps {

@@ -1,6 +1,3 @@
-import { Item, ItemAffix } from '@/api/ddoGearPlanner'
-import DdoWikiLink from '@/components/shared/DdoWikiLink'
-import { RaidNotes } from '@/domains/raids/raidNotes'
 import {
   Box,
   Chip,
@@ -10,6 +7,11 @@ import {
   Typography
 } from '@mui/material'
 import React from 'react'
+
+import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import DdoWikiLink from '@/components/shared/DdoWikiLink'
+import { RaidNotes } from '@/domains/raids/raidNotes'
+
 import ItemCraftingDisplay from './ItemCraftingDisplay'
 import ItemSetTooltip from './ItemSetTooltip'
 

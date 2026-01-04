@@ -10,6 +10,7 @@ import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useCharacter } from '@/contexts/CharacterContext'
 import { prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
+
 import RaidCard from './RaidCard'
 
 interface RaidTimerSectionProps {

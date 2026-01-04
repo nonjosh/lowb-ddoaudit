@@ -8,6 +8,7 @@ import { PlayerGroup, useCharacter } from '@/contexts/CharacterContext'
 import { groupCharactersByLocation } from '@/domains/characters/characterGrouping'
 import { createLfmByCharacterNameMap, prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
+
 import PlayerCharactersDialog from './dialogs/PlayerCharactersDialog'
 import LocationGroupCard from './groups/LocationGroupCard'
 import NotInQuestGroupCard from './groups/NotInQuestGroupCard'

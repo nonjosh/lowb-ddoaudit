@@ -1,6 +1,7 @@
 import { IconButton, Tooltip } from '@mui/material'
 import { useState } from 'react'
 import { GiChest } from 'react-icons/gi'
+
 import ItemLootDialog from './ItemLootDialog'
 
 interface ItemLootButtonProps {

@@ -3,6 +3,7 @@ import { Chip, Stack, TableCell, TableRow, Typography } from '@mui/material'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useConfig } from '@/contexts/ConfigContext'
+
 import { LfmParticipant } from './types'
 
 interface LfmParticipantRowProps {
