@@ -1,9 +1,10 @@
 import TimerIcon from '@mui/icons-material/Timer'
-import { Box, Chip, CircularProgress, Skeleton, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
 import { useMemo, useState } from 'react'
 
 import { fetchQuestsById, Quest } from '@/api/ddoAudit'
 import raidNotesRaw from '@/assets/raid_notes.txt?raw'
+import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useCharacter } from '@/contexts/CharacterContext'
 import { prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
@@ -177,20 +178,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
         <Chip label={sortedRaidGroups.length} size="small" variant="outlined" />
         {loading && <CircularProgress size={20} />}
         <Box sx={{ ml: 'auto' }}>
-          <ToggleButtonGroup
-            size="small"
-            value={tierFilter}
-            exclusive
-            onChange={(_, v) => {
-              if (v) setTierFilter(v)
-            }}
-            aria-label="tier filter"
-          >
-            <ToggleButton value="heroic" aria-label="heroic tier">Heroic</ToggleButton>
-            <ToggleButton value="epic" aria-label="epic tier">Epic</ToggleButton>
-            <ToggleButton value="legendary" aria-label="legendary tier">Legendary</ToggleButton>
-            <ToggleButton value="all" aria-label="all tiers">All</ToggleButton>
-          </ToggleButtonGroup>
+          <QuestTierFilter value={tierFilter} onChange={setTierFilter} />
         </Box>
       </Box>
       {!raidGroups.length ? (

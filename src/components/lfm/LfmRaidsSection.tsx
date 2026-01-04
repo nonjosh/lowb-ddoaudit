@@ -1,5 +1,6 @@
 import { Quest } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
+import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { filterAndSortLfms, NormalizedLfm, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 import GroupAddIcon from '@mui/icons-material/GroupAdd'
@@ -104,28 +105,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         {loading && <CircularProgress size={20} />}
 
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ToggleButtonGroup
-            size="small"
-            value={tierFilter}
-            exclusive
-            onChange={(_, v) => {
-              if (v) setTierFilter(v)
-            }}
-            aria-label="tier filter"
-          >
-            <ToggleButton value="heroic" aria-label="heroic tier">
-              Heroic
-            </ToggleButton>
-            <ToggleButton value="epic" aria-label="epic tier">
-              Epic
-            </ToggleButton>
-            <ToggleButton value="legendary" aria-label="legendary tier">
-              Legendary
-            </ToggleButton>
-            <ToggleButton value="all" aria-label="all tiers">
-              All
-            </ToggleButton>
-          </ToggleButtonGroup>
+          <QuestTierFilter value={tierFilter} onChange={setTierFilter} />
 
           <ToggleButtonGroup
             size="small"
