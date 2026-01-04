@@ -141,15 +141,13 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                           </IconButton>
                         </TableCell>
                       </TableRow>
-                      {(expandedCharacters.has(c.id) || showAllRaidTimers) && (
-                        <TableRow>
-                          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-                            <Collapse in={expandedCharacters.has(c.id) || showAllRaidTimers} timeout="auto" unmountOnExit>
-                              <CharacterRaidTimersTable character={c} />
-                            </Collapse>
-                          </TableCell>
-                        </TableRow>
-                      )}
+                      <TableRow>
+                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                          <Collapse in={expandedCharacters.has(c.id) || showAllRaidTimers} timeout="auto" unmountOnExit>
+                            <CharacterRaidTimersTable character={c} />
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
                     </React.Fragment>
                   ))}
               </TableBody>
