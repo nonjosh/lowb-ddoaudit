@@ -68,6 +68,7 @@ export const CHARACTERS_BY_PLAYER: Record<string, PlayerCharactersValue> = {
   },
   Renz: {
     chars: [
+      { id: '111678077704', name: 'Hako' },
       { id: '111671237122', name: 'Okah' },
       { id: '111672061714', name: 'Zner' },
       { id: '180388777114', name: 'Znery' },
