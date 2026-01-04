@@ -3,6 +3,7 @@
 ## Critical Rules
 
 - **Do NOT start `npm run dev` or `npm run preview` during conversations.** The devcontainer automatically starts `npm run dev` after attaching. Manual starts are prohibited to avoid port conflicts and follow workflow guidelines.
+- **Organize imports after updating files**: Always organize imports using the IDE's organize imports feature (e.g., VS Code's "Organize Imports" command) after making changes to ensure clean, sorted imports.
 
 ## Project Overview
 
@@ -42,7 +43,7 @@ This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online
 ## Conventions
 
 - **File Naming**: PascalCase for components (e.g., `RaidCard.tsx`), camelCase for utilities.
-- **Imports**: Group external libs, then internal (api/, components/, etc.).
+- **Imports**: Use `@/` for absolute imports from `src/` (e.g., `@/api/ddoAudit`), except for imports within the same component directory (use relative paths like `./RaidCard`). Order following standard guidelines: external libraries first, then internal modules (api/, components/, domains/, etc.), grouped and sorted alphabetically within each group.
 - **Error Handling**: Use try/catch in async fetches, set error states.
 - **State Updates**: Use `useMemo` for computed values like `raidGroups`.
 - **Config Updates**: Edit `CHARACTERS_BY_PLAYER` to add/remove characters; rebuild required.
