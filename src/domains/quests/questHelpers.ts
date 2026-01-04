@@ -1,4 +1,4 @@
-import { Quest } from '../../api/ddoAudit'
+import { Quest } from '@/api/ddoAudit'
 
 /**
  * Parses reaper skull count from LFM comment text.

@@ -1,16 +1,15 @@
 import TimerIcon from '@mui/icons-material/Timer'
 import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { fetchQuestsById, Quest } from '@/api/ddoAudit'
 import raidNotesRaw from '@/assets/raid_notes.txt?raw'
+import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useCharacter } from '@/contexts/CharacterContext'
 import { prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
-import { useEffect } from 'react'
-import LfmParticipantsDialog from '../lfm/LfmParticipantsDialog'
 import RaidCard from './RaidCard'
 
 interface RaidTimerSectionProps {

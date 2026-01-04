@@ -7,12 +7,12 @@ import { Box, Collapse, IconButton, Table, TableBody, TableCell, TableRow, Toolt
 import { memo } from 'react'
 
 import { addMs, formatLocalDateTime, formatTimeRemaining, isTimerIgnored, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
+import CharacterNamesWithClassTooltip from '@/components/shared/CharacterNamesWithClassTooltip'
+import ClassDisplay from '@/components/shared/ClassDisplay'
+import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
 import { useCharacter } from '@/contexts/CharacterContext'
 import { useConfig } from '@/contexts/ConfigContext'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '@/domains/raids/raidLogic'
-import CharacterNamesWithClassTooltip from '../shared/CharacterNamesWithClassTooltip'
-import ClassDisplay from '../shared/ClassDisplay'
-import TimeRemainingDisplay from '../shared/TimeRemainingDisplay'
 
 interface RaidPlayerGroupProps {
   playerGroup: PlayerGroup

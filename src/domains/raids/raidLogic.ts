@@ -1,5 +1,5 @@
-import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS } from '../../api/ddoAudit'
-import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '../../config/characters'
+import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
+import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '@/config/characters'
 
 export function getPlayerDisplayName(playerName: string): string {
   return PLAYER_DISPLAY_NAMES[playerName] ?? playerName

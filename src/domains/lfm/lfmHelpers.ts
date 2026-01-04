@@ -1,7 +1,7 @@
-import { Quest } from '../../api/ddoAudit'
-import { EXPECTED_PLAYERS } from '../../config/characters'
-import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '../quests/questHelpers'
-import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '../raids/raidLogic'
+import { Quest } from '@/api/ddoAudit'
+import { EXPECTED_PLAYERS } from '@/config/characters'
+import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/quests/questHelpers'
+import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '@/domains/raids/raidLogic'
 
 export interface LfmParticipant {
   characterName: string

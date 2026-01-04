@@ -1,6 +1,6 @@
-import { Quest } from '../../api/ddoAudit'
-import { PlayerGroup } from '../../contexts/CharacterContext'
-import { getPlayerDisplayName } from '../raids/raidLogic'
+import { Quest } from '@/api/ddoAudit'
+import { PlayerGroup } from '@/contexts/CharacterContext'
+import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 
 export interface GroupedCharacters {
   publicAreaGroups: Record<string, PlayerGroup[]>
