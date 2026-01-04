@@ -1,5 +1,9 @@
 # Copilot Instructions for lowb-ddoaudit
 
+## Critical Rules
+
+- **Do NOT start `npm run dev` or `npm run preview` during conversations.** The devcontainer automatically starts `npm run dev` after attaching. Manual starts are prohibited to avoid port conflicts and follow workflow guidelines.
+
 ## Project Overview
 
 This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online) raid auditing. It groups raid timers by raid name instead of character name, integrating with DDO Audit API.
@@ -23,7 +27,7 @@ This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online
 
 ## Workflows
 
-- **Development**: The devcontainer automatically starts `npm run dev` in the terminal after attaching (listens on all interfaces). Do not start `npm run dev` or `npm run preview` during conversations.
+- **Development**: The devcontainer automatically starts `npm run dev` in the terminal after attaching (listens on all interfaces).
 - **Build**: `npm run build` for production (sets base path for GitHub Pages).
 - **Linting**: `npm run lint` uses ESLint with React hooks and refresh plugins.
 - **Preview**: `npm run preview` serves built app.
