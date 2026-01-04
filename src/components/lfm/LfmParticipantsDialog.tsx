@@ -1,17 +1,11 @@
 import {
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography
 } from '@mui/material'
 import { useEffect, useState } from 'react'
@@ -19,44 +13,9 @@ import { useEffect, useState } from 'react'
 import { fetchAreasById } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from '@/components/raids/RaidTimerTable'
-import ClassDisplay from '@/components/shared/ClassDisplay'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
-import { EXPECTED_PLAYERS } from '@/config/characters'
-
-interface LfmParticipant {
-  characterName: string
-  playerName: string
-  playerDisplayName: string
-  guildName: string
-  totalLevel: number | null
-  classesDisplay: string
-  classes?: any[]
-  isLeader: boolean
-  race?: string
-  location_id: number
-}
-
-interface LfmGroup {
-  questName: string
-  adventurePack?: string | null
-  areaId: string
-  questLevel: number | null
-  adventureActiveMinutes?: number | null
-  difficultyDisplay: string
-  difficultyColor: string
-  participants: LfmParticipant[]
-  maxPlayers?: number
-  isRaid: boolean
-  questId: string
-  postedAt?: string | null
-}
-
-interface LfmParticipantsDialogProps {
-  selectedLfm: LfmGroup | null
-  onClose: () => void
-  showClassIcons: boolean
-  selectedRaidData: { raidGroup: any; perPlayerEligible: any[] } | null
-}
+import LfmParticipantsTable from './LfmParticipantsTable'
+import { LfmParticipantsDialogProps } from './types'
 
 export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassIcons, selectedRaidData }: LfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
@@ -172,49 +131,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, showClassI
         </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <Table size="small" aria-label="lfm members">
-          <TableHead>
-            <TableRow>
-              <TableCell>Character</TableCell>
-              <TableCell align="right" sx={{ width: 80 }}>
-                Level
-              </TableCell>
-              <TableCell>Classes</TableCell>
-              <TableCell>Race</TableCell>
-              <TableCell>Location</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {(selectedLfm?.participants ?? []).map((p) => (
-              <TableRow key={`${p.characterName}:${p.playerName}`}>
-                <TableCell>
-                  <Stack spacing={0.25}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="body2" noWrap>
-                        {p.characterName}
-                      </Typography>
-                      {EXPECTED_PLAYERS.includes(p.playerName) ? (
-                        <Chip size="small" color="success" label={p.playerDisplayName} />
-                      ) : null}
-                      {p.isLeader ? <Chip size="small" variant="outlined" label="Leader" /> : null}
-                    </Stack>
-                    {p.guildName ? (
-                      <Typography variant="caption" color="text.secondary" noWrap>
-                        {p.guildName}
-                      </Typography>
-                    ) : null}
-                  </Stack>
-                </TableCell>
-                <TableCell align="right">{typeof p.totalLevel === 'number' ? p.totalLevel : '—'}</TableCell>
-                <TableCell>
-                  <ClassDisplay classes={p.classes ?? []} showIcons={showClassIcons} />
-                </TableCell>
-                <TableCell>{p.race}</TableCell>
-                <TableCell>{areas[String(p.location_id)]?.name || 'Unknown'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} showClassIcons={showClassIcons} />
         {selectedLfm?.isRaid && selectedRaidData ? (
           <>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
