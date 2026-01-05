@@ -165,6 +165,10 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
       const catA = getCategory(a)
       const catB = getCategory(b)
       if (catA !== catB) return catA - catB
+      // Then by type alphabetically
+      const typeA = a.type || ''
+      const typeB = b.type || ''
+      if (typeA !== typeB) return typeA.localeCompare(typeB)
       // Then by ML descending
       if (a.ml !== b.ml) return b.ml - a.ml
       // Then by name
