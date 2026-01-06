@@ -14,12 +14,15 @@ import CharactersSection from './components/characters/CharactersSection'
 import LfmRaidsSection from './components/lfm/LfmRaidsSection'
 import RaidTimerSection from './components/raids/RaidTimerSection'
 import Controls from './components/shared/Controls'
+import IdleWarningDialog from './components/shared/IdleWarningDialog'
 import { CHARACTERS } from './config/characters'
 import { CharacterProvider } from './contexts/CharacterContext'
 import {
   buildRaidGroups,
   groupEntriesByPlayer
 } from './domains/raids/raidLogic'
+import { useIdleTimer } from './hooks/useIdleTimer'
+import { useConfig } from './contexts/ConfigContext'
 
 function App() {
   const [characterIdsInput] = useState(Object.keys(CHARACTERS).join(','))
@@ -36,22 +39,19 @@ function App() {
   const [now, setNow] = useState(() => new Date())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
   const [expandedRaids, setExpandedRaids] = useState(() => new Set<string>())
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
   const resetRaidCollapseRef = useRef(true)
   const loadingRef = useRef(false)
-  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const { autoRefreshEnabled } = useConfig()
+  const {
+    showIdleWarning,
+    handleToggleAutoRefresh,
+    handleIdleWarningReEnable,
+    handleIdleWarningClose,
+  } = useIdleTimer()
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
-
-  const resetIdleTimer = useCallback(() => {
-    if (idleTimeoutRef.current) {
-      clearTimeout(idleTimeoutRef.current)
-    }
-    idleTimeoutRef.current = setTimeout(() => {
-      setAutoRefreshEnabled(false)
-    }, 2 * 60 * 60 * 1000) // 2 hours
-  }, [])
 
   const raidGroups = useMemo(() => {
     return buildRaidGroups({ raidActivity, questsById, charactersById })
@@ -145,21 +145,6 @@ function App() {
   }, [loading])
 
   useEffect(() => {
-    // Set up idle detection
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
-    const resetTimer = () => resetIdleTimer()
-    events.forEach(event => document.addEventListener(event, resetTimer, true))
-    resetIdleTimer() // Start the timer initially
-
-    return () => {
-      events.forEach(event => document.removeEventListener(event, resetTimer, true))
-      if (idleTimeoutRef.current) {
-        clearTimeout(idleTimeoutRef.current)
-      }
-    }
-  }, [resetIdleTimer])
-
-  useEffect(() => {
     if (!autoRefreshEnabled || isServerOnline === false) return
 
     const id = setInterval(() => {
@@ -197,16 +182,6 @@ function App() {
       return next
     })
   }, [])
-
-  const handleToggleAutoRefresh = useCallback(() => {
-    setAutoRefreshEnabled((prev) => {
-      const newValue = !prev
-      if (newValue) {
-        resetIdleTimer()
-      }
-      return newValue
-    })
-  }, [resetIdleTimer])
 
   return (
     <CharacterProvider charactersById={charactersById} lfms={lfmsById} raidActivity={raidActivity} questsById={questsById}>
@@ -264,6 +239,11 @@ function App() {
           </Grid>
         </Box>
       </Container>
+      <IdleWarningDialog
+        open={showIdleWarning}
+        onReEnable={handleIdleWarningReEnable}
+        onClose={handleIdleWarningClose}
+      />
     </CharacterProvider>
   )
 }
