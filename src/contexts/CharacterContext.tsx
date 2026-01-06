@@ -10,6 +10,7 @@ export interface Character {
   location_id: string
   classes: any[]
   race: string
+  total_level: number
   [key: string]: any
 }
 

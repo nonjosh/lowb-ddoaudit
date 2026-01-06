@@ -61,7 +61,7 @@ export default function PlayerRow({
     onlineInfo = onlineChars.map((c, idx) => {
       return (
         <span key={c.name}>
-          {c.name} (<ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={20} />)
+          {c.name} (<ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={20} />){c.total_level !== 34 ? ` Lv${c.total_level}` : ''}
           {idx < onlineChars.length - 1 ? ', ' : ''}
         </span>
       )
