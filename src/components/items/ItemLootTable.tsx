@@ -10,7 +10,7 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { Item, ItemAffix, CraftingData, SetsData, CraftingOption } from '@/api/ddoGearPlanner'
+import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { RaidNotes } from '@/domains/raids/raidNotes'
 
 import ItemTableFilters from './ItemTableFilters'
