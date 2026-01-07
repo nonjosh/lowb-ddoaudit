@@ -35,7 +35,7 @@ interface RaidCardProps {
 export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
   const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
-  const [ignoredVersion, setIgnoredVersion] = useState(0)
+  const [, setIgnoredVersion] = useState(0)
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -50,7 +50,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
   const raidNotes = getRaidNotesForRaidName(g.raidName)
 
   const friendsInRaid = useMemo(() => {
-    const present = new Set<string>((g.entries ?? []).filter((e: any) => e?.isInRaid).map((e: any) => String(e?.playerName ?? '')))
+    const present = new Set<string>((g.entries ?? []).filter((e: RaidEntry) => e?.isInRaid).map((e: RaidEntry) => String(e?.playerName ?? '')))
     return EXPECTED_PLAYERS.filter((p) => present.has(p)).map((p) => getPlayerDisplayName(p))
   }, [g.entries])
 
@@ -63,7 +63,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
     return perPlayer
       .map((pg) => ({ ...pg, entries: (pg.entries ?? []).filter(isEligibleEntry) }))
       .filter((pg) => (pg.entries ?? []).length > 0)
-  }, [perPlayer, ignoredVersion])
+  }, [perPlayer])
 
   const availablePlayers = useMemo(() => EXPECTED_PLAYERS.filter((playerName) => {
     const pg = perPlayerEligible.find((p) => p.player === playerName)
@@ -90,8 +90,10 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
         mb: 2,
         ...(hasPlayersInRaid ? { borderColor: 'success.main' } : { borderColor: 'transparent' }),
         ...(highlight && {
-          boxShadow: (theme: any) =>
-            `inset 0 2px 0 0 ${theme.palette.primary.main}, inset 2px 0 0 0 ${theme.palette.primary.main}, inset -2px 0 0 0 ${theme.palette.primary.main}`,
+          boxShadow: (theme) => {
+            const primaryColor = theme.palette.primary.main
+            return `inset 0 2px 0 0 ${primaryColor}, inset 2px 0 0 0 ${primaryColor}, inset -2px 0 0 0 ${primaryColor}`
+          },
         }),
       }}
     >

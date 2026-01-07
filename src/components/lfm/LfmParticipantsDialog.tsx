@@ -8,21 +8,24 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from '@/components/raids/RaidTimerTable'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
-import { useConfig } from '@/contexts/ConfigContext'
 
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
 
 export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData }: LfmParticipantsDialogProps) {
-  const { showClassIcons } = useConfig()
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
-  const [collapsedPlayers, setCollapsedPlayers] = useState<Set<string>>(new Set())
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000) // Update every minute
+    return () => clearInterval(id)
+  }, [])
 
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) {
@@ -35,22 +38,27 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
 
   const getPostedMinutes = (postedAt: string | null): number | null => {
     if (!postedAt) return null
-    const nowMs = Date.now()
+    const nowMs = now.getTime()
     const updateMs = Date.parse(postedAt)
     if (isNaN(updateMs)) return null
     const diffMs = nowMs - updateMs
     return Math.max(0, Math.round(diffMs / 1000 / 60))
   }
 
-  useEffect(() => {
-    if (selectedRaidData?.perPlayerEligible) {
-      const next = new Set<string>()
-      for (const pg of selectedRaidData.perPlayerEligible) {
-        next.add(pg.player)
-      }
-      setCollapsedPlayers(next)
+  const initialCollapsedPlayers = useMemo(() => {
+    if (!selectedRaidData?.perPlayerEligible) return new Set<string>()
+    const next = new Set<string>()
+    for (const pg of selectedRaidData.perPlayerEligible) {
+      next.add(pg.player)
     }
+    return next
   }, [selectedRaidData])
+
+  const [collapsedPlayers, setCollapsedPlayers] = useState(initialCollapsedPlayers)
+
+  useEffect(() => {
+    setCollapsedPlayers(initialCollapsedPlayers)
+  }, [initialCollapsedPlayers])
 
   const isPlayerCollapsed = (_questId: string, playerName: string) => collapsedPlayers.has(playerName)
 

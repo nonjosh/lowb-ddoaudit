@@ -31,7 +31,7 @@ export function isRaidQuest(quest: Quest | null): boolean {
  * Gets the effective level for an LFM/quest combination.
  * Takes into account heroic vs epic versions and leader level.
  */
-export function getEffectiveLevel(lfm: any, quest: Quest | null): number | null {
+export function getEffectiveLevel(lfm: { leader?: { total_level?: number }; maximum_level?: number; minimum_level?: number }, quest: Quest | null): number | null {
   const leaderLevel = lfm?.leader?.total_level
   const heroicLevel = quest?.heroicLevel
   const epicLevel = quest?.epicLevel

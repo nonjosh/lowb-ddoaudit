@@ -2,13 +2,13 @@ import TimerIcon from '@mui/icons-material/Timer'
 import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchQuestsById, Quest } from '@/api/ddoAudit'
+import { fetchQuestsById, LfmItem, Quest } from '@/api/ddoAudit'
 import raidNotesRaw from '@/assets/raid_notes.txt?raw'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
-import { useCharacter } from '@/contexts/CharacterContext'
-import { prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
+import { useCharacter } from '@/contexts/useCharacter'
+import { prepareLfmParticipants, PreparedLfmData } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 
 import RaidCard from './RaidCard'
@@ -62,8 +62,8 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     const initial = raidGroups
       .map((g, idx) => {
         const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
-        const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
-        const hasTimer = (g.entries ?? []).some((e) => Boolean((e as any)?.lastTimestamp))
+        const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l) => String(l?.quest_id ?? '') === String(g.questId)))
+        const hasTimer = (g.entries ?? []).some((e) => Boolean(e?.lastTimestamp))
         return { g, idx, hasFriendInside, hasLfm, hasTimer }
       })
 
@@ -96,7 +96,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
             qLevel = typeof found.level === 'number' ? found.level : null
             pack = found.required_adventure_pack ?? null
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
 
@@ -141,8 +141,9 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     })
 
     return list.map((x) => x.g)
-  }, [raidGroups, lfms, tierFilter])
-  const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
+  }, [raidGroups, lfms, tierFilter, questsByIdLocal])
+
+  const [selectedLfm, setSelectedLfm] = useState<PreparedLfmData | null>(null)
   const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 
   const selectedRaidData = useMemo(() => {
@@ -153,9 +154,9 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
 
   const handleLfmClick = (questId: string) => {
     const lfmsById = lfms ?? {}
-    let lfm: any = lfmsById[questId]
+    let lfm: LfmItem | undefined = lfmsById[questId]
     if (!lfm) {
-      lfm = Object.values(lfmsById ?? {}).find((l: any) => String(l?.quest_id ?? '') === String(questId))
+      lfm = Object.values(lfmsById ?? {}).find((l) => String(l?.quest_id ?? '') === String(questId))
     }
     if (!lfm) return
 
@@ -197,7 +198,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
           {sortedRaidGroups.map((g) => {
             const lfmsById = lfms ?? {}
             const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
-            const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
+            const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l) => String(l?.quest_id ?? '') === String(g.questId)))
             return (
               <Box key={g.questId}>
                 <RaidCard

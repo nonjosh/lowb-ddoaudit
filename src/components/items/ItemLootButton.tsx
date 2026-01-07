@@ -1,5 +1,5 @@
 import { IconButton, Tooltip } from '@mui/material'
-import { useState } from 'react'
+import { MouseEvent, useState } from 'react'
 import { GiChest } from 'react-icons/gi'
 
 import ItemLootDialog from './ItemLootDialog'
@@ -11,7 +11,7 @@ interface ItemLootButtonProps {
 export default function ItemLootButton({ questName }: ItemLootButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: MouseEvent) => {
     e.stopPropagation()
     setDialogOpen(true)
   }

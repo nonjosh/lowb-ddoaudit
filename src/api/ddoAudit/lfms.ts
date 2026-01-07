@@ -4,7 +4,35 @@ export interface FetchOptions {
   signal?: AbortSignal
 }
 
-export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions = {}): Promise<Record<string, any>> {
+interface LfmCharacter {
+  id: string | number
+  name: string
+  race: string
+  total_level: number
+  classes: Array<{ name: string; level: number }>
+  location_id: number
+  guild_name?: string
+}
+
+interface LfmActivity {
+  timestamp: string
+  events?: Array<{ tag: string;[key: string]: unknown }>
+}
+
+export interface LfmItem {
+  id: string | number
+  quest_id: string | number
+  minimum_level: number
+  maximum_level: number
+  leader: LfmCharacter
+  members?: LfmCharacter[]
+  activity: LfmActivity[]
+  difficulty?: string
+  comment?: string
+  adventure_active_time?: string | number
+}
+
+export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions = {}): Promise<Record<string, LfmItem>> {
   const server = String(serverName ?? '').trim() || 'shadowdale'
   const url = `${DDOAUDIT_BASE_URL}/lfms/${encodeURIComponent(server)}`
   const resp = await fetch(url, { signal: options.signal })
@@ -13,40 +41,41 @@ export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions
   }
   const json = await resp.json()
 
-  const normalize = (value: any): Record<string, any> => {
+  const normalize = (value: unknown): Record<string, LfmItem> => {
     if (!value) return {}
 
-    if (typeof value === 'object' && !Array.isArray(value) && value?.data) {
-      return normalize(value.data)
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && 'data' in value) {
+      return normalize((value as { data: unknown }).data)
     }
 
     if (Array.isArray(value)) {
-      const out: Record<string, any> = {}
+      const out: Record<string, LfmItem> = {}
       for (const item of value) {
-        const id = item?.id
+        const typedItem = item as LfmItem
+        const id = typedItem?.id
         if (id === null || id === undefined) continue
-        out[String(id)] = item
+        out[String(id)] = typedItem
       }
       return out
     }
 
-    if (typeof value === 'object') {
+    if (value !== null && typeof value === 'object') {
       const keys = Object.keys(value)
       if (keys.length === 1) {
         const onlyKey = keys[0]
-        const nested = value?.[onlyKey]
+        const nested = (value as Record<string, unknown>)?.[onlyKey]
         if (
-          nested &&
+          nested !== null &&
           typeof nested === 'object' &&
           !Array.isArray(nested) &&
-          !('quest_id' in value) &&
-          !('id' in value) &&
-          Object.values(nested).some((x) => x && typeof x === 'object' && 'quest_id' in x)
+          !('quest_id' in (value as object)) &&
+          !('id' in (value as object)) &&
+          Object.values(nested).some((x) => x !== null && typeof x === 'object' && 'quest_id' in x)
         ) {
-          return nested
+          return nested as Record<string, LfmItem>
         }
       }
-      return value
+      return value as Record<string, LfmItem>
     }
 
     return {}

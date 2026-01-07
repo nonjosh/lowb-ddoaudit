@@ -10,8 +10,8 @@ import { addMs, formatLocalDateTime, formatTimeRemaining, isTimerIgnored, RAID_L
 import CharacterNamesWithClassTooltip from '@/components/shared/CharacterNamesWithClassTooltip'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
-import { useCharacter } from '@/contexts/CharacterContext'
-import { useConfig } from '@/contexts/ConfigContext'
+import { useCharacter } from '@/contexts/useCharacter'
+import { useConfig } from '@/contexts/useConfig'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '@/domains/raids/raidLogic'
 
 interface RaidPlayerGroupProps {
@@ -182,7 +182,7 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlay
               <TableBody>
                 {displayEntries.map((e) => {
                   const ignored = (() => {
-                    try { return isTimerIgnored(e.characterId, e.lastTimestamp) } catch (err) { return false }
+                    try { return isTimerIgnored(e.characterId, e.lastTimestamp) } catch { return false }
                   })()
                   const available = ignored || isEntryAvailable(e, now)
 

@@ -2,11 +2,13 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import GroupsIcon from '@mui/icons-material/Groups'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import { Box, ListItem, ListItemButton, ListItemText, Tooltip, Typography } from '@mui/material'
+import { ReactNode } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
-import { PlayerGroup } from '@/contexts/CharacterContext'
-import { useConfig } from '@/contexts/ConfigContext'
+import { PreparedLfmData } from '@/domains/lfm/lfmHelpers'
+import { PlayerGroup } from '@/contexts/useCharacter'
+import { useConfig } from '@/contexts/useConfig'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 
 interface PlayerRowProps {
@@ -14,9 +16,9 @@ interface PlayerRowProps {
   showLocation?: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, any>
+  lfmByCharacterName: Map<string, PreparedLfmData>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: any) => void
+  onLfmClick: (lfm: PreparedLfmData) => void
 }
 
 /**
@@ -36,16 +38,16 @@ export default function PlayerRow({
   const onlineChars = (group.chars ?? []).filter((c) => c?.is_online)
   const isOnline = onlineChars.length > 0
 
-  let onlineInfo: React.ReactNode = null
-  let locationSuffix: React.ReactNode = null
+  let onlineInfo: ReactNode = null
+  let locationSuffix: ReactNode = null
   let isInParty = false
   let isInLfm = false
-  let lfmForCharacter: any = null
+  let lfmForCharacter: PreparedLfmData | undefined = undefined
 
   if (isOnline) {
     const firstChar = onlineChars[0]
-    const questName = quests[firstChar.location_id]?.name
-    const areaName = areas[firstChar.location_id]?.name
+    const questName = firstChar.location_id ? quests[firstChar.location_id]?.name : undefined
+    const areaName = firstChar.location_id ? areas[firstChar.location_id]?.name : undefined
     // Quest name is already shown in the group header.
     if (!questName && showLocation) {
       locationSuffix = ` @ ${areaName || 'Unknown Area'}`

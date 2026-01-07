@@ -10,7 +10,7 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { RaidNotes } from '@/domains/raids/raidNotes'
 
 import ItemTableFilters from './ItemTableFilters'
@@ -18,15 +18,10 @@ import ItemTableRow from './ItemTableRow'
 
 interface ItemLootTableProps {
   questItems: Item[]
-  setsData: any
-  craftingData: any
+  setsData: SetsData | null
+  craftingData: CraftingData | null
   raidNotes: RaidNotes | null
   questLevel?: number
-}
-
-interface CraftingItem {
-  name?: string
-  affixes: ItemAffix[]
 }
 
 interface CraftingAffix {
@@ -206,7 +201,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
       const items = data[craft]["*"]
       if (items.length > 0 && items[0].affixes) {
         const affixMap = new Map<string, CraftingAffix>()
-        items.forEach((item: CraftingItem) => {
+        items.forEach((item) => {
           if (item.affixes) {
             item.affixes.forEach(affix => {
               const key = `${affix.name}-${affix.type}`
@@ -221,17 +216,16 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
         })
         return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
       } else {
-        return items.map((item: any) => item.name)
+        return items.map((item) => item.name ?? '')
       }
     } else if (data[craft]) {
       const options: string[] = []
       for (const [itemName, sets] of Object.entries(data[craft])) {
+        if (!Array.isArray(sets)) continue
         options.push(`${itemName}:`)
-        if (Array.isArray(sets)) {
-          sets.forEach((set: any) => {
-            options.push(`- ${set.name}`)
-          })
-        }
+        sets.forEach((set) => {
+          options.push(`- ${set.name ?? ''}`)
+        })
       }
       return options
     }

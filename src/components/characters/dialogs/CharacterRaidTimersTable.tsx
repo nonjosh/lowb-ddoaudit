@@ -10,15 +10,15 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
-import { useCharacter } from '@/contexts/CharacterContext'
+import { Character, useCharacter } from '@/contexts/useCharacter'
 
 interface CharacterRaidTimersTableProps {
-  character: any
+  character: Character
 }
 
 export default function CharacterRaidTimersTable({ character }: CharacterRaidTimersTableProps) {
   const { raidActivity, questsById } = useCharacter()
-  const [now, setNow] = useState(() => new Date())
+  const [, setNow] = useState(() => new Date())
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -36,7 +36,7 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
       if (characterId !== character.id) continue
 
       const ts = item?.timestamp
-      const questIds = item?.data?.quest_ids ?? []
+      const questIds = item.data.quest_ids
 
       if (!ts || !Array.isArray(questIds)) continue
 
@@ -71,7 +71,7 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
     })
 
     return entries
-  }, [raidActivity, questsById, character, now])
+  }, [raidActivity, questsById, character])
 
   // Don't render anything if no timers
   if (!timerEntries.length) {

@@ -8,7 +8,7 @@ import {
 } from '@mui/material'
 import React from 'react'
 
-import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { RaidNotes } from '@/domains/raids/raidNotes'
 
@@ -18,7 +18,7 @@ import ItemSetTooltip from './ItemSetTooltip'
 interface ItemTableRowProps {
   item: Item
   searchText: string
-  setsData: any
+  setsData: SetsData | null
   raidNotes: RaidNotes | null
   highlightText: (text: string, query: string) => string | React.ReactElement
   formatAffix: (affix: ItemAffix, query?: string) => string | React.ReactElement

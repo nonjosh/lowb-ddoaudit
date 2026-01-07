@@ -7,8 +7,11 @@ import {
   fetchQuestsById,
   fetchRaidActivity,
   fetchServerInfo,
+  LfmItem,
   parseCharacterIds,
   Quest,
+  CharacterData,
+  RaidActivityEntry,
 } from './api/ddoAudit'
 import CharactersSection from './components/characters/CharactersSection'
 import LfmRaidsSection from './components/lfm/LfmRaidsSection'
@@ -22,17 +25,17 @@ import {
   groupEntriesByPlayer
 } from './domains/raids/raidLogic'
 import { useIdleTimer } from './hooks/useIdleTimer'
-import { useConfig } from './contexts/ConfigContext'
+import { useConfig } from './contexts/useConfig'
 
 function App() {
   const [characterIdsInput] = useState(Object.keys(CHARACTERS).join(','))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
-  const [charactersById, setCharactersById] = useState<Record<string, any>>({})
-  const [raidActivity, setRaidActivity] = useState<any[]>([])
+  const [charactersById, setCharactersById] = useState<Record<string, CharacterData>>({})
+  const [raidActivity, setRaidActivity] = useState<RaidActivityEntry[]>([])
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
-  const [lfmsById, setLfmsById] = useState<Record<string, any>>({})
+  const [lfmsById, setLfmsById] = useState<Record<string, LfmItem>>({})
   const [lfmError, setLfmError] = useState('')
   const [serverPlayers, setServerPlayers] = useState<number | null>(null)
   const [isServerOnline, setIsServerOnline] = useState<boolean | null>(null)
@@ -94,37 +97,36 @@ function App() {
 
 
       // If server is offline, avoid calling the LFM API but still fetch quests/characters/raids
-      let lfmFetchError: any = null
       const lfmPromise = serverInfo?.is_online === false
-        ? Promise.resolve(null)
-        : fetchLfms('shadowdale', { signal: controller.signal }).catch((e) => {
-          lfmFetchError = e
-          return null
-        })
+        ? Promise.resolve({ data: null, error: null })
+        : fetchLfms('shadowdale', { signal: controller.signal })
+          .then((data) => ({ data, error: null }))
+          .catch((e: Error) => ({ data: null, error: e }))
 
       if (serverInfo?.is_online === false) {
         setLfmError('Server is offline. LFM data is unavailable.')
       }
 
-      const [quests, characters, raids, lfms] = await Promise.all([
+      const [quests, characters, raids, lfmResult] = await Promise.all([
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
         fetchRaidActivity(ids, { signal: controller.signal }),
         lfmPromise,
       ])
 
-      if (lfmFetchError) {
-        setLfmError(lfmFetchError?.message ?? String(lfmFetchError))
+      if (lfmResult.error) {
+        setLfmError(lfmResult.error.message ?? String(lfmResult.error))
       }
 
       setQuestsById(quests)
       setCharactersById(characters)
       setRaidActivity(raids)
-      setLfmsById(lfms ?? {})
+      setLfmsById(lfmResult.data ?? {})
       setLastUpdatedAt(new Date())
-    } catch (e: any) {
-      if (e?.name === 'AbortError') return
-      setError(e?.message ?? String(e))
+    } catch (e) {
+      const error = e as Error
+      if (error?.name === 'AbortError') return
+      setError(error?.message ?? String(e))
     } finally {
       setLoading(false)
     }

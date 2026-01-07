@@ -13,8 +13,8 @@ interface TimeRemainingDisplayProps {
   showIgnoreButton?: boolean
 }
 
-function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string; lastTimestamp: string | null; sx?: any }) {
-  const [version, setVersion] = useState(0)
+function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string; lastTimestamp: string | null; sx?: Record<string, unknown> }) {
+  const [, setVersion] = useState(0)
 
   useEffect(() => {
     const handler = () => setVersion((v) => v + 1)
@@ -23,7 +23,7 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
   }, [])
 
   const ignored = (() => {
-    try { return isTimerIgnored(characterId, lastTimestamp) } catch (err) { return false }
+    try { return isTimerIgnored(characterId, lastTimestamp) } catch { return false }
   })()
 
   if (ignored) {
@@ -34,7 +34,7 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
           sx={sx}
           onClick={(e) => {
             e.stopPropagation()
-            try { removeIgnoredTimer(characterId, lastTimestamp) } catch (err) { /* ignore */ }
+            try { removeIgnoredTimer(characterId, lastTimestamp) } catch { /* ignore */ }
           }}
         >
           <RestoreIcon fontSize="small" />
@@ -50,7 +50,7 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
         sx={sx}
         onClick={(e) => {
           e.stopPropagation()
-          try { addIgnoredTimer(characterId, lastTimestamp) } catch (err) { /* ignore */ }
+          try { addIgnoredTimer(characterId, lastTimestamp) } catch { /* ignore */ }
         }}
       >
         <CancelIcon fontSize="small" />

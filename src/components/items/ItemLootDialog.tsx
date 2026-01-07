@@ -13,7 +13,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
+import { fetchCrafting, fetchItems, fetchSets, Item, SetsData, CraftingData } from '@/api/ddoGearPlanner'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
@@ -31,8 +31,8 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
   const [areaName, setAreaName] = useState<string | null>(null)
   const [items, setItems] = useState<Item[]>([])
-  const [craftingData, setCraftingData] = useState<any>(null)
-  const [setsData, setSetsData] = useState<any>(null)
+  const [craftingData, setCraftingData] = useState<CraftingData | null>(null)
+  const [setsData, setSetsData] = useState<SetsData | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -46,18 +46,30 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
               if (areas[found.areaId!]) {
                 setAreaName(areas[found.areaId!].name)
               }
-            })
+            }).catch(console.error)
           }
         }
-      })
+      }).catch(console.error)
 
       // Fetch gear planner data
-      setLoading(true)
-      Promise.all([
-        fetchItems().then(setItems),
-        fetchCrafting().then(setCraftingData),
-        fetchSets().then(setSetsData)
-      ]).catch(console.error).finally(() => setLoading(false))
+      const fetchGearData = async () => {
+        setLoading(true)
+        try {
+          const [itemsData, craftingDataResult, setsDataResult] = await Promise.all([
+            fetchItems(),
+            fetchCrafting(),
+            fetchSets()
+          ])
+          setItems(itemsData)
+          setCraftingData(craftingDataResult)
+          setSetsData(setsDataResult)
+        } catch (error) {
+          console.error(error)
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchGearData()
     }
   }, [open, questName])
 

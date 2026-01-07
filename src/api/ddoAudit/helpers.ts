@@ -29,7 +29,7 @@ export function parseCharacterIds(input: string | null | undefined): string[] {
   return Array.from(unique)
 }
 
-export function parseNullableInt(value: any): number | null {
+export function parseNullableInt(value: unknown): number | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null
   const text = String(value).trim()
@@ -109,8 +109,8 @@ export function getIgnoredTimers(): IgnoredTimerRecord[] {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(Boolean).map((p: any) => ({ characterId: String(p.characterId ?? ''), lastTimestamp: p.lastTimestamp ?? null }))
-  } catch (err) {
+    return parsed.filter(Boolean).map((p) => ({ characterId: String((p as { characterId?: unknown }).characterId ?? ''), lastTimestamp: (p as { lastTimestamp?: string | null }).lastTimestamp ?? null }))
+  } catch {
     return []
   }
 }
@@ -130,9 +130,9 @@ export function addIgnoredTimer(characterId: string, lastTimestamp: string | nul
       list.push({ characterId, lastTimestamp })
       localStorage.setItem(IGNORED_TIMERS_KEY, JSON.stringify(list))
       // Notify other listeners in the page
-      try { window.dispatchEvent(new Event('ddoaudit:ignoredTimersChanged')) } catch (e) { /* ignore */ }
+      try { window.dispatchEvent(new Event('ddoaudit:ignoredTimersChanged')) } catch { /* ignore */ }
     }
-  } catch (err) {
+  } catch {
     // ignore
   }
 }
@@ -143,8 +143,8 @@ export function removeIgnoredTimer(characterId: string, lastTimestamp: string | 
     const list = getIgnoredTimers()
     const filtered = list.filter((r) => !(r.characterId === characterId && r.lastTimestamp === lastTimestamp))
     localStorage.setItem(IGNORED_TIMERS_KEY, JSON.stringify(filtered))
-    try { window.dispatchEvent(new Event('ddoaudit:ignoredTimersChanged')) } catch (e) { /* ignore */ }
-  } catch (err) {
+    try { window.dispatchEvent(new Event('ddoaudit:ignoredTimersChanged')) } catch { /* ignore */ }
+  } catch {
     // ignore
   }
 }

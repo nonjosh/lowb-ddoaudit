@@ -1,10 +1,12 @@
 import { Box, Tooltip, Typography } from '@mui/material'
 import React from 'react'
 
+import { SetsData, ItemAffix } from '@/api/ddoGearPlanner'
+
 interface ItemSetTooltipProps {
   setName: string
-  setsData: any
-  formatAffix: (affix: any) => React.ReactNode
+  setsData: SetsData | null
+  formatAffix: (affix: ItemAffix) => React.ReactNode
 }
 
 export default function ItemSetTooltip({ setName, setsData, formatAffix }: ItemSetTooltipProps) {
@@ -12,14 +14,14 @@ export default function ItemSetTooltip({ setName, setsData, formatAffix }: ItemS
     <Tooltip
       title={
         <Box>
-          {setsData && (setsData as any)[setName]?.map((setItem: any, idx: number) => (
-            <Box key={idx} sx={{ mb: idx < (setsData as any)[setName].length - 1 ? 2 : 0 }}>
+          {setsData && setsData[setName]?.map((setItem, idx: number) => (
+            <Box key={idx} sx={{ mb: idx < setsData[setName].length - 1 ? 2 : 0 }}>
               <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                 {setItem.threshold} Piece{setItem.threshold > 1 ? 's' : ''} Equipped:
               </Typography>
               <ul style={{ margin: 0, paddingLeft: 20 }}>
-                {setItem.affixes?.map((affix: any) => formatAffix(affix)).map((effect: string) => (
-                  <li key={effect} style={{ fontSize: '0.75rem' }}>
+                {setItem.affixes?.map((affix) => formatAffix(affix)).map((effect: React.ReactNode, i: number) => (
+                  <li key={i} style={{ fontSize: '0.75rem' }}>
                     {effect}
                   </li>
                 ))}

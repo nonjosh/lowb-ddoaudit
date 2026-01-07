@@ -1,49 +1,15 @@
-import { createContext, useContext, useMemo } from 'react'
+import { ReactNode, useMemo } from 'react'
 
 import { getPlayerName } from '@/domains/raids/raidLogic'
-import { Quest } from '@/api/ddoAudit'
-
-export interface Character {
-  id: string
-  name: string
-  is_online: boolean
-  location_id: string
-  classes: any[]
-  race: string
-  total_level: number
-  [key: string]: any
-}
-
-export interface PlayerGroup {
-  player: string
-  chars: Character[]
-}
-
-interface CharacterContextType {
-  charactersById: Record<string, Character>
-  charactersByPlayer: PlayerGroup[]
-  isPlayerOnline: (playerName: string) => boolean
-  lfms: Record<string, any>
-  raidActivity: any[]
-  questsById: Record<string, Quest>
-}
-
-const CharacterContext = createContext<CharacterContextType | null>(null)
-
-export function useCharacter() {
-  const context = useContext(CharacterContext)
-  if (!context) {
-    throw new Error('useCharacter must be used within a CharacterProvider')
-  }
-  return context
-}
+import { LfmItem, Quest, RaidActivityEntry } from '@/api/ddoAudit'
+import { CharacterContext, Character } from './useCharacter'
 
 interface CharacterProviderProps {
-  charactersById: Record<string, any>
-  lfms?: Record<string, any>
-  raidActivity: any[]
+  charactersById: Record<string, Omit<Character, 'id'>>
+  lfms?: Record<string, LfmItem>
+  raidActivity: RaidActivityEntry[]
   questsById: Record<string, Quest>
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function CharacterProvider({ charactersById, lfms = {}, raidActivity, questsById, children }: CharacterProviderProps) {
@@ -52,9 +18,9 @@ export function CharacterProvider({ charactersById, lfms = {}, raidActivity, que
 
     const map = new Map<string, Character[]>()
     for (const [id, c] of entries) {
-      const player = getPlayerName(c?.name)
+      const player = getPlayerName(c?.name as string)
       const arr = map.get(player) ?? []
-      arr.push({ ...c, id })
+      arr.push({ ...c, id } as Character)
       map.set(player, arr)
     }
 
@@ -77,7 +43,7 @@ export function CharacterProvider({ charactersById, lfms = {}, raidActivity, que
 
     for (const c of values) {
       if (c?.is_online) {
-        const player = getPlayerName(c.name)
+        const player = getPlayerName(c.name as string)
         status.set(player, true)
       }
     }

@@ -1,6 +1,6 @@
 export * from './areas'
 export { fetchCharactersByIds, fetchRaidActivity } from './characters'
-export type { FetchOptions } from './characters'
+export type { FetchOptions, CharacterData, RaidActivityEntry } from './characters'
 export * from './constants'
 export * from './helpers'
 export * from './lfms'

@@ -19,10 +19,11 @@ import {
 } from '@mui/material'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 
-import { Quest } from '@/api/ddoAudit'
+import { Quest, LfmItem } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { filterAndSortLfms, NormalizedLfm, normalizeLfm } from '@/domains/lfm/lfmHelpers'
+import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 
 import LfmParticipantsDialog from './LfmParticipantsDialog'
@@ -30,12 +31,12 @@ import LfmParticipantsDialog from './LfmParticipantsDialog'
 interface LfmRaidsSectionProps {
   loading: boolean
   hasFetched: boolean
-  lfmsById: Record<string, any>
+  lfmsById: Record<string, LfmItem>
   questsById: Record<string, Quest>
   error: string
   serverPlayers?: number | null
   isServerOnline?: boolean | null
-  raidGroups: any[]
+  raidGroups: RaidGroup[]
 }
 
 

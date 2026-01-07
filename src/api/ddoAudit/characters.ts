@@ -5,7 +5,26 @@ export interface FetchOptions {
   signal?: AbortSignal
 }
 
-export async function fetchCharactersByIds(characterIds: string[], options: FetchOptions = {}): Promise<Record<string, any>> {
+export interface CharacterData {
+  name: string
+  total_level: number
+  race: string
+  classes: Array<{ name: string; level: number }>
+  is_online?: boolean
+  location_id?: string
+  group_id?: string
+  is_in_party?: boolean
+}
+
+export interface RaidActivityEntry {
+  character_id: string
+  timestamp: string
+  data: {
+    quest_ids: string[]
+  }
+}
+
+export async function fetchCharactersByIds(characterIds: string[], options: FetchOptions = {}): Promise<Record<string, CharacterData>> {
   if (!characterIds?.length) return {}
 
   const batches = chunk(characterIds, MAX_CHARACTER_IDS_PER_REQUEST)
@@ -17,18 +36,18 @@ export async function fetchCharactersByIds(characterIds: string[], options: Fetc
         throw new Error(`Failed to fetch characters (${resp.status})`)
       }
       const json = await resp.json()
-      return (json?.data ?? {}) as Record<string, any>
+      return (json?.data ?? {}) as Record<string, CharacterData>
     }),
   )
 
-  const merged: Record<string, any> = {}
+  const merged: Record<string, CharacterData> = {}
   for (const obj of results) {
     Object.assign(merged, obj)
   }
   return merged
 }
 
-export async function fetchRaidActivity(characterIds: string[], options: FetchOptions = {}): Promise<any[]> {
+export async function fetchRaidActivity(characterIds: string[], options: FetchOptions = {}): Promise<RaidActivityEntry[]> {
   if (!characterIds?.length) return []
 
   const batches = chunk(characterIds, MAX_CHARACTER_IDS_PER_REQUEST)
@@ -42,7 +61,7 @@ export async function fetchRaidActivity(characterIds: string[], options: FetchOp
         throw new Error(`Failed to fetch raid activity (${resp.status})`)
       }
       const json = await resp.json()
-      return (json?.data ?? []) as any[]
+      return (json?.data ?? []) as RaidActivityEntry[]
     }),
   )
 

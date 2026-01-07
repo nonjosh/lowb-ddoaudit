@@ -1,8 +1,18 @@
 import { CRAFTING_JSON_URL } from './constants'
+import { ItemAffix } from './items'
 
-let craftingPromise: Promise<any> | null = null
+export interface CraftingOption {
+  name?: string
+  affixes?: ItemAffix[]
+  quests?: string[]
+  ml?: number
+}
 
-export async function fetchCrafting(): Promise<any> {
+export type CraftingData = Record<string, Record<string, CraftingOption[]>>
+
+let craftingPromise: Promise<CraftingData> | null = null
+
+export async function fetchCrafting(): Promise<CraftingData> {
   if (craftingPromise) return craftingPromise
 
   craftingPromise = (async () => {
@@ -11,7 +21,7 @@ export async function fetchCrafting(): Promise<any> {
       throw new Error(`Failed to fetch crafting.json (${resp.status})`)
     }
 
-    return await resp.json()
+    return await resp.json() as CraftingData
   })()
 
   return craftingPromise

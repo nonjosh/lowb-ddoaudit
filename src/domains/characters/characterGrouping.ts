@@ -1,5 +1,5 @@
 import { Quest } from '@/api/ddoAudit'
-import { PlayerGroup } from '@/contexts/CharacterContext'
+import { PlayerGroup } from '@/contexts/useCharacter'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 
 export interface GroupedCharacters {
@@ -45,8 +45,9 @@ export function groupCharactersByLocation({
   sortedGroups.forEach((group) => {
     const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
     if (onlineChar) {
-      const area = areas[onlineChar.location_id]
-      const quest = quests[onlineChar.location_id]
+      const locId = String(onlineChar.location_id ?? '')
+      const area = areas[locId]
+      const quest = quests[locId]
 
       // Public areas first
       if (area && area.is_public) {
@@ -76,7 +77,7 @@ export function groupCharactersByLocation({
         let isEpic = false
 
         if (quest.heroicLevel && quest.epicLevel) {
-          const charLevel = (onlineChar.classes || []).reduce((sum: number, cls: any) => sum + (cls.level || 0), 0)
+          const charLevel = (onlineChar.classes || []).reduce((sum: number, cls) => sum + (cls.level || 0), 0)
           const distHeroic = Math.abs(charLevel - quest.heroicLevel)
           const distEpic = Math.abs(charLevel - quest.epicLevel)
           if (distHeroic <= distEpic) {

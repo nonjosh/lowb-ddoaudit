@@ -1,7 +1,7 @@
 import { Tooltip } from '@mui/material'
 import { memo } from 'react'
 
-import { useConfig } from '@/contexts/ConfigContext'
+import { useConfig } from '@/contexts/useConfig'
 import { CharacterClass, formatClasses } from '@/domains/raids/raidLogic'
 
 import ClassDisplay from './ClassDisplay'

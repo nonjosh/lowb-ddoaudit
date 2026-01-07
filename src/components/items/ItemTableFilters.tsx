@@ -61,18 +61,14 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
               setTypeFilter(typeof value === 'string' ? value.split(',') : value)
             }}
           >
-            {(() => {
-              let prevCategory = -1
-              return uniqueTypes.flatMap(({ type, count, display, category }) => {
-                const items = []
-                if (category !== prevCategory && prevCategory !== -1) {
-                  items.push(<Divider key={`divider-${type}`} />)
-                }
-                items.push(<MenuItem key={type} value={type}>{display} ({count})</MenuItem>)
-                prevCategory = category
-                return items
-              })
-            })()}
+            {uniqueTypes.flatMap(({ type, count, display, category }, index) => {
+              const items = []
+              if (index > 0 && category !== uniqueTypes[index - 1].category) {
+                items.push(<Divider key={`divider-${type}`} />)
+              }
+              items.push(<MenuItem key={type} value={type}>{display} ({count})</MenuItem>)
+              return items
+            })}
           </Select>
         </FormControl>
         <FormControl size="small" fullWidth>
