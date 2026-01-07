@@ -83,7 +83,11 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
       <TableContainer>
         <Table size="small">
           <TableHead>
-            <TableRow>
+            <TableRow
+              sx={{
+                '& .MuiTableCell-root': { fontSize: '0.8rem', fontStyle: 'italic' },
+              }}
+            >
               <TableCell>Raid Name ({timerEntries.length})</TableCell>
               <TableCell>Time Remaining</TableCell>
             </TableRow>
