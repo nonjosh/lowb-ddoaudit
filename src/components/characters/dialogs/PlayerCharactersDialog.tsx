@@ -23,7 +23,7 @@ import React, { useState } from 'react'
 
 import { formatAge, formatLocalDateTime } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
-import { Character } from '@/contexts/useCharacter'
+import { Character, useCharacter } from '@/contexts/useCharacter'
 import { useConfig } from '@/contexts/useConfig'
 
 import CharacterRaidTimersTable from './CharacterRaidTimersTable'
@@ -39,17 +39,68 @@ interface PlayerCharactersDialogProps {
 
 export default function PlayerCharactersDialog({ open, onClose, playerName, characters }: PlayerCharactersDialogProps) {
   const { showClassIcons } = useConfig()
+  const { raidActivity, questsById } = useCharacter()
   const [expandedCharacters, setExpandedCharacters] = useState<Set<string>>(new Set())
   const [showAllRaidTimers, setShowAllRaidTimers] = useState(false)
+  const [closedCharacters, setClosedCharacters] = useState<Set<string>>(new Set())
+
+  const hasRaidTimers = (character: Character): boolean => {
+    if (!character?.id) return false
+
+    const questTimers = new Map<string, { questId: string; raidName: string; questLevel: number | null; lastTimestamp: string }>()
+
+    for (const item of raidActivity ?? []) {
+      const characterId = String(item?.character_id ?? '')
+      if (characterId !== character.id) continue
+
+      const ts = item?.timestamp
+      const questIds = item.data.quest_ids
+
+      if (!ts || !Array.isArray(questIds)) continue
+
+      for (const questIdRaw of questIds) {
+        const questId = String(questIdRaw)
+        if (!questId) continue
+
+        const quest = questsById?.[questId]
+        const raidName = quest?.name ?? `Unknown quest (${questId})`
+        const questLevel = quest?.level ?? null
+
+        if (typeof questLevel === 'number' && questLevel < 20) continue
+
+        const existing = questTimers.get(questId)
+        if (!existing || new Date(ts).getTime() > new Date(existing.lastTimestamp).getTime()) {
+          questTimers.set(questId, {
+            questId,
+            raidName,
+            questLevel,
+            lastTimestamp: ts,
+          })
+        }
+      }
+    }
+
+    return questTimers.size > 0
+  }
 
   const toggleExpanded = (characterId: string) => {
-    const newSet = new Set(expandedCharacters)
-    if (newSet.has(characterId)) {
-      newSet.delete(characterId)
+    if (showAllRaidTimers) {
+      const newSet = new Set(closedCharacters)
+      if (newSet.has(characterId)) {
+        newSet.delete(characterId)
+      } else {
+        newSet.add(characterId)
+      }
+      setClosedCharacters(newSet)
     } else {
-      newSet.add(characterId)
+      const newSet = new Set(expandedCharacters)
+      if (newSet.has(characterId)) {
+        newSet.delete(characterId)
+      } else {
+        newSet.add(characterId)
+      }
+      setExpandedCharacters(newSet)
     }
-    setExpandedCharacters(newSet)
   }
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -138,21 +189,23 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                           })()}
                         </TableCell>
                         <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={() => toggleExpanded(c.id)}
-                            sx={{
-                              transform: expandedCharacters.has(c.id) ? 'rotate(180deg)' : 'rotate(0deg)',
-                              transition: 'transform 0.2s'
-                            }}
-                          >
-                            <ExpandMoreIcon fontSize="small" />
-                          </IconButton>
+                          {hasRaidTimers(c) && (
+                            <IconButton
+                              size="small"
+                              onClick={() => toggleExpanded(c.id)}
+                              sx={{
+                                transform: (showAllRaidTimers ? !closedCharacters.has(c.id) : expandedCharacters.has(c.id)) ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s'
+                              }}
+                            >
+                              <ExpandMoreIcon fontSize="small" />
+                            </IconButton>
+                          )}
                         </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-                          <Collapse in={expandedCharacters.has(c.id) || showAllRaidTimers} timeout="auto" unmountOnExit>
+                          <Collapse in={showAllRaidTimers ? !closedCharacters.has(c.id) : expandedCharacters.has(c.id)} timeout="auto" unmountOnExit>
                             <CharacterRaidTimersTable character={c} />
                           </Collapse>
                         </TableCell>
