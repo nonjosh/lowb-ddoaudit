@@ -1,10 +1,4 @@
-import { Item } from '@/api/ddoGearPlanner'
-
-export interface ItemAffix {
-  name: string
-  type: string
-  value: string | number
-}
+import { Item, CraftingData } from '@/api/ddoGearPlanner'
 
 /**
  * Find items that drop from a specific quest
@@ -13,7 +7,7 @@ export interface ItemAffix {
  * @param craftingData The crafting data to also search for augments
  * @returns Array of items that drop from that quest
  */
-export function getItemsForQuest(items: Item[], questName: string, craftingData?: Record<string, Record<string, unknown[]>>): Item[] {
+export function getItemsForQuest(items: Item[], questName: string, craftingData?: CraftingData | null): Item[] {
   if (!questName) return []
 
   const normalizedQuestName = questName.trim().toLowerCase()
@@ -25,8 +19,8 @@ export function getItemsForQuest(items: Item[], questName: string, craftingData?
       const normalizedQ = q.trim().toLowerCase()
       // Prioritize exact matches, then allow partial matches for flexibility
       return normalizedQ === normalizedQuestName ||
-             normalizedQ.includes(normalizedQuestName) ||
-             normalizedQuestName.includes(normalizedQ)
+        normalizedQ.includes(normalizedQuestName) ||
+        normalizedQuestName.includes(normalizedQ)
     })
   })
 
@@ -43,19 +37,19 @@ export function getItemsForQuest(items: Item[], questName: string, craftingData?
               const hasQuest = item.quests.some((q: string) => {
                 const normalizedQ = q.trim().toLowerCase()
                 return normalizedQ === normalizedQuestName ||
-                       normalizedQ.includes(normalizedQuestName) ||
-                       normalizedQuestName.includes(normalizedQ)
+                  normalizedQ.includes(normalizedQuestName) ||
+                  normalizedQuestName.includes(normalizedQ)
               })
               if (hasQuest) {
                 // Convert to Item format
                 craftingMatches.push({
-                  name: item.name,
-                  ml: item.ml,
+                  name: item.name ?? 'Unknown',
+                  ml: item.ml ?? 0,
                   quests: item.quests,
                   slot: 'Augment', // Use 'Augment' for slot
                   affixes: item.affixes || [],
                   type: slot, // Put the actual slot in type
-                  url: `/page/Item:${item.name.replace(/ /g, '_')}` // Add DDO wiki URL
+                  url: item.name ? `/page/Item:${item.name.replace(/ /g, '_')}` : undefined // Add DDO wiki URL
                 })
               }
             }

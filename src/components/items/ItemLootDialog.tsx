@@ -13,7 +13,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import { fetchCrafting, fetchItems, fetchSets, Item } from '@/api/ddoGearPlanner'
+import { fetchCrafting, fetchItems, fetchSets, Item, SetsData, CraftingData } from '@/api/ddoGearPlanner'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
@@ -31,8 +31,8 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
   const [areaName, setAreaName] = useState<string | null>(null)
   const [items, setItems] = useState<Item[]>([])
-  const [craftingData, setCraftingData] = useState<Record<string, unknown> | null>(null)
-  const [setsData, setSetsData] = useState<Record<string, unknown> | null>(null)
+  const [craftingData, setCraftingData] = useState<CraftingData | null>(null)
+  const [setsData, setSetsData] = useState<SetsData | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {

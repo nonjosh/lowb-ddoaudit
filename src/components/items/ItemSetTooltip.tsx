@@ -1,15 +1,12 @@
 import { Box, Tooltip, Typography } from '@mui/material'
 import React from 'react'
 
-interface SetItem {
-  threshold: number
-  affixes: unknown[]
-}
+import { SetsData, ItemAffix } from '@/api/ddoGearPlanner'
 
 interface ItemSetTooltipProps {
   setName: string
-  setsData: Record<string, SetItem[]>
-  formatAffix: (affix: unknown) => React.ReactNode
+  setsData: SetsData | null
+  formatAffix: (affix: ItemAffix) => React.ReactNode
 }
 
 export default function ItemSetTooltip({ setName, setsData, formatAffix }: ItemSetTooltipProps) {
