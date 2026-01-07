@@ -1,4 +1,4 @@
-import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS, RaidActivityEntry } from '@/api/ddoAudit'
+import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS, RaidActivityEntry, CharacterData } from '@/api/ddoAudit'
 import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '@/config/characters'
 
 export function getPlayerDisplayName(playerName: string): string {
@@ -115,15 +115,6 @@ export interface RaidGroup {
   entries: RaidEntry[]
 }
 
-interface CharacterData {
-  name: string
-  total_level?: number
-  race?: string
-  classes: CharacterClass[]
-  is_online?: boolean
-  location_id?: string
-}
-
 export function buildRaidGroups({ raidActivity, questsById, charactersById }: { raidActivity: RaidActivityEntry[], questsById: Record<string, Quest>, charactersById: Record<string, CharacterData> }): RaidGroup[] {
   /**
    * groupKey: normalized raid name
@@ -155,7 +146,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
     if (!characterId || !ts || !Array.isArray(questIds)) continue
 
-    const character = charactersById[characterId]!
+    const character = charactersById[characterId]
+    if (!character) continue
     const totalLevel = character.total_level
     const race = character.race
 
@@ -203,9 +195,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           characterId,
           characterName,
           playerName,
-          totalLevel: totalLevel as number,
+          totalLevel,
           classes,
-          race: race as string,
+          race,
           lastTimestamp: ts,
           isOnline,
           isInRaid,
@@ -225,7 +217,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
     for (const characterId of allCharacterIds) {
       if (g.entriesByCharacterId.has(characterId)) continue
-      const character = charactersById[characterId]!
+      const character = charactersById[characterId]
+      if (!character) continue
       const characterName = character.name
       const playerName = getPlayerName(characterName)
       const totalLevel = character.total_level
@@ -240,9 +233,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         characterId,
         characterName,
         playerName,
-        totalLevel: totalLevel as number,
+        totalLevel,
         classes,
-        race: race as string,
+        race,
         lastTimestamp: null,
         isOnline,
         isInRaid,
@@ -289,7 +282,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       const entries: RaidEntry[] = []
       const allCharacterIds = Object.keys(charactersById ?? {}).map(String)
       for (const characterId of allCharacterIds) {
-        const character = charactersById[characterId]!
+        const character = charactersById[characterId]
+        if (!character) continue
         const characterName = character.name
         const playerName = getPlayerName(characterName)
         const totalLevel = character.total_level
@@ -303,9 +297,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           characterId,
           characterName,
           playerName,
-          totalLevel: totalLevel as number,
+          totalLevel,
           classes,
-          race: race as string,
+          race,
           lastTimestamp: null,
           isOnline,
           isInRaid,

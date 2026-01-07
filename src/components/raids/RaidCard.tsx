@@ -90,8 +90,10 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
         mb: 2,
         ...(hasPlayersInRaid ? { borderColor: 'success.main' } : { borderColor: 'transparent' }),
         ...(highlight && {
-          boxShadow: (theme) =>
-            `inset 0 2px 0 0 ${(theme as { palette: { primary: { main: string } } }).palette.primary.main}, inset 2px 0 0 0 ${(theme as { palette: { primary: { main: string } } }).palette.primary.main}, inset -2px 0 0 0 ${(theme as { palette: { primary: { main: string } } }).palette.primary.main}`,
+          boxShadow: (theme) => {
+            const primaryColor = theme.palette.primary.main
+            return `inset 0 2px 0 0 ${primaryColor}, inset 2px 0 0 0 ${primaryColor}, inset -2px 0 0 0 ${primaryColor}`
+          },
         }),
       }}
     >

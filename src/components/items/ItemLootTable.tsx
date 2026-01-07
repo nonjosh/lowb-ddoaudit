@@ -221,6 +221,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     } else if (data[craft]) {
       const options: string[] = []
       for (const [itemName, sets] of Object.entries(data[craft])) {
+        if (!Array.isArray(sets)) continue
         options.push(`${itemName}:`)
         sets.forEach((set) => {
           options.push(`- ${set.name ?? ''}`)

@@ -8,7 +8,7 @@ import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useCharacter } from '@/contexts/useCharacter'
-import { LfmData, prepareLfmParticipants, PreparedLfmData } from '@/domains/lfm/lfmHelpers'
+import { prepareLfmParticipants, PreparedLfmData } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 
 import RaidCard from './RaidCard'
@@ -161,7 +161,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     if (!lfm) return
 
     const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
-    const preparedLfm = prepareLfmParticipants(lfm as unknown as LfmData, quest)
+    const preparedLfm = prepareLfmParticipants(lfm, quest)
     setSelectedLfm(preparedLfm)
 
     // Find the corresponding raid group

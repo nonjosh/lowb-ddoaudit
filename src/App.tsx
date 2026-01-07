@@ -119,8 +119,8 @@ function App() {
       }
 
       setQuestsById(quests)
-      setCharactersById(characters as Record<string, CharacterData>)
-      setRaidActivity(raids as RaidActivityEntry[])
+      setCharactersById(characters)
+      setRaidActivity(raids)
       setLfmsById(lfmResult.data ?? {})
       setLastUpdatedAt(new Date())
     } catch (e) {

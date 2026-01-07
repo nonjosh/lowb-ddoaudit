@@ -44,7 +44,7 @@ export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions
   const normalize = (value: unknown): Record<string, LfmItem> => {
     if (!value) return {}
 
-    if (typeof value === 'object' && value !== null && !Array.isArray(value) && 'data' in value) {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && 'data' in value) {
       return normalize((value as { data: unknown }).data)
     }
 
@@ -59,19 +59,18 @@ export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions
       return out
     }
 
-    if (typeof value === 'object' && value !== null) {
+    if (value !== null && typeof value === 'object') {
       const keys = Object.keys(value)
       if (keys.length === 1) {
         const onlyKey = keys[0]
         const nested = (value as Record<string, unknown>)?.[onlyKey]
         if (
-          nested &&
-          typeof nested === 'object' &&
           nested !== null &&
+          typeof nested === 'object' &&
           !Array.isArray(nested) &&
           !('quest_id' in (value as object)) &&
           !('id' in (value as object)) &&
-          Object.values(nested).some((x) => x && typeof x === 'object' && x !== null && 'quest_id' in x)
+          Object.values(nested).some((x) => x !== null && typeof x === 'object' && 'quest_id' in x)
         ) {
           return nested as Record<string, LfmItem>
         }

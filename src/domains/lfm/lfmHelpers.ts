@@ -1,35 +1,8 @@
-import { Quest } from '@/api/ddoAudit'
+import { Quest, LfmItem } from '@/api/ddoAudit'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/quests/questHelpers'
 import { CharacterClass, formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '@/domains/raids/raidLogic'
 
-interface LfmCharacter {
-  id: string | number
-  name: string
-  race: string
-  total_level: number
-  classes: CharacterClass[]
-  location_id: number
-  guild_name?: string
-}
-
-interface LfmActivity {
-  timestamp: string
-  events?: Array<{ tag: string;[key: string]: unknown }>
-}
-
-export interface LfmData {
-  id: string | number
-  quest_id: string | number
-  difficulty?: string
-  comment?: string
-  adventure_active_time?: string | number
-  minimum_level: number
-  maximum_level: number
-  leader: LfmCharacter
-  members?: LfmCharacter[]
-  activity: LfmActivity[]
-}
 
 export interface LfmParticipant {
   characterName: string
@@ -94,7 +67,7 @@ export interface PreparedLfmData {
  * Prepares LFM data for display in the participants dialog.
  * Extracts and formats all participant information including classes, levels, guilds, etc.
  */
-export function prepareLfmParticipants(lfm: LfmData, quest: Quest | null): PreparedLfmData {
+export function prepareLfmParticipants(lfm: LfmItem, quest: Quest | null): PreparedLfmData {
   const isRaid = isRaidQuest(quest)
   const maxPlayers = isRaid ? 12 : 6
 
@@ -162,7 +135,7 @@ export function getDifficultyColor(difficulty: string): string {
   return 'text.primary'
 }
 
-function getGroupNames(lfm: LfmData): string[] {
+function getGroupNames(lfm: LfmItem): string[] {
   const names = []
   const leaderName = lfm.leader.name
   if (leaderName) names.push(leaderName)
@@ -177,7 +150,7 @@ function getGroupNames(lfm: LfmData): string[] {
 /**
  * Normalizes a single LFM object for display in the list.
  */
-export function normalizeLfm(lfm: LfmData, quest: Quest | null): NormalizedLfm | null {
+export function normalizeLfm(lfm: LfmItem, quest: Quest | null): NormalizedLfm | null {
   const questId = String(lfm?.quest_id ?? '')
   if (!questId) return null
 
