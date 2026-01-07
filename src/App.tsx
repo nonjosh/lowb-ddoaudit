@@ -10,6 +10,7 @@ import {
   parseCharacterIds,
   Quest,
   CharacterData,
+  RaidActivityEntry,
 } from './api/ddoAudit'
 import CharactersSection from './components/characters/CharactersSection'
 import LfmRaidsSection from './components/lfm/LfmRaidsSection'
@@ -27,15 +28,6 @@ import { useConfig } from './contexts/useConfig'
 
 interface LfmData {
   quest_id?: string
-  [key: string]: unknown
-}
-
-interface RaidActivityEntry {
-  character_id: string
-  timestamp: string
-  data?: {
-    quest_ids?: string[]
-  }
   [key: string]: unknown
 }
 

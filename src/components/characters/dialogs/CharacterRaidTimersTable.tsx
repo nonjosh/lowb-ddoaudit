@@ -36,7 +36,7 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
       if (characterId !== character.id) continue
 
       const ts = item?.timestamp
-      const questIds = item?.data?.quest_ids ?? []
+      const questIds = item.data.quest_ids
 
       if (!ts || !Array.isArray(questIds)) continue
 

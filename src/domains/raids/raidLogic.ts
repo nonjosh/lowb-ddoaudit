@@ -1,4 +1,4 @@
-import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
+import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS, RaidActivityEntry } from '@/api/ddoAudit'
 import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '@/config/characters'
 
 export function getPlayerDisplayName(playerName: string): string {
@@ -115,14 +115,6 @@ export interface RaidGroup {
   entries: RaidEntry[]
 }
 
-interface RaidActivityItem {
-  character_id: string
-  timestamp: string
-  data?: {
-    quest_ids?: string[]
-  }
-}
-
 interface CharacterData {
   name: string
   total_level?: number
@@ -132,7 +124,7 @@ interface CharacterData {
   location_id?: string
 }
 
-export function buildRaidGroups({ raidActivity, questsById, charactersById }: { raidActivity: RaidActivityItem[], questsById: Record<string, Quest>, charactersById: Record<string, CharacterData> }): RaidGroup[] {
+export function buildRaidGroups({ raidActivity, questsById, charactersById }: { raidActivity: RaidActivityEntry[], questsById: Record<string, Quest>, charactersById: Record<string, CharacterData> }): RaidGroup[] {
   /**
    * groupKey: normalized raid name
    * value: { questId, raidName, questLevel, entries: Array<{ characterId, characterName, playerName, lastTimestamp }> }
@@ -159,7 +151,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
   for (const item of raidActivity ?? []) {
     const characterId = String(item?.character_id ?? '')
     const ts = item?.timestamp
-    const questIds = item?.data?.quest_ids ?? []
+    const questIds = item.data.quest_ids
 
     if (!characterId || !ts || !Array.isArray(questIds)) continue
 

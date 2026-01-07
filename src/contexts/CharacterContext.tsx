@@ -1,8 +1,8 @@
 import { ReactNode, useMemo } from 'react'
 
 import { getPlayerName } from '@/domains/raids/raidLogic'
-import { Quest } from '@/api/ddoAudit'
-import { CharacterContext, Character, RaidActivityEntry } from './useCharacter'
+import { Quest, RaidActivityEntry } from '@/api/ddoAudit'
+import { CharacterContext, Character } from './useCharacter'
 
 interface CharacterProviderProps {
   charactersById: Record<string, Omit<Character, 'id'>>

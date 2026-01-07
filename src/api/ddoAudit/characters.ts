@@ -14,13 +14,12 @@ export interface CharacterData {
   location_id?: string
 }
 
-interface RaidActivityEntry {
+export interface RaidActivityEntry {
   character_id: string
   timestamp: string
-  data?: {
-    quest_ids?: string[]
+  data: {
+    quest_ids: string[]
   }
-  [key: string]: unknown
 }
 
 export async function fetchCharactersByIds(characterIds: string[], options: FetchOptions = {}): Promise<Record<string, CharacterData>> {
