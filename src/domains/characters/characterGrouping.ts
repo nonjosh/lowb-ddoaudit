@@ -76,7 +76,7 @@ export function groupCharactersByLocation({
         let isEpic = false
 
         if (quest.heroicLevel && quest.epicLevel) {
-          const charLevel = (onlineChar.classes || []).reduce((sum: number, cls: any) => sum + (cls.level || 0), 0)
+          const charLevel = (onlineChar.classes || []).reduce((sum: number, cls) => sum + (cls.level || 0), 0)
           const distHeroic = Math.abs(charLevel - quest.heroicLevel)
           const distEpic = Math.abs(charLevel - quest.epicLevel)
           if (distHeroic <= distEpic) {

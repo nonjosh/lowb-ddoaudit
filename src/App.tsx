@@ -24,15 +24,39 @@ import {
 import { useIdleTimer } from './hooks/useIdleTimer'
 import { useConfig } from './contexts/ConfigContext'
 
+interface CharacterData {
+  name: string
+  total_level?: number
+  race?: string
+  classes?: Array<{ name: string; level: number }>
+  is_online?: boolean
+  location_id?: string
+  [key: string]: unknown
+}
+
+interface LfmData {
+  quest_id?: string
+  [key: string]: unknown
+}
+
+interface RaidActivityEntry {
+  character_id: string
+  timestamp: string
+  data?: {
+    quest_ids?: string[]
+  }
+  [key: string]: unknown
+}
+
 function App() {
   const [characterIdsInput] = useState(Object.keys(CHARACTERS).join(','))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
-  const [charactersById, setCharactersById] = useState<Record<string, any>>({})
-  const [raidActivity, setRaidActivity] = useState<any[]>([])
+  const [charactersById, setCharactersById] = useState<Record<string, CharacterData>>({})
+  const [raidActivity, setRaidActivity] = useState<RaidActivityEntry[]>([])
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
-  const [lfmsById, setLfmsById] = useState<Record<string, any>>({})
+  const [lfmsById, setLfmsById] = useState<Record<string, LfmData>>({})
   const [lfmError, setLfmError] = useState('')
   const [serverPlayers, setServerPlayers] = useState<number | null>(null)
   const [isServerOnline, setIsServerOnline] = useState<boolean | null>(null)
@@ -94,10 +118,10 @@ function App() {
 
 
       // If server is offline, avoid calling the LFM API but still fetch quests/characters/raids
-      let lfmFetchError: any = null
+      let lfmFetchError: Error | null = null
       const lfmPromise = serverInfo?.is_online === false
         ? Promise.resolve(null)
-        : fetchLfms('shadowdale', { signal: controller.signal }).catch((e) => {
+        : fetchLfms('shadowdale', { signal: controller.signal }).catch((e: Error) => {
           lfmFetchError = e
           return null
         })
@@ -118,13 +142,14 @@ function App() {
       }
 
       setQuestsById(quests)
-      setCharactersById(characters)
-      setRaidActivity(raids)
-      setLfmsById(lfms ?? {})
+      setCharactersById(characters as Record<string, CharacterData>)
+      setRaidActivity(raids as RaidActivityEntry[])
+      setLfmsById((lfms ?? {}) as Record<string, LfmData>)
       setLastUpdatedAt(new Date())
-    } catch (e: any) {
-      if (e?.name === 'AbortError') return
-      setError(e?.message ?? String(e))
+    } catch (e) {
+      const error = e as Error
+      if (error?.name === 'AbortError') return
+      setError(error?.message ?? String(e))
     } finally {
       setLoading(false)
     }

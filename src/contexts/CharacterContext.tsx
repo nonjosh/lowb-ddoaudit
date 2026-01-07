@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, ReactNode, useContext, useMemo } from 'react'
 
 import { getPlayerName } from '@/domains/raids/raidLogic'
 import { Quest } from '@/api/ddoAudit'
@@ -8,10 +8,15 @@ export interface Character {
   name: string
   is_online: boolean
   location_id: string
-  classes: any[]
+  classes: CharacterClass[]
   race: string
   total_level: number
-  [key: string]: any
+  [key: string]: unknown
+}
+
+export interface CharacterClass {
+  name: string
+  level: number
 }
 
 export interface PlayerGroup {
@@ -23,9 +28,15 @@ interface CharacterContextType {
   charactersById: Record<string, Character>
   charactersByPlayer: PlayerGroup[]
   isPlayerOnline: (playerName: string) => boolean
-  lfms: Record<string, any>
-  raidActivity: any[]
+  lfms: Record<string, unknown>
+  raidActivity: RaidActivityEntry[]
   questsById: Record<string, Quest>
+}
+
+interface RaidActivityEntry {
+  character_id: string
+  character_name: string
+  [key: string]: unknown
 }
 
 const CharacterContext = createContext<CharacterContextType | null>(null)
@@ -39,11 +50,11 @@ export function useCharacter() {
 }
 
 interface CharacterProviderProps {
-  charactersById: Record<string, any>
-  lfms?: Record<string, any>
-  raidActivity: any[]
+  charactersById: Record<string, Character>
+  lfms?: Record<string, unknown>
+  raidActivity: RaidActivityEntry[]
   questsById: Record<string, Quest>
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function CharacterProvider({ charactersById, lfms = {}, raidActivity, questsById, children }: CharacterProviderProps) {

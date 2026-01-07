@@ -104,7 +104,7 @@ export const CHARACTERS: Record<string, CharacterInfo> = (() => {
   const out: Record<string, CharacterInfo> = {}
   for (const [player, value] of Object.entries(CHARACTERS_BY_PLAYER)) {
     // Support both legacy array form and new object form with `chars`.
-    const list = Array.isArray(value) ? value : (value as any).chars ?? []
+    const list = Array.isArray(value) ? value : (value as PlayerDefinition).chars ?? []
     for (const item of list ?? []) {
       const id = String(item?.id ?? '').trim()
       if (!id) continue
@@ -121,7 +121,7 @@ export const PLAYER_DISPLAY_NAMES: Record<string, string> = (() => {
   const out: Record<string, string> = {}
   for (const [player, value] of Object.entries(CHARACTERS_BY_PLAYER)) {
     if (!value) continue
-    const display = Array.isArray(value) ? undefined : (value as any).display
+    const display = Array.isArray(value) ? undefined : (value as PlayerDefinition).display
     if (typeof display === 'string' && display) out[player] = display
   }
   return out

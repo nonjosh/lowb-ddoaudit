@@ -1,7 +1,35 @@
 import { Quest } from '@/api/ddoAudit'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/quests/questHelpers'
-import { formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '@/domains/raids/raidLogic'
+import { CharacterClass, formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '@/domains/raids/raidLogic'
+
+interface LfmCharacter {
+  id?: string | number
+  name: string
+  guild_name?: string
+  total_level?: number
+  classes?: CharacterClass[]
+  race?: string
+  location_id?: number
+}
+
+interface LfmActivity {
+  timestamp: string
+  events?: Array<{ tag: string; [key: string]: unknown }>
+}
+
+interface LfmData {
+  id: string | number
+  quest_id: string | number
+  difficulty?: string
+  comment?: string
+  adventure_active_time?: string | number
+  minimum_level?: number
+  maximum_level?: number
+  leader?: LfmCharacter
+  members?: LfmCharacter[]
+  activity?: LfmActivity[]
+}
 
 export interface LfmParticipant {
   characterName: string
@@ -10,7 +38,7 @@ export interface LfmParticipant {
   guildName: string
   totalLevel: number | null
   classesDisplay: string
-  classes: any
+  classes: CharacterClass[] | undefined
   isLeader: boolean
   race: string
   location_id: number
@@ -63,16 +91,16 @@ export interface PreparedLfmData {
  * Prepares LFM data for display in the participants dialog.
  * Extracts and formats all participant information including classes, levels, guilds, etc.
  */
-export function prepareLfmParticipants(lfm: any, quest: Quest | null): PreparedLfmData {
+export function prepareLfmParticipants(lfm: LfmData, quest: Quest | null): PreparedLfmData {
   const isRaid = isRaidQuest(quest)
   const maxPlayers = isRaid ? 12 : 6
 
   const participants: LfmParticipant[] = [lfm?.leader, ...(lfm?.members ?? [])]
     .filter(Boolean)
-    .map((p: any) => {
+    .map((p) => {
       const characterName = String(p?.name ?? '').trim() || '—'
       const playerName = getPlayerName(characterName)
-      const classesDisplay = formatClasses(p?.classes)
+      const classesDisplay = formatClasses(p?.classes ?? [])
       return {
         characterName,
         playerName,
@@ -128,7 +156,7 @@ export function getDifficultyColor(difficulty: string): string {
   return 'text.primary'
 }
 
-function getGroupNames(lfm: any): string[] {
+function getGroupNames(lfm: LfmData): string[] {
   const names = []
   const leaderName = lfm?.leader?.name
   if (leaderName) names.push(leaderName)
@@ -143,7 +171,7 @@ function getGroupNames(lfm: any): string[] {
 /**
  * Normalizes a single LFM object for display in the list.
  */
-export function normalizeLfm(lfm: any, quest: Quest | null): NormalizedLfm | null {
+export function normalizeLfm(lfm: LfmData, quest: Quest | null): NormalizedLfm | null {
   const questId = String(lfm?.quest_id ?? '')
   if (!questId) return null
 
@@ -181,7 +209,7 @@ export function normalizeLfm(lfm: any, quest: Quest | null): NormalizedLfm | nul
     .map((p) => {
       const characterName = String(p?.name ?? '').trim() || '—'
       const playerName = getPlayerName(characterName)
-      const classesDisplay = formatClasses(p?.classes)
+      const classesDisplay = formatClasses(p?.classes ?? [])
       return {
         characterName,
         playerName,
@@ -317,12 +345,12 @@ export function filterAndSortLfms(normalized: NormalizedLfm[], questFilter: stri
 /**
  * Creates a map of character names to their associated LFMs.
  */
-export function createLfmByCharacterNameMap(lfms: Record<string, any>): Map<string, any> {
-  const map = new Map<string, any>()
-  Object.values(lfms || {}).forEach((lfm: any) => {
+export function createLfmByCharacterNameMap(lfms: Record<string, LfmData>): Map<string, LfmData> {
+  const map = new Map<string, LfmData>()
+  Object.values(lfms || {}).forEach((lfm) => {
     if (lfm.leader?.name) map.set(lfm.leader.name, lfm)
     if (Array.isArray(lfm.members)) {
-      lfm.members.forEach((m: any) => {
+      lfm.members.forEach((m) => {
         if (m.name) map.set(m.name, lfm)
       })
     }

@@ -5,7 +5,7 @@ import { useConfig } from '../contexts/ConfigContext'
 export function useIdleTimer() {
   const [showIdleWarning, setShowIdleWarning] = useState(false)
   const { setAutoRefreshEnabled } = useConfig()
-  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const resetIdleTimer = useCallback(() => {
     if (idleTimeoutRef.current) {

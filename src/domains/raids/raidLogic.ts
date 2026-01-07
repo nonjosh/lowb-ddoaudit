@@ -77,7 +77,7 @@ export function groupEntriesByPlayer(entries: RaidEntry[], now: Date): PlayerGro
   return groups
 }
 
-export function formatClasses(classes: any[]): string {
+export function formatClasses(classes: CharacterClass[]): string {
   const list = Array.isArray(classes) ? classes : []
   const filtered = list.filter((c) => c?.name && c?.name !== 'Epic' && c?.name !== 'Legendary')
   if (!filtered.length) return '—'
@@ -98,7 +98,7 @@ export function isEntryAvailable(entry: RaidEntry | null | undefined, now: Date)
   // If the exact characterId + lastTimestamp pair is ignored by the client, treat as available.
   try {
     if (isTimerIgnored(entry.characterId, entry.lastTimestamp)) return true
-  } catch (err) {
+  } catch {
     // ignore errors and fall back to default logic
   }
 
@@ -115,12 +115,36 @@ export interface RaidGroup {
   entries: RaidEntry[]
 }
 
-export function buildRaidGroups({ raidActivity, questsById, charactersById }: { raidActivity: any[], questsById: Record<string, Quest>, charactersById: Record<string, any> }): RaidGroup[] {
+interface RaidActivityItem {
+  character_id: string
+  timestamp: string
+  data?: {
+    quest_ids?: string[]
+  }
+}
+
+interface CharacterData {
+  name: string
+  total_level?: number
+  race?: string
+  classes?: CharacterClass[]
+  is_online?: boolean
+  location_id?: string
+}
+
+export function buildRaidGroups({ raidActivity, questsById, charactersById }: { raidActivity: RaidActivityItem[], questsById: Record<string, Quest>, charactersById: Record<string, CharacterData> }): RaidGroup[] {
   /**
    * groupKey: normalized raid name
    * value: { questId, raidName, questLevel, entries: Array<{ characterId, characterName, playerName, lastTimestamp }> }
    */
-  const groups = new Map<string, any>()
+  interface GroupData {
+    questId: string
+    raidName: string
+    adventurePack: string | null
+    questLevel: number | null
+    entriesByCharacterId: Map<string, RaidEntry>
+  }
+  const groups = new Map<string, GroupData>()
 
   function normalizeRaidKey(name: string) {
     return String(name ?? '').trim().toLowerCase()
@@ -262,13 +286,13 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
     const existingKeys = new Set(normalized.map((n) => normalizeRaidKey(n.raidName)))
     const allQuestObjs = Object.values(questsById ?? {})
     for (const q of allQuestObjs) {
-      const qType = String((q as any)?.type ?? '').toLowerCase()
+      const qType = String(q?.type ?? '').toLowerCase()
       if (qType !== 'raid') continue
-      const key = normalizeRaidKey(String((q as any)?.name ?? ''))
+      const key = normalizeRaidKey(String(q?.name ?? ''))
       if (!key || existingKeys.has(key)) continue
 
-      const questId = String((q as any)?.id ?? '')
-      const questAreaId = (q as any)?.areaId ? String((q as any)?.areaId) : null
+      const questId = String(q?.id ?? '')
+      const questAreaId = q?.areaId ? String(q?.areaId) : null
 
       const entries: RaidEntry[] = []
       const allCharacterIds = Object.keys(charactersById ?? {}).map(String)
@@ -298,14 +322,14 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
       normalized.push({
         questId,
-        raidName: String((q as any)?.name ?? ''),
-        adventurePack: (q as any)?.required_adventure_pack ?? null,
-        questLevel: (q as any)?.level ?? null,
+        raidName: String(q?.name ?? ''),
+        adventurePack: q?.required_adventure_pack ?? null,
+        questLevel: q?.level ?? null,
         entries,
       })
       existingKeys.add(key)
     }
-  } catch (err) {
+  } catch {
     // ignore and continue
   }
 

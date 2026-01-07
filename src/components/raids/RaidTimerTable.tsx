@@ -8,10 +8,11 @@ import {
   TableRow,
 } from '@mui/material'
 
+import { PlayerGroup } from '@/domains/raids/raidLogic'
 import RaidPlayerGroup from './RaidPlayerGroup'
 
 interface RaidTimerTableProps {
-  perPlayerEligible: any[]
+  perPlayerEligible: PlayerGroup[]
   isPlayerCollapsed: (questId: string, playerName: string) => boolean
   onTogglePlayer: (questId: string, playerName: string) => void
   questId: string

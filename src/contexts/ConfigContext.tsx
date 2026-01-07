@@ -9,7 +9,7 @@ interface ConfigContextType {
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
 
-export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [showClassIcons, setShowClassIcons] = useState(true)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
 
