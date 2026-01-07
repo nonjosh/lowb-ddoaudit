@@ -25,7 +25,7 @@ export interface RaidEntry {
   characterId: string
   characterName: string
   playerName: string
-  totalLevel: number | null
+  totalLevel: number
   classes: CharacterClass[]
   race: string
   lastTimestamp: string | null
@@ -163,9 +163,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
     if (!characterId || !ts || !Array.isArray(questIds)) continue
 
-    const character = charactersById?.[characterId]
-    const totalLevel = character?.total_level ?? null
-    const race = character?.race ?? 'Unknown'
+    const character = charactersById[characterId]!
+    const totalLevel = character.total_level
+    const race = character.race
 
     const characterName = character?.name ?? characterId
     const playerName = getPlayerName(characterName)
@@ -200,7 +200,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       }
 
       const prev = existing.entriesByCharacterId.get(characterId)
-      if (!prev || new Date(ts).getTime() > new Date(prev.lastTimestamp).getTime()) {
+      if (!prev || !prev.lastTimestamp || new Date(ts).getTime() > new Date(prev.lastTimestamp).getTime()) {
         const quest = questsById?.[questId]
         const questAreaId = quest?.areaId
         const isOnline = !!character?.is_online
@@ -211,9 +211,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           characterId,
           characterName,
           playerName,
-          totalLevel,
+          totalLevel: totalLevel as number,
           classes,
-          race,
+          race: race as string,
           lastTimestamp: ts,
           isOnline,
           isInRaid,
@@ -233,12 +233,12 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
     for (const characterId of allCharacterIds) {
       if (g.entriesByCharacterId.has(characterId)) continue
-      const character = charactersById?.[characterId]
-      const characterName = character?.name ?? characterId
+      const character = charactersById[characterId]!
+      const characterName = character.name
       const playerName = getPlayerName(characterName)
-      const totalLevel = character?.total_level ?? null
-      const classes = character?.classes ?? []
-      const race = character?.race ?? 'Unknown'
+      const totalLevel = character.total_level
+      const classes = character.classes
+      const race = character.race
 
       const isOnline = !!character?.is_online
       const locationId = character?.location_id ? String(character.location_id) : null
@@ -248,9 +248,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         characterId,
         characterName,
         playerName,
-        totalLevel,
+        totalLevel: totalLevel as number,
         classes,
-        race,
+        race: race as string,
         lastTimestamp: null,
         isOnline,
         isInRaid,
@@ -297,12 +297,12 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       const entries: RaidEntry[] = []
       const allCharacterIds = Object.keys(charactersById ?? {}).map(String)
       for (const characterId of allCharacterIds) {
-        const character = charactersById?.[characterId]
-        const characterName = character?.name ?? characterId
+        const character = charactersById[characterId]!
+        const characterName = character.name
         const playerName = getPlayerName(characterName)
-        const totalLevel = character?.total_level ?? null
-        const classes = character?.classes ?? []
-        const race = character?.race ?? 'Unknown'
+        const totalLevel = character.total_level
+        const classes = character.classes
+        const race = character.race
         const isOnline = !!character?.is_online
         const locationId = character?.location_id ? String(character.location_id) : null
         const isInRaid = !!(locationId && (locationId === questId || (questAreaId && locationId === questAreaId)))
@@ -311,9 +311,9 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           characterId,
           characterName,
           playerName,
-          totalLevel,
+          totalLevel: totalLevel as number,
           classes,
-          race,
+          race: race as string,
           lastTimestamp: null,
           isOnline,
           isInRaid,

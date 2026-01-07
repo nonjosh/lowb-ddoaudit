@@ -10,13 +10,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
-import { useCharacter } from '@/contexts/useCharacter'
-
-interface Character {
-  id: string
-  name: string
-  [key: string]: unknown
-}
+import { Character, useCharacter } from '@/contexts/useCharacter'
 
 interface CharacterRaidTimersTableProps {
   character: Character

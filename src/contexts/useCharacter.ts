@@ -7,10 +7,9 @@ export interface Character {
   is_online?: boolean
   location_id?: string
   classes: CharacterClass[]
-  race?: string
-  total_level?: number
+  race: string
+  total_level: number
   last_update?: string
-  [key: string]: unknown
 }
 
 export interface CharacterClass {

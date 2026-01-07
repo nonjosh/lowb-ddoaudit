@@ -7,12 +7,11 @@ export interface FetchOptions {
 
 export interface CharacterData {
   name: string
-  total_level?: number
-  race?: string
+  total_level: number
+  race: string
   classes: Array<{ name: string; level: number }>
   is_online?: boolean
   location_id?: string
-  [key: string]: unknown
 }
 
 interface RaidActivityEntry {
