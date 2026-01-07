@@ -2,6 +2,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import GroupsIcon from '@mui/icons-material/Groups'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import { Box, ListItem, ListItemButton, ListItemText, Tooltip, Typography } from '@mui/material'
+import { ReactNode } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
@@ -14,7 +15,7 @@ interface PlayerRowProps {
   showLocation?: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, any>
+  lfmByCharacterName: Map<string, Record<string, unknown>>
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: Record<string, unknown>) => void
 }
@@ -36,8 +37,8 @@ export default function PlayerRow({
   const onlineChars = (group.chars ?? []).filter((c) => c?.is_online)
   const isOnline = onlineChars.length > 0
 
-  let onlineInfo: React.ReactNode = null
-  let locationSuffix: React.ReactNode = null
+  let onlineInfo: ReactNode = null
+  let locationSuffix: ReactNode = null
   let isInParty = false
   let isInLfm = false
   let lfmForCharacter: Record<string, unknown> | null = null

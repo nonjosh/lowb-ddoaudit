@@ -182,7 +182,7 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlay
               <TableBody>
                 {displayEntries.map((e) => {
                   const ignored = (() => {
-                    try { return isTimerIgnored(e.characterId, e.lastTimestamp) } catch (err) { return false }
+                    try { return isTimerIgnored(e.characterId, e.lastTimestamp) } catch { return false }
                   })()
                   const available = ignored || isEntryAvailable(e, now)
 

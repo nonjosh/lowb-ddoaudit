@@ -10,7 +10,7 @@ interface NotInQuestGroupCardProps {
   groups: PlayerGroup[]
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, any>
+  lfmByCharacterName: Map<string, Record<string, unknown>>
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: Record<string, unknown>) => void
 }

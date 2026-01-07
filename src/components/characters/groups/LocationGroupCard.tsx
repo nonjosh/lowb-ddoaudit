@@ -12,7 +12,7 @@ interface LocationGroupCardProps {
   borderColor: string
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, any>
+  lfmByCharacterName: Map<string, Record<string, unknown>>
   packsByAreaName?: Record<string, string | null>
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: Record<string, unknown>) => void

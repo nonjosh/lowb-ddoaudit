@@ -62,8 +62,8 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     const initial = raidGroups
       .map((g, idx) => {
         const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
-        const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: Record<string, unknown>) => String(l?.quest_id ?? '') === String(g.questId)))
-        const hasTimer = (g.entries ?? []).some((e) => Boolean((e as any)?.lastTimestamp))
+        const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: Record<string, unknown>) => String((l as { quest_id?: unknown })?.quest_id ?? '') === String(g.questId)))
+        const hasTimer = (g.entries ?? []).some((e) => Boolean(e?.lastTimestamp))
         return { g, idx, hasFriendInside, hasLfm, hasTimer }
       })
 
@@ -96,7 +96,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
             qLevel = typeof found.level === 'number' ? found.level : null
             pack = found.required_adventure_pack ?? null
           }
-        } catch (e) {
+        } catch {
           // ignore
         }
 
@@ -141,8 +141,16 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     })
 
     return list.map((x) => x.g)
-  }, [raidGroups, lfms, tierFilter])
-  const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
+  }, [raidGroups, lfms, tierFilter, questsByIdLocal])
+  
+  interface LfmPreparedData {
+    questName: string
+    questLevel: number | null
+    participants: unknown[]
+    [key: string]: unknown
+  }
+  
+  const [selectedLfm, setSelectedLfm] = useState<LfmPreparedData | null>(null)
   const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 
   const selectedRaidData = useMemo(() => {

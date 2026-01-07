@@ -23,6 +23,7 @@ import { Quest } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { filterAndSortLfms, NormalizedLfm, normalizeLfm } from '@/domains/lfm/lfmHelpers'
+import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 
 import LfmParticipantsDialog from './LfmParticipantsDialog'
