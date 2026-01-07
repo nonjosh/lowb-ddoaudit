@@ -2,7 +2,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import { Box, List, ListSubheader, Paper } from '@mui/material'
 
 import { Quest } from '@/api/ddoAudit'
-import { PlayerGroup } from '@/contexts/CharacterContext'
+import { PlayerGroup } from '@/contexts/useCharacter'
 
 import PlayerRow from './PlayerRow'
 

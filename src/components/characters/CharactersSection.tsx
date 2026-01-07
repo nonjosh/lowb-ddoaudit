@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
-import { PlayerGroup, useCharacter } from '@/contexts/CharacterContext'
+import { PlayerGroup, useCharacter } from '@/contexts/useCharacter'
 import { groupCharactersByLocation } from '@/domains/characters/characterGrouping'
 import { createLfmByCharacterNameMap, prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'

@@ -2,7 +2,7 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import { Box, List, ListSubheader, Paper, Tooltip, Typography } from '@mui/material'
 
 import { Quest } from '@/api/ddoAudit'
-import { PlayerGroup } from '@/contexts/CharacterContext'
+import { PlayerGroup } from '@/contexts/useCharacter'
 
 import PlayerRow from './PlayerRow'
 

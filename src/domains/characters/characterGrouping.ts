@@ -1,5 +1,5 @@
 import { Quest } from '@/api/ddoAudit'
-import { PlayerGroup } from '@/contexts/CharacterContext'
+import { PlayerGroup } from '@/contexts/useCharacter'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 
 export interface GroupedCharacters {

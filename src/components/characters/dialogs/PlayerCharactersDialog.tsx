@@ -23,8 +23,8 @@ import React, { useState } from 'react'
 
 import { formatAge, formatLocalDateTime } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
-import { Character } from '@/contexts/CharacterContext'
-import { useConfig } from '@/contexts/ConfigContext'
+import { Character } from '@/contexts/useCharacter'
+import { useConfig } from '@/contexts/useConfig'
 
 import CharacterRaidTimersTable from './CharacterRaidTimersTable'
 

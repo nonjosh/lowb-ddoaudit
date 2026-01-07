@@ -22,7 +22,7 @@ import {
   groupEntriesByPlayer
 } from './domains/raids/raidLogic'
 import { useIdleTimer } from './hooks/useIdleTimer'
-import { useConfig } from './contexts/ConfigContext'
+import { useConfig } from './contexts/useConfig'
 
 interface CharacterData {
   name: string
@@ -118,33 +118,31 @@ function App() {
 
 
       // If server is offline, avoid calling the LFM API but still fetch quests/characters/raids
-      let lfmFetchError: Error | null = null
       const lfmPromise = serverInfo?.is_online === false
-        ? Promise.resolve(null)
-        : fetchLfms('shadowdale', { signal: controller.signal }).catch((e: Error) => {
-          lfmFetchError = e
-          return null
-        })
+        ? Promise.resolve({ data: null, error: null })
+        : fetchLfms('shadowdale', { signal: controller.signal })
+          .then((data) => ({ data, error: null }))
+          .catch((e: Error) => ({ data: null, error: e }))
 
       if (serverInfo?.is_online === false) {
         setLfmError('Server is offline. LFM data is unavailable.')
       }
 
-      const [quests, characters, raids, lfms] = await Promise.all([
+      const [quests, characters, raids, lfmResult] = await Promise.all([
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
         fetchRaidActivity(ids, { signal: controller.signal }),
         lfmPromise,
       ])
 
-      if (lfmFetchError) {
-        setLfmError(lfmFetchError?.message ?? String(lfmFetchError))
+      if (lfmResult.error) {
+        setLfmError(lfmResult.error.message ?? String(lfmResult.error))
       }
 
       setQuestsById(quests)
       setCharactersById(characters as Record<string, CharacterData>)
       setRaidActivity(raids as RaidActivityEntry[])
-      setLfmsById((lfms ?? {}) as Record<string, LfmData>)
+      setLfmsById((lfmResult.data ?? {}) as Record<string, LfmData>)
       setLastUpdatedAt(new Date())
     } catch (e) {
       const error = e as Error

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { useConfig } from '../contexts/ConfigContext'
+import { useConfig } from '../contexts/useConfig'
 
 export function useIdleTimer() {
   const [showIdleWarning, setShowIdleWarning] = useState(false)

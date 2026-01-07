@@ -6,8 +6,8 @@ import { ReactNode } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
-import { PlayerGroup } from '@/contexts/CharacterContext'
-import { useConfig } from '@/contexts/ConfigContext'
+import { PlayerGroup } from '@/contexts/useCharacter'
+import { useConfig } from '@/contexts/useConfig'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 
 interface PlayerRowProps {

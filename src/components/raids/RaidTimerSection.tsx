@@ -7,7 +7,7 @@ import raidNotesRaw from '@/assets/raid_notes.txt?raw'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
-import { useCharacter } from '@/contexts/CharacterContext'
+import { useCharacter } from '@/contexts/useCharacter'
 import { prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 
@@ -142,14 +142,14 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
 
     return list.map((x) => x.g)
   }, [raidGroups, lfms, tierFilter, questsByIdLocal])
-  
+
   interface LfmPreparedData {
     questName: string
     questLevel: number | null
     participants: unknown[]
     [key: string]: unknown
   }
-  
+
   const [selectedLfm, setSelectedLfm] = useState<LfmPreparedData | null>(null)
   const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 

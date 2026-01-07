@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ItemLootDialog from '@/components/items/ItemLootDialog'
-import { PlayerGroup } from '@/contexts/CharacterContext'
+import { PlayerGroup } from '@/contexts/useCharacter'
 
 import PlayerRow from './PlayerRow'
 
