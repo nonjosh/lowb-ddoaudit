@@ -97,8 +97,8 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                       <TableRow>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FiberManualRecordIcon color={c.is_online ? 'success' : 'disabled'} sx={{ width: 10, height: 10 }} />
                             {c.name}
-                            {c.is_online && <FiberManualRecordIcon color="success" sx={{ width: 10, height: 10 }} />}
                           </Box>
                         </TableCell>
                         <TableCell>{c.total_level}</TableCell>
@@ -108,7 +108,12 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                         <TableCell>{c.race}</TableCell>
                         <TableCell>
                           {(() => {
-                            if (c.is_online) return 'Online'
+                            if (c.is_online) return (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <FiberManualRecordIcon color="success" sx={{ width: 10, height: 10 }} />
+                                Online
+                              </Box>
+                            )
                             if (!c.last_update) return '—'
 
                             const updatedAt = new Date(c.last_update)
