@@ -18,7 +18,7 @@ interface CharacterRaidTimersTableProps {
 
 export default function CharacterRaidTimersTable({ character }: CharacterRaidTimersTableProps) {
   const { raidActivity, questsById } = useCharacter()
-  const [now, setNow] = useState(() => new Date())
+  const [, setNow] = useState(() => new Date())
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -71,7 +71,7 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
     })
 
     return entries
-  }, [raidActivity, questsById, character, now])
+  }, [raidActivity, questsById, character])
 
   // Don't render anything if no timers
   if (!timerEntries.length) {

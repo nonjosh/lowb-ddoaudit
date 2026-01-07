@@ -35,7 +35,7 @@ interface RaidCardProps {
 export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
   const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
-  const [ignoredVersion, setIgnoredVersion] = useState(0)
+  const [, setIgnoredVersion] = useState(0)
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -63,7 +63,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
     return perPlayer
       .map((pg) => ({ ...pg, entries: (pg.entries ?? []).filter(isEligibleEntry) }))
       .filter((pg) => (pg.entries ?? []).length > 0)
-  }, [perPlayer, ignoredVersion])
+  }, [perPlayer])
 
   const availablePlayers = useMemo(() => EXPECTED_PLAYERS.filter((playerName) => {
     const pg = perPlayerEligible.find((p) => p.player === playerName)
