@@ -15,13 +15,13 @@ export function useIdleTimer() {
       setAutoRefreshEnabled(false)
       setShowIdleWarning(true)
     }, 2 * 60 * 60 * 1000) // 2 hours
-  }, [])
+  }, [setAutoRefreshEnabled])
 
   const handleIdleWarningReEnable = useCallback(() => {
     setAutoRefreshEnabled(true)
     setShowIdleWarning(false)
     resetIdleTimer()
-  }, [resetIdleTimer])
+  }, [resetIdleTimer, setAutoRefreshEnabled])
 
   const handleIdleWarningClose = useCallback(() => {
     setShowIdleWarning(false)
@@ -35,7 +35,7 @@ export function useIdleTimer() {
       }
       return newValue
     })
-  }, [resetIdleTimer])
+  }, [resetIdleTimer, setAutoRefreshEnabled])
 
   useEffect(() => {
     // Set up idle detection

@@ -13,7 +13,7 @@ export interface ItemAffix {
  * @param craftingData The crafting data to also search for augments
  * @returns Array of items that drop from that quest
  */
-export function getItemsForQuest(items: Item[], questName: string, craftingData?: any): Item[] {
+export function getItemsForQuest(items: Item[], questName: string, craftingData?: Record<string, Record<string, unknown[]>>): Item[] {
   if (!questName) return []
 
   const normalizedQuestName = questName.trim().toLowerCase()
