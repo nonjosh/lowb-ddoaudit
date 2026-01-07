@@ -88,7 +88,9 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                   .slice()
                   .sort((a, b) => {
                     if (a.is_online !== b.is_online) return a.is_online ? -1 : 1
-                    return new Date(b.last_update).getTime() - new Date(a.last_update).getTime()
+                    const dateA = a.last_update ? new Date(a.last_update).getTime() : 0
+                    const dateB = b.last_update ? new Date(b.last_update).getTime() : 0
+                    return dateB - dateA
                   })
                   .map((c) => (
                     <React.Fragment key={c.id}>
@@ -107,6 +109,7 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                         <TableCell>
                           {(() => {
                             if (c.is_online) return 'Online'
+                            if (!c.last_update) return '—'
 
                             const updatedAt = new Date(c.last_update)
                             if (Number.isNaN(updatedAt.getTime())) return '—'

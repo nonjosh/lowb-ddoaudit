@@ -45,8 +45,9 @@ export function groupCharactersByLocation({
   sortedGroups.forEach((group) => {
     const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
     if (onlineChar) {
-      const area = areas[onlineChar.location_id]
-      const quest = quests[onlineChar.location_id]
+      const locId = String(onlineChar.location_id ?? '')
+      const area = areas[locId]
+      const quest = quests[locId]
 
       // Public areas first
       if (area && area.is_public) {

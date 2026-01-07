@@ -6,9 +6,10 @@ export interface Character {
   name: string
   is_online?: boolean
   location_id?: string
-  classes?: CharacterClass[]
+  classes: CharacterClass[]
   race?: string
   total_level?: number
+  last_update?: string
   [key: string]: unknown
 }
 
@@ -23,7 +24,7 @@ export interface PlayerGroup {
 }
 
 interface CharacterContextType {
-  charactersById: Record<string, Character>
+  charactersById: Record<string, Omit<Character, 'id'>>
   charactersByPlayer: PlayerGroup[]
   isPlayerOnline: (playerName: string) => boolean
   lfms: Record<string, unknown>

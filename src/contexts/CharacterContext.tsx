@@ -18,9 +18,9 @@ export function CharacterProvider({ charactersById, lfms = {}, raidActivity, que
 
     const map = new Map<string, Character[]>()
     for (const [id, c] of entries) {
-      const player = getPlayerName(c?.name)
+      const player = getPlayerName(c?.name as string)
       const arr = map.get(player) ?? []
-      arr.push({ ...c, id })
+      arr.push({ ...c, id } as Character)
       map.set(player, arr)
     }
 
@@ -43,7 +43,7 @@ export function CharacterProvider({ charactersById, lfms = {}, raidActivity, que
 
     for (const c of values) {
       if (c?.is_online) {
-        const player = getPlayerName(c.name)
+        const player = getPlayerName(c.name as string)
         status.set(player, true)
       }
     }

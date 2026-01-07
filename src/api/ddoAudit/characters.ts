@@ -5,11 +5,11 @@ export interface FetchOptions {
   signal?: AbortSignal
 }
 
-interface CharacterData {
+export interface CharacterData {
   name: string
   total_level?: number
   race?: string
-  classes?: Array<{ name: string; level: number }>
+  classes: Array<{ name: string; level: number }>
   is_online?: boolean
   location_id?: string
   [key: string]: unknown

@@ -127,7 +127,7 @@ interface CharacterData {
   name: string
   total_level?: number
   race?: string
-  classes?: CharacterClass[]
+  classes: CharacterClass[]
   is_online?: boolean
   location_id?: string
 }

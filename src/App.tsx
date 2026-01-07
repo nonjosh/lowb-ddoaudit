@@ -9,6 +9,7 @@ import {
   fetchServerInfo,
   parseCharacterIds,
   Quest,
+  CharacterData,
 } from './api/ddoAudit'
 import CharactersSection from './components/characters/CharactersSection'
 import LfmRaidsSection from './components/lfm/LfmRaidsSection'
@@ -23,16 +24,6 @@ import {
 } from './domains/raids/raidLogic'
 import { useIdleTimer } from './hooks/useIdleTimer'
 import { useConfig } from './contexts/useConfig'
-
-interface CharacterData {
-  name: string
-  total_level?: number
-  race?: string
-  classes?: Array<{ name: string; level: number }>
-  is_online?: boolean
-  location_id?: string
-  [key: string]: unknown
-}
 
 interface LfmData {
   quest_id?: string
