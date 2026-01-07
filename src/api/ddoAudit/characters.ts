@@ -12,6 +12,8 @@ export interface CharacterData {
   classes: Array<{ name: string; level: number }>
   is_online?: boolean
   location_id?: string
+  group_id?: string
+  is_in_party?: boolean
 }
 
 export interface RaidActivityEntry {

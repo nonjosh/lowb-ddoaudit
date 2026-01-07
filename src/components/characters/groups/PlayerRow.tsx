@@ -6,6 +6,7 @@ import { ReactNode } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
+import { PreparedLfmData } from '@/domains/lfm/lfmHelpers'
 import { PlayerGroup } from '@/contexts/useCharacter'
 import { useConfig } from '@/contexts/useConfig'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
@@ -15,9 +16,9 @@ interface PlayerRowProps {
   showLocation?: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, Record<string, unknown>>
+  lfmByCharacterName: Map<string, PreparedLfmData>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: Record<string, unknown>) => void
+  onLfmClick: (lfm: PreparedLfmData) => void
 }
 
 /**
@@ -41,12 +42,12 @@ export default function PlayerRow({
   let locationSuffix: ReactNode = null
   let isInParty = false
   let isInLfm = false
-  let lfmForCharacter: Record<string, unknown> | null = null
+  let lfmForCharacter: PreparedLfmData | undefined = undefined
 
   if (isOnline) {
     const firstChar = onlineChars[0]
-    const questName = quests[firstChar.location_id]?.name
-    const areaName = areas[firstChar.location_id]?.name
+    const questName = firstChar.location_id ? quests[firstChar.location_id]?.name : undefined
+    const areaName = firstChar.location_id ? areas[firstChar.location_id]?.name : undefined
     // Quest name is already shown in the group header.
     if (!questName && showLocation) {
       locationSuffix = ` @ ${areaName || 'Unknown Area'}`

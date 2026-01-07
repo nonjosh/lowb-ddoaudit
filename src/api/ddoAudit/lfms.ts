@@ -4,10 +4,32 @@ export interface FetchOptions {
   signal?: AbortSignal
 }
 
-interface LfmItem {
-  id?: string | number
-  quest_id?: string | number
-  [key: string]: unknown
+interface LfmCharacter {
+  id: string | number
+  name: string
+  race: string
+  total_level: number
+  classes: Array<{ name: string; level: number }>
+  location_id: number
+  guild_name?: string
+}
+
+interface LfmActivity {
+  timestamp: string
+  events?: Array<{ tag: string;[key: string]: unknown }>
+}
+
+export interface LfmItem {
+  id: string | number
+  quest_id: string | number
+  minimum_level: number
+  maximum_level: number
+  leader: LfmCharacter
+  members?: LfmCharacter[]
+  activity: LfmActivity[]
+  difficulty?: string
+  comment?: string
+  adventure_active_time?: string | number
 }
 
 export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions = {}): Promise<Record<string, LfmItem>> {

@@ -22,7 +22,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Quest } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
-import { filterAndSortLfms, NormalizedLfm, normalizeLfm } from '@/domains/lfm/lfmHelpers'
+import { filterAndSortLfms, NormalizedLfm, normalizeLfm, LfmData } from '@/domains/lfm/lfmHelpers'
 import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 
@@ -65,8 +65,9 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
     const lfms = Object.values(lfmsById ?? {})
     const normalized: NormalizedLfm[] = []
     for (const lfm of lfms) {
-      const quest = questsById?.[String(lfm?.quest_id ?? '')] ?? null
-      const normalizedLfm = normalizeLfm(lfm, quest)
+      const lfmData = lfm as LfmData
+      const quest = questsById?.[String(lfmData?.quest_id ?? '')] ?? null
+      const normalizedLfm = normalizeLfm(lfmData, quest)
       if (normalizedLfm) normalized.push(normalizedLfm)
     }
 

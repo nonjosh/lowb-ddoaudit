@@ -1,12 +1,12 @@
 import { ReactNode, useMemo } from 'react'
 
 import { getPlayerName } from '@/domains/raids/raidLogic'
-import { Quest, RaidActivityEntry } from '@/api/ddoAudit'
+import { LfmItem, Quest, RaidActivityEntry } from '@/api/ddoAudit'
 import { CharacterContext, Character } from './useCharacter'
 
 interface CharacterProviderProps {
   charactersById: Record<string, Omit<Character, 'id'>>
-  lfms?: Record<string, unknown>
+  lfms?: Record<string, LfmItem>
   raidActivity: RaidActivityEntry[]
   questsById: Record<string, Quest>
   children: ReactNode

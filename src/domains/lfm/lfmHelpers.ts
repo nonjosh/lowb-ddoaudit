@@ -4,31 +4,31 @@ import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/que
 import { CharacterClass, formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '@/domains/raids/raidLogic'
 
 interface LfmCharacter {
-  id?: string | number
+  id: string | number
   name: string
+  race: string
+  total_level: number
+  classes: CharacterClass[]
+  location_id: number
   guild_name?: string
-  total_level?: number
-  classes?: CharacterClass[]
-  race?: string
-  location_id?: number
 }
 
 interface LfmActivity {
   timestamp: string
-  events?: Array<{ tag: string; [key: string]: unknown }>
+  events?: Array<{ tag: string;[key: string]: unknown }>
 }
 
-interface LfmData {
+export interface LfmData {
   id: string | number
   quest_id: string | number
   difficulty?: string
   comment?: string
   adventure_active_time?: string | number
-  minimum_level?: number
-  maximum_level?: number
-  leader?: LfmCharacter
+  minimum_level: number
+  maximum_level: number
+  leader: LfmCharacter
   members?: LfmCharacter[]
-  activity?: LfmActivity[]
+  activity: LfmActivity[]
 }
 
 export interface LfmParticipant {
@@ -38,7 +38,7 @@ export interface LfmParticipant {
   guildName: string
   totalLevel: number | null
   classesDisplay: string
-  classes: CharacterClass[] | undefined
+  classes: CharacterClass[]
   isLeader: boolean
   race: string
   location_id: number
@@ -85,6 +85,9 @@ export interface PreparedLfmData {
   difficultyColor: string
   participants: LfmParticipant[]
   maxPlayers: number
+  isRaid: boolean
+  questId: string
+  postedAt: string | null
 }
 
 /**
@@ -95,23 +98,23 @@ export function prepareLfmParticipants(lfm: LfmData, quest: Quest | null): Prepa
   const isRaid = isRaidQuest(quest)
   const maxPlayers = isRaid ? 12 : 6
 
-  const participants: LfmParticipant[] = [lfm?.leader, ...(lfm?.members ?? [])]
+  const participants: LfmParticipant[] = [lfm.leader, ...(lfm?.members ?? [])]
     .filter(Boolean)
     .map((p) => {
-      const characterName = String(p?.name ?? '').trim() || '—'
+      const characterName = String(p.name).trim() || '—'
       const playerName = getPlayerName(characterName)
-      const classesDisplay = formatClasses(p?.classes ?? [])
+      const classesDisplay = formatClasses(p.classes)
       return {
         characterName,
         playerName,
         playerDisplayName: getPlayerDisplayName(playerName),
         guildName: String(p?.guild_name ?? '').trim() || '',
-        totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
+        totalLevel: p.total_level,
         classesDisplay,
-        classes: p?.classes,
-        isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
-        race: p?.race ?? 'Unknown',
-        location_id: typeof p?.location_id === 'number' ? p.location_id : 0,
+        classes: p.classes,
+        isLeader: Boolean(lfm.leader.id && p.id && p.id === lfm.leader.id),
+        race: p.race,
+        location_id: p.location_id,
       }
     })
 
@@ -142,6 +145,9 @@ export function prepareLfmParticipants(lfm: LfmData, quest: Quest | null): Prepa
     difficultyColor,
     participants,
     maxPlayers,
+    isRaid,
+    questId: quest?.id || '',
+    postedAt: null,
   }
 }
 
@@ -158,11 +164,11 @@ export function getDifficultyColor(difficulty: string): string {
 
 function getGroupNames(lfm: LfmData): string[] {
   const names = []
-  const leaderName = lfm?.leader?.name
+  const leaderName = lfm.leader.name
   if (leaderName) names.push(leaderName)
 
   for (const m of lfm?.members ?? []) {
-    if (m?.name) names.push(m.name)
+    if (m.name) names.push(m.name)
   }
 
   return names
@@ -180,10 +186,10 @@ export function normalizeLfm(lfm: LfmData, quest: Quest | null): NormalizedLfm |
   const maxPlayers = isRaid ? 12 : 6
   const level = getEffectiveLevel(lfm, quest)
 
-  const leaderName = String(lfm?.leader?.name ?? '').trim() || '—'
-  const leaderGuildName = String(lfm?.leader?.guild_name ?? '').trim() || ''
-  const minLevel = typeof lfm?.minimum_level === 'number' ? lfm.minimum_level : null
-  const maxLevel = typeof lfm?.maximum_level === 'number' ? lfm.maximum_level : null
+  const leaderName = String(lfm.leader.name ?? '').trim() || '—'
+  const leaderGuildName = String(lfm.leader.guild_name ?? '').trim() || ''
+  const minLevel = lfm.minimum_level
+  const maxLevel = lfm.maximum_level
   const comment = String(lfm?.comment ?? '').trim() || ''
 
   const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
@@ -204,32 +210,32 @@ export function normalizeLfm(lfm: LfmData, quest: Quest | null): NormalizedLfm |
 
   const memberCount = 1 + (lfm?.members?.length ?? 0)
 
-  const participants: LfmParticipant[] = [lfm?.leader, ...(lfm?.members ?? [])]
+  const participants: LfmParticipant[] = [lfm.leader, ...(lfm?.members ?? [])]
     .filter(Boolean)
     .map((p) => {
-      const characterName = String(p?.name ?? '').trim() || '—'
+      const characterName = String(p.name).trim() || '—'
       const playerName = getPlayerName(characterName)
-      const classesDisplay = formatClasses(p?.classes ?? [])
+      const classesDisplay = formatClasses(p.classes)
       return {
         characterName,
         playerName,
         playerDisplayName: getPlayerDisplayName(playerName),
         guildName: String(p?.guild_name ?? '').trim() || '',
-        totalLevel: typeof p?.total_level === 'number' ? p.total_level : null,
+        totalLevel: p.total_level,
         classesDisplay,
-        classes: p?.classes,
-        isLeader: Boolean(lfm?.leader?.id && p?.id && p.id === lfm.leader.id),
-        race: p?.race ?? 'Unknown',
-        location_id: typeof p?.location_id === 'number' ? p.location_id : 0,
+        classes: p.classes,
+        isLeader: Boolean(lfm.leader.id && p.id && p.id === lfm.leader.id),
+        race: p.race,
+        location_id: p.location_id,
       }
     })
 
   /** @type {Map<string, number>} */
   const guildCounts = new Map()
-  const leaderGuild = String(lfm?.leader?.guild_name ?? '').trim()
+  const leaderGuild = String(lfm.leader.guild_name ?? '').trim()
   if (leaderGuild) guildCounts.set(leaderGuild, (guildCounts.get(leaderGuild) ?? 0) + 1)
   for (const m of lfm?.members ?? []) {
-    const g = String(m?.guild_name ?? '').trim()
+    const g = String(m.guild_name ?? '').trim()
     if (!g) continue
     guildCounts.set(g, (guildCounts.get(g) ?? 0) + 1)
   }
@@ -258,7 +264,7 @@ export function normalizeLfm(lfm: LfmData, quest: Quest | null): NormalizedLfm |
   ).sort((a, b) => a.localeCompare(b))
 
   let postedTimestamp: string | null = null
-  if (lfm?.activity && Array.isArray(lfm.activity)) {
+  if (Array.isArray(lfm.activity)) {
     for (const act of lfm.activity) {
       if (act.events && Array.isArray(act.events)) {
         for (const event of act.events) {
@@ -345,13 +351,12 @@ export function filterAndSortLfms(normalized: NormalizedLfm[], questFilter: stri
 /**
  * Creates a map of character names to their associated LFMs.
  */
-export function createLfmByCharacterNameMap(lfms: Record<string, LfmData>): Map<string, LfmData> {
-  const map = new Map<string, LfmData>()
+export function createLfmByCharacterNameMap(lfms: Record<string, PreparedLfmData>): Map<string, PreparedLfmData> {
+  const map = new Map<string, PreparedLfmData>()
   Object.values(lfms || {}).forEach((lfm) => {
-    if (lfm.leader?.name) map.set(lfm.leader.name, lfm)
-    if (Array.isArray(lfm.members)) {
-      lfm.members.forEach((m) => {
-        if (m.name) map.set(m.name, lfm)
+    if (lfm.participants) {
+      lfm.participants.forEach((p) => {
+        if (p.characterName) map.set(p.characterName, lfm)
       })
     }
   })

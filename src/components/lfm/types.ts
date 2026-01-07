@@ -1,3 +1,5 @@
+import { RaidEntry } from '@/domains/raids/raidLogic'
+
 export interface LfmParticipant {
   characterName: string
   playerName: string
@@ -5,22 +7,22 @@ export interface LfmParticipant {
   guildName: string
   totalLevel: number | null
   classesDisplay: string
-  classes?: Array<{ name: string; level: number }>
+  classes: Array<{ name: string; level: number }>
   isLeader: boolean
-  race?: string
+  race: string
   location_id: number
 }
 
 export interface LfmGroup {
   questName: string
-  adventurePack?: string | null
+  adventurePack: string | null
   areaId: string
   questLevel: number | null
-  adventureActiveMinutes?: number | null
+  adventureActiveMinutes: number | null
   difficultyDisplay: string
   difficultyColor: string
   participants: LfmParticipant[]
-  maxPlayers?: number
+  maxPlayers: number
   isRaid: boolean
   questId: string
   postedAt?: string | null
@@ -36,7 +38,7 @@ interface RaidGroup {
 
 interface PlayerGroup {
   player: string
-  entries: unknown[]
+  entries: RaidEntry[]
 }
 
 export interface LfmParticipantsDialogProps {

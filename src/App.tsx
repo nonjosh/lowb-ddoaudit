@@ -7,6 +7,7 @@ import {
   fetchQuestsById,
   fetchRaidActivity,
   fetchServerInfo,
+  LfmItem,
   parseCharacterIds,
   Quest,
   CharacterData,
@@ -26,11 +27,6 @@ import {
 import { useIdleTimer } from './hooks/useIdleTimer'
 import { useConfig } from './contexts/useConfig'
 
-interface LfmData {
-  quest_id?: string
-  [key: string]: unknown
-}
-
 function App() {
   const [characterIdsInput] = useState(Object.keys(CHARACTERS).join(','))
   const [loading, setLoading] = useState(false)
@@ -39,7 +35,7 @@ function App() {
   const [charactersById, setCharactersById] = useState<Record<string, CharacterData>>({})
   const [raidActivity, setRaidActivity] = useState<RaidActivityEntry[]>([])
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
-  const [lfmsById, setLfmsById] = useState<Record<string, LfmData>>({})
+  const [lfmsById, setLfmsById] = useState<Record<string, LfmItem>>({})
   const [lfmError, setLfmError] = useState('')
   const [serverPlayers, setServerPlayers] = useState<number | null>(null)
   const [isServerOnline, setIsServerOnline] = useState<boolean | null>(null)
@@ -125,7 +121,7 @@ function App() {
       setQuestsById(quests)
       setCharactersById(characters as Record<string, CharacterData>)
       setRaidActivity(raids as RaidActivityEntry[])
-      setLfmsById((lfmResult.data ?? {}) as Record<string, LfmData>)
+      setLfmsById(lfmResult.data ?? {})
       setLastUpdatedAt(new Date())
     } catch (e) {
       const error = e as Error

@@ -1,11 +1,13 @@
 import { createContext, useContext } from 'react'
-import { Quest, RaidActivityEntry } from '@/api/ddoAudit'
+import { LfmItem, Quest, RaidActivityEntry } from '@/api/ddoAudit'
 
 export interface Character {
   id: string
   name: string
   is_online?: boolean
   location_id?: string
+  group_id?: string
+  is_in_party?: boolean
   classes: CharacterClass[]
   race: string
   total_level: number
@@ -26,7 +28,7 @@ interface CharacterContextType {
   charactersById: Record<string, Omit<Character, 'id'>>
   charactersByPlayer: PlayerGroup[]
   isPlayerOnline: (playerName: string) => boolean
-  lfms: Record<string, unknown>
+  lfms: Record<string, LfmItem>
   raidActivity: RaidActivityEntry[]
   questsById: Record<string, Quest>
 }

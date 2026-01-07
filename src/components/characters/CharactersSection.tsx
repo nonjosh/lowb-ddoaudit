@@ -6,7 +6,7 @@ import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import { PlayerGroup, useCharacter } from '@/contexts/useCharacter'
 import { groupCharactersByLocation } from '@/domains/characters/characterGrouping'
-import { createLfmByCharacterNameMap, prepareLfmParticipants } from '@/domains/lfm/lfmHelpers'
+import { createLfmByCharacterNameMap, prepareLfmParticipants, PreparedLfmData } from '@/domains/lfm/lfmHelpers'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 
 import PlayerCharactersDialog from './dialogs/PlayerCharactersDialog'
@@ -21,31 +21,24 @@ interface CharactersSectionProps {
   characterCount: number
 }
 
-interface LfmItem {
-  id?: string | number
-  quest_id?: string | number
-  [key: string]: unknown
-}
-
 export default function CharactersSection({ loading, hasFetched, characterCount }: CharactersSectionProps) {
   const { charactersById, charactersByPlayer, lfms } = useCharacter()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
-  const [selectedLfm, setSelectedLfm] = useState<LfmItem | null>(null)
+  const [selectedLfm, setSelectedLfm] = useState<PreparedLfmData | null>(null)
 
   useEffect(() => {
     fetchQuestsById().then(setQuests).catch(console.error)
     fetchAreasById().then(setAreas).catch(console.error)
   }, [])
 
-  const lfmByCharacterName = useMemo(() => createLfmByCharacterNameMap(lfms || {}), [lfms])
+  const preparedLfms = useMemo(() => Object.fromEntries(Object.entries(lfms).map(([id, lfm]) => [id, prepareLfmParticipants(lfm, quests[id] ?? null)])), [lfms, quests])
 
-  const handleLfmClick = (lfm: LfmItem) => {
-    const questId = String(lfm?.quest_id ?? '')
-    const quest = quests[questId] ?? null
-    const preparedLfm = prepareLfmParticipants(lfm, quest)
-    setSelectedLfm(preparedLfm)
+  const lfmByCharacterName = useMemo(() => createLfmByCharacterNameMap(preparedLfms), [preparedLfms])
+
+  const handleLfmClick = (lfm: PreparedLfmData) => {
+    setSelectedLfm(lfm)
   }
 
   const groupedCharacters = useMemo(
