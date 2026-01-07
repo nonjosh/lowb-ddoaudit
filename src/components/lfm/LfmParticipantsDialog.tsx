@@ -8,7 +8,7 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
@@ -20,7 +20,6 @@ import { LfmParticipantsDialogProps } from './types'
 
 export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData }: LfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
-  const [collapsedPlayers, setCollapsedPlayers] = useState<Set<string>>(new Set())
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
