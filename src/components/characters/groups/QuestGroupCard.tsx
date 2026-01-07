@@ -17,7 +17,7 @@ interface QuestGroupCardProps {
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, any>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: any) => void
+  onLfmClick: (lfm: Record<string, unknown>) => void
 }
 
 /**

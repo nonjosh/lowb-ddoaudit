@@ -50,7 +50,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
   const raidNotes = getRaidNotesForRaidName(g.raidName)
 
   const friendsInRaid = useMemo(() => {
-    const present = new Set<string>((g.entries ?? []).filter((e: any) => e?.isInRaid).map((e: any) => String(e?.playerName ?? '')))
+    const present = new Set<string>((g.entries ?? []).filter((e: RaidEntry) => e?.isInRaid).map((e: RaidEntry) => String(e?.playerName ?? '')))
     return EXPECTED_PLAYERS.filter((p) => present.has(p)).map((p) => getPlayerDisplayName(p))
   }, [g.entries])
 
@@ -90,8 +90,8 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
         mb: 2,
         ...(hasPlayersInRaid ? { borderColor: 'success.main' } : { borderColor: 'transparent' }),
         ...(highlight && {
-          boxShadow: (theme: any) =>
-            `inset 0 2px 0 0 ${theme.palette.primary.main}, inset 2px 0 0 0 ${theme.palette.primary.main}, inset -2px 0 0 0 ${theme.palette.primary.main}`,
+          boxShadow: (theme) =>
+            `inset 0 2px 0 0 ${(theme as { palette: { primary: { main: string } } }).palette.primary.main}, inset 2px 0 0 0 ${(theme as { palette: { primary: { main: string } } }).palette.primary.main}, inset -2px 0 0 0 ${(theme as { palette: { primary: { main: string } } }).palette.primary.main}`,
         }),
       }}
     >

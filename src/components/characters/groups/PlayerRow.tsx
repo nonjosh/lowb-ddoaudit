@@ -16,7 +16,7 @@ interface PlayerRowProps {
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, any>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: any) => void
+  onLfmClick: (lfm: Record<string, unknown>) => void
 }
 
 /**
@@ -40,7 +40,7 @@ export default function PlayerRow({
   let locationSuffix: React.ReactNode = null
   let isInParty = false
   let isInLfm = false
-  let lfmForCharacter: any = null
+  let lfmForCharacter: Record<string, unknown> | null = null
 
   if (isOnline) {
     const firstChar = onlineChars[0]

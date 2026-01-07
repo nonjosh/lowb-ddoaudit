@@ -18,8 +18,8 @@ import ItemTableRow from './ItemTableRow'
 
 interface ItemLootTableProps {
   questItems: Item[]
-  setsData: any
-  craftingData: any
+  setsData: Record<string, unknown>
+  craftingData: Record<string, unknown>
   raidNotes: RaidNotes | null
   questLevel?: number
 }
@@ -221,15 +221,15 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
         })
         return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
       } else {
-        return items.map((item: any) => item.name)
+        return items.map((item) => (item as { name?: string }).name ?? '')
       }
     } else if (data[craft]) {
       const options: string[] = []
       for (const [itemName, sets] of Object.entries(data[craft])) {
         options.push(`${itemName}:`)
         if (Array.isArray(sets)) {
-          sets.forEach((set: any) => {
-            options.push(`- ${set.name}`)
+          sets.forEach((set) => {
+            options.push(`- ${(set as { name?: string }).name ?? ''}`)
           })
         }
       }

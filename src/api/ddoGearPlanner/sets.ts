@@ -1,8 +1,8 @@
 import { SETS_JSON_URL } from './constants'
 
-let setsPromise: Promise<any> | null = null
+let setsPromise: Promise<Record<string, unknown>> | null = null
 
-export async function fetchSets(): Promise<any> {
+export async function fetchSets(): Promise<Record<string, unknown>> {
   if (setsPromise) return setsPromise
 
   setsPromise = (async () => {
@@ -11,7 +11,7 @@ export async function fetchSets(): Promise<any> {
       throw new Error(`Failed to fetch sets.json (${resp.status})`)
     }
 
-    return await resp.json()
+    return await resp.json() as Record<string, unknown>
   })()
 
   return setsPromise

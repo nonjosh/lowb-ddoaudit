@@ -18,7 +18,7 @@ import ItemSetTooltip from './ItemSetTooltip'
 interface ItemTableRowProps {
   item: Item
   searchText: string
-  setsData: any
+  setsData: Record<string, unknown>
   raidNotes: RaidNotes | null
   highlightText: (text: string, query: string) => string | React.ReactElement
   formatAffix: (affix: ItemAffix, query?: string) => string | React.ReactElement

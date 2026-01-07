@@ -62,7 +62,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     const initial = raidGroups
       .map((g, idx) => {
         const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
-        const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
+        const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: Record<string, unknown>) => String(l?.quest_id ?? '') === String(g.questId)))
         const hasTimer = (g.entries ?? []).some((e) => Boolean((e as any)?.lastTimestamp))
         return { g, idx, hasFriendInside, hasLfm, hasTimer }
       })
@@ -153,14 +153,14 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
 
   const handleLfmClick = (questId: string) => {
     const lfmsById = lfms ?? {}
-    let lfm: any = lfmsById[questId]
+    let lfm: Record<string, unknown> | undefined = lfmsById[questId] as Record<string, unknown>
     if (!lfm) {
-      lfm = Object.values(lfmsById ?? {}).find((l: any) => String(l?.quest_id ?? '') === String(questId))
+      lfm = Object.values(lfmsById ?? {}).find((l: Record<string, unknown>) => String((l as { quest_id?: unknown })?.quest_id ?? '') === String(questId)) as Record<string, unknown> | undefined
     }
     if (!lfm) return
 
-    const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
-    const preparedLfm = prepareLfmParticipants(lfm, quest)
+    const quest = (questsByIdLocal ?? {})[String((lfm as { quest_id?: unknown })?.quest_id ?? '')] ?? null
+    const preparedLfm = prepareLfmParticipants(lfm as never, quest)
     setSelectedLfm(preparedLfm)
 
     // Find the corresponding raid group
@@ -197,7 +197,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
           {sortedRaidGroups.map((g) => {
             const lfmsById = lfms ?? {}
             const hasFriendInside = (g.entries ?? []).some((e) => EXPECTED_PLAYERS.includes(e.playerName) && Boolean(e.isInRaid))
-            const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: any) => String(l?.quest_id ?? '') === String(g.questId)))
+            const hasLfm = Boolean(lfmsById[g.questId] || Object.values(lfmsById ?? {}).some((l: Record<string, unknown>) => String(l?.quest_id ?? '') === String(g.questId)))
             return (
               <Box key={g.questId}>
                 <RaidCard

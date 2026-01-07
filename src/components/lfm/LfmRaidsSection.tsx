@@ -30,12 +30,12 @@ import LfmParticipantsDialog from './LfmParticipantsDialog'
 interface LfmRaidsSectionProps {
   loading: boolean
   hasFetched: boolean
-  lfmsById: Record<string, any>
+  lfmsById: Record<string, unknown>
   questsById: Record<string, Quest>
   error: string
   serverPlayers?: number | null
   isServerOnline?: boolean | null
-  raidGroups: any[]
+  raidGroups: RaidGroup[]
 }
 
 

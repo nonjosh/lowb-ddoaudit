@@ -21,12 +21,18 @@ interface CharactersSectionProps {
   characterCount: number
 }
 
+interface LfmItem {
+  id?: string | number
+  quest_id?: string | number
+  [key: string]: unknown
+}
+
 export default function CharactersSection({ loading, hasFetched, characterCount }: CharactersSectionProps) {
   const { charactersById, charactersByPlayer, lfms } = useCharacter()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
-  const [selectedLfm, setSelectedLfm] = useState<any | null>(null)
+  const [selectedLfm, setSelectedLfm] = useState<LfmItem | null>(null)
 
   useEffect(() => {
     fetchQuestsById().then(setQuests).catch(console.error)
@@ -35,7 +41,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount 
 
   const lfmByCharacterName = useMemo(() => createLfmByCharacterNameMap(lfms || {}), [lfms])
 
-  const handleLfmClick = (lfm: any) => {
+  const handleLfmClick = (lfm: LfmItem) => {
     const questId = String(lfm?.quest_id ?? '')
     const quest = quests[questId] ?? null
     const preparedLfm = prepareLfmParticipants(lfm, quest)

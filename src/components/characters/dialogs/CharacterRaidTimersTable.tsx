@@ -12,8 +12,14 @@ import { useEffect, useMemo, useState } from 'react'
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
 import { useCharacter } from '@/contexts/CharacterContext'
 
+interface Character {
+  id: string
+  name: string
+  [key: string]: unknown
+}
+
 interface CharacterRaidTimersTableProps {
-  character: any
+  character: Character
 }
 
 export default function CharacterRaidTimersTable({ character }: CharacterRaidTimersTableProps) {

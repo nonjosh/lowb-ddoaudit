@@ -13,7 +13,7 @@ interface OfflineGroupCardProps {
   lfmByCharacterName: Map<string, any>
   showHeader: boolean
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: any) => void
+  onLfmClick: (lfm: Record<string, unknown>) => void
 }
 
 /**

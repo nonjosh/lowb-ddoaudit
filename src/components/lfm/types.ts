@@ -5,7 +5,7 @@ export interface LfmParticipant {
   guildName: string
   totalLevel: number | null
   classesDisplay: string
-  classes?: any[]
+  classes?: Array<{ name: string; level: number }>
   isLeader: boolean
   race?: string
   location_id: number
@@ -26,8 +26,21 @@ export interface LfmGroup {
   postedAt?: string | null
 }
 
+interface RaidGroup {
+  questId: string
+  raidName: string
+  adventurePack?: string | null
+  questLevel: number | null
+  entries: unknown[]
+}
+
+interface PlayerGroup {
+  player: string
+  entries: unknown[]
+}
+
 export interface LfmParticipantsDialogProps {
   selectedLfm: LfmGroup | null
   onClose: () => void
-  selectedRaidData: { raidGroup: any; perPlayerEligible: any[] } | null
+  selectedRaidData: { raidGroup: RaidGroup; perPlayerEligible: PlayerGroup[] } | null
 }

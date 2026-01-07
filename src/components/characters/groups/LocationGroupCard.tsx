@@ -15,7 +15,7 @@ interface LocationGroupCardProps {
   lfmByCharacterName: Map<string, any>
   packsByAreaName?: Record<string, string | null>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: any) => void
+  onLfmClick: (lfm: Record<string, unknown>) => void
 }
 
 /**
