@@ -123,7 +123,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
                 </Typography>
               )}
             </Stack>
-            <Stack direction="column" alignItems="flex-end" spacing={0.5}>
+            <Stack direction="row" alignItems="center" spacing={2}>
               {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
                 <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 600 }}>
                   Active {formatDuration(selectedLfm.adventureActiveMinutes)}
