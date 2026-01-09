@@ -6,7 +6,7 @@ import { ReactNode } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
-import { PreparedLfmData } from '@/domains/lfm/lfmHelpers'
+import { NormalizedLfm } from '@/domains/lfm/lfmHelpers'
 import { PlayerGroup } from '@/contexts/useCharacter'
 import { useConfig } from '@/contexts/useConfig'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
@@ -16,9 +16,9 @@ interface PlayerRowProps {
   showLocation?: boolean
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, PreparedLfmData>
+  lfmByCharacterName: Map<string, NormalizedLfm>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: PreparedLfmData) => void
+  onLfmClick: (lfm: NormalizedLfm) => void
 }
 
 /**
@@ -42,7 +42,7 @@ export default function PlayerRow({
   let locationSuffix: ReactNode = null
   let isInParty = false
   let isInLfm = false
-  let lfmForCharacter: PreparedLfmData | undefined = undefined
+  let lfmForCharacter: NormalizedLfm | undefined = undefined
 
   if (isOnline) {
     const firstChar = onlineChars[0]

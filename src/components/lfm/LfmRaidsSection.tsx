@@ -44,7 +44,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
   const [now, setNow] = useState(() => new Date())
   const [questFilter, setQuestFilter] = useState('raid')
   const [tierFilter, setTierFilter] = useState('legendary')
-  const [selectedLfm, setSelectedLfm] = useState<NormalizedLfm | null>(null)
+  const [selectedLfmId, setSelectedLfmId] = useState<string | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   useEffect(() => {
@@ -53,13 +53,13 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
   }, [])
 
   const selectedRaidData = useMemo(() => {
-    if (!selectedLfm) return null
-    const questId = String(selectedLfm.questId ?? '')
+    if (!selectedLfmId) return null
+    const questId = selectedLfmId
     const raidGroup = raidGroups.find(rg => rg.questId === questId)
     if (!raidGroup) return null
     const perPlayerEligible = groupEntriesByPlayer(raidGroup.entries, now)
     return { raidGroup, perPlayerEligible }
-  }, [selectedLfm, raidGroups, now])
+  }, [selectedLfmId, raidGroups, now])
 
   const raidLfms = useMemo(() => {
     const lfms = Object.values(lfmsById ?? {})
@@ -72,6 +72,11 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
 
     return filterAndSortLfms(normalized, questFilter, tierFilter)
   }, [lfmsById, questsById, questFilter, tierFilter])
+
+  const selectedLfm = useMemo(() => {
+    if (!selectedLfmId) return null
+    return raidLfms.find(l => l.id === selectedLfmId) || null
+  }, [selectedLfmId, raidLfms])
 
   const shownCount = raidLfms.length
   const totalCount = rawCount
@@ -165,7 +170,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                           `inset 0 2px 0 0 ${theme.palette.success.main}, inset 2px 0 0 0 ${theme.palette.success.main}, inset -2px 0 0 0 ${theme.palette.success.main}`,
                       }),
                     }}
-                    onClick={() => setSelectedLfm(l)}
+                    onClick={() => setSelectedLfmId(l.id)}
                     style={{ cursor: 'pointer' }}
                   >
                     <TableCell sx={{ maxWidth: 320 }}>
@@ -231,7 +236,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
                         boxShadow: (theme) =>
                           `inset 0 -2px 0 0 ${theme.palette.success.main}, inset 2px 0 0 0 ${theme.palette.success.main}, inset -2px 0 0 0 ${theme.palette.success.main}`,
                       }}
-                      onClick={() => setSelectedLfm(l)}
+                      onClick={() => setSelectedLfmId(l.id)}
                       style={{ cursor: 'pointer' }}
                     >
                       <TableCell colSpan={4} sx={{ py: 0.5 }}>
@@ -259,7 +264,7 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
         </TableContainer>
       )}
 
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} selectedRaidData={selectedRaidData} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfmId(null)} selectedRaidData={selectedRaidData} />
     </Paper>
   )
 }

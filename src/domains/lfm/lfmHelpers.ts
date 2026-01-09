@@ -48,84 +48,6 @@ export interface NormalizedLfm {
   friendPlayersInside: string[]
 }
 
-export interface PreparedLfmData {
-  questName: string
-  adventurePack: string | null
-  areaId: string
-  questLevel: number | null
-  adventureActiveMinutes: number | null
-  difficultyDisplay: string
-  difficultyColor: string
-  participants: LfmParticipant[]
-  maxPlayers: number
-  isRaid: boolean
-  questId: string
-  postedAt: string | null
-  comment: string
-}
-
-/**
- * Prepares LFM data for display in the participants dialog.
- * Extracts and formats all participant information including classes, levels, guilds, etc.
- */
-export function prepareLfmParticipants(lfm: LfmItem, quest: Quest | null): PreparedLfmData {
-  const isRaid = isRaidQuest(quest)
-  const maxPlayers = isRaid ? 12 : 6
-
-  const participants: LfmParticipant[] = [lfm.leader, ...(lfm?.members ?? [])]
-    .filter(Boolean)
-    .map((p) => {
-      const characterName = String(p.name).trim() || '—'
-      const playerName = getPlayerName(characterName)
-      const classesDisplay = formatClasses(p.classes)
-      return {
-        characterName,
-        playerName,
-        playerDisplayName: getPlayerDisplayName(playerName),
-        guildName: String(p?.guild_name ?? '').trim() || '',
-        totalLevel: p.total_level,
-        classesDisplay,
-        classes: p.classes,
-        isLeader: Boolean(lfm.leader.id && p.id && p.id === lfm.leader.id),
-        race: p.race,
-        location_id: p.location_id,
-      }
-    })
-
-  const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
-  const comment = String(lfm?.comment ?? '').trim() || ''
-  const reaperSkulls = difficulty.toLowerCase() === 'reaper' ? parseReaperSkulls(comment) : null
-  const difficultyDisplay =
-    difficulty.toLowerCase() === 'reaper' && typeof reaperSkulls === 'number'
-      ? `Reaper ${reaperSkulls}`
-      : difficulty
-
-  const difficultyColor = getDifficultyColor(difficulty)
-  const adventureActiveRaw = lfm?.adventure_active_time
-  const adventureActiveSeconds = typeof adventureActiveRaw === 'string' ? Number(adventureActiveRaw) : adventureActiveRaw
-  let adventureActiveMinutes: number | null = null
-  if (typeof adventureActiveSeconds === 'number' && !Number.isNaN(adventureActiveSeconds)) {
-    const minutes = Math.max(0, Math.round(adventureActiveSeconds / 60))
-    adventureActiveMinutes = minutes > 0 ? minutes : null
-  }
-
-  return {
-    questName: quest?.name || 'Unknown Quest',
-    adventurePack: quest?.required_adventure_pack ?? null,
-    areaId: quest?.areaId || '',
-    questLevel: getEffectiveLevel(lfm, quest),
-    adventureActiveMinutes,
-    difficultyDisplay,
-    difficultyColor,
-    participants,
-    maxPlayers,
-    isRaid,
-    questId: quest?.id || '',
-    postedAt: null,
-    comment,
-  }
-}
-
 /**
  * Gets the color for displaying difficulty level.
  */
@@ -326,8 +248,8 @@ export function filterAndSortLfms(normalized: NormalizedLfm[], questFilter: stri
 /**
  * Creates a map of character names to their associated LFMs.
  */
-export function createLfmByCharacterNameMap(lfms: Record<string, PreparedLfmData>): Map<string, PreparedLfmData> {
-  const map = new Map<string, PreparedLfmData>()
+export function createLfmByCharacterNameMap(lfms: Record<string, NormalizedLfm>): Map<string, NormalizedLfm> {
+  const map = new Map<string, NormalizedLfm>()
   Object.values(lfms || {}).forEach((lfm) => {
     if (lfm.participants) {
       lfm.participants.forEach((p) => {

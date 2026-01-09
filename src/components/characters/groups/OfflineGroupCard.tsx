@@ -2,7 +2,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import { Box, List, ListSubheader, Paper } from '@mui/material'
 
 import { Quest } from '@/api/ddoAudit'
-import { PreparedLfmData } from '@/domains/lfm/lfmHelpers'
+import { NormalizedLfm } from '@/domains/lfm/lfmHelpers'
 import { PlayerGroup } from '@/contexts/useCharacter'
 
 import PlayerRow from './PlayerRow'
@@ -11,10 +11,10 @@ interface OfflineGroupCardProps {
   groups: PlayerGroup[]
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, PreparedLfmData>
+  lfmByCharacterName: Map<string, NormalizedLfm>
   showHeader: boolean
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: PreparedLfmData) => void
+  onLfmClick: (lfm: NormalizedLfm) => void
 }
 
 /**

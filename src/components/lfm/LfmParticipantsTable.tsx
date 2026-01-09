@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material'
 
 import LfmParticipantRow from './LfmParticipantRow'
-import { LfmParticipant } from './types'
+import { LfmParticipant } from '@/domains/lfm/lfmHelpers'
 
 interface LfmParticipantsTableProps {
   participants: LfmParticipant[]

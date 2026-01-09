@@ -2,7 +2,7 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import { Box, List, ListSubheader, Paper, Tooltip, Typography } from '@mui/material'
 
 import { Quest } from '@/api/ddoAudit'
-import { PreparedLfmData } from '@/domains/lfm/lfmHelpers'
+import { NormalizedLfm } from '@/domains/lfm/lfmHelpers'
 import { PlayerGroup } from '@/contexts/useCharacter'
 
 import PlayerRow from './PlayerRow'
@@ -13,10 +13,10 @@ interface LocationGroupCardProps {
   borderColor: string
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, PreparedLfmData>
+  lfmByCharacterName: Map<string, NormalizedLfm>
   packsByAreaName?: Record<string, string | null>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: PreparedLfmData) => void
+  onLfmClick: (lfm: NormalizedLfm) => void
 }
 
 /**

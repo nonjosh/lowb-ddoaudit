@@ -8,7 +8,7 @@ import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useCharacter } from '@/contexts/useCharacter'
-import { prepareLfmParticipants, PreparedLfmData } from '@/domains/lfm/lfmHelpers'
+import { normalizeLfm, NormalizedLfm } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 
 import RaidCard from './RaidCard'
@@ -143,7 +143,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     return list.map((x) => x.g)
   }, [raidGroups, lfms, tierFilter, questsByIdLocal])
 
-  const [selectedLfm, setSelectedLfm] = useState<PreparedLfmData | null>(null)
+  const [selectedLfm, setSelectedLfm] = useState<NormalizedLfm | null>(null)
   const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 
   const selectedRaidData = useMemo(() => {
@@ -161,8 +161,8 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     if (!lfm) return
 
     const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
-    const preparedLfm = prepareLfmParticipants(lfm, quest)
-    setSelectedLfm(preparedLfm)
+    const normalizedLfm = normalizeLfm(lfm, quest)
+    setSelectedLfm(normalizedLfm)
 
     // Find the corresponding raid group
     const raidGroup = sortedRaidGroups.find((g) => g.questId === questId)
