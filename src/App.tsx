@@ -211,6 +211,7 @@ function App() {
                   loading={loading}
                   hasFetched={!!lastUpdatedAt}
                   characterCount={characterIds.length}
+                  raidGroups={raidGroups}
                 />
               </Paper>
             </Grid>

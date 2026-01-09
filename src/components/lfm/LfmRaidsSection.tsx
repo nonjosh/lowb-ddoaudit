@@ -22,7 +22,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Quest, LfmItem } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
-import { filterAndSortLfms, NormalizedLfm, normalizeLfm } from '@/domains/lfm/lfmHelpers'
+import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 
@@ -54,16 +54,19 @@ export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsB
 
   const selectedRaidData = useMemo(() => {
     if (!selectedLfmId) return null
-    const questId = selectedLfmId
-    const raidGroup = raidGroups.find(rg => rg.questId === questId)
+    const lfm = lfmsById?.[selectedLfmId]
+    const questId = lfm?.quest_id ? String(lfm.quest_id) : null
+    if (!questId) return null
+
+    const raidGroup = raidGroups.find((rg) => rg.questId === questId)
     if (!raidGroup) return null
     const perPlayerEligible = groupEntriesByPlayer(raidGroup.entries, now)
     return { raidGroup, perPlayerEligible }
-  }, [selectedLfmId, raidGroups, now])
+  }, [selectedLfmId, raidGroups, now, lfmsById])
 
   const raidLfms = useMemo(() => {
     const lfms = Object.values(lfmsById ?? {})
-    const normalized: NormalizedLfm[] = []
+    const normalized: LfmDisplayData[] = []
     for (const lfm of lfms) {
       const quest = questsById?.[String(lfm?.quest_id ?? '')] ?? null
       const normalizedLfm = normalizeLfm(lfm, quest)

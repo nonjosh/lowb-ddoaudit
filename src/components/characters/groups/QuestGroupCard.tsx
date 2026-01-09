@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ItemLootDialog from '@/components/items/ItemLootDialog'
-import { NormalizedLfm } from '@/domains/lfm/lfmHelpers'
+import { LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 import { PlayerGroup } from '@/contexts/useCharacter'
 
 import PlayerRow from './PlayerRow'
@@ -16,9 +16,9 @@ interface QuestGroupCardProps {
   levelInfo: string | null
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
-  lfmByCharacterName: Map<string, NormalizedLfm>
+  lfmByCharacterName: Map<string, LfmDisplayData>
   onPlayerClick: (group: PlayerGroup) => void
-  onLfmClick: (lfm: NormalizedLfm) => void
+  onLfmClick: (lfm: LfmDisplayData) => void
 }
 
 /**

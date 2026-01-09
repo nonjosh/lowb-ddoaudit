@@ -17,7 +17,7 @@ export interface LfmParticipant {
   location_id: number
 }
 
-export interface NormalizedLfm {
+export interface LfmDisplayData {
   id: string
   questId: string
   questName: string
@@ -74,7 +74,7 @@ function getGroupNames(lfm: LfmItem): string[] {
 /**
  * Normalizes a single LFM object for display in the list.
  */
-export function normalizeLfm(lfm: LfmItem, quest: Quest | null): NormalizedLfm | null {
+export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData | null {
   const questId = String(lfm?.quest_id ?? '')
   if (!questId) return null
 
@@ -210,7 +210,7 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): NormalizedLfm |
 /**
  * Filters and sorts normalized LFMs based on quest and tier filters.
  */
-export function filterAndSortLfms(normalized: NormalizedLfm[], questFilter: string, tierFilter: string): NormalizedLfm[] {
+export function filterAndSortLfms(normalized: LfmDisplayData[], questFilter: string, tierFilter: string): LfmDisplayData[] {
   // Hide full groups.
   let filtered = normalized.filter((x) => (x?.openSlots ?? 0) > 0)
 
@@ -248,8 +248,8 @@ export function filterAndSortLfms(normalized: NormalizedLfm[], questFilter: stri
 /**
  * Creates a map of character names to their associated LFMs.
  */
-export function createLfmByCharacterNameMap(lfms: Record<string, NormalizedLfm>): Map<string, NormalizedLfm> {
-  const map = new Map<string, NormalizedLfm>()
+export function createLfmByCharacterNameMap(lfms: Record<string, LfmDisplayData>): Map<string, LfmDisplayData> {
+  const map = new Map<string, LfmDisplayData>()
   Object.values(lfms || {}).forEach((lfm) => {
     if (lfm.participants) {
       lfm.participants.forEach((p) => {

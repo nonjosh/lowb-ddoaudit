@@ -6,8 +6,9 @@ import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import { PlayerGroup, useCharacter } from '@/contexts/useCharacter'
 import { groupCharactersByLocation } from '@/domains/characters/characterGrouping'
-import { createLfmByCharacterNameMap, NormalizedLfm, normalizeLfm } from '@/domains/lfm/lfmHelpers'
+import { createLfmByCharacterNameMap, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
+import { RaidGroup, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 
 import PlayerCharactersDialog from './dialogs/PlayerCharactersDialog'
 import LocationGroupCard from './groups/LocationGroupCard'
@@ -19,14 +20,23 @@ interface CharactersSectionProps {
   loading: boolean
   hasFetched: boolean
   characterCount: number
+  raidGroups: RaidGroup[]
 }
 
-export default function CharactersSection({ loading, hasFetched, characterCount }: CharactersSectionProps) {
+export default function CharactersSection({ loading, hasFetched, characterCount, raidGroups }: CharactersSectionProps) {
   const { charactersById, charactersByPlayer, lfms } = useCharacter()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
-  const [selectedLfm, setSelectedLfm] = useState<NormalizedLfm | null>(null)
+  const [selectedLfm, setSelectedLfm] = useState<LfmDisplayData | null>(null)
+
+  const selectedRaidData = useMemo(() => {
+    if (!selectedLfm) return null
+    const raidGroup = raidGroups.find((rg) => rg.questId === selectedLfm.questId)
+    if (!raidGroup) return null
+    const perPlayerEligible = groupEntriesByPlayer(raidGroup.entries, new Date())
+    return { raidGroup, perPlayerEligible }
+  }, [selectedLfm, raidGroups])
 
   useEffect(() => {
     fetchQuestsById().then(setQuests).catch(console.error)
@@ -34,7 +44,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount 
   }, [])
 
   const preparedLfms = useMemo(() => {
-    const map: Record<string, NormalizedLfm> = {}
+    const map: Record<string, LfmDisplayData> = {}
     Object.entries(lfms).forEach(([id, lfm]) => {
       // Look up quest using lfm.quest_id if available, fallback to id if needed (though usually quest_id is the key for quests)
       // Note: `quests` is keyed by Quest ID. `lfm.quest_id` is the Quest ID.
@@ -49,7 +59,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount 
 
   const lfmByCharacterName = useMemo(() => createLfmByCharacterNameMap(preparedLfms), [preparedLfms])
 
-  const handleLfmClick = (lfm: NormalizedLfm) => {
+  const handleLfmClick = (lfm: LfmDisplayData) => {
     setSelectedLfm(lfm)
   }
 
@@ -181,7 +191,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount 
       <LfmParticipantsDialog
         selectedLfm={selectedLfm}
         onClose={() => setSelectedLfm(null)}
-        selectedRaidData={null}
+        selectedRaidData={selectedRaidData}
       />
     </>
   )

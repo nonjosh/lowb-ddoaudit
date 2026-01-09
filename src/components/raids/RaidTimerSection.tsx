@@ -8,7 +8,7 @@ import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useCharacter } from '@/contexts/useCharacter'
-import { normalizeLfm, NormalizedLfm } from '@/domains/lfm/lfmHelpers'
+import { normalizeLfm, LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 
 import RaidCard from './RaidCard'
@@ -143,7 +143,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     return list.map((x) => x.g)
   }, [raidGroups, lfms, tierFilter, questsByIdLocal])
 
-  const [selectedLfm, setSelectedLfm] = useState<NormalizedLfm | null>(null)
+  const [selectedLfm, setSelectedLfm] = useState<LfmDisplayData | null>(null)
   const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
 
   const selectedRaidData = useMemo(() => {

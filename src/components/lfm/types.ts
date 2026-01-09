@@ -1,8 +1,8 @@
 import { RaidGroup, PlayerGroup } from '@/domains/raids/raidLogic'
-import { NormalizedLfm } from '@/domains/lfm/lfmHelpers'
+import { LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 
 export interface LfmParticipantsDialogProps {
-  selectedLfm: NormalizedLfm | null
+  selectedLfm: LfmDisplayData | null
   onClose: () => void
   selectedRaidData: { raidGroup: RaidGroup; perPlayerEligible: PlayerGroup[] } | null
 }
