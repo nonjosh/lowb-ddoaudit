@@ -88,7 +88,7 @@ function Dashboard() {
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
         fetchRaidActivity(ids, { signal: controller.signal }),
-        refreshLfm().catch(() => {}), // Allow this to fail silently as LfmContext handles error
+        refreshLfm(controller.signal).catch(() => { }), // Allow this to fail silently as LfmContext handles error
       ])
 
       setQuestsById(quests)

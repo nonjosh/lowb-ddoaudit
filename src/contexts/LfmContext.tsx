@@ -12,17 +12,19 @@ export function LfmProvider({ children }: { children: ReactNode }) {
 
   const abortRef = useRef<AbortController | null>(null)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (signal?: AbortSignal) => {
     if (abortRef.current) abortRef.current.abort()
     const controller = new AbortController()
     abortRef.current = controller
+
+    const usedSignal = signal || controller.signal
 
     setLoading(true)
     setError('')
 
     try {
       // Always fetch server info first
-      const info = await fetchServerInfo('shadowdale', { signal: controller.signal }).catch(() => null)
+      const info = await fetchServerInfo('shadowdale', { signal: usedSignal }).catch(() => null)
       const currentServerInfo = {
         isOnline: info?.is_online ?? null,
         players: info?.character_count ?? null
@@ -33,15 +35,8 @@ export function LfmProvider({ children }: { children: ReactNode }) {
         setError('Server is offline. LFM data is unavailable.')
         setLfms({})
       } else {
-        const result = await fetchLfms('shadowdale', { signal: controller.signal })
-          .then((data) => ({ data, error: null }))
-          .catch((e: Error) => ({ data: null, error: e }))
-
-        if (result.error) {
-          setError(result.error.message ?? String(result.error))
-        } else {
-          setLfms(result.data ?? {})
-        }
+        const data = await fetchLfms('shadowdale', { signal: usedSignal })
+        setLfms(data ?? {})
       }
       setLastUpdatedAt(new Date())
     } catch (e) {

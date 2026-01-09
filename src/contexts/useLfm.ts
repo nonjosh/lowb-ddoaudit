@@ -12,7 +12,7 @@ export interface LfmContextType {
   error: string
   serverInfo: ServerInfo
   lastUpdatedAt: Date | null
-  refresh: () => Promise<void>
+  refresh: (signal?: AbortSignal) => Promise<void>
 }
 
 export const LfmContext = createContext<LfmContextType | null>(null)
