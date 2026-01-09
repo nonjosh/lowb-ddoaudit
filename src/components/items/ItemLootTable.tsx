@@ -235,7 +235,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
   return (
     <>
       <Typography variant="h6" sx={{ mb: 1, px: 1 }}>
-        {filteredItems.length} Available Loots (Excluding augments and misc)
+        {filteredItems.length} Available Loots (equipments and augments, excluding misc items)
       </Typography>
       <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh', overflow: 'auto' }}>
         <ItemTableFilters
