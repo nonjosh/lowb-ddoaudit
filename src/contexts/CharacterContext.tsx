@@ -1,18 +1,17 @@
 import { ReactNode, useMemo } from 'react'
 
 import { getPlayerName } from '@/domains/raids/raidLogic'
-import { LfmItem, Quest, RaidActivityEntry } from '@/api/ddoAudit'
+import { Quest, RaidActivityEntry } from '@/api/ddoAudit'
 import { CharacterContext, Character } from './useCharacter'
 
 interface CharacterProviderProps {
   charactersById: Record<string, Omit<Character, 'id'>>
-  lfms?: Record<string, LfmItem>
   raidActivity: RaidActivityEntry[]
   questsById: Record<string, Quest>
   children: ReactNode
 }
 
-export function CharacterProvider({ charactersById, lfms = {}, raidActivity, questsById, children }: CharacterProviderProps) {
+export function CharacterProvider({ charactersById, raidActivity, questsById, children }: CharacterProviderProps) {
   const charactersByPlayer = useMemo(() => {
     const entries = Object.entries(charactersById ?? {})
 
@@ -60,7 +59,6 @@ export function CharacterProvider({ charactersById, lfms = {}, raidActivity, que
         charactersById,
         charactersByPlayer,
         isPlayerOnline,
-        lfms,
         raidActivity,
         questsById,
       }}

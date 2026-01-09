@@ -7,7 +7,7 @@ import raidNotesRaw from '@/assets/raid_notes.txt?raw'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
-import { useCharacter } from '@/contexts/useCharacter'
+import { useLfm } from '@/contexts/useLfm'
 import { normalizeLfm, LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 
@@ -34,7 +34,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
    *
    * The sort is stable: when two raids have equal priority their original order is preserved.
    */
-  const { lfms } = useCharacter()
+  const { lfms } = useLfm()
 
   const [tierFilter, setTierFilter] = useState('legendary')
   const [questsByIdLocal, setQuestsByIdLocal] = useState<Record<string, Quest>>({})

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import { PlayerGroup, useCharacter } from '@/contexts/useCharacter'
+import { useLfm } from '@/contexts/useLfm'
 import { groupCharactersByLocation } from '@/domains/characters/characterGrouping'
 import { createLfmByCharacterNameMap, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
@@ -24,7 +25,8 @@ interface CharactersSectionProps {
 }
 
 export default function CharactersSection({ loading, hasFetched, characterCount, raidGroups }: CharactersSectionProps) {
-  const { charactersById, charactersByPlayer, lfms } = useCharacter()
+  const { charactersById, charactersByPlayer } = useCharacter()
+  const { lfms } = useLfm()
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)

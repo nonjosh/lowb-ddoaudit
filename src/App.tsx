@@ -3,11 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   fetchCharactersByIds,
-  fetchLfms,
   fetchQuestsById,
   fetchRaidActivity,
-  fetchServerInfo,
-  LfmItem,
   parseCharacterIds,
   Quest,
   CharacterData,
@@ -20,6 +17,8 @@ import Controls from './components/shared/Controls'
 import IdleWarningDialog from './components/shared/IdleWarningDialog'
 import { CHARACTERS } from './config/characters'
 import { CharacterProvider } from './contexts/CharacterContext'
+import { LfmProvider } from './contexts/LfmContext'
+import { useLfm } from './contexts/useLfm'
 import {
   buildRaidGroups,
   groupEntriesByPlayer
@@ -27,7 +26,7 @@ import {
 import { useIdleTimer } from './hooks/useIdleTimer'
 import { useConfig } from './contexts/useConfig'
 
-function App() {
+function Dashboard() {
   const [characterIdsInput] = useState(Object.keys(CHARACTERS).join(','))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -35,10 +34,6 @@ function App() {
   const [charactersById, setCharactersById] = useState<Record<string, CharacterData>>({})
   const [raidActivity, setRaidActivity] = useState<RaidActivityEntry[]>([])
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
-  const [lfmsById, setLfmsById] = useState<Record<string, LfmItem>>({})
-  const [lfmError, setLfmError] = useState('')
-  const [serverPlayers, setServerPlayers] = useState<number | null>(null)
-  const [isServerOnline, setIsServerOnline] = useState<boolean | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
   const [expandedRaids, setExpandedRaids] = useState(() => new Set<string>())
@@ -47,6 +42,7 @@ function App() {
   const loadingRef = useRef(false)
 
   const { autoRefreshEnabled } = useConfig()
+  const { refresh: refreshLfm, serverInfo, loading: lfmLoading } = useLfm()
   const {
     showIdleWarning,
     handleToggleAutoRefresh,
@@ -71,7 +67,6 @@ function App() {
     }
     setCollapsedPlayerGroups(next)
     resetRaidCollapseRef.current = false
-    // Intentionally include `now` so the dependency list is complete; collapse state only resets when the ref is true.
   }, [raidGroups, now])
 
   const load = useCallback(async () => {
@@ -81,7 +76,6 @@ function App() {
 
     setLoading(true)
     setError('')
-    setLfmError('')
 
     try {
       const ids = parseCharacterIds(characterIdsInput)
@@ -90,38 +84,16 @@ function App() {
         return
       }
 
-      // Always fetch server info first
-      const serverInfo = await fetchServerInfo('shadowdale', { signal: controller.signal }).catch(() => null)
-      setIsServerOnline(serverInfo?.is_online ?? null)
-      setServerPlayers(serverInfo?.character_count ?? null)
-
-
-      // If server is offline, avoid calling the LFM API but still fetch quests/characters/raids
-      const lfmPromise = serverInfo?.is_online === false
-        ? Promise.resolve({ data: null, error: null })
-        : fetchLfms('shadowdale', { signal: controller.signal })
-          .then((data) => ({ data, error: null }))
-          .catch((e: Error) => ({ data: null, error: e }))
-
-      if (serverInfo?.is_online === false) {
-        setLfmError('Server is offline. LFM data is unavailable.')
-      }
-
-      const [quests, characters, raids, lfmResult] = await Promise.all([
+      const [quests, characters, raids] = await Promise.all([
         fetchQuestsById(),
         fetchCharactersByIds(ids, { signal: controller.signal }),
         fetchRaidActivity(ids, { signal: controller.signal }),
-        lfmPromise,
+        refreshLfm().catch(() => {}), // Allow this to fail silently as LfmContext handles error
       ])
-
-      if (lfmResult.error) {
-        setLfmError(lfmResult.error.message ?? String(lfmResult.error))
-      }
 
       setQuestsById(quests)
       setCharactersById(characters)
       setRaidActivity(raids)
-      setLfmsById(lfmResult.data ?? {})
       setLastUpdatedAt(new Date())
     } catch (e) {
       const error = e as Error
@@ -130,10 +102,9 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }, [characterIdsInput])
+  }, [characterIdsInput, refreshLfm])
 
   useEffect(() => {
-    // Initial load using the default sample IDs.
     load()
   }, [load])
 
@@ -147,7 +118,7 @@ function App() {
   }, [loading])
 
   useEffect(() => {
-    if (!autoRefreshEnabled || isServerOnline === false) return
+    if (!autoRefreshEnabled || serverInfo.isOnline === false) return
 
     const id = setInterval(() => {
       if (loadingRef.current) return
@@ -155,7 +126,7 @@ function App() {
     }, 10_000)
 
     return () => clearInterval(id)
-  }, [autoRefreshEnabled, load, isServerOnline])
+  }, [autoRefreshEnabled, load, serverInfo.isOnline])
 
   const isCollapsed = useCallback((questId: string, playerName: string) => {
     return collapsedPlayerGroups.has(`${questId}:${playerName}`)
@@ -186,10 +157,10 @@ function App() {
   }, [])
 
   return (
-    <CharacterProvider charactersById={charactersById} lfms={lfmsById} raidActivity={raidActivity} questsById={questsById}>
+    <CharacterProvider charactersById={charactersById} raidActivity={raidActivity} questsById={questsById}>
       <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
         <Controls
-          loading={loading}
+          loading={loading || lfmLoading}
           onRefresh={load}
           autoRefreshEnabled={autoRefreshEnabled}
           onToggleAutoRefresh={handleToggleAutoRefresh}
@@ -219,13 +190,6 @@ function App() {
             <Grid size={{ xs: 12, sm: 8, md: 9, lg: 9.5 }}>
               <Box sx={{ mb: 3 }}>
                 <LfmRaidsSection
-                  loading={loading}
-                  hasFetched={!!lastUpdatedAt}
-                  lfmsById={lfmsById}
-                  questsById={questsById}
-                  error={lfmError}
-                  serverPlayers={serverPlayers}
-                  isServerOnline={isServerOnline}
                   raidGroups={raidGroups}
                 />
               </Box>
@@ -248,6 +212,14 @@ function App() {
         onClose={handleIdleWarningClose}
       />
     </CharacterProvider>
+  )
+}
+
+function App() {
+  return (
+    <LfmProvider>
+      <Dashboard />
+    </LfmProvider>
   )
 }
 

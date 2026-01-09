@@ -19,7 +19,8 @@ import {
 } from '@mui/material'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 
-import { Quest, LfmItem } from '@/api/ddoAudit'
+import { useLfm } from '@/contexts/useLfm'
+import { useCharacter } from '@/contexts/useCharacter'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
@@ -29,18 +30,17 @@ import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raid
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 interface LfmRaidsSectionProps {
-  loading: boolean
-  hasFetched: boolean
-  lfmsById: Record<string, LfmItem>
-  questsById: Record<string, Quest>
-  error: string
-  serverPlayers?: number | null
-  isServerOnline?: boolean | null
   raidGroups: RaidGroup[]
 }
 
 
-export default function LfmRaidsSection({ loading, hasFetched, lfmsById, questsById, error, serverPlayers, isServerOnline, raidGroups }: LfmRaidsSectionProps) {
+export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
+  const { lfms: lfmsById, loading, error, serverInfo, lastUpdatedAt } = useLfm()
+  const { questsById } = useCharacter()
+  const serverPlayers = serverInfo.players
+  const isServerOnline = serverInfo.isOnline
+  const hasFetched = !!lastUpdatedAt
+
   const [now, setNow] = useState(() => new Date())
   const [questFilter, setQuestFilter] = useState('raid')
   const [tierFilter, setTierFilter] = useState('legendary')
