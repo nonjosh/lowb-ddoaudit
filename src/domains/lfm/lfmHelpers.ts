@@ -61,6 +61,7 @@ export interface PreparedLfmData {
   isRaid: boolean
   questId: string
   postedAt: string | null
+  comment: string
 }
 
 /**
@@ -121,6 +122,7 @@ export function prepareLfmParticipants(lfm: LfmItem, quest: Quest | null): Prepa
     isRaid,
     questId: quest?.id || '',
     postedAt: null,
+    comment,
   }
 }
 

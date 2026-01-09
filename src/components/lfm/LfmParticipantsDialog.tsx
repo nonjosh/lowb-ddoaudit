@@ -139,6 +139,11 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
               })()}
             </Stack>
           </Stack>
+          {selectedLfm?.comment && (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              "{selectedLfm.comment}"
+            </Typography>
+          )}
         </Box>
       </DialogTitle>
       <DialogContent dividers>

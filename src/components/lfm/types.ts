@@ -26,6 +26,7 @@ export interface LfmGroup {
   isRaid: boolean
   questId: string
   postedAt?: string | null
+  comment: string
 }
 
 interface RaidGroup {
