@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
+import { useWishlist } from '@/contexts/useWishlist'
 import { RaidNotes } from '@/domains/raids/raidNotes'
 
 import ItemTableFilters from './ItemTableFilters'
@@ -31,6 +32,8 @@ interface CraftingAffix {
 }
 
 export default function ItemLootTable({ questItems, setsData, craftingData, raidNotes, questLevel }: ItemLootTableProps) {
+  const { isWished } = useWishlist()
+
   const [searchText, setSearchText] = useState('')
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [effectFilter, setEffectFilter] = useState<string[]>([])
@@ -149,6 +152,10 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
       const matchesML = mlFilter.length === 0 || mlFilter.includes(item.ml.toString())
       return matchesSearch && matchesType && matchesEffect && matchesML
     }).sort((a, b) => {
+      const aWished = isWished(a)
+      const bWished = isWished(b)
+      if (aWished !== bWished) return aWished ? -1 : 1
+
       // Define category: augments (-2), armors (-1), accessories (0), offhand (1), weapons (2)
       const getCategory = (item: Item) => {
         if (item.slot === 'Augment') return -2
@@ -169,7 +176,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
       // Then by name
       return a.name.localeCompare(b.name)
     })
-  }, [questItems, searchText, typeFilter, effectFilter, mlFilter])
+  }, [questItems, searchText, typeFilter, effectFilter, mlFilter, isWished])
 
   const getWikiUrl = (url: string | undefined) => {
     if (!url) return null

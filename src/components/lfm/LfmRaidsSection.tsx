@@ -1,4 +1,5 @@
 import GroupAddIcon from '@mui/icons-material/GroupAdd'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import {
   Alert,
   Box,
@@ -15,12 +16,14 @@ import {
   TableRow,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 
 import { useLfm } from '@/contexts/useLfm'
 import { useCharacter } from '@/contexts/useCharacter'
+import { useWishlist } from '@/contexts/useWishlist'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
@@ -37,6 +40,7 @@ interface LfmRaidsSectionProps {
 export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
   const { lfms: lfmsById, loading, error, serverInfo, lastUpdatedAt } = useLfm()
   const { questsById } = useCharacter()
+  const { hasWishForQuestName } = useWishlist()
   const serverPlayers = serverInfo.players
   const isServerOnline = serverInfo.isOnline
   const hasFetched = !!lastUpdatedAt
@@ -183,6 +187,11 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
                             <Typography variant="body2" noWrap sx={{ flex: 1 }}>
                               {l.questName}
                             </Typography>
+                            {hasWishForQuestName(l.questName) ? (
+                              <Tooltip title="Contains an item in your wish list">
+                                <FavoriteIcon sx={{ width: 16, height: 16, color: 'error.main' }} />
+                              </Tooltip>
+                            ) : null}
                             <ItemLootButton questName={l.questName} />
                           </Box>
                           <Stack direction="row" spacing={1} alignItems="center">

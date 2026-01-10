@@ -16,6 +16,7 @@ import { ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item, ItemAffix } from '@/api/ddoGearPlanner'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
+import { useWishlist } from '@/contexts/useWishlist'
 import ItemTableFilters from '@/components/items/ItemTableFilters'
 import ItemTableRow from '@/components/items/ItemTableRow'
 
@@ -61,6 +62,7 @@ const formatAffix = (affix: ItemAffix, query: string = ''): string | ReactElemen
 
 export default function ItemWiki() {
   const { items, craftingData, setsData, loading, refresh, error } = useGearPlanner()
+  const { isWished } = useWishlist()
 
   const [searchText, setSearchText] = useState('')
   const [packFilter, setPackFilter] = useState<string[]>([])
@@ -249,6 +251,10 @@ export default function ItemWiki() {
       const matchesML = item.ml >= minMl && item.ml <= maxMl
       return matchesSearch && matchesType && matchesEffect && matchesML && matchesPack && matchesQuest
     }).sort((a, b) => {
+      const aWished = isWished(a)
+      const bWished = isWished(b)
+      if (aWished !== bWished) return aWished ? -1 : 1
+
       // Define category: augments (-2), armors (-1), accessories (0), offhand (1), weapons (2)
       const getCategory = (item: Item) => {
         if (item.slot === 'Augment') return -2
@@ -269,7 +275,7 @@ export default function ItemWiki() {
       // Then by name
       return a.name.localeCompare(b.name)
     })
-  }, [items, searchText, typeFilter, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
+  }, [items, searchText, typeFilter, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack, isWished])
 
   const getWikiUrl = (url: string | undefined) => {
     if (!url) return null

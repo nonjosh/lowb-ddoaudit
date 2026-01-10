@@ -3,24 +3,29 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import { GearPlannerProvider } from '@/contexts/GearPlannerContext'
 import { LfmProvider } from '@/contexts/LfmContext'
+import { WishlistProvider } from '@/contexts/WishlistContext'
 import Dashboard from '@/pages/Dashboard'
 import GearPlanner from '@/pages/GearPlanner'
 import ItemWiki from '@/pages/ItemWiki'
+import Wishlist from '@/pages/Wishlist'
 
 function App() {
   return (
     <BrowserRouter>
-      <GearPlannerProvider>
-        <LfmProvider>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/wiki" element={<ItemWiki />} />
-              <Route path="/planner" element={<GearPlanner />} />
-            </Routes>
-          </Layout>
-        </LfmProvider>
-      </GearPlannerProvider>
+      <WishlistProvider>
+        <GearPlannerProvider>
+          <LfmProvider>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/wiki" element={<ItemWiki />} />
+                <Route path="/planner" element={<GearPlanner />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+              </Routes>
+            </Layout>
+          </LfmProvider>
+        </GearPlannerProvider>
+      </WishlistProvider>
     </BrowserRouter>
   )
 }

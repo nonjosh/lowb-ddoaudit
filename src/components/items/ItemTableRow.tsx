@@ -1,6 +1,9 @@
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import {
   Box,
   Chip,
+  IconButton,
   TableCell,
   TableRow,
   Tooltip,
@@ -10,6 +13,7 @@ import React from 'react'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
+import { useWishlist } from '@/contexts/useWishlist'
 import { RaidNotes } from '@/domains/raids/raidNotes'
 
 import ItemCraftingDisplay from './ItemCraftingDisplay'
@@ -38,8 +42,12 @@ export default function ItemTableRow({
   getAugmentColor,
   getCraftingOptions
 }: ItemTableRowProps) {
+  const { isWished, toggleWish } = useWishlist()
+
   const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
   const wikiUrl = getWikiUrl(item.url)
+
+  const wished = isWished(item)
 
   const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
 
@@ -51,6 +59,23 @@ export default function ItemTableRow({
           <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
             {highlightText(item.name, searchText)}
           </Typography>
+          <Tooltip title={wished ? 'Remove from wish list' : 'Add to wish list'}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleWish(item)
+              }}
+              aria-label={wished ? 'remove from wish list' : 'add to wish list'}
+              sx={{ p: 0.25 }}
+            >
+              {wished ? (
+                <FavoriteIcon fontSize="small" sx={{ color: 'error.main' }} />
+              ) : (
+                <FavoriteBorderIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
           {wikiUrl && <DdoWikiLink wikiUrl={wikiUrl} />}
         </Box>
         {item.slot && (item.slot === 'Weapon' || item.slot === 'Offhand') && (

@@ -12,6 +12,7 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { label: 'Raids', path: '/' },
     { label: 'Item Wiki', path: '/wiki' },
+    { label: 'Wish List', path: '/wishlist' },
     { label: 'Gear Planner', path: '/planner' }
   ]
 

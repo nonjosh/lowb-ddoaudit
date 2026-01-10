@@ -1,5 +1,6 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import {
   Box,
@@ -9,6 +10,7 @@ import {
   Chip,
   Collapse,
   IconButton,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
@@ -16,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
+import { useWishlist } from '@/contexts/useWishlist'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
 
@@ -33,6 +36,8 @@ interface RaidCardProps {
 }
 
 export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
+  const { hasWishForQuestName } = useWishlist()
+
   const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
   const [, setIgnoredVersion] = useState(0)
@@ -117,6 +122,11 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Typography variant="h6">{g.raidName}</Typography>
+                {hasWishForQuestName(g.raidName) ? (
+                  <Tooltip title="Contains an item in your wish list">
+                    <FavoriteIcon sx={{ width: 18, height: 18, color: 'error.main' }} />
+                  </Tooltip>
+                ) : null}
                 <ItemLootButton questName={g.raidName} />
               </Box>
               {hasLfm && onLfmClick ? (
