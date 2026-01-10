@@ -1,7 +1,6 @@
 import CloseIcon from '@mui/icons-material/Close'
 import {
   Box,
-  Button,
   Chip,
   CircularProgress,
   Dialog,
@@ -11,19 +10,12 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import {
-  CraftingData,
-  fetchCraftingWithMetadata,
-  fetchItemsWithMetadata,
-  fetchSetsWithMetadata,
-  Item,
-  SetsData
-} from '@/api/ddoGearPlanner'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
+import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
 import { getItemsForQuest } from '@/utils/itemLootHelpers'
 
@@ -38,49 +30,7 @@ interface ItemLootDialogProps {
 export default function ItemLootDialog({ open, onClose, questName }: ItemLootDialogProps) {
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
   const [areaName, setAreaName] = useState<string | null>(null)
-  const [items, setItems] = useState<Item[]>([])
-  const [craftingData, setCraftingData] = useState<CraftingData | null>(null)
-  const [setsData, setSetsData] = useState<SetsData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [gearUpdatedAt, setGearUpdatedAt] = useState<number | null>(null)
-  const [gearDataStale, setGearDataStale] = useState(false)
-  const [gearError, setGearError] = useState<string | null>(null)
-
-  const loadGearData = useCallback(async (options?: { forceRefresh?: boolean }) => {
-    setLoading(true)
-    setGearError(null)
-
-    try {
-      const [itemsResult, craftingResult, setsResult] = await Promise.all([
-        fetchItemsWithMetadata(options),
-        fetchCraftingWithMetadata(options),
-        fetchSetsWithMetadata(options)
-      ])
-
-      setItems(itemsResult.data)
-      setCraftingData(craftingResult.data)
-      setSetsData(setsResult.data)
-
-      const timestamps = [
-        itemsResult.updatedAt,
-        craftingResult.updatedAt,
-        setsResult.updatedAt
-      ].filter((value): value is number => typeof value === 'number')
-
-      setGearUpdatedAt(timestamps.length ? Math.min(...timestamps) : null)
-      setGearDataStale(itemsResult.stale || craftingResult.stale || setsResult.stale)
-    } catch (error) {
-      console.error(error)
-      const message = (error as Error)?.message ?? 'Failed to load item data.'
-      setGearError(message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const handleRefresh = useCallback(() => {
-    void loadGearData({ forceRefresh: true })
-  }, [loadGearData])
+  const { items, craftingData, setsData, loading, updatedAt, stale, error, refresh } = useGearPlanner()
 
   useEffect(() => {
     if (!open || !questName) return
@@ -119,8 +69,10 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
 
   useEffect(() => {
     if (!open) return
-    void loadGearData()
-  }, [open, questName, loadGearData])
+    if (!items.length && !loading) {
+      void refresh(false)
+    }
+  }, [open, items.length, loading, refresh])
 
   const questItems = useMemo(() => getItemsForQuest(items, questName, craftingData), [items, questName, craftingData])
 
@@ -152,14 +104,6 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             </Stack>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleRefresh}
-              disabled={loading}
-            >
-              Refresh item data
-            </Button>
             {questInfo?.required_adventure_pack && (
               <Typography variant="caption" color="text.secondary">
                 {questInfo.required_adventure_pack}
@@ -186,20 +130,20 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
         ) : (
           <>
             <RaidNotesDisplay raidNotes={raidNotes} />
-            {(gearError || gearUpdatedAt) && (
+            {(error || updatedAt) && (
               <Box sx={{ mb: 2 }}>
-                {gearError && (
+                {error && (
                   <Typography variant="body2" color="error" sx={{ mb: 0.5 }}>
-                    {gearError}
+                    {error}
                   </Typography>
                 )}
-                {gearUpdatedAt && (
+                {updatedAt && (
                   <Typography
                     variant="caption"
-                    sx={{ display: 'block', color: gearDataStale ? 'warning.main' : 'text.secondary' }}
+                    sx={{ display: 'block', color: stale ? 'warning.main' : 'text.secondary' }}
                   >
-                    Item data cached {new Date(gearUpdatedAt).toLocaleString()}
-                    {gearDataStale ? ' (using cached data)' : ''}
+                    Item data cached {new Date(updatedAt).toLocaleString()}
+                    {stale ? ' (using cached data)' : ''}
                   </Typography>
                 )}
               </Box>

@@ -17,6 +17,7 @@ import Controls from './components/shared/Controls'
 import IdleWarningDialog from './components/shared/IdleWarningDialog'
 import { CHARACTERS } from './config/characters'
 import { CharacterProvider } from './contexts/CharacterContext'
+import { GearPlannerProvider } from './contexts/GearPlannerContext'
 import { LfmProvider } from './contexts/LfmContext'
 import { useLfm } from './contexts/useLfm'
 import {
@@ -218,7 +219,9 @@ function Dashboard() {
 function App() {
   return (
     <LfmProvider>
-      <Dashboard />
+      <GearPlannerProvider>
+        <Dashboard />
+      </GearPlannerProvider>
     </LfmProvider>
   )
 }
