@@ -10,12 +10,13 @@ import {
   Typography
 } from '@mui/material'
 
-import { Item } from '@/api/ddoGearPlanner'
-import { combineAffixes, GearSetup, getPropertyTotal } from '@/domains/gearPlanner'
+import { Item, SetsData } from '@/api/ddoGearPlanner'
+import { combineAffixes, GearSetup, getGearAffixes, getPropertyTotal } from '@/domains/gearPlanner'
 
 interface SummaryTableProps {
   setup: GearSetup
   selectedProperties: string[]
+  setsData: SetsData | null
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -39,7 +40,8 @@ function getItemForSlot(setup: GearSetup, slot: string): Item | undefined {
 
 export default function SummaryTable({
   setup,
-  selectedProperties
+  selectedProperties,
+  setsData
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -63,14 +65,12 @@ export default function SummaryTable({
     }
   })
 
-  // Calculate totals
+  // Calculate actual totals considering stacking rules across all gear
   const totals = new Map<string, number>()
+  const allAffixes = getGearAffixes(setup, setsData)
+  const combinedAll = combineAffixes(allAffixes)
   for (const property of selectedProperties) {
-    let total = 0
-    for (const slotData of slotContributions) {
-      total += slotData.contributions.get(property) || 0
-    }
-    totals.set(property, total)
+    totals.set(property, getPropertyTotal(combinedAll, property))
   }
 
   return (

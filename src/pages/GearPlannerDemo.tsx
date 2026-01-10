@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
   Box,
-  Button,
-  CircularProgress,
   Container,
   Divider,
   Grid,
@@ -11,78 +9,38 @@ import {
   Typography
 } from '@mui/material'
 
-import { useGearPlanner } from '@/contexts/useGearPlanner'
 import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
 import { getAllAvailableProperties, optimizeGear } from '@/domains/gearPlanner'
+import { mockItems, mockSetsData } from '@/domains/gearPlanner/mockData'
 
-export default function GearPlanner() {
-  const { items, setsData, loading, error, refresh } = useGearPlanner()
-  const [selectedProperties, setSelectedProperties] = useState<string[]>([])
+export default function GearPlannerDemo() {
+  const [selectedProperties, setSelectedProperties] = useState<string[]>(['Strength', 'Constitution', 'Doublestrike'])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
 
-  // Load data on mount if not already loaded
-  useEffect(() => {
-    if (items.length === 0 && !loading && !error) {
-      void refresh(false)
-    }
-  }, [items.length, loading, error, refresh])
-
-  // Get available properties from items
+  // Get available properties from mock items
   const availableProperties = useMemo(() => {
-    if (items.length === 0) return []
-    return getAllAvailableProperties(items)
-  }, [items])
+    return getAllAvailableProperties(mockItems)
+  }, [])
 
   // Optimize gear when properties change
   const optimizedSetups = useMemo(() => {
-    if (selectedProperties.length < 3 || items.length === 0) return []
+    if (selectedProperties.length < 3) return []
     
-    return optimizeGear(items, setsData, {
+    return optimizeGear(mockItems, mockSetsData, {
       properties: selectedProperties,
       maxResults: 20
     })
-  }, [items, setsData, selectedProperties])
-
-  // Reset selection when suggestions change
-  useEffect(() => {
-    setSelectedSuggestionIndex(0)
-  }, [optimizedSetups])
+  }, [selectedProperties])
 
   const selectedSetup = optimizedSetups[selectedSuggestionIndex]
-
-  if (loading && items.length === 0) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    )
-  }
-
-  if (error || items.length === 0) {
-    return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h5" color="error" gutterBottom>
-            Failed to load gear data
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-            {error || 'No items available'}
-          </Typography>
-          <Button variant="contained" onClick={() => refresh(true)}>
-            Retry
-          </Button>
-        </Paper>
-      </Container>
-    )
-  }
 
   return (
     <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
       <Typography variant="h4" gutterBottom>
-        Gear Planner
+        Gear Planner Demo (Mock Data)
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         Select properties to optimize and find the best gear combinations
@@ -139,7 +97,7 @@ export default function GearPlanner() {
             <SummaryTable
               setup={selectedSetup.setup}
               selectedProperties={selectedProperties}
-              setsData={setsData}
+              setsData={mockSetsData}
             />
           </Paper>
         </>

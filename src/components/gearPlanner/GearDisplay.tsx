@@ -86,7 +86,7 @@ export default function GearDisplay({
       
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {slots.map(slot => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={slot}>
+          <Grid xs={12} sm={6} md={4} lg={3} key={slot}>
             <GearSlotCard
               slotName={slotDisplayNames[slot]}
               item={getItemForSlot(setup, slot)}
@@ -104,7 +104,7 @@ export default function GearDisplay({
             </Typography>
             <Grid container spacing={2}>
               {selectedProperties.map(property => (
-                <Grid item xs={6} sm={4} md={3} key={property}>
+                <Grid xs={6} sm={4} md={3} key={property}>
                   <Typography variant="body2" color="text.secondary">
                     {property}
                   </Typography>

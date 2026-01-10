@@ -75,7 +75,7 @@ export default function GearSuggestions({
                   {selectedProperties.map(property => {
                     const value = suggestion.propertyValues.get(property) || 0
                     return (
-                      <Grid item xs={6} sm={4} md={3} key={property}>
+                      <Grid xs={6} sm={4} md={3} key={property}>
                         <Typography variant="caption" color="text.secondary">
                           {property}
                         </Typography>
