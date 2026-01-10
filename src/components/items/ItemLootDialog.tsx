@@ -1,6 +1,7 @@
 import CloseIcon from '@mui/icons-material/Close'
 import {
   Box,
+  Button,
   Chip,
   CircularProgress,
   Dialog,
@@ -10,10 +11,17 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import { fetchCrafting, fetchItems, fetchSets, Item, SetsData, CraftingData } from '@/api/ddoGearPlanner'
+import {
+  CraftingData,
+  fetchCraftingWithMetadata,
+  fetchItemsWithMetadata,
+  fetchSetsWithMetadata,
+  Item,
+  SetsData
+} from '@/api/ddoGearPlanner'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
@@ -34,44 +42,85 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   const [craftingData, setCraftingData] = useState<CraftingData | null>(null)
   const [setsData, setSetsData] = useState<SetsData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [gearUpdatedAt, setGearUpdatedAt] = useState<number | null>(null)
+  const [gearDataStale, setGearDataStale] = useState(false)
+  const [gearError, setGearError] = useState<string | null>(null)
+
+  const loadGearData = useCallback(async (options?: { forceRefresh?: boolean }) => {
+    setLoading(true)
+    setGearError(null)
+
+    try {
+      const [itemsResult, craftingResult, setsResult] = await Promise.all([
+        fetchItemsWithMetadata(options),
+        fetchCraftingWithMetadata(options),
+        fetchSetsWithMetadata(options)
+      ])
+
+      setItems(itemsResult.data)
+      setCraftingData(craftingResult.data)
+      setSetsData(setsResult.data)
+
+      const timestamps = [
+        itemsResult.updatedAt,
+        craftingResult.updatedAt,
+        setsResult.updatedAt
+      ].filter((value): value is number => typeof value === 'number')
+
+      setGearUpdatedAt(timestamps.length ? Math.min(...timestamps) : null)
+      setGearDataStale(itemsResult.stale || craftingResult.stale || setsResult.stale)
+    } catch (error) {
+      console.error(error)
+      const message = (error as Error)?.message ?? 'Failed to load item data.'
+      setGearError(message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const handleRefresh = useCallback(() => {
+    void loadGearData({ forceRefresh: true })
+  }, [loadGearData])
 
   useEffect(() => {
-    if (open && questName) {
-      fetchQuestsById().then((quests) => {
+    if (!open || !questName) return
+
+    setQuestInfo(null)
+    setAreaName(null)
+
+    let cancelled = false
+
+    fetchQuestsById()
+      .then((quests) => {
+        if (cancelled) return
+
         const found = Object.values(quests).find(q => q.name === questName)
         if (found) {
           setQuestInfo(found)
+
           if (found.areaId) {
-            fetchAreasById().then((areas) => {
-              if (areas[found.areaId!]) {
-                setAreaName(areas[found.areaId!].name)
-              }
-            }).catch(console.error)
+            fetchAreasById()
+              .then((areas) => {
+                if (cancelled) return
+                if (areas[found.areaId!]) {
+                  setAreaName(areas[found.areaId!].name)
+                }
+              })
+              .catch(console.error)
           }
         }
-      }).catch(console.error)
+      })
+      .catch(console.error)
 
-      // Fetch gear planner data
-      const fetchGearData = async () => {
-        setLoading(true)
-        try {
-          const [itemsData, craftingDataResult, setsDataResult] = await Promise.all([
-            fetchItems(),
-            fetchCrafting(),
-            fetchSets()
-          ])
-          setItems(itemsData)
-          setCraftingData(craftingDataResult)
-          setSetsData(setsDataResult)
-        } catch (error) {
-          console.error(error)
-        } finally {
-          setLoading(false)
-        }
-      }
-      fetchGearData()
+    return () => {
+      cancelled = true
     }
   }, [open, questName])
+
+  useEffect(() => {
+    if (!open) return
+    void loadGearData()
+  }, [open, questName, loadGearData])
 
   const questItems = useMemo(() => getItemsForQuest(items, questName, craftingData), [items, questName, craftingData])
 
@@ -103,6 +152,14 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             </Stack>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              Refresh item data
+            </Button>
             {questInfo?.required_adventure_pack && (
               <Typography variant="caption" color="text.secondary">
                 {questInfo.required_adventure_pack}
@@ -129,6 +186,24 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
         ) : (
           <>
             <RaidNotesDisplay raidNotes={raidNotes} />
+            {(gearError || gearUpdatedAt) && (
+              <Box sx={{ mb: 2 }}>
+                {gearError && (
+                  <Typography variant="body2" color="error" sx={{ mb: 0.5 }}>
+                    {gearError}
+                  </Typography>
+                )}
+                {gearUpdatedAt && (
+                  <Typography
+                    variant="caption"
+                    sx={{ display: 'block', color: gearDataStale ? 'warning.main' : 'text.secondary' }}
+                  >
+                    Item data cached {new Date(gearUpdatedAt).toLocaleString()}
+                    {gearDataStale ? ' (using cached data)' : ''}
+                  </Typography>
+                )}
+              </Box>
+            )}
             <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} questLevel={questInfo?.level ?? undefined} />
           </>
         )}

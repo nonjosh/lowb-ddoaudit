@@ -1,3 +1,4 @@
+import { fetchDatasetWithCache, GearPlannerCacheOptions, GearPlannerCacheResult, getDatasetMetadata } from './cache'
 import { CRAFTING_JSON_URL } from './constants'
 import { ItemAffix } from './items'
 
@@ -10,19 +11,26 @@ export interface CraftingOption {
 
 export type CraftingData = Record<string, Record<string, CraftingOption[]>>
 
-let craftingPromise: Promise<CraftingData> | null = null
+const DATASET_KEY = 'crafting'
 
-export async function fetchCrafting(): Promise<CraftingData> {
-  if (craftingPromise) return craftingPromise
+async function requestCrafting(): Promise<CraftingData> {
+  const resp = await fetch(CRAFTING_JSON_URL)
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch crafting.json (${resp.status})`)
+  }
 
-  craftingPromise = (async () => {
-    const resp = await fetch(CRAFTING_JSON_URL)
-    if (!resp.ok) {
-      throw new Error(`Failed to fetch crafting.json (${resp.status})`)
-    }
+  return await resp.json() as CraftingData
+}
 
-    return await resp.json() as CraftingData
-  })()
+export async function fetchCrafting(options?: GearPlannerCacheOptions): Promise<CraftingData> {
+  const result = await fetchCraftingWithMetadata(options)
+  return result.data
+}
 
-  return craftingPromise
+export async function fetchCraftingWithMetadata(options?: GearPlannerCacheOptions): Promise<GearPlannerCacheResult<CraftingData>> {
+  return fetchDatasetWithCache<CraftingData>(DATASET_KEY, requestCrafting, options)
+}
+
+export async function getCraftingCacheMetadata() {
+  return getDatasetMetadata(DATASET_KEY)
 }

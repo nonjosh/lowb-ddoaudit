@@ -1,3 +1,4 @@
+import { fetchDatasetWithCache, GearPlannerCacheOptions, GearPlannerCacheResult, getDatasetMetadata } from './cache'
 import { ITEMS_JSON_URL } from './constants'
 
 export interface ItemAffix {
@@ -19,20 +20,27 @@ export interface Item {
   artifact?: boolean
 }
 
-let itemsPromise: Promise<Item[]> | null = null
+const DATASET_KEY = 'items'
 
-export async function fetchItems(): Promise<Item[]> {
-  if (itemsPromise) return itemsPromise
+async function requestItems(): Promise<Item[]> {
+  const resp = await fetch(ITEMS_JSON_URL)
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch items.json (${resp.status})`)
+  }
 
-  itemsPromise = (async () => {
-    const resp = await fetch(ITEMS_JSON_URL)
-    if (!resp.ok) {
-      throw new Error(`Failed to fetch items.json (${resp.status})`)
-    }
+  const data = await resp.json()
+  return Array.isArray(data) ? data : []
+}
 
-    const data = await resp.json()
-    return Array.isArray(data) ? data : []
-  })()
+export async function fetchItems(options?: GearPlannerCacheOptions): Promise<Item[]> {
+  const result = await fetchItemsWithMetadata(options)
+  return result.data
+}
 
-  return itemsPromise
+export async function fetchItemsWithMetadata(options?: GearPlannerCacheOptions): Promise<GearPlannerCacheResult<Item[]>> {
+  return fetchDatasetWithCache<Item[]>(DATASET_KEY, requestItems, options)
+}
+
+export async function getItemsCacheMetadata() {
+  return getDatasetMetadata(DATASET_KEY)
 }
