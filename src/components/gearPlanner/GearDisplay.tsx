@@ -1,6 +1,7 @@
 import { Box, Card, CardContent, Grid, Typography } from '@mui/material'
+
 import { Item } from '@/api/ddoGearPlanner'
-import { GearSetup, GEAR_SLOTS } from '@/domains/gearPlanner'
+import { GearSetup } from '@/domains/gearPlanner'
 
 interface GearDisplayProps {
   setup: GearSetup

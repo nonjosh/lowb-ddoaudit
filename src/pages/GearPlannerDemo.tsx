@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import {
-  Box,
   Container,
-  Divider,
   Grid,
   Paper,
   Typography

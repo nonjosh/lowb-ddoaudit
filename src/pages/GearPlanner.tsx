@@ -5,17 +5,16 @@ import {
   Button,
   CircularProgress,
   Container,
-  Divider,
   Grid,
   Paper,
   Typography
 } from '@mui/material'
 
-import { useGearPlanner } from '@/contexts/useGearPlanner'
 import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
+import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { getAllAvailableProperties, optimizeGear } from '@/domains/gearPlanner'
 
 export default function GearPlanner() {
