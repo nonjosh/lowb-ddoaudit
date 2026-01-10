@@ -30,13 +30,20 @@ interface ItemLootDialogProps {
 export default function ItemLootDialog({ open, onClose, questName }: ItemLootDialogProps) {
   const [questInfo, setQuestInfo] = useState<Quest | null>(null)
   const [areaName, setAreaName] = useState<string | null>(null)
+  const [prevQuestName, setPrevQuestName] = useState<string>(questName)
+  const [prevOpen, setPrevOpen] = useState<boolean>(open)
+
+  if (open && (questName !== prevQuestName || open !== prevOpen)) {
+    setPrevQuestName(questName)
+    setPrevOpen(open)
+    setQuestInfo(null)
+    setAreaName(null)
+  }
+
   const { items, craftingData, setsData, loading, updatedAt, stale, error, refresh } = useGearPlanner()
 
   useEffect(() => {
     if (!open || !questName) return
-
-    setQuestInfo(null)
-    setAreaName(null)
 
     let cancelled = false
 

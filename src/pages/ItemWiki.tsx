@@ -9,12 +9,12 @@ import {
   TableHead,
   TableRow,
   Typography,
-  CircularProgress,
   Button
 } from '@mui/material'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 
-import { CraftingData, Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { fetchQuestsById, Quest } from '@/api/ddoAudit'
+import { Item, ItemAffix } from '@/api/ddoGearPlanner'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import ItemTableFilters from '@/components/items/ItemTableFilters'
 import ItemTableRow from '@/components/items/ItemTableRow'
@@ -25,16 +25,57 @@ interface CraftingAffix {
   value: number | string
 }
 
+const highlightText = (text: string, query: string): string | ReactElement => {
+  if (!query) return text
+  const lowerText = text.toLowerCase()
+  const lowerQuery = query.toLowerCase()
+  const index = lowerText.indexOf(lowerQuery)
+  if (index === -1) return text
+  const before = text.slice(0, index)
+  const match = text.slice(index, index + query.length)
+  const after = text.slice(index + query.length)
+  return <>{before}<mark>{match}</mark>{after}</>
+}
+
+const formatAffixPlain = (affix: ItemAffix) => {
+  let text = affix.name
+  if (affix.value && affix.value !== 1 && affix.value !== '1') {
+    text += ` +${affix.value}`
+  }
+  if (affix.type && affix.type !== 'bool') {
+    text += ` (${affix.type})`
+  }
+  return text
+}
+
+const formatAffix = (affix: ItemAffix, query: string = ''): string | ReactElement => {
+  let text = highlightText(affix.name, query)
+  if (affix.value && affix.value !== 1 && affix.value !== '1') {
+    text = <>{text} +{affix.value}</>
+  }
+  if (affix.type && affix.type !== 'bool') {
+    text = <>{text} ({affix.type})</>
+  }
+  return text
+}
+
 export default function ItemWiki() {
-  const { items, craftingData, setsData, loading, updatedAt, refresh, error } = useGearPlanner()
+  const { items, craftingData, setsData, loading, refresh, error } = useGearPlanner()
 
   const [searchText, setSearchText] = useState('')
+  const [packFilter, setPackFilter] = useState<string[]>([])
+  const [questFilter, setQuestFilter] = useState<string[]>([])
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [effectFilter, setEffectFilter] = useState<string[]>([])
-  const [mlFilter, setMlFilter] = useState<string[]>([])
+  const [minMl, setMinMl] = useState(1)
+  const [maxMl, setMaxMl] = useState(34)
+  const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
 
   const boxRef = useRef<HTMLDivElement>(null)
-  const [tableHeadTop, setTableHeadTop] = useState('50px')
+
+  useEffect(() => {
+    fetchQuestsById().then(setQuestsById).catch(console.error)
+  }, [])
 
   useEffect(() => {
     if (items.length === 0 && !loading && !error) {
@@ -42,16 +83,70 @@ export default function ItemWiki() {
     }
   }, [items.length, loading, error, refresh])
 
-  useEffect(() => {
-    if (boxRef.current) {
-      const height = boxRef.current.offsetHeight
-      setTableHeadTop(`${height}px`)
+  const questNameToPack = useMemo(() => {
+    const map = new Map<string, string>()
+    Object.values(questsById).forEach(q => {
+      if (q.name && q.required_adventure_pack) {
+        map.set(q.name, q.required_adventure_pack)
+      }
+    })
+    return map
+  }, [questsById])
+
+  const uniquePacks = useMemo(() => {
+    const packs = new Set<string>()
+    Object.values(questsById).forEach(q => {
+      if (q.required_adventure_pack) {
+        packs.add(q.required_adventure_pack)
+      }
+    })
+    return Array.from(packs).sort()
+  }, [questsById])
+
+  const uniqueQuests = useMemo(() => {
+    const questMap = new Map<string, { name: string, pack: string }>()
+    Object.values(questsById).forEach(q => {
+      if (q.name && q.name !== 'null' && !questMap.has(q.name)) {
+        questMap.set(q.name, { name: q.name, pack: q.required_adventure_pack || 'Unknown' })
+      }
+    })
+    const quests = Array.from(questMap.values())
+
+    // Filter by selected packs if any
+    if (packFilter.length > 0) {
+      return quests.filter(q => packFilter.includes(q.pack))
+        .sort((a, b) => a.name.localeCompare(b.name))
     }
-  }, [searchText, typeFilter, effectFilter, mlFilter])
+
+    return quests.sort((a, b) => a.name.localeCompare(b.name))
+  }, [questsById, packFilter])
 
   const uniqueTypes = useMemo(() => {
+    // Filter items based on everything BUT type filter
+    const relevantItems = items.filter(item => {
+      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
+      const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
+
+      const matchesPack = packFilter.length === 0 || (() => {
+        if (!item.quests) return false
+        return item.quests.some(qName => {
+          const pack = questNameToPack.get(qName)
+          return pack && packFilter.includes(pack)
+        })
+      })()
+
+      const matchesQuest = questFilter.length === 0 || (() => {
+        if (!item.quests) return false
+        return item.quests.some(qName => questFilter.includes(qName))
+      })()
+
+      const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
+      const matchesML = item.ml >= minMl && item.ml <= maxMl
+      return matchesSearch && matchesEffect && matchesML && matchesPack && matchesQuest
+    })
+
     const typeMap = new Map<string, { count: number, slot: string }>()
-    items.forEach(item => {
+    relevantItems.forEach(item => {
       const key = item.slot === 'Augment' ? 'Augments' : (item.type || 'Unknown')
       const existing = typeMap.get(key)
       if (existing) {
@@ -78,72 +173,72 @@ export default function ItemWiki() {
       }
       return a.display.localeCompare(b.display)
     })
-  }, [items])
+  }, [items, searchText, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
 
   const uniqueEffects = useMemo(() => {
+    // Filter items based on everything BUT effect filter
+    const relevantItems = items.filter(item => {
+      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
+      const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
+
+      const matchesPack = packFilter.length === 0 || (() => {
+        if (!item.quests) return false
+        return item.quests.some(qName => {
+          const pack = questNameToPack.get(qName)
+          return pack && packFilter.includes(pack)
+        })
+      })()
+
+      const matchesQuest = questFilter.length === 0 || (() => {
+        if (!item.quests) return false
+        return item.quests.some(qName => questFilter.includes(qName))
+      })()
+
+      const matchesType = typeFilter.length === 0 || (() => {
+        if (item.slot === 'Augment') {
+          return typeFilter.includes('Augments')
+        }
+        return item.type && typeFilter.includes(item.type)
+      })()
+      const matchesML = item.ml >= minMl && item.ml <= maxMl
+      return matchesSearch && matchesType && matchesML && matchesPack && matchesQuest
+    })
+
     const effectCount = new Map<string, number>()
-    items.forEach(item => {
+    relevantItems.forEach(item => {
       item.affixes.forEach(affix => {
         effectCount.set(affix.name, (effectCount.get(affix.name) || 0) + 1)
       })
     })
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
-  }, [items])
-
-  const uniqueMLs = useMemo(() => {
-    const mlCount = new Map<number, number>()
-    items.forEach(item => {
-      mlCount.set(item.ml, (mlCount.get(item.ml) || 0) + 1)
-    })
-    return Array.from(mlCount.entries()).map(([ml, count]) => ({ ml, count })).sort((a, b) => a.ml - b.ml)
-  }, [items])
-
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text
-    const lowerText = text.toLowerCase()
-    const lowerQuery = query.toLowerCase()
-    const index = lowerText.indexOf(lowerQuery)
-    if (index === -1) return text
-    const before = text.slice(0, index)
-    const match = text.slice(index, index + query.length)
-    const after = text.slice(index + query.length)
-    return <>{before}<mark>{match}</mark>{after}</>
-  }
-
-  const formatAffixPlain = (affix: ItemAffix) => {
-    let text = affix.name
-    if (affix.value && affix.value !== 1 && affix.value !== '1') {
-      text += ` +${affix.value}`
-    }
-    if (affix.type && affix.type !== 'bool') {
-      text += ` (${affix.type})`
-    }
-    return text
-  }
-
-  const formatAffix = (affix: ItemAffix, query: string = '') => {
-    let text = highlightText(affix.name, query)
-    if (affix.value && affix.value !== 1 && affix.value !== '1') {
-      text = <>{text} +{affix.value}</>
-    }
-    if (affix.type && affix.type !== 'bool') {
-      text = <>{text} ({affix.type})</>
-    }
-    return text
-  }
+  }, [items, searchText, typeFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
 
   const filteredItems = useMemo(() => {
     // If no data or still loading initial data (and no stale data), return empty
     if (!items.length) return []
 
     // If no search and no filters, prevent rendering thousands of items
-    if (searchText === '' && typeFilter.length === 0 && effectFilter.length === 0 && mlFilter.length === 0) {
+    if (searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && minMl === 1 && maxMl === 34) {
       return []
     }
 
     return items.filter(item => {
       const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
+
+      const matchesPack = packFilter.length === 0 || (() => {
+        if (!item.quests) return false
+        return item.quests.some(qName => {
+          const pack = questNameToPack.get(qName)
+          return pack && packFilter.includes(pack)
+        })
+      })()
+
+      const matchesQuest = questFilter.length === 0 || (() => {
+        if (!item.quests) return false
+        return item.quests.some(qName => questFilter.includes(qName))
+      })()
+
       const matchesType = typeFilter.length === 0 || (() => {
         if (item.slot === 'Augment') {
           return typeFilter.includes('Augments')
@@ -151,8 +246,8 @@ export default function ItemWiki() {
         return item.type && typeFilter.includes(item.type)
       })()
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
-      const matchesML = mlFilter.length === 0 || mlFilter.includes(item.ml.toString())
-      return matchesSearch && matchesType && matchesEffect && matchesML
+      const matchesML = item.ml >= minMl && item.ml <= maxMl
+      return matchesSearch && matchesType && matchesEffect && matchesML && matchesPack && matchesQuest
     }).sort((a, b) => {
       // Define category: augments (-2), armors (-1), accessories (0), offhand (1), weapons (2)
       const getCategory = (item: Item) => {
@@ -174,7 +269,7 @@ export default function ItemWiki() {
       // Then by name
       return a.name.localeCompare(b.name)
     })
-  }, [items, searchText, typeFilter, effectFilter, mlFilter])
+  }, [items, searchText, typeFilter, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
 
   const getWikiUrl = (url: string | undefined) => {
     if (!url) return null
@@ -237,23 +332,13 @@ export default function ItemWiki() {
     return []
   }
 
-  const showInitialState = searchText === '' && typeFilter.length === 0 && effectFilter.length === 0 && mlFilter.length === 0
+  const showInitialState = searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && minMl === 1 && maxMl === 34
   const maxDisplayed = 100
   const isTruncated = filteredItems.length > maxDisplayed
   const displayedItems = isTruncated ? filteredItems.slice(0, maxDisplayed) : filteredItems
 
   return (
     <Container maxWidth={false} sx={{ py: 4, px: 2, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" gutterBottom>
-          Item Wiki
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Search across {items.length} items.
-        </Typography>
-        {loading && <CircularProgress size={20} sx={{ ml: 2 }} />}
-      </Box>
-
       {items.length === 0 && !loading && (
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography color="error" gutterBottom>Failed to load items or database is empty.</Typography>
@@ -266,6 +351,7 @@ export default function ItemWiki() {
           <Box sx={{ flexShrink: 0 }}>
             <ItemTableFilters
               ref={boxRef}
+              mode="wiki"
               searchText={searchText}
               setSearchText={setSearchText}
               typeFilter={typeFilter}
@@ -274,9 +360,16 @@ export default function ItemWiki() {
               setEffectFilter={setEffectFilter}
               uniqueTypes={uniqueTypes}
               uniqueEffects={uniqueEffects}
-              mlFilter={mlFilter}
-              setMlFilter={setMlFilter}
-              uniqueMLs={uniqueMLs}
+              minMl={minMl}
+              maxMl={maxMl}
+              setMinMl={setMinMl}
+              setMaxMl={setMaxMl}
+              packFilter={packFilter}
+              setPackFilter={setPackFilter}
+              questFilter={questFilter}
+              setQuestFilter={setQuestFilter}
+              uniquePacks={uniquePacks}
+              uniqueQuests={uniqueQuests}
             />
           </Box>
           <Box sx={{ flexGrow: 1, overflow: 'auto' }}>

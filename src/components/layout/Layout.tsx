@@ -1,4 +1,4 @@
-import { AppBar, Box, Button, Container, Toolbar, Typography, useMediaQuery, useTheme } from '@mui/material'
+import { AppBar, Box, Button, Container, Toolbar, Typography } from '@mui/material'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { ReactNode } from 'react'
 
@@ -7,12 +7,10 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const theme = useTheme()
   const location = useLocation()
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
 
   const navItems = [
-    { label: 'Dashboard', path: '/' },
+    { label: 'Raids', path: '/' },
     { label: 'Item Wiki', path: '/wiki' },
     { label: 'Gear Planner', path: '/planner' }
   ]
