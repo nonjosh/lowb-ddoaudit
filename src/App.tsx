@@ -11,7 +11,7 @@ import Wishlist from '@/pages/Wishlist'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <WishlistProvider>
         <GearPlannerProvider>
           <LfmProvider>
