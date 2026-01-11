@@ -67,11 +67,13 @@ export function calculateScore(
   for (const slot of slots) {
     const item = setup[slot]
     if (item) {
-      // Count augment slot affixes
-      const augmentAffixes = item.affixes.filter(a =>
-        a.name.toLowerCase().includes('augment slot')
-      )
-      totalAugmentSlots += augmentAffixes.length
+      // Count augment slots from crafting array (where augment slots are stored)
+      if (item.crafting) {
+        const augmentSlots = item.crafting.filter(c =>
+          c.toLowerCase().includes('augment slot')
+        )
+        totalAugmentSlots += augmentSlots.length
+      }
 
       // For simplicity, assume no augments are used yet
       // In a full implementation, we'd track which augments are slotted

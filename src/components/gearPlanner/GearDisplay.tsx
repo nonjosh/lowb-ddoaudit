@@ -120,9 +120,11 @@ function GearSlotCard({
 
   const wished = isWished(item)
 
-  // Get all affixes - separate regular and augment slots
-  const regularAffixes = item.affixes.filter(a => !a.name.toLowerCase().includes('augment slot'))
-  const augmentSlots = item.affixes.filter(a => a.name.toLowerCase().includes('augment slot'))
+  // Get all affixes - regular affixes only (not augment slots, those are in crafting array)
+  const regularAffixes = item.affixes
+
+  // Get augment slots from crafting array
+  const augmentSlots = item.crafting?.filter(c => c.toLowerCase().includes('augment slot')) || []
 
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>
@@ -185,9 +187,9 @@ function GearSlotCard({
         {augmentSlots.length > 0 && (
           <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {augmentSlots.map((augment, idx) => {
-              const color = getAugmentColor(augment.name)
+              const color = getAugmentColor(augment)
               return (
-                <Tooltip key={idx} title={augment.name} arrow>
+                <Tooltip key={idx} title={augment} arrow>
                   <Chip
                     label="Aug"
                     size="small"
@@ -218,14 +220,14 @@ export default function GearDisplay({
   // Only show slots that have items equipped
   const equippedSlots = slots.filter(slot => getItemForSlot(setup, slot) !== undefined)
 
-  // Count augment slots
+  // Count augment slots from crafting array
   let totalAugments = 0
   let usedAugments = 0 // For now, all are unused since we don't track slotted augments
 
   equippedSlots.forEach(slot => {
     const item = getItemForSlot(setup, slot)
-    if (item) {
-      const augmentCount = item.affixes.filter(a => a.name.toLowerCase().includes('augment slot')).length
+    if (item && item.crafting) {
+      const augmentCount = item.crafting.filter(c => c.toLowerCase().includes('augment slot')).length
       totalAugments += augmentCount
     }
   })

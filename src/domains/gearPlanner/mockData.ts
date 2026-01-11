@@ -107,7 +107,8 @@ export const mockItems: Item[] = [
       { name: 'Constitution', type: 'Enhancement', value: 12 },
       { name: 'Fortification', type: 'Enhancement', value: 150 },
       { name: 'Physical Sheltering', type: 'Enhancement', value: 25 }
-    ]
+    ],
+    crafting: ['Yellow Augment Slot', 'Blue Augment Slot']
   },
   {
     name: 'Trinket of Perfection',
@@ -117,7 +118,8 @@ export const mockItems: Item[] = [
       { name: 'Doublestrike', type: 'Artifact', value: 10 },
       { name: 'Melee Power', type: 'Artifact', value: 20 },
       { name: 'Fortification', type: 'Artifact', value: 50 }
-    ]
+    ],
+    crafting: ['Green Augment Slot', 'Red Augment Slot', 'Colorless Augment Slot']
   },
   {
     name: 'Simple Belt',
