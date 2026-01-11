@@ -1,7 +1,10 @@
-import { Box, Card, CardContent, Chip, Grid, Tooltip, Typography } from '@mui/material'
+import { Box, Card, CardContent, Chip, Grid, IconButton, Tooltip, Typography } from '@mui/material'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 
 import { Item, ItemAffix } from '@/api/ddoGearPlanner'
 import { combineAffixes, GearSetup, getPropertyTotal, PropertyValue } from '@/domains/gearPlanner'
+import { useWishlist } from '@/contexts/useWishlist'
 
 interface GearDisplayProps {
   setup: GearSetup
@@ -98,6 +101,8 @@ function GearSlotCard({
   setup: GearSetup
   slots: string[]
 }) {
+  const { isWished, toggleWish } = useWishlist()
+
   if (!item) {
     return (
       <Card variant="outlined" sx={{ height: '100%' }}>
@@ -113,6 +118,8 @@ function GearSlotCard({
     )
   }
 
+  const wished = isWished(item)
+
   // Get all affixes - separate regular and augment slots
   const regularAffixes = item.affixes.filter(a => !a.name.toLowerCase().includes('augment slot'))
   const augmentSlots = item.affixes.filter(a => a.name.toLowerCase().includes('augment slot'))
@@ -120,9 +127,24 @@ function GearSlotCard({
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>
       <CardContent>
-        <Typography variant="subtitle2" color="primary" gutterBottom>
-          {slotName}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Typography variant="subtitle2" color="primary" gutterBottom>
+            {slotName}
+          </Typography>
+          <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
+            <IconButton
+              size="small"
+              onClick={() => toggleWish(item)}
+              sx={{ mt: -0.5, mr: -0.5 }}
+            >
+              {wished ? (
+                <FavoriteIcon fontSize="small" color="error" />
+              ) : (
+                <FavoriteBorderIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Typography variant="body2" fontWeight="bold" gutterBottom>
           {item.name}
         </Typography>
