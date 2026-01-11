@@ -17,6 +17,7 @@ import { mockItems, mockSetsData } from '@/domains/gearPlanner/mockData'
 export default function GearPlannerDemo() {
   const [selectedProperties, setSelectedProperties] = useState<string[]>(['Strength', 'Constitution', 'Doublestrike'])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
 
   // Get available properties from mock items
   const availableProperties = useMemo(() => {
@@ -81,6 +82,7 @@ export default function GearPlannerDemo() {
               setup={selectedSetup.setup}
               propertyValues={selectedSetup.propertyValues}
               selectedProperties={selectedProperties}
+              hoveredProperty={hoveredProperty}
             />
           </Paper>
 
@@ -90,6 +92,7 @@ export default function GearPlannerDemo() {
               setup={selectedSetup.setup}
               selectedProperties={selectedProperties}
               setsData={mockSetsData}
+              onPropertyHover={setHoveredProperty}
             />
           </Paper>
         </>

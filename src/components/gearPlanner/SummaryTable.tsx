@@ -18,6 +18,7 @@ interface SummaryTableProps {
   setup: GearSetup
   selectedProperties: string[]
   setsData: SetsData | null
+  onPropertyHover?: (property: string | null) => void
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -55,7 +56,8 @@ function getBonusTypePriority(type: string): number {
 export default function SummaryTable({
   setup,
   selectedProperties,
-  setsData
+  setsData,
+  onPropertyHover
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -147,7 +149,18 @@ export default function SummaryTable({
             <TableRow>
               <TableCell>Bonus Type</TableCell>
               {selectedProperties.map(property => (
-                <TableCell key={property} align="right">
+                <TableCell
+                  key={property}
+                  align="right"
+                  onMouseEnter={() => onPropertyHover?.(property)}
+                  onMouseLeave={() => onPropertyHover?.(null)}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    }
+                  }}
+                >
                   {property}
                 </TableCell>
               ))}

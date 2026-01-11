@@ -21,6 +21,7 @@ export default function GearPlanner() {
   const { items, setsData, loading, error, refresh } = useGearPlanner()
   const [selectedProperties, setSelectedProperties] = useState<string[]>([])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -124,6 +125,7 @@ export default function GearPlanner() {
               setup={selectedSetup.setup}
               propertyValues={selectedSetup.propertyValues}
               selectedProperties={selectedProperties}
+              hoveredProperty={hoveredProperty}
             />
           </Paper>
 
@@ -133,6 +135,7 @@ export default function GearPlanner() {
               setup={selectedSetup.setup}
               selectedProperties={selectedProperties}
               setsData={setsData}
+              onPropertyHover={setHoveredProperty}
             />
           </Paper>
         </>

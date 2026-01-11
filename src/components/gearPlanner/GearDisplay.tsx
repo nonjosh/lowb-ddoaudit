@@ -10,6 +10,7 @@ interface GearDisplayProps {
   setup: GearSetup
   propertyValues: Map<string, number>
   selectedProperties: string[]
+  hoveredProperty?: string | null
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -93,13 +94,15 @@ function GearSlotCard({
   item,
   selectedProperties,
   setup,
-  slots
+  slots,
+  hoveredProperty
 }: {
   slotName: string
   item: Item | undefined
   selectedProperties: string[]
   setup: GearSetup
   slots: string[]
+  hoveredProperty?: string | null
 }) {
   const { isWished, toggleWish } = useWishlist()
 
@@ -126,8 +129,20 @@ function GearSlotCard({
   // Get augment slots from crafting array
   const augmentSlots = item.crafting?.filter(c => c.toLowerCase().includes('augment slot')) || []
 
+  // Check if this item has the hovered property
+  const hasHoveredProperty = hoveredProperty && regularAffixes.some(a => a.name === hoveredProperty)
+
   return (
-    <Card variant="outlined" sx={{ height: '100%' }}>
+    <Card
+      variant="outlined"
+      sx={{
+        height: '100%',
+        boxShadow: hasHoveredProperty ? 3 : 0,
+        borderColor: hasHoveredProperty ? 'primary.main' : 'divider',
+        borderWidth: hasHoveredProperty ? 2 : 1,
+        transition: 'all 0.2s'
+      }}
+    >
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Typography variant="subtitle2" color="primary" gutterBottom>
@@ -166,6 +181,7 @@ function GearSlotCard({
           {regularAffixes.map((affix, idx) => {
             const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots)
             const isSelected = selectedProperties.includes(affix.name)
+            const isHovered = hoveredProperty === affix.name
 
             return (
               <Typography
@@ -174,7 +190,11 @@ function GearSlotCard({
                 display="block"
                 sx={{
                   fontWeight: isHighest ? 'bold' : 'normal',
-                  color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary')
+                  color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary'),
+                  backgroundColor: isHovered ? 'action.selected' : 'transparent',
+                  px: isHovered ? 0.5 : 0,
+                  borderRadius: isHovered ? 0.5 : 0,
+                  transition: 'all 0.2s'
                 }}
               >
                 {formatAffix(affix)}
@@ -222,7 +242,8 @@ function GearSlotCard({
 export default function GearDisplay({
   setup,
   propertyValues,
-  selectedProperties
+  selectedProperties,
+  hoveredProperty
 }: GearDisplayProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -256,6 +277,7 @@ export default function GearDisplay({
               selectedProperties={selectedProperties}
               setup={setup}
               slots={slots}
+              hoveredProperty={hoveredProperty}
             />
           </Grid>
         ))}
