@@ -7,11 +7,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography
 } from '@mui/material'
 
-import { Item, SetsData } from '@/api/ddoGearPlanner'
-import { combineAffixes, GearSetup, getGearAffixes, getPropertyTotal } from '@/domains/gearPlanner'
+import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
+import { GearSetup, getGearAffixes } from '@/domains/gearPlanner'
 
 interface SummaryTableProps {
   setup: GearSetup
@@ -38,6 +39,19 @@ function getItemForSlot(setup: GearSetup, slot: string): Item | undefined {
   return setup[slot as keyof GearSetup]
 }
 
+// Define bonus type priority
+const bonusTypePriority: Record<string, number> = {
+  'Enhancement': 1,
+  'Insight': 2,
+  'Quality': 3,
+  'Artifact': 4,
+  'Profane': 5
+}
+
+function getBonusTypePriority(type: string): number {
+  return bonusTypePriority[type] || 999
+}
+
 export default function SummaryTable({
   setup,
   selectedProperties,
@@ -45,33 +59,82 @@ export default function SummaryTable({
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
-  // Calculate contribution of each item to each property
-  const slotContributions = slots.map(slot => {
+  // Get all affixes including set bonuses and augments
+  const allAffixes = getGearAffixes(setup, setsData)
+
+  // Build data structure: property -> bonusType -> {value, slots: [{slot, item, isFromSet, isFromAugment}]}
+  interface BonusSource {
+    slot: string
+    slotName: string
+    itemName: string
+    isFromSet?: boolean
+    isFromAugment?: boolean
+  }
+
+  interface BonusTypeData {
+    value: number
+    sources: BonusSource[]
+  }
+
+  const propertyBonuses = new Map<string, Map<string, BonusTypeData>>()
+
+  // Process each slot's item
+  slots.forEach(slot => {
     const item = getItemForSlot(setup, slot)
-    const contributions = new Map<string, number>()
-    
-    if (item) {
-      const combined = combineAffixes(item.affixes)
-      for (const property of selectedProperties) {
-        contributions.set(property, getPropertyTotal(combined, property))
+    if (!item) return
+
+    item.affixes.forEach((affix: ItemAffix) => {
+      if (affix.type === 'bool' || !selectedProperties.includes(affix.name)) return
+
+      const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+      if (isNaN(value) || typeof value !== 'number') return
+
+      const propertyName = affix.name
+      const bonusType = affix.type || 'Untyped'
+
+      if (!propertyBonuses.has(propertyName)) {
+        propertyBonuses.set(propertyName, new Map())
       }
-    }
-    
-    return {
-      slot,
-      slotName: slotDisplayNames[slot],
-      itemName: item?.name || 'Empty',
-      contributions
-    }
+
+      const propertyMap = propertyBonuses.get(propertyName)!
+      if (!propertyMap.has(bonusType)) {
+        propertyMap.set(bonusType, { value: 0, sources: [] })
+      }
+
+      const bonusData = propertyMap.get(bonusType)!
+      
+      // For same bonus type, only keep highest value but track all sources
+      if (value > bonusData.value) {
+        bonusData.value = value
+      }
+      
+      // Check if this is from an augment slot
+      const isFromAugment = affix.name.toLowerCase().includes('augment slot')
+      
+      bonusData.sources.push({
+        slot,
+        slotName: slotDisplayNames[slot],
+        itemName: item.name,
+        isFromAugment
+      })
+    })
   })
 
-  // Calculate actual totals considering stacking rules across all gear
-  const totals = new Map<string, number>()
-  const allAffixes = getGearAffixes(setup, setsData)
-  const combinedAll = combineAffixes(allAffixes)
-  for (const property of selectedProperties) {
-    totals.set(property, getPropertyTotal(combinedAll, property))
-  }
+  // Process set bonuses
+  // TODO: Track which items are part of sets and mark set bonuses appropriately
+
+  // Calculate totals for each property
+  const propertyTotals = new Map<string, number>()
+  selectedProperties.forEach(property => {
+    let total = 0
+    const bonusMap = propertyBonuses.get(property)
+    if (bonusMap) {
+      bonusMap.forEach(data => {
+        total += data.value
+      })
+    }
+    propertyTotals.set(property, total)
+  })
 
   return (
     <Box sx={{ p: 2 }}>
@@ -82,8 +145,7 @@ export default function SummaryTable({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Slot</TableCell>
-              <TableCell>Item</TableCell>
+              <TableCell>Bonus Type</TableCell>
               {selectedProperties.map(property => (
                 <TableCell key={property} align="right">
                   {property}
@@ -92,27 +154,55 @@ export default function SummaryTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {slotContributions.map(({ slot, slotName, itemName, contributions }) => (
-              <TableRow key={slot}>
-                <TableCell>{slotName}</TableCell>
-                <TableCell>{itemName}</TableCell>
+            {/* Get all unique bonus types across all properties and sort them */}
+            {Array.from(
+              new Set(
+                Array.from(propertyBonuses.values()).flatMap(map => 
+                  Array.from(map.keys())
+                )
+              )
+            ).sort((a, b) => getBonusTypePriority(a) - getBonusTypePriority(b)).map(bonusType => (
+              <TableRow key={bonusType}>
+                <TableCell>{bonusType}</TableCell>
                 {selectedProperties.map(property => {
-                  const value = contributions.get(property) || 0
+                  const bonusData = propertyBonuses.get(property)?.get(bonusType)
+                  
+                  if (!bonusData || bonusData.value === 0) {
+                    return <TableCell key={property} align="right">-</TableCell>
+                  }
+
+                  // Create tooltip content showing all sources
+                  const tooltipContent = (
+                    <Box>
+                      {bonusData.sources.map((source, idx) => (
+                        <Typography key={idx} variant="caption" display="block">
+                          {source.slotName}: {source.itemName}
+                          {source.isFromAugment && ' (Augment)'}
+                          {source.isFromSet && ' (Set Bonus)'}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )
+
                   return (
                     <TableCell key={property} align="right">
-                      {value > 0 ? `+${value}` : '-'}
+                      <Tooltip title={tooltipContent} arrow>
+                        <span style={{ cursor: 'help' }}>
+                          +{bonusData.value}
+                        </span>
+                      </Tooltip>
                     </TableCell>
                   )
                 })}
               </TableRow>
             ))}
             <TableRow sx={{ fontWeight: 'bold', backgroundColor: 'action.hover' }}>
-              <TableCell colSpan={2}>
+              <TableCell>
                 <strong>Total</strong>
               </TableCell>
               {selectedProperties.map(property => (
                 <TableCell key={property} align="right">
-                  <strong>+{totals.get(property) || 0}</strong>
+                  <strong>+{propertyTotals.get(property) || 0}</strong>
                 </TableCell>
               ))}
             </TableRow>

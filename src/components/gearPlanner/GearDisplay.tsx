@@ -1,7 +1,7 @@
-import { Box, Card, CardContent, Grid, Typography } from '@mui/material'
+import { Box, Card, CardContent, Chip, Grid, Tooltip, Typography } from '@mui/material'
 
-import { Item } from '@/api/ddoGearPlanner'
-import { GearSetup } from '@/domains/gearPlanner'
+import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { combineAffixes, GearSetup, getPropertyTotal, PropertyValue } from '@/domains/gearPlanner'
 
 interface GearDisplayProps {
   setup: GearSetup
@@ -28,44 +28,158 @@ function getItemForSlot(setup: GearSetup, slot: string): Item | undefined {
   return setup[slot as keyof GearSetup]
 }
 
-function GearSlotCard({ slotName, item, selectedProperties }: { 
+// Get augment color based on augment slot name (reuse from ItemWiki)
+function getAugmentColor(text: string): string | undefined {
+  const lower = text.toLowerCase()
+  if (lower.includes('blue augment slot')) return '#2196f3'
+  if (lower.includes('red augment slot')) return '#f44336'
+  if (lower.includes('yellow augment slot')) return '#ffeb3b'
+  if (lower.includes('green augment slot')) return '#4caf50'
+  if (lower.includes('purple augment slot')) return '#9c27b0'
+  if (lower.includes('orange augment slot')) return '#ff9800'
+  if (lower.includes('colorless augment slot')) return '#e0e0e0'
+  return undefined
+}
+
+// Format affix display text
+function formatAffix(affix: ItemAffix): string {
+  let text = affix.name
+  if (affix.value && affix.value !== 1 && affix.value !== '1' && affix.type !== 'bool') {
+    text += ` +${affix.value}`
+  }
+  // Hide () if untyped bonus
+  if (affix.type && affix.type !== 'bool' && affix.type !== '') {
+    text += ` (${affix.type})`
+  }
+  return text
+}
+
+// Check if this property has the highest bonus of its type across all gear
+function isHighestBonus(
+  item: Item,
+  affix: ItemAffix,
+  setup: GearSetup,
+  slots: string[]
+): boolean {
+  if (affix.type === 'bool') return false
+  
+  const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+  if (isNaN(value)) return false
+
+  // Check all other items for the same property and type
+  let maxValue = value
+  for (const slot of slots) {
+    const otherItem = getItemForSlot(setup, slot)
+    if (!otherItem || otherItem === item) continue
+
+    for (const otherAffix of otherItem.affixes) {
+      if (otherAffix.name === affix.name && otherAffix.type === affix.type) {
+        const otherValue = typeof otherAffix.value === 'string' ? parseFloat(otherAffix.value) : otherAffix.value
+        if (!isNaN(otherValue) && otherValue > maxValue) {
+          return false
+        }
+      }
+    }
+  }
+  
+  return true
+}
+
+function GearSlotCard({ 
+  slotName, 
+  item, 
+  selectedProperties,
+  setup,
+  slots
+}: { 
   slotName: string
   item: Item | undefined
   selectedProperties: string[]
+  setup: GearSetup
+  slots: string[]
 }) {
+  if (!item) {
+    return (
+      <Card variant="outlined" sx={{ height: '100%' }}>
+        <CardContent>
+          <Typography variant="subtitle2" color="primary" gutterBottom>
+            {slotName}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Not equipped
+          </Typography>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Get all affixes - separate regular and augment slots
+  const regularAffixes = item.affixes.filter(a => !a.name.toLowerCase().includes('augment slot'))
+  const augmentSlots = item.affixes.filter(a => a.name.toLowerCase().includes('augment slot'))
+
   return (
     <Card variant="outlined" sx={{ height: '100%' }}>
       <CardContent>
         <Typography variant="subtitle2" color="primary" gutterBottom>
           {slotName}
         </Typography>
-        {item ? (
-          <>
-            <Typography variant="body2" fontWeight="bold" gutterBottom>
-              {item.name}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-              ML {item.ml}
-            </Typography>
-            {selectedProperties.length > 0 && (
-              <Box sx={{ mt: 1 }}>
-                {item.affixes
-                  .filter(affix => 
-                    selectedProperties.includes(affix.name) && 
-                    affix.type !== 'bool'
-                  )
-                  .map((affix, idx) => (
-                    <Typography key={idx} variant="caption" display="block">
-                      {affix.name} +{affix.value} ({affix.type})
-                    </Typography>
-                  ))}
-              </Box>
-            )}
-          </>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            Not equipped
+        <Typography variant="body2" fontWeight="bold" gutterBottom>
+          {item.name}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+          ML {item.ml}
+        </Typography>
+        
+        {/* Quest/Source */}
+        {item.quests && item.quests.length > 0 && (
+          <Typography variant="caption" color="text.secondary" display="block" gutterBottom sx={{ fontStyle: 'italic' }}>
+            {item.quests[0]}
           </Typography>
+        )}
+
+        {/* All Properties */}
+        <Box sx={{ mt: 1 }}>
+          {regularAffixes.map((affix, idx) => {
+            const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots)
+            const isSelected = selectedProperties.includes(affix.name)
+            
+            return (
+              <Typography 
+                key={idx} 
+                variant="caption" 
+                display="block"
+                sx={{
+                  fontWeight: isHighest ? 'bold' : 'normal',
+                  color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary')
+                }}
+              >
+                {formatAffix(affix)}
+              </Typography>
+            )
+          })}
+        </Box>
+
+        {/* Augment Slots */}
+        {augmentSlots.length > 0 && (
+          <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {augmentSlots.map((augment, idx) => {
+              const color = getAugmentColor(augment.name)
+              return (
+                <Tooltip key={idx} title={augment.name} arrow>
+                  <Chip
+                    label="Aug"
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
+                      backgroundColor: color || 'default',
+                      color: color ? '#000' : 'inherit'
+                    }}
+                  />
+                </Tooltip>
+              )
+            })}
+          </Box>
         )}
       </CardContent>
     </Card>
@@ -79,6 +193,21 @@ export default function GearDisplay({
 }: GearDisplayProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
+  // Only show slots that have items equipped
+  const equippedSlots = slots.filter(slot => getItemForSlot(setup, slot) !== undefined)
+
+  // Count augment slots
+  let totalAugments = 0
+  let usedAugments = 0 // For now, all are unused since we don't track slotted augments
+  
+  equippedSlots.forEach(slot => {
+    const item = getItemForSlot(setup, slot)
+    if (item) {
+      const augmentCount = item.affixes.filter(a => a.name.toLowerCase().includes('augment slot')).length
+      totalAugments += augmentCount
+    }
+  })
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>
@@ -86,12 +215,14 @@ export default function GearDisplay({
       </Typography>
       
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {slots.map(slot => (
+        {equippedSlots.map(slot => (
           <Grid xs={12} sm={6} md={4} lg={3} key={slot}>
             <GearSlotCard
               slotName={slotDisplayNames[slot]}
               item={getItemForSlot(setup, slot)}
               selectedProperties={selectedProperties}
+              setup={setup}
+              slots={slots}
             />
           </Grid>
         ))}
@@ -114,6 +245,16 @@ export default function GearDisplay({
                   </Typography>
                 </Grid>
               ))}
+              
+              {/* Show augment slot usage */}
+              <Grid xs={6} sm={4} md={3}>
+                <Typography variant="body2" color="text.secondary">
+                  Augment Slots
+                </Typography>
+                <Typography variant="h6">
+                  {usedAugments}/{totalAugments}
+                </Typography>
+              </Grid>
             </Grid>
           </CardContent>
         </Card>

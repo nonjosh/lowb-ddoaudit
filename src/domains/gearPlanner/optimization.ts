@@ -9,6 +9,8 @@ export interface OptimizedGearSetup {
   setup: GearSetup
   score: number
   propertyValues: Map<string, number>
+  unusedAugments?: number
+  extraProperties?: number
 }
 
 /**
@@ -27,12 +29,13 @@ export interface OptimizationOptions {
 
 /**
  * Calculates the score for a gear setup based on selected properties
+ * Also calculates unused augment slots and extra properties
  */
 export function calculateScore(
   setup: GearSetup,
   properties: string[],
   setsData: SetsData | null
-): { score: number; propertyValues: Map<string, number> } {
+): { score: number; propertyValues: Map<string, number>; unusedAugments: number; extraProperties: number } {
   const affixes = getGearAffixes(setup, setsData)
   const combined = combineAffixes(affixes)
   
@@ -45,7 +48,35 @@ export function calculateScore(
     score += value
   }
   
-  return { score, propertyValues }
+  // Count augment slots
+  let totalAugmentSlots = 0
+  let usedAugmentSlots = 0
+  
+  // Count extra properties (properties not in the selected list)
+  let extraProperties = 0
+  const allProperties = Array.from(combined.keys())
+  extraProperties = allProperties.filter(p => !properties.includes(p)).length
+  
+  // TODO: Actually count augment slots from items
+  // For now, estimate based on ML and slot type
+  const slots: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+  for (const slot of slots) {
+    const item = setup[slot]
+    if (item) {
+      // Count augment slot affixes
+      const augmentAffixes = item.affixes.filter(a => 
+        a.name.toLowerCase().includes('augment slot')
+      )
+      totalAugmentSlots += augmentAffixes.length
+      
+      // For simplicity, assume no augments are used yet
+      // In a full implementation, we'd track which augments are slotted
+    }
+  }
+  
+  const unusedAugments = totalAugmentSlots - usedAugmentSlots
+  
+  return { score, propertyValues, unusedAugments, extraProperties }
 }
 
 /**
@@ -111,8 +142,8 @@ export function optimizeGear(
     }
   }
 
-  const { score, propertyValues } = calculateScore(baseSetup, properties, setsData)
-  results.push({ setup: baseSetup, score, propertyValues })
+  const { score, propertyValues, unusedAugments, extraProperties } = calculateScore(baseSetup, properties, setsData)
+  results.push({ setup: baseSetup, score, propertyValues, unusedAugments, extraProperties })
 
   // Generate alternative setups by swapping items
   // Try swapping each slot with its second-best option
@@ -131,13 +162,30 @@ export function optimizeGear(
       }
 
       const result = calculateScore(altSetup, properties, setsData)
-      results.push({ setup: altSetup, score: result.score, propertyValues: result.propertyValues })
+      results.push({ 
+        setup: altSetup, 
+        score: result.score, 
+        propertyValues: result.propertyValues,
+        unusedAugments: result.unusedAugments,
+        extraProperties: result.extraProperties
+      })
     }
   }
 
-  // Sort by score and return top results
+  // Sort by unused augments (descending), then by extra properties (descending), then by score
   return results
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => {
+      // First sort by unused augments (more is better)
+      if ((b.unusedAugments || 0) !== (a.unusedAugments || 0)) {
+        return (b.unusedAugments || 0) - (a.unusedAugments || 0)
+      }
+      // Then by extra properties (more is better)
+      if ((b.extraProperties || 0) !== (a.extraProperties || 0)) {
+        return (b.extraProperties || 0) - (a.extraProperties || 0)
+      }
+      // Finally by score
+      return b.score - a.score
+    })
     .slice(0, maxResults)
 }
 

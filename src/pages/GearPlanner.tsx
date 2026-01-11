@@ -108,33 +108,27 @@ export default function GearPlanner() {
       {/* Show results if 3+ properties selected */}
       {selectedProperties.length >= 3 && optimizedSetups.length > 0 && selectedSetup && (
         <>
-          <Grid container spacing={3}>
-            {/* Section 2: Selected Gear Display */}
-            <Grid xs={12} lg={8}>
-              <Paper elevation={2}>
-                <GearDisplay
-                  setup={selectedSetup.setup}
-                  propertyValues={selectedSetup.propertyValues}
-                  selectedProperties={selectedProperties}
-                />
-              </Paper>
-            </Grid>
+          {/* Section 3: Gear Suggestions (moved to top) */}
+          <Paper elevation={2} sx={{ mb: 3 }}>
+            <GearSuggestions
+              suggestions={optimizedSetups}
+              selectedIndex={selectedSuggestionIndex}
+              onSelect={setSelectedSuggestionIndex}
+              selectedProperties={selectedProperties}
+            />
+          </Paper>
 
-            {/* Section 3: Gear Suggestions */}
-            <Grid xs={12} lg={4}>
-              <Paper elevation={2}>
-                <GearSuggestions
-                  suggestions={optimizedSetups}
-                  selectedIndex={selectedSuggestionIndex}
-                  onSelect={setSelectedSuggestionIndex}
-                  selectedProperties={selectedProperties}
-                />
-              </Paper>
-            </Grid>
-          </Grid>
+          {/* Section 2: Selected Gear Display */}
+          <Paper elevation={2} sx={{ mb: 3 }}>
+            <GearDisplay
+              setup={selectedSetup.setup}
+              propertyValues={selectedSetup.propertyValues}
+              selectedProperties={selectedProperties}
+            />
+          </Paper>
 
           {/* Section 4: Summary Table */}
-          <Paper elevation={2} sx={{ mt: 3 }}>
+          <Paper elevation={2}>
             <SummaryTable
               setup={selectedSetup.setup}
               selectedProperties={selectedProperties}

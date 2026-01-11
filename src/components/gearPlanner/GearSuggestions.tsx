@@ -2,11 +2,13 @@ import React from 'react'
 
 import {
   Box,
-  Card,
-  CardActionArea,
-  CardContent,
-  Grid,
-  Pagination,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography
 } from '@mui/material'
 
@@ -25,16 +27,17 @@ export default function GearSuggestions({
   onSelect,
   selectedProperties
 }: GearSuggestionsProps) {
-  const itemsPerPage = 5
-  const [page, setPage] = React.useState(1)
-  
-  const startIndex = (page - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedSuggestions = suggestions.slice(startIndex, endIndex)
-  const totalPages = Math.ceil(suggestions.length / itemsPerPage)
-
-  const handlePageChange = (_: unknown, value: number) => {
-    setPage(value)
+  if (suggestions.length === 0) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          Gear Suggestions
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          No suggestions available
+        </Typography>
+      </Box>
+    )
   }
 
   return (
@@ -43,65 +46,62 @@ export default function GearSuggestions({
         Gear Suggestions
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {suggestions.length} combinations found (sorted by total score)
+        {suggestions.length} combinations found (sorted by unused augment slots, then extra properties)
       </Typography>
 
-      {paginatedSuggestions.map((suggestion, idx) => {
-        const actualIndex = startIndex + idx
-        const isSelected = actualIndex === selectedIndex
-
-        return (
-          <Card
-            key={actualIndex}
-            variant="outlined"
-            sx={{
-              mb: 2,
-              border: isSelected ? 2 : 1,
-              borderColor: isSelected ? 'primary.main' : 'divider'
-            }}
-          >
-            <CardActionArea onClick={() => onSelect(actualIndex)}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Setup #{actualIndex + 1}
-                  </Typography>
-                  <Typography variant="h6" color="primary">
-                    Total: {suggestion.score}
-                  </Typography>
-                </Box>
-
-                <Grid container spacing={1}>
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Setup</TableCell>
+              {selectedProperties.map(property => (
+                <TableCell key={property} align="right">
+                  {property}
+                </TableCell>
+              ))}
+              <TableCell align="right">Total</TableCell>
+              <TableCell align="right">Augments</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {suggestions.map((suggestion, idx) => {
+              const isSelected = idx === selectedIndex
+              
+              return (
+                <TableRow
+                  key={idx}
+                  onClick={() => onSelect(idx)}
+                  sx={{
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? 'action.selected' : 'inherit',
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    }
+                  }}
+                >
+                  <TableCell>
+                    <strong>#{idx + 1}</strong>
+                  </TableCell>
                   {selectedProperties.map(property => {
                     const value = suggestion.propertyValues.get(property) || 0
                     return (
-                      <Grid xs={6} sm={4} md={3} key={property}>
-                        <Typography variant="caption" color="text.secondary">
-                          {property}
-                        </Typography>
-                        <Typography variant="body2" fontWeight="bold">
-                          +{value}
-                        </Typography>
-                      </Grid>
+                      <TableCell key={property} align="right">
+                        +{value}
+                      </TableCell>
                     )
                   })}
-                </Grid>
-              </CardContent>
-            </CardActionArea>
-          </Card>
-        )
-      })}
-
-      {totalPages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-          />
-        </Box>
-      )}
+                  <TableCell align="right">
+                    <strong>{suggestion.score}</strong>
+                  </TableCell>
+                  <TableCell align="right">
+                    {suggestion.unusedAugments !== undefined ? `${suggestion.unusedAugments} free` : '-'}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   )
 }
