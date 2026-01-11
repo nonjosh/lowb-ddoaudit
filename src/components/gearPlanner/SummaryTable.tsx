@@ -102,15 +102,15 @@ export default function SummaryTable({
       }
 
       const bonusData = propertyMap.get(bonusType)!
-      
+
       // For same bonus type, only keep highest value but track all sources
       if (value > bonusData.value) {
         bonusData.value = value
       }
-      
+
       // Check if this is from an augment slot
       const isFromAugment = affix.name.toLowerCase().includes('augment slot')
-      
+
       bonusData.sources.push({
         slot,
         slotName: slotDisplayNames[slot],
@@ -157,7 +157,7 @@ export default function SummaryTable({
             {/* Get all unique bonus types across all properties and sort them */}
             {Array.from(
               new Set(
-                Array.from(propertyBonuses.values()).flatMap(map => 
+                Array.from(propertyBonuses.values()).flatMap(map =>
                   Array.from(map.keys())
                 )
               )
@@ -166,21 +166,55 @@ export default function SummaryTable({
                 <TableCell>{bonusType}</TableCell>
                 {selectedProperties.map(property => {
                   const bonusData = propertyBonuses.get(property)?.get(bonusType)
-                  
+
                   if (!bonusData || bonusData.value === 0) {
                     return <TableCell key={property} align="right">-</TableCell>
                   }
 
-                  // Create tooltip content showing all sources
+                  // Create tooltip content showing all sources with values
+                  // Find the highest value source to highlight it
+                  const maxValue = Math.max(...bonusData.sources.map(s => {
+                    const item = getItemForSlot(setup, s.slot)
+                    if (!item) return 0
+                    const affix = item.affixes.find(a =>
+                      a.name === property && a.type === bonusType
+                    )
+                    if (!affix || affix.type === 'bool') return 0
+                    const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+                    return isNaN(value) ? 0 : value
+                  }))
+
                   const tooltipContent = (
                     <Box>
-                      {bonusData.sources.map((source, idx) => (
-                        <Typography key={idx} variant="caption" display="block">
-                          {source.slotName}: {source.itemName}
-                          {source.isFromAugment && ' (Augment)'}
-                          {source.isFromSet && ' (Set Bonus)'}
-                        </Typography>
-                      ))}
+                      {bonusData.sources.map((source, idx) => {
+                        const item = getItemForSlot(setup, source.slot)
+                        let value = 0
+                        if (item) {
+                          const affix = item.affixes.find(a =>
+                            a.name === property && a.type === bonusType
+                          )
+                          if (affix && affix.type !== 'bool') {
+                            const val = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+                            if (!isNaN(val)) value = val
+                          }
+                        }
+                        const isStacking = value === maxValue
+                        return (
+                          <Typography
+                            key={idx}
+                            variant="caption"
+                            display="block"
+                            sx={{
+                              fontWeight: isStacking ? 'bold' : 'normal',
+                              color: isStacking ? 'primary.light' : 'inherit'
+                            }}
+                          >
+                            {source.slotName}: {source.itemName} (+{value})
+                            {source.isFromAugment && ' (Augment)'}
+                            {source.isFromSet && ' (Set Bonus)'}
+                          </Typography>
+                        )
+                      })}
                     </Box>
                   )
 

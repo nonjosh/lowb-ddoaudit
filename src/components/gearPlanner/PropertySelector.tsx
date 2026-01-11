@@ -35,7 +35,7 @@ export default function PropertySelector({
     const draggedItem = newProperties[draggedIndex]
     newProperties.splice(draggedIndex, 1)
     newProperties.splice(index, 0, draggedItem)
-    
+
     onChange(newProperties)
     setDraggedIndex(index)
   }
@@ -95,7 +95,7 @@ export default function PropertySelector({
         />
         <Typography variant="caption" color="text.secondary">
           {selectedProperties.length} properties selected
-          {selectedProperties.length < 3 && selectedProperties.length > 0 && 
+          {selectedProperties.length < 3 && selectedProperties.length > 0 &&
             ` (minimum 3 required)`}
         </Typography>
       </FormControl>

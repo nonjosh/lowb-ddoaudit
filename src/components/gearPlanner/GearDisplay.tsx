@@ -62,7 +62,7 @@ function isHighestBonus(
   slots: string[]
 ): boolean {
   if (affix.type === 'bool') return false
-  
+
   const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
   if (isNaN(value)) return false
 
@@ -81,17 +81,17 @@ function isHighestBonus(
       }
     }
   }
-  
+
   return true
 }
 
-function GearSlotCard({ 
-  slotName, 
-  item, 
+function GearSlotCard({
+  slotName,
+  item,
   selectedProperties,
   setup,
   slots
-}: { 
+}: {
   slotName: string
   item: Item | undefined
   selectedProperties: string[]
@@ -129,7 +129,7 @@ function GearSlotCard({
         <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
           ML {item.ml}
         </Typography>
-        
+
         {/* Quest/Source */}
         {item.quests && item.quests.length > 0 && (
           <Typography variant="caption" color="text.secondary" display="block" gutterBottom sx={{ fontStyle: 'italic' }}>
@@ -142,11 +142,11 @@ function GearSlotCard({
           {regularAffixes.map((affix, idx) => {
             const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots)
             const isSelected = selectedProperties.includes(affix.name)
-            
+
             return (
-              <Typography 
-                key={idx} 
-                variant="caption" 
+              <Typography
+                key={idx}
+                variant="caption"
                 display="block"
                 sx={{
                   fontWeight: isHighest ? 'bold' : 'normal',
@@ -199,7 +199,7 @@ export default function GearDisplay({
   // Count augment slots
   let totalAugments = 0
   let usedAugments = 0 // For now, all are unused since we don't track slotted augments
-  
+
   equippedSlots.forEach(slot => {
     const item = getItemForSlot(setup, slot)
     if (item) {
@@ -213,7 +213,7 @@ export default function GearDisplay({
       <Typography variant="h6" gutterBottom>
         Selected Gear Setup
       </Typography>
-      
+
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {equippedSlots.map(slot => (
           <Grid xs={12} sm={6} md={4} lg={3} key={slot}>
@@ -245,7 +245,7 @@ export default function GearDisplay({
                   </Typography>
                 </Grid>
               ))}
-              
+
               {/* Show augment slot usage */}
               <Grid xs={6} sm={4} md={3}>
                 <Typography variant="body2" color="text.secondary">

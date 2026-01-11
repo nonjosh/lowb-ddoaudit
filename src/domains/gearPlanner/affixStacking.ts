@@ -27,7 +27,7 @@ export function combineAffixes(affixes: ItemAffix[]): Map<string, PropertyValue>
     }
 
     const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-    
+
     // Skip if value is not a valid number
     if (isNaN(value) || typeof value !== 'number') {
       continue

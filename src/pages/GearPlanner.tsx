@@ -38,7 +38,7 @@ export default function GearPlanner() {
   // Optimize gear when properties change
   const optimizedSetups = useMemo(() => {
     if (selectedProperties.length < 3 || items.length === 0) return []
-    
+
     return optimizeGear(items, setsData, {
       properties: selectedProperties,
       maxResults: 20
