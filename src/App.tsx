@@ -6,6 +6,7 @@ import { LfmProvider } from '@/contexts/LfmContext'
 import { WishlistProvider } from '@/contexts/WishlistContext'
 import Dashboard from '@/pages/Dashboard'
 import GearPlanner from '@/pages/GearPlanner'
+import GearPlannerDemo from '@/pages/GearPlannerDemo'
 import ItemWiki from '@/pages/ItemWiki'
 import Wishlist from '@/pages/Wishlist'
 
@@ -20,6 +21,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/wiki" element={<ItemWiki />} />
                 <Route path="/planner" element={<GearPlanner />} />
+                <Route path="/planner-demo" element={<GearPlannerDemo />} />
                 <Route path="/wishlist" element={<Wishlist />} />
               </Routes>
             </Layout>
