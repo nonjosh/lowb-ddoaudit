@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Chip, Grid, IconButton, Tooltip, Typography } from '@mui/material'
+import { Box, Card, CardContent, Grid, IconButton, Tooltip, Typography } from '@mui/material'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 
@@ -185,24 +185,33 @@ function GearSlotCard({
 
         {/* Augment Slots */}
         {augmentSlots.length > 0 && (
-          <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-            {augmentSlots.map((augment, idx) => {
-              const color = getAugmentColor(augment)
-              return (
-                <Tooltip key={idx} title={augment} arrow>
-                  <Chip
-                    label="Aug"
-                    size="small"
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Augment Slots:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              {augmentSlots.map((augment, idx) => {
+                const bgColor = getAugmentColor(augment)
+                return (
+                  <Box
+                    key={idx}
+                    component="span"
                     sx={{
-                      height: 20,
+                      bgcolor: bgColor || 'default',
+                      color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
+                      px: 0.5,
+                      py: 0.25,
+                      borderRadius: 0.5,
                       fontSize: '0.65rem',
-                      backgroundColor: color || 'default',
-                      color: color ? '#000' : 'inherit'
+                      display: 'inline-block',
+                      lineHeight: 1.2
                     }}
-                  />
-                </Tooltip>
-              )
-            })}
+                  >
+                    {augment}
+                  </Box>
+                )
+              })}
+            </Box>
           </Box>
         )}
       </CardContent>
