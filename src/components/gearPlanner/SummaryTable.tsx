@@ -215,15 +215,20 @@ export default function SummaryTable({
                   // Create tooltip content showing all sources with values
                   // Find the highest value source to highlight it
                   const maxValue = Math.max(...bonusData.sources.map(s => s.sourceValue))
+                  // Sort sources by slot order for consistent numbering
+                  const sortedSources = [...bonusData.sources].sort((a, b) =>
+                    slots.indexOf(a.slot) - slots.indexOf(b.slot)
+                  )
 
                   const tooltipContent = (
                     <Box>
-                      {bonusData.sources.map((source, idx) => {
+                      {sortedSources.map((source, idx) => {
                         const isStacking = source.sourceValue === maxValue
-                        // For augments, only show augment name; for items, show slot + item name
+                        // For augments, only show augment name; for items, show numbered slot + item name
+                        const slotNumber = slots.indexOf(source.slot) + 1
                         const displayName = source.isFromAugment && source.augmentName
                           ? source.augmentName
-                          : `${source.slotName}: ${source.itemName}`
+                          : `${slotNumber}. ${source.slotName}: ${source.itemName}`
                         return (
                           <Typography
                             key={idx}

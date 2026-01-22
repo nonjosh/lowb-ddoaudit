@@ -70,8 +70,6 @@ export default function GearPlanner() {
   const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(loadSelectedIndex)
   const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
-  // Track previous properties to detect when optimization needs reset
-  const [prevProperties, setPrevProperties] = useState<string[]>(selectedProperties)
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -112,20 +110,11 @@ export default function GearPlanner() {
     })
   }, [items, setsData, craftingData, selectedProperties])
 
-  // Reset selection when properties change, otherwise keep selection in bounds
+  // Keep selection in bounds when suggestions change
   const effectiveIndex = useMemo(() => {
-    // Check if properties changed (different length or content)
-    const propertiesChanged = selectedProperties.length !== prevProperties.length ||
-      selectedProperties.some((p, i) => p !== prevProperties[i])
-
-    if (propertiesChanged) {
-      // Update prev properties tracking via next render
-      queueMicrotask(() => setPrevProperties(selectedProperties))
-      return 0
-    }
-    // Keep current selection in bounds
-    return Math.min(selectedSuggestionIndex, Math.max(0, optimizedSetups.length - 1))
-  }, [optimizedSetups.length, prevProperties, selectedProperties, selectedSuggestionIndex])
+    if (optimizedSetups.length === 0) return 0
+    return Math.min(selectedSuggestionIndex, optimizedSetups.length - 1)
+  }, [optimizedSetups.length, selectedSuggestionIndex])
 
   const selectedSetup = optimizedSetups[effectiveIndex]
 
