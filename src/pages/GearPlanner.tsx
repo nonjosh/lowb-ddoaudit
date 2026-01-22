@@ -14,9 +14,10 @@ import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
-import { getAllAvailableProperties, optimizeGear, OptimizedGearSetup } from '@/domains/gearPlanner'
+import { getAllAvailableProperties, optimizeGear } from '@/domains/gearPlanner'
 
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
+const SELECTED_INDEX_KEY = 'gearPlanner_selectedIndex'
 
 function loadSelectedProperties(): string[] {
   try {
@@ -41,13 +42,36 @@ function saveSelectedProperties(properties: string[]): void {
   }
 }
 
+function loadSelectedIndex(): number {
+  try {
+    const stored = localStorage.getItem(SELECTED_INDEX_KEY)
+    if (stored) {
+      const parsed = parseInt(stored, 10)
+      if (!isNaN(parsed) && parsed >= 0) {
+        return parsed
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return 0
+}
+
+function saveSelectedIndex(index: number): void {
+  try {
+    localStorage.setItem(SELECTED_INDEX_KEY, String(index))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
   const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(loadSelectedIndex)
   const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
-  // Track previous optimized setups reference to detect changes
-  const [prevSetups, setPrevSetups] = useState<OptimizedGearSetup[]>([])
+  // Track previous properties to detect when optimization needs reset
+  const [prevProperties, setPrevProperties] = useState<string[]>(selectedProperties)
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -66,6 +90,15 @@ export default function GearPlanner() {
   const handlePropertiesChange = (properties: string[]) => {
     setSelectedProperties(properties)
     saveSelectedProperties(properties)
+    // Reset to first suggestion when properties change
+    setSelectedSuggestionIndex(0)
+    saveSelectedIndex(0)
+  }
+
+  // Handle suggestion selection change with persistence
+  const handleSuggestionSelect = (index: number) => {
+    setSelectedSuggestionIndex(index)
+    saveSelectedIndex(index)
   }
 
   // Optimize gear when properties change
@@ -79,17 +112,20 @@ export default function GearPlanner() {
     })
   }, [items, setsData, craftingData, selectedProperties])
 
-  // Reset selection when setups change - using derivation instead of effect
+  // Reset selection when properties change, otherwise keep selection in bounds
   const effectiveIndex = useMemo(() => {
-    // When the optimized setups change, reset to index 0
-    if (optimizedSetups !== prevSetups) {
-      // Update prev setups tracking via next render
-      queueMicrotask(() => setPrevSetups(optimizedSetups))
+    // Check if properties changed (different length or content)
+    const propertiesChanged = selectedProperties.length !== prevProperties.length ||
+      selectedProperties.some((p, i) => p !== prevProperties[i])
+
+    if (propertiesChanged) {
+      // Update prev properties tracking via next render
+      queueMicrotask(() => setPrevProperties(selectedProperties))
       return 0
     }
     // Keep current selection in bounds
     return Math.min(selectedSuggestionIndex, Math.max(0, optimizedSetups.length - 1))
-  }, [optimizedSetups, prevSetups, selectedSuggestionIndex])
+  }, [optimizedSetups.length, prevProperties, selectedProperties, selectedSuggestionIndex])
 
   const selectedSetup = optimizedSetups[effectiveIndex]
 
@@ -154,7 +190,7 @@ export default function GearPlanner() {
             <GearSuggestions
               suggestions={optimizedSetups}
               selectedIndex={effectiveIndex}
-              onSelect={setSelectedSuggestionIndex}
+              onSelect={handleSuggestionSelect}
               selectedProperties={selectedProperties}
             />
           </Paper>
