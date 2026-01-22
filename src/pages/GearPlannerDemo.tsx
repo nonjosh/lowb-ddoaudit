@@ -82,6 +82,7 @@ export default function GearPlannerDemo() {
               selectedProperties={selectedProperties}
               hoveredProperty={hoveredProperty}
               craftingSelections={selectedSetup.craftingSelections}
+              setsData={mockSetsData}
             />
           </Paper>
 

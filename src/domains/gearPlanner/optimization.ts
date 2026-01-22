@@ -74,7 +74,8 @@ export function calculateScore(
     gearSetupRecord,
     craftingData ?? null,
     properties,
-    baseAffixes
+    baseAffixes,
+    setsData
   )
 
   // Collect set memberships from crafting (e.g., Set Augments)

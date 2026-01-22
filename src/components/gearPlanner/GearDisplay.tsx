@@ -22,8 +22,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 
-import { Item, ItemAffix } from '@/api/ddoGearPlanner'
-import { GearCraftingSelections, GearSetup } from '@/domains/gearPlanner'
+import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
+import { GearCraftingSelections, GearSetup, getCraftingSetMemberships } from '@/domains/gearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
 
 interface GearDisplayProps {
@@ -31,6 +31,7 @@ interface GearDisplayProps {
   selectedProperties: string[]
   hoveredProperty?: string | null
   craftingSelections?: GearCraftingSelections
+  setsData?: SetsData | null
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -287,9 +288,11 @@ export default function GearDisplay({
   setup,
   selectedProperties,
   hoveredProperty,
-  craftingSelections
+  craftingSelections,
+  setsData
 }: GearDisplayProps) {
   const [craftingExpanded, setCraftingExpanded] = useState(false)
+  const [setsExpanded, setSetsExpanded] = useState(true)
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
   // Only show slots that have items equipped
@@ -363,6 +366,56 @@ export default function GearDisplay({
     return a[0].localeCompare(b[0]) // alphabetical within same priority
   })
 
+  // Calculate active set bonuses
+  interface ActiveSetBonus {
+    setName: string
+    count: number
+    threshold: number
+    affixes: ItemAffix[]
+  }
+  const activeSetBonuses: ActiveSetBonus[] = []
+
+  if (setsData) {
+    // Count set pieces from items
+    const setItemCounts = new Map<string, number>()
+    equippedSlots.forEach(slot => {
+      const item = getItemForSlot(setup, slot)
+      if (item?.sets) {
+        for (const setName of item.sets) {
+          setItemCounts.set(setName, (setItemCounts.get(setName) || 0) + 1)
+        }
+      }
+    })
+
+    // Add set memberships from crafting (Set Augments)
+    if (craftingSelections) {
+      for (const slot of equippedSlots) {
+        const selections = craftingSelections[slot] || []
+        const setMemberships = getCraftingSetMemberships(selections)
+        for (const setName of setMemberships) {
+          setItemCounts.set(setName, (setItemCounts.get(setName) || 0) + 1)
+        }
+      }
+    }
+
+    // Determine which set bonuses are active
+    for (const [setName, count] of setItemCounts.entries()) {
+      const setBonuses = setsData[setName]
+      if (setBonuses) {
+        for (const bonus of setBonuses) {
+          if (count >= bonus.threshold) {
+            activeSetBonuses.push({
+              setName,
+              count,
+              threshold: bonus.threshold,
+              affixes: bonus.affixes
+            })
+          }
+        }
+      }
+    }
+  }
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>
@@ -383,6 +436,70 @@ export default function GearDisplay({
           </Grid>
         ))}
       </Grid>
+
+      {/* Active Set Bonuses Section */}
+      {activeSetBonuses.length > 0 && (
+        <Card variant="outlined" sx={{ mt: 2 }}>
+          <CardContent sx={{ pb: setsExpanded ? 2 : '8px !important' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+              onClick={() => setSetsExpanded(!setsExpanded)}
+            >
+              <Typography variant="subtitle1">
+                Active Set Bonuses ({activeSetBonuses.length})
+              </Typography>
+              <IconButton size="small">
+                {setsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </Box>
+            <Collapse in={setsExpanded}>
+              <TableContainer component={Paper} variant="outlined" sx={{ mt: 1 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Set Name</TableCell>
+                      <TableCell>Pieces</TableCell>
+                      <TableCell>Bonuses</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {activeSetBonuses.map((setBonus, idx) => (
+                      <TableRow key={`${setBonus.setName}-${setBonus.threshold}-${idx}`}>
+                        <TableCell>{setBonus.setName}</TableCell>
+                        <TableCell>{setBonus.count}/{setBonus.threshold}</TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            {setBonus.affixes.map((affix, i) => {
+                              const isSelected = selectedProperties.includes(affix.name)
+                              return (
+                                <Typography
+                                  key={i}
+                                  variant="body2"
+                                  sx={{
+                                    color: isSelected ? 'success.main' : 'text.secondary',
+                                    fontWeight: isSelected ? 'bold' : 'normal'
+                                  }}
+                                >
+                                  {formatAffix(affix)}
+                                </Typography>
+                              )
+                            })}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Collapse>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Crafting Slots Summary Table */}
       {sortedCraftingTypes.length > 0 && (

@@ -1,5 +1,6 @@
 import { CraftingData, CraftingOption } from '@/api/ddoGearPlanner/crafting'
 import { Item, ItemAffix } from '@/api/ddoGearPlanner/items'
+import { SetsData } from '@/api/ddoGearPlanner/sets'
 
 /**
  * Crafting slot categories based on their function
@@ -458,20 +459,56 @@ function markAffixesCovered(
 }
 
 /**
+ * Check if a set bonus provides any of the selected properties
+ */
+function setProvideSelectedProperties(
+  setName: string,
+  setsData: SetsData | null,
+  selectedProperties: string[]
+): boolean {
+  if (!setsData) return false
+  const setBonuses = setsData[setName]
+  if (!setBonuses) return false
+
+  for (const bonus of setBonuses) {
+    for (const affix of bonus.affixes) {
+      if (selectedProperties.includes(affix.name)) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+/**
+ * Get the minimum threshold for a set
+ */
+function getSetMinThreshold(setName: string, setsData: SetsData | null): number {
+  if (!setsData) return Infinity
+  const setBonuses = setsData[setName]
+  if (!setBonuses || setBonuses.length === 0) return Infinity
+
+  return Math.min(...setBonuses.map(b => b.threshold))
+}
+
+/**
  * Auto-select crafting options for an entire gear setup, respecting affix stacking rules.
  * This ensures we don't slot redundant augments that provide the same bonus type for the same property.
+ * For Set Augments, it slots enough to reach set bonus thresholds if the bonus provides selected properties.
  *
  * @param gearSetup Map of gear slot to item
  * @param craftingData The full crafting data
  * @param selectedProperties Properties to optimize for
  * @param baseAffixes Affixes already provided by items (to avoid duplicating)
+ * @param setsData Sets data for checking set bonus thresholds
  * @returns GearCraftingSelections with optimal non-redundant augment choices
  */
 export function autoSelectCraftingOptionsForGearSetup(
   gearSetup: Record<string, Item | undefined>,
   craftingData: CraftingData | null,
   selectedProperties: string[],
-  baseAffixes: ItemAffix[]
+  baseAffixes: ItemAffix[],
+  setsData: SetsData | null = null
 ): GearCraftingSelections {
   const slotKeys = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -485,6 +522,16 @@ export function autoSelectCraftingOptionsForGearSetup(
   // Collect all crafting slot candidates (both augments and affix selection slots)
   // We'll process them all together to respect stacking rules
   const craftingCandidates: AugmentSlotCandidate[] = []
+
+  // Also collect Set Augment candidates separately for special handling
+  interface SetAugmentCandidate {
+    gearSlot: string
+    slotIndex: number
+    slotType: string
+    option: CraftingOption
+    setName: string
+  }
+  const setAugmentCandidates: SetAugmentCandidate[] = []
 
   for (const slotKey of slotKeys) {
     const item = gearSetup[slotKey]
@@ -531,6 +578,18 @@ export function autoSelectCraftingOptionsForGearSetup(
       const validOptions = filterCraftingOptionsByML(options, item.ml)
 
       for (const option of validOptions) {
+        // Check if this is a Set Augment (has a set property)
+        if (option.set) {
+          setAugmentCandidates.push({
+            gearSlot: slotKey,
+            slotIndex: i,
+            slotType,
+            option,
+            setName: option.set
+          })
+          continue
+        }
+
         if (!option.affixes || option.affixes.length === 0) continue
 
         const score = scoreCraftingOption(option, selectedProperties)
@@ -549,11 +608,50 @@ export function autoSelectCraftingOptionsForGearSetup(
     }
   }
 
-  // Sort candidates by score (highest first)
-  craftingCandidates.sort((a, b) => b.score - a.score)
+  // First, handle Set Augments - slot enough to reach set bonus thresholds
+  // Group by set name
+  const setAugmentsBySet = new Map<string, SetAugmentCandidate[]>()
+  for (const candidate of setAugmentCandidates) {
+    if (!setAugmentsBySet.has(candidate.setName)) {
+      setAugmentsBySet.set(candidate.setName, [])
+    }
+    setAugmentsBySet.get(candidate.setName)!.push(candidate)
+  }
 
   // Track which slots have been filled
   const filledSlots = new Set<string>() // "gearSlot:slotIndex"
+
+  // For each set that provides selected properties, slot enough augments to reach threshold
+  for (const [setName, candidates] of setAugmentsBySet.entries()) {
+    // Check if this set's bonus provides any selected properties
+    if (!setProvideSelectedProperties(setName, setsData, selectedProperties)) {
+      continue
+    }
+
+    const threshold = getSetMinThreshold(setName, setsData)
+    if (threshold === Infinity) continue
+
+    // Slot up to threshold number of this set augment
+    let slotted = 0
+    for (const candidate of candidates) {
+      if (slotted >= threshold) break
+
+      const slotKey = `${candidate.gearSlot}:${candidate.slotIndex}`
+      if (filledSlots.has(slotKey)) continue
+
+      result[candidate.gearSlot][candidate.slotIndex].option = candidate.option
+      filledSlots.add(slotKey)
+      slotted++
+
+      // Also mark any immediate affixes as covered
+      if (candidate.option.affixes) {
+        markAffixesCovered(candidate.option.affixes, selectedProperties, coveredBonuses)
+      }
+    }
+  }
+
+  // Sort regular candidates by score (highest first)
+  craftingCandidates.sort((a, b) => b.score - a.score)
 
   // Greedily select crafting options that provide new value
   for (const candidate of craftingCandidates) {

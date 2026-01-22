@@ -166,6 +166,7 @@ export default function GearPlanner() {
               selectedProperties={selectedProperties}
               hoveredProperty={hoveredProperty}
               craftingSelections={selectedSetup.craftingSelections}
+              setsData={setsData}
             />
           </Paper>
 
