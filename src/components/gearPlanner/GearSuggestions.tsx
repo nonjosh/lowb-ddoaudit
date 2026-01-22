@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 
 import {
   Box,
@@ -8,6 +8,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Tooltip,
   Typography
@@ -71,6 +72,8 @@ export default function GearSuggestions({
   // null means default sorting (by all properties in order)
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const handleHeaderClick = useCallback((column: SortColumn) => {
     setSortColumn(prevColumn => {
@@ -81,6 +84,15 @@ export default function GearSuggestions({
       setSortDirection('desc')
       return column
     })
+  }, [])
+
+  const handleChangePage = useCallback((_event: unknown, newPage: number) => {
+    setPage(newPage)
+  }, [])
+
+  const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10))
+    setPage(0)
   }, [])
 
   const sortedSuggestions = useMemo(() => {
@@ -175,67 +187,79 @@ export default function GearSuggestions({
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedSuggestions.map((suggestion, idx) => {
-              // Find original index for selection
-              const originalIndex = suggestions.indexOf(suggestion)
-              const isSelected = originalIndex === selectedIndex
+            {sortedSuggestions
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((suggestion, idx) => {
+                // Find original index for selection
+                const originalIndex = suggestions.indexOf(suggestion)
+                const isSelected = originalIndex === selectedIndex
+                const displayIndex = page * rowsPerPage + idx
 
-              return (
-                <TableRow
-                  key={idx}
-                  onClick={() => onSelect(originalIndex)}
-                  sx={{
-                    cursor: 'pointer',
-                    backgroundColor: isSelected ? 'action.selected' : 'inherit',
-                    '&:hover': {
-                      backgroundColor: 'action.hover'
-                    }
-                  }}
-                >
-                  <TableCell>
-                    <strong>#{idx + 1}</strong>
-                  </TableCell>
-                  {selectedProperties.map(property => {
-                    const value = suggestion.propertyValues.get(property) || 0
-                    return (
-                      <TableCell key={property} align="right">
-                        +{value}
-                      </TableCell>
-                    )
-                  })}
-                  <TableCell align="right">
-                    {suggestion.totalAugments !== undefined && suggestion.unusedAugments !== undefined
-                      ? `${suggestion.totalAugments - suggestion.unusedAugments}/${suggestion.totalAugments}`
-                      : '-'}
-                  </TableCell>
-                  <TableCell align="right">
-                    {suggestion.otherEffects && suggestion.otherEffects.length > 0 ? (
-                      <Tooltip
-                        title={
-                          <Box>
-                            {suggestion.otherEffects.map((effect, i) => (
-                              <Typography key={i} variant="caption" display="block">
-                                • {effect}
-                              </Typography>
-                            ))}
-                          </Box>
-                        }
-                        arrow
-                      >
-                        <span style={{ cursor: 'help' }}>
-                          {suggestion.otherEffects.length}
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      '0'
-                    )}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
+                return (
+                  <TableRow
+                    key={idx}
+                    onClick={() => onSelect(originalIndex)}
+                    sx={{
+                      cursor: 'pointer',
+                      backgroundColor: isSelected ? 'action.selected' : 'inherit',
+                      '&:hover': {
+                        backgroundColor: 'action.hover'
+                      }
+                    }}
+                  >
+                    <TableCell>
+                      <strong>#{displayIndex + 1}</strong>
+                    </TableCell>
+                    {selectedProperties.map(property => {
+                      const value = suggestion.propertyValues.get(property) || 0
+                      return (
+                        <TableCell key={property} align="right">
+                          +{value}
+                        </TableCell>
+                      )
+                    })}
+                    <TableCell align="right">
+                      {suggestion.totalAugments !== undefined && suggestion.unusedAugments !== undefined
+                        ? `${suggestion.totalAugments - suggestion.unusedAugments}/${suggestion.totalAugments}`
+                        : '-'}
+                    </TableCell>
+                    <TableCell align="right">
+                      {suggestion.otherEffects && suggestion.otherEffects.length > 0 ? (
+                        <Tooltip
+                          title={
+                            <Box>
+                              {suggestion.otherEffects.map((effect, i) => (
+                                <Typography key={i} variant="caption" display="block">
+                                  • {effect}
+                                </Typography>
+                              ))}
+                            </Box>
+                          }
+                          arrow
+                        >
+                          <span style={{ cursor: 'help' }}>
+                            {suggestion.otherEffects.length}
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        '0'
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={sortedSuggestions.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+      />
     </Box>
   )
 }
