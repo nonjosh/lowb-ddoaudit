@@ -12,13 +12,14 @@ import {
 } from '@mui/material'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
-import { GearSetup, getGearAffixes } from '@/domains/gearPlanner'
+import { GearCraftingSelections, GearSetup, getCraftingAffixes } from '@/domains/gearPlanner'
 
 interface SummaryTableProps {
   setup: GearSetup
   selectedProperties: string[]
   setsData: SetsData | null
   onPropertyHover?: (property: string | null) => void
+  craftingSelections?: GearCraftingSelections
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -41,12 +42,17 @@ function getItemForSlot(setup: GearSetup, slot: string): Item | undefined {
 }
 
 // Define bonus type priority
+// Enhancement>Insight>Quality>Artifact>Profane>Exceptional>Festive>others
 const bonusTypePriority: Record<string, number> = {
   'Enhancement': 1,
   'Insight': 2,
   'Quality': 3,
   'Artifact': 4,
-  'Profane': 5
+  'Profane': 5,
+  'Exceptional': 6,
+  'Festive': 7,
+  'Competence': 8,
+  'Untyped': 9
 }
 
 function getBonusTypePriority(type: string): number {
@@ -56,21 +62,20 @@ function getBonusTypePriority(type: string): number {
 export default function SummaryTable({
   setup,
   selectedProperties,
-  setsData,
-  onPropertyHover
+  onPropertyHover,
+  craftingSelections
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
-
-  // Get all affixes including set bonuses and augments
-  const allAffixes = getGearAffixes(setup, setsData)
 
   // Build data structure: property -> bonusType -> {value, slots: [{slot, item, isFromSet, isFromAugment}]}
   interface BonusSource {
     slot: string
     slotName: string
     itemName: string
+    augmentName?: string
     isFromSet?: boolean
     isFromAugment?: boolean
+    sourceValue: number
   }
 
   interface BonusTypeData {
@@ -80,46 +85,69 @@ export default function SummaryTable({
 
   const propertyBonuses = new Map<string, Map<string, BonusTypeData>>()
 
-  // Process each slot's item
+  // Helper to add a bonus source
+  const addBonusSource = (
+    affix: ItemAffix,
+    slot: string,
+    itemName: string,
+    isFromAugment: boolean,
+    augmentName?: string
+  ) => {
+    if (affix.type === 'bool' || !selectedProperties.includes(affix.name)) return
+
+    const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+    if (isNaN(value) || typeof value !== 'number') return
+
+    const propertyName = affix.name
+    const bonusType = affix.type || 'Untyped'
+
+    if (!propertyBonuses.has(propertyName)) {
+      propertyBonuses.set(propertyName, new Map())
+    }
+
+    const propertyMap = propertyBonuses.get(propertyName)!
+    if (!propertyMap.has(bonusType)) {
+      propertyMap.set(bonusType, { value: 0, sources: [] })
+    }
+
+    const bonusData = propertyMap.get(bonusType)!
+
+    // For same bonus type, only keep highest value but track all sources
+    if (value > bonusData.value) {
+      bonusData.value = value
+    }
+
+    bonusData.sources.push({
+      slot,
+      slotName: slotDisplayNames[slot],
+      itemName,
+      augmentName,
+      isFromAugment,
+      sourceValue: value
+    })
+  }
+
+  // Process each slot's item affixes
   slots.forEach(slot => {
     const item = getItemForSlot(setup, slot)
     if (!item) return
 
+    // Process item's base affixes
     item.affixes.forEach((affix: ItemAffix) => {
-      if (affix.type === 'bool' || !selectedProperties.includes(affix.name)) return
-
-      const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-      if (isNaN(value) || typeof value !== 'number') return
-
-      const propertyName = affix.name
-      const bonusType = affix.type || 'Untyped'
-
-      if (!propertyBonuses.has(propertyName)) {
-        propertyBonuses.set(propertyName, new Map())
-      }
-
-      const propertyMap = propertyBonuses.get(propertyName)!
-      if (!propertyMap.has(bonusType)) {
-        propertyMap.set(bonusType, { value: 0, sources: [] })
-      }
-
-      const bonusData = propertyMap.get(bonusType)!
-
-      // For same bonus type, only keep highest value but track all sources
-      if (value > bonusData.value) {
-        bonusData.value = value
-      }
-
-      // Check if this is from an augment slot
-      const isFromAugment = affix.name.toLowerCase().includes('augment slot')
-
-      bonusData.sources.push({
-        slot,
-        slotName: slotDisplayNames[slot],
-        itemName: item.name,
-        isFromAugment
-      })
+      addBonusSource(affix, slot, item.name, false)
     })
+
+    // Process crafting selections (augments) for this slot
+    const selections = craftingSelections?.[slot]
+    if (selections) {
+      const craftingAffixes = getCraftingAffixes(selections)
+      craftingAffixes.forEach(affix => {
+        // Find which augment this affix came from
+        const augment = selections.find(s => s.option?.affixes?.includes(affix))
+        const augmentName = augment?.option?.name
+        addBonusSource(affix, slot, item.name, true, augmentName)
+      })
+    }
   })
 
   // Process set bonuses
@@ -186,32 +214,16 @@ export default function SummaryTable({
 
                   // Create tooltip content showing all sources with values
                   // Find the highest value source to highlight it
-                  const maxValue = Math.max(...bonusData.sources.map(s => {
-                    const item = getItemForSlot(setup, s.slot)
-                    if (!item) return 0
-                    const affix = item.affixes.find(a =>
-                      a.name === property && a.type === bonusType
-                    )
-                    if (!affix || affix.type === 'bool') return 0
-                    const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-                    return isNaN(value) ? 0 : value
-                  }))
+                  const maxValue = Math.max(...bonusData.sources.map(s => s.sourceValue))
 
                   const tooltipContent = (
                     <Box>
                       {bonusData.sources.map((source, idx) => {
-                        const item = getItemForSlot(setup, source.slot)
-                        let value = 0
-                        if (item) {
-                          const affix = item.affixes.find(a =>
-                            a.name === property && a.type === bonusType
-                          )
-                          if (affix && affix.type !== 'bool') {
-                            const val = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-                            if (!isNaN(val)) value = val
-                          }
-                        }
-                        const isStacking = value === maxValue
+                        const isStacking = source.sourceValue === maxValue
+                        // For augments, only show augment name; for items, show slot + item name
+                        const displayName = source.isFromAugment && source.augmentName
+                          ? source.augmentName
+                          : `${source.slotName}: ${source.itemName}`
                         return (
                           <Typography
                             key={idx}
@@ -222,7 +234,7 @@ export default function SummaryTable({
                               color: isStacking ? 'primary.light' : 'inherit'
                             }}
                           >
-                            {source.slotName}: {source.itemName} (+{value})
+                            {displayName} (+{source.sourceValue})
                             {source.isFromAugment && ' (Augment)'}
                             {source.isFromSet && ' (Set Bonus)'}
                           </Typography>

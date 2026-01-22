@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 import {
   Autocomplete,
@@ -22,26 +22,43 @@ export default function PropertySelector({
   onChange
 }: PropertySelectorProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(index))
     setDraggedIndex(index)
   }
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.preventDefault()
-    if (draggedIndex === null || draggedIndex === index) return
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index)
+    }
+  }
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === dropIndex) return
 
     const newProperties = [...selectedProperties]
     const draggedItem = newProperties[draggedIndex]
     newProperties.splice(draggedIndex, 1)
-    newProperties.splice(index, 0, draggedItem)
+    newProperties.splice(dropIndex, 0, draggedItem)
 
     onChange(newProperties)
-    setDraggedIndex(index)
+    setDraggedIndex(null)
+    setDragOverIndex(null)
   }
 
   const handleDragEnd = () => {
     setDraggedIndex(null)
+    setDragOverIndex(null)
   }
 
   return (
@@ -68,26 +85,37 @@ export default function PropertySelector({
           renderTags={(value, getTagProps) =>
             value.map((option, index) => {
               const { onDelete, ...chipProps } = getTagProps({ index })
+              const isDragging = draggedIndex === index
+              const isDragOver = dragOverIndex === index
               return (
-                <Chip
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <DragIndicatorIcon sx={{ fontSize: 16, cursor: 'grab' }} />
-                      {option}
-                    </Box>
-                  }
-                  {...chipProps}
-                  onDelete={onDelete}
+                <Box
                   key={option}
                   draggable
-                  onDragStart={() => handleDragStart(index)}
+                  onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
                   sx={{
+                    display: 'inline-flex',
                     cursor: 'grab',
+                    opacity: isDragging ? 0.5 : 1,
+                    borderLeft: isDragOver ? '3px solid' : 'none',
+                    borderColor: 'primary.main',
                     '&:active': { cursor: 'grabbing' }
                   }}
-                />
+                >
+                  <Chip
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <DragIndicatorIcon sx={{ fontSize: 16 }} />
+                        {option}
+                      </Box>
+                    }
+                    {...chipProps}
+                    onDelete={onDelete}
+                  />
+                </Box>
               )
             })
           }

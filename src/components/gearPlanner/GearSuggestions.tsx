@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 
 import {
   Box,
@@ -27,43 +27,96 @@ interface GearSuggestionsProps {
 type SortColumn = 'augments' | 'other' | string
 type SortDirection = 'asc' | 'desc'
 
+interface SortableHeaderCellProps {
+  column: SortColumn
+  label: string
+  align?: 'left' | 'right'
+  sortColumn: SortColumn | null
+  sortDirection: SortDirection
+  onHeaderClick: (column: SortColumn) => void
+}
+
+function SortableHeaderCell({ column, label, align = 'left', sortColumn, sortDirection, onHeaderClick }: SortableHeaderCellProps) {
+  const isActive = sortColumn === column
+  return (
+    <TableCell
+      align={align}
+      onClick={() => onHeaderClick(column)}
+      sx={{
+        cursor: 'pointer',
+        userSelect: 'none',
+        fontWeight: isActive ? 'bold' : 'normal',
+        '&:hover': {
+          backgroundColor: 'action.hover'
+        }
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
+        {label}
+        {isActive && (
+          sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+        )}
+      </Box>
+    </TableCell>
+  )
+}
+
 export default function GearSuggestions({
   suggestions,
   selectedIndex,
   onSelect,
   selectedProperties
 }: GearSuggestionsProps) {
-  // Default sort by first selected property descending
-  const [sortColumn, setSortColumn] = useState<SortColumn>(selectedProperties[0] || 'augments')
+  // Sort column is which property to prioritize when clicking header
+  // null means default sorting (by all properties in order)
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
-  const handleHeaderClick = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
+  const handleHeaderClick = useCallback((column: SortColumn) => {
+    setSortColumn(prevColumn => {
+      if (prevColumn === column) {
+        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+        return prevColumn
+      }
       setSortDirection('desc')
-    }
-  }
+      return column
+    })
+  }, [])
 
   const sortedSuggestions = useMemo(() => {
     return [...suggestions].sort((a, b) => {
-      let comparison = 0
+      // If a specific column is selected, sort by that first
+      if (sortColumn) {
+        let comparison = 0
 
-      if (sortColumn === 'augments') {
-        comparison = (b.unusedAugments || 0) - (a.unusedAugments || 0)
-      } else if (sortColumn === 'other') {
-        comparison = (b.extraProperties || 0) - (a.extraProperties || 0)
-      } else {
-        // Sort by property value
-        const aVal = a.propertyValues.get(sortColumn) || 0
-        const bVal = b.propertyValues.get(sortColumn) || 0
-        comparison = bVal - aVal
+        if (sortColumn === 'augments') {
+          const aUsed = (a.totalAugments || 0) - (a.unusedAugments || 0)
+          const bUsed = (b.totalAugments || 0) - (b.unusedAugments || 0)
+          comparison = bUsed - aUsed
+        } else if (sortColumn === 'other') {
+          comparison = (b.extraProperties || 0) - (a.extraProperties || 0)
+        } else {
+          const aVal = a.propertyValues.get(sortColumn) || 0
+          const bVal = b.propertyValues.get(sortColumn) || 0
+          comparison = bVal - aVal
+        }
+
+        if (comparison !== 0) {
+          return sortDirection === 'asc' ? -comparison : comparison
+        }
       }
 
-      return sortDirection === 'asc' ? -comparison : comparison
+      // Default: sort by all properties in order (1st property desc, then 2nd desc, etc.)
+      for (const property of selectedProperties) {
+        const aVal = a.propertyValues.get(property) || 0
+        const bVal = b.propertyValues.get(property) || 0
+        if (bVal !== aVal) {
+          return bVal - aVal // descending
+        }
+      }
+      return 0
     })
-  }, [suggestions, sortColumn, sortDirection])
+  }, [suggestions, sortColumn, sortDirection, selectedProperties])
 
   if (suggestions.length === 0) {
     return (
@@ -75,31 +128,6 @@ export default function GearSuggestions({
           No suggestions available
         </Typography>
       </Box>
-    )
-  }
-
-  const SortableHeaderCell = ({ column, label, align = 'left' }: { column: SortColumn, label: string, align?: 'left' | 'right' }) => {
-    const isActive = sortColumn === column
-    return (
-      <TableCell
-        align={align}
-        onClick={() => handleHeaderClick(column)}
-        sx={{
-          cursor: 'pointer',
-          userSelect: 'none',
-          fontWeight: isActive ? 'bold' : 'normal',
-          '&:hover': {
-            backgroundColor: 'action.hover'
-          }
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
-          {label}
-          {isActive && (
-            sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
-          )}
-        </Box>
-      </TableCell>
     )
   }
 
@@ -118,10 +146,32 @@ export default function GearSuggestions({
             <TableRow>
               <TableCell>Setup</TableCell>
               {selectedProperties.map(property => (
-                <SortableHeaderCell key={property} column={property} label={property} align="right" />
+                <SortableHeaderCell
+                  key={property}
+                  column={property}
+                  label={property}
+                  align="right"
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onHeaderClick={handleHeaderClick}
+                />
               ))}
-              <SortableHeaderCell column="augments" label="Augments" align="right" />
-              <SortableHeaderCell column="other" label="Other Effects" align="right" />
+              <SortableHeaderCell
+                column="augments"
+                label="Augments"
+                align="right"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onHeaderClick={handleHeaderClick}
+              />
+              <SortableHeaderCell
+                column="other"
+                label="Other Effects"
+                align="right"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onHeaderClick={handleHeaderClick}
+              />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -154,8 +204,8 @@ export default function GearSuggestions({
                     )
                   })}
                   <TableCell align="right">
-                    {suggestion.unusedAugments !== undefined && suggestion.totalAugments !== undefined
-                      ? `${suggestion.unusedAugments}/${suggestion.totalAugments}`
+                    {suggestion.totalAugments !== undefined && suggestion.unusedAugments !== undefined
+                      ? `${suggestion.totalAugments - suggestion.unusedAugments}/${suggestion.totalAugments}`
                       : '-'}
                   </TableCell>
                   <TableCell align="right">

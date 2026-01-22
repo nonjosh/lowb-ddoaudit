@@ -1,16 +1,36 @@
-import { Box, Card, CardContent, Grid, IconButton, Tooltip, Typography } from '@mui/material'
+import { useState } from 'react'
+
+import {
+  Box,
+  Card,
+  CardContent,
+  Collapse,
+  Grid,
+  IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography
+} from '@mui/material'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 
 import { Item, ItemAffix } from '@/api/ddoGearPlanner'
-import { combineAffixes, GearSetup, getPropertyTotal, PropertyValue } from '@/domains/gearPlanner'
+import { GearCraftingSelections, GearSetup } from '@/domains/gearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
 
 interface GearDisplayProps {
   setup: GearSetup
-  propertyValues: Map<string, number>
   selectedProperties: string[]
   hoveredProperty?: string | null
+  craftingSelections?: GearCraftingSelections
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -43,6 +63,22 @@ function getAugmentColor(text: string): string | undefined {
   if (lower.includes('orange augment slot')) return '#ff9800'
   if (lower.includes('colorless augment slot')) return '#e0e0e0'
   return undefined
+}
+
+// Crafting slot type priority for sorting
+// blue/yellow/red => green/purple/orange => colorless => moon/sun => others
+function getCraftingSlotPriority(slotType: string): number {
+  const lower = slotType.toLowerCase()
+  if (lower.includes('blue augment')) return 1
+  if (lower.includes('yellow augment')) return 2
+  if (lower.includes('red augment')) return 3
+  if (lower.includes('green augment')) return 4
+  if (lower.includes('purple augment')) return 5
+  if (lower.includes('orange augment')) return 6
+  if (lower.includes('colorless augment')) return 7
+  if (lower.includes('moon augment')) return 8
+  if (lower.includes('sun augment')) return 9
+  return 100 // others
 }
 
 // Format affix display text
@@ -126,8 +162,8 @@ function GearSlotCard({
   // Get all affixes - regular affixes only (not augment slots, those are in crafting array)
   const regularAffixes = item.affixes
 
-  // Get augment slots from crafting array
-  const augmentSlots = item.crafting?.filter(c => c.toLowerCase().includes('augment slot')) || []
+  // Get all crafting slots from crafting array
+  const craftingSlots = item.crafting || []
 
   // Check if this item has the hovered property
   const hasHoveredProperty = hoveredProperty && regularAffixes.some(a => a.name === hoveredProperty)
@@ -203,32 +239,40 @@ function GearSlotCard({
           })}
         </Box>
 
-        {/* Augment Slots */}
-        {augmentSlots.length > 0 && (
+        {/* Crafting Slots - show all crafting options */}
+        {craftingSlots.length > 0 && (
           <Box sx={{ mt: 1 }}>
-            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-              Augment Slots:
-            </Typography>
             <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {augmentSlots.map((augment, idx) => {
-                const bgColor = getAugmentColor(augment)
+              {craftingSlots.map((craftingSlot, idx) => {
+                const bgColor = getAugmentColor(craftingSlot)
+                // Get short name for display
+                const shortName = craftingSlot
+                  .replace(' Augment Slot', '')
+                  .replace(' Slot', '')
+                  .replace('(Accessory - Artifact)', '(Art)')
+                  .replace('(Accessory)', '(Acc)')
+                  .replace('(Weapon - Quarterstaff)', '(WpnQ)')
+                  .replace('(Weapon)', '(Wpn)')
+                  .replace('(Armor)', '(Arm)')
+
                 return (
-                  <Box
-                    key={idx}
-                    component="span"
-                    sx={{
-                      bgcolor: bgColor || 'default',
-                      color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
-                      px: 0.5,
-                      py: 0.25,
-                      borderRadius: 0.5,
-                      fontSize: '0.65rem',
-                      display: 'inline-block',
-                      lineHeight: 1.2
-                    }}
-                  >
-                    {augment}
-                  </Box>
+                  <Tooltip key={idx} title={craftingSlot}>
+                    <Box
+                      component="span"
+                      sx={{
+                        bgcolor: bgColor || 'grey.700',
+                        color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
+                        px: 0.5,
+                        py: 0.25,
+                        borderRadius: 0.5,
+                        fontSize: '0.65rem',
+                        display: 'inline-block',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {shortName}
+                    </Box>
+                  </Tooltip>
                 )
               })}
             </Box>
@@ -241,25 +285,82 @@ function GearSlotCard({
 
 export default function GearDisplay({
   setup,
-  propertyValues,
   selectedProperties,
-  hoveredProperty
+  hoveredProperty,
+  craftingSelections
 }: GearDisplayProps) {
+  const [craftingExpanded, setCraftingExpanded] = useState(false)
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
   // Only show slots that have items equipped
   const equippedSlots = slots.filter(slot => getItemForSlot(setup, slot) !== undefined)
 
-  // Count augment slots from crafting array
-  let totalAugments = 0
-  let usedAugments = 0 // For now, all are unused since we don't track slotted augments
+  // Collect all crafting selections grouped by slot type (including non-augments)
+  // Track both total slots per type and slotted options
+  const craftingSlotsByType = new Map<string, { total: number; slotted: { name: string; affixes: ItemAffix[]; set?: string }[] }>()
+  let totalCraftingSlots = 0
+  let usedCraftingSlots = 0
 
   equippedSlots.forEach(slot => {
     const item = getItemForSlot(setup, slot)
     if (item && item.crafting) {
-      const augmentCount = item.crafting.filter(c => c.toLowerCase().includes('augment slot')).length
-      totalAugments += augmentCount
+      const selections = craftingSelections?.[slot]
+
+      item.crafting.forEach((craftingSlotType, idx) => {
+        totalCraftingSlots++
+
+        // Initialize slot type tracking if needed
+        if (!craftingSlotsByType.has(craftingSlotType)) {
+          craftingSlotsByType.set(craftingSlotType, { total: 0, slotted: [] })
+        }
+        const slotTypeData = craftingSlotsByType.get(craftingSlotType)!
+        slotTypeData.total++
+
+        const selection = selections?.[idx]
+        if (selection?.option) {
+          // Check if this option contributes to selected properties
+          const contributesToSelected = selection.option.affixes?.some(affix =>
+            affix.type !== 'bool' && selectedProperties.includes(affix.name)
+          )
+          if (contributesToSelected) {
+            usedCraftingSlots++
+          }
+
+          // Add to slotted list
+          slotTypeData.slotted.push({
+            name: selection.option.name || 'Unknown',
+            affixes: selection.option.affixes || [],
+            set: selection.option.set
+          })
+        }
+      })
     }
+  })
+
+  // Group slotted items by name and count occurrences
+  const groupSlottedByName = (slotted: { name: string; affixes: ItemAffix[]; set?: string }[]) => {
+    const grouped = new Map<string, { count: number; affixes: ItemAffix[]; set?: string }>()
+    for (const item of slotted) {
+      if (grouped.has(item.name)) {
+        grouped.get(item.name)!.count++
+      } else {
+        grouped.set(item.name, { count: 1, affixes: item.affixes, set: item.set })
+      }
+    }
+    return Array.from(grouped.entries()).map(([name, data]) => ({
+      name,
+      count: data.count,
+      affixes: data.affixes,
+      set: data.set
+    }))
+  }
+
+  // Sort crafting slot types by priority (blue/yellow/red first, then green/purple/orange, then colorless, then others)
+  const sortedCraftingTypes = Array.from(craftingSlotsByType.entries()).sort((a, b) => {
+    const priorityA = getCraftingSlotPriority(a[0])
+    const priorityB = getCraftingSlotPriority(b[0])
+    if (priorityA !== priorityB) return priorityA - priorityB
+    return a[0].localeCompare(b[0]) // alphabetical within same priority
   })
 
   return (
@@ -270,7 +371,7 @@ export default function GearDisplay({
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {equippedSlots.map(slot => (
-          <Grid xs={12} sm={6} md={4} lg={3} key={slot}>
+          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={slot}>
             <GearSlotCard
               slotName={slotDisplayNames[slot]}
               item={getItemForSlot(setup, slot)}
@@ -283,34 +384,106 @@ export default function GearDisplay({
         ))}
       </Grid>
 
-      {selectedProperties.length > 0 && (
+      {/* Crafting Slots Summary Table */}
+      {sortedCraftingTypes.length > 0 && (
         <Card variant="outlined" sx={{ mt: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle1" gutterBottom>
-              Total Property Values
-            </Typography>
-            <Grid container spacing={2}>
-              {selectedProperties.map(property => (
-                <Grid xs={6} sm={4} md={3} key={property}>
-                  <Typography variant="body2" color="text.secondary">
-                    {property}
-                  </Typography>
-                  <Typography variant="h6">
-                    {propertyValues.get(property) || 0}
-                  </Typography>
-                </Grid>
-              ))}
+          <CardContent sx={{ pb: craftingExpanded ? 2 : '8px !important' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+              onClick={() => setCraftingExpanded(!craftingExpanded)}
+            >
+              <Typography variant="subtitle1">
+                Slotted Crafting Options ({usedCraftingSlots}/{totalCraftingSlots} slots used)
+              </Typography>
+              <IconButton size="small">
+                {craftingExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </Box>
+            <Collapse in={craftingExpanded}>
+              <TableContainer component={Paper} variant="outlined" sx={{ mt: 1 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Slot Type</TableCell>
+                      <TableCell>Slotted Options</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {sortedCraftingTypes.map(([slotType, data]) => {
+                      const groupedSlotted = groupSlottedByName(data.slotted)
+                      const bgColor = getAugmentColor(slotType)
+                      const shortName = slotType
+                        .replace(' Augment Slot', '')
+                        .replace(' Slot', '')
 
-              {/* Show augment slot usage */}
-              <Grid xs={6} sm={4} md={3}>
-                <Typography variant="body2" color="text.secondary">
-                  Augment Slots
-                </Typography>
-                <Typography variant="h6">
-                  {usedAugments}/{totalAugments}
-                </Typography>
-              </Grid>
-            </Grid>
+                      return (
+                        <TableRow key={slotType}>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box
+                                sx={{
+                                  width: 16,
+                                  height: 16,
+                                  borderRadius: 0.5,
+                                  bgcolor: bgColor || 'grey.700'
+                                }}
+                              />
+                              <Typography variant="body2">
+                                {shortName}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                ({data.slotted.length}/{data.total})
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            {groupedSlotted.length > 0 ? (
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                {groupedSlotted.map((aug, idx) => (
+                                  <Tooltip
+                                    key={idx}
+                                    title={
+                                      <Box>
+                                        {aug.affixes.map((affix, i) => (
+                                          <Typography key={i} variant="caption" display="block">
+                                            {formatAffix(affix)}
+                                          </Typography>
+                                        ))}
+                                        {aug.set && (
+                                          <Typography variant="caption" display="block" color="secondary.light">
+                                            Set: {aug.set}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                    }
+                                  >
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ cursor: 'help', '&:hover': { color: 'primary.main' } }}
+                                    >
+                                      {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
+                                    </Typography>
+                                  </Tooltip>
+                                ))}
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                —
+                              </Typography>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Collapse>
           </CardContent>
         </Card>
       )}

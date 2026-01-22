@@ -1,5 +1,13 @@
-import { Item, SetsData } from '@/api/ddoGearPlanner'
+import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
 import { combineAffixes, getPropertyTotal } from './affixStacking'
+import {
+  autoSelectCraftingOptions,
+  autoSelectCraftingOptionsForGearSetup,
+  countAugmentSlots,
+  getCraftingAffixes,
+  getCraftingSetMemberships,
+  GearCraftingSelections
+} from './craftingHelpers'
 import { getGearAffixes, GearSetup, GEAR_SLOTS, getItemsBySlot, getSlotKey } from './gearSetup'
 
 /**
@@ -13,6 +21,8 @@ export interface OptimizedGearSetup {
   totalAugments?: number
   extraProperties?: number
   otherEffects?: string[]
+  /** Crafting selections for each slot */
+  craftingSelections?: GearCraftingSelections
 }
 
 /**
@@ -27,6 +37,8 @@ export interface OptimizationOptions {
   minML?: number
   /** Maximum ML to consider */
   maxML?: number
+  /** Crafting data for augment optimization */
+  craftingData?: CraftingData | null
 }
 
 /**
@@ -36,10 +48,53 @@ export interface OptimizationOptions {
 export function calculateScore(
   setup: GearSetup,
   properties: string[],
-  setsData: SetsData | null
-): { score: number; propertyValues: Map<string, number>; unusedAugments: number; totalAugments: number; extraProperties: number; otherEffects: string[] } {
-  const affixes = getGearAffixes(setup, setsData)
-  const combined = combineAffixes(affixes)
+  setsData: SetsData | null,
+  craftingData?: CraftingData | null
+): {
+  score: number
+  propertyValues: Map<string, number>
+  unusedAugments: number
+  totalAugments: number
+  extraProperties: number
+  otherEffects: string[]
+  craftingSelections: GearCraftingSelections
+} {
+  const slotKeys: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+
+  // Get base affixes from gear first (without crafting) to know what's already covered
+  const baseAffixes = getGearAffixes(setup, setsData, [])
+
+  // Auto-select crafting options for entire gear setup, respecting stacking rules
+  const gearSetupRecord: Record<string, Item | undefined> = {}
+  for (const slotKey of slotKeys) {
+    gearSetupRecord[slotKey] = setup[slotKey]
+  }
+
+  const craftingSelections = autoSelectCraftingOptionsForGearSetup(
+    gearSetupRecord,
+    craftingData ?? null,
+    properties,
+    baseAffixes
+  )
+
+  // Collect set memberships from crafting (e.g., Set Augments)
+  const additionalSetMemberships: string[] = []
+  for (const slotKey of slotKeys) {
+    const selections = craftingSelections[slotKey] || []
+    additionalSetMemberships.push(...getCraftingSetMemberships(selections))
+  }
+
+  // Re-calculate base affixes with additional set memberships
+  const baseAffixesWithSets = getGearAffixes(setup, setsData, additionalSetMemberships)
+
+  // Collect crafting affixes
+  const allCraftingAffixes = Object.values(craftingSelections).flatMap(selections =>
+    getCraftingAffixes(selections)
+  )
+
+  // Combine all affixes
+  const allAffixes = [...baseAffixesWithSets, ...allCraftingAffixes]
+  const combined = combineAffixes(allAffixes)
 
   let score = 0
   const propertyValues = new Map<string, number>()
@@ -58,31 +113,32 @@ export function calculateScore(
   let totalAugmentSlots = 0
   let usedAugmentSlots = 0
 
+  for (const slotKey of slotKeys) {
+    const item = setup[slotKey]
+    if (item) {
+      const selections = craftingSelections[slotKey] || []
+      const { total, used } = countAugmentSlots(item, selections, properties)
+      totalAugmentSlots += total
+      usedAugmentSlots += used
+    }
+  }
+
   // Get other effects (properties not in the selected list)
   const allProperties = Array.from(combined.keys())
   const otherEffects = allProperties.filter(p => !properties.includes(p)).sort()
   const extraProperties = otherEffects.length
 
-  const slots: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
-  for (const slot of slots) {
-    const item = setup[slot]
-    if (item) {
-      // Count augment slots from crafting array (where augment slots are stored)
-      if (item.crafting) {
-        const augmentSlots = item.crafting.filter(c =>
-          c.toLowerCase().includes('augment slot')
-        )
-        totalAugmentSlots += augmentSlots.length
-      }
-
-      // For simplicity, assume no augments are used yet
-      // In a full implementation, we'd track which augments are slotted
-    }
-  }
-
   const unusedAugments = totalAugmentSlots - usedAugmentSlots
 
-  return { score, propertyValues, unusedAugments, totalAugments: totalAugmentSlots, extraProperties, otherEffects }
+  return {
+    score,
+    propertyValues,
+    unusedAugments,
+    totalAugments: totalAugmentSlots,
+    extraProperties,
+    otherEffects,
+    craftingSelections
+  }
 }
 
 /**
@@ -94,7 +150,7 @@ export function optimizeGear(
   setsData: SetsData | null,
   options: OptimizationOptions
 ): OptimizedGearSetup[] {
-  const { properties, maxResults = 10, minML = 1, maxML = 34 } = options
+  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData } = options
 
   // Filter items by ML range
   const filteredItems = items.filter(item => item.ml >= minML && item.ml <= maxML)
@@ -106,13 +162,26 @@ export function optimizeGear(
     const itemsForSlot = getItemsBySlot(filteredItems, slot)
 
     // Score each item based on how much it contributes to selected properties
+    // Include crafting contributions in the score
     const scoredItems = itemsForSlot.map(item => {
       const combined = combineAffixes(item.affixes)
+
+      // Also consider crafting options when scoring
+      let craftingScore = 0
+      if (craftingData && item.crafting) {
+        const selections = autoSelectCraftingOptions(item, craftingData, properties)
+        const craftingAffixes = getCraftingAffixes(selections)
+        const craftingCombined = combineAffixes(craftingAffixes)
+        for (const property of properties) {
+          craftingScore += getPropertyTotal(craftingCombined, property)
+        }
+      }
+
       let itemScore = 0
       for (const property of properties) {
         itemScore += getPropertyTotal(combined, property)
       }
-      return { item, score: itemScore }
+      return { item, score: itemScore + craftingScore }
     })
 
     // Keep top items for this slot
@@ -148,8 +217,17 @@ export function optimizeGear(
     }
   }
 
-  const { score, propertyValues, unusedAugments, totalAugments, extraProperties, otherEffects } = calculateScore(baseSetup, properties, setsData)
-  results.push({ setup: baseSetup, score, propertyValues, unusedAugments, totalAugments, extraProperties, otherEffects })
+  const baseResult = calculateScore(baseSetup, properties, setsData, craftingData)
+  results.push({
+    setup: baseSetup,
+    score: baseResult.score,
+    propertyValues: baseResult.propertyValues,
+    unusedAugments: baseResult.unusedAugments,
+    totalAugments: baseResult.totalAugments,
+    extraProperties: baseResult.extraProperties,
+    otherEffects: baseResult.otherEffects,
+    craftingSelections: baseResult.craftingSelections
+  })
 
   // Generate alternative setups by swapping items
   // Try swapping each slot with its second-best option
@@ -167,7 +245,7 @@ export function optimizeGear(
         altSetup[key] = items[i]
       }
 
-      const result = calculateScore(altSetup, properties, setsData)
+      const result = calculateScore(altSetup, properties, setsData, craftingData)
       results.push({
         setup: altSetup,
         score: result.score,
@@ -175,7 +253,8 @@ export function optimizeGear(
         unusedAugments: result.unusedAugments,
         totalAugments: result.totalAugments,
         extraProperties: result.extraProperties,
-        otherEffects: result.otherEffects
+        otherEffects: result.otherEffects,
+        craftingSelections: result.craftingSelections
       })
     }
   }

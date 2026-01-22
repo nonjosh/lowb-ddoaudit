@@ -5,7 +5,6 @@ import {
   Button,
   CircularProgress,
   Container,
-  Grid,
   Paper,
   Typography
 } from '@mui/material'
@@ -15,13 +14,40 @@ import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
-import { getAllAvailableProperties, optimizeGear } from '@/domains/gearPlanner'
+import { getAllAvailableProperties, optimizeGear, OptimizedGearSetup } from '@/domains/gearPlanner'
+
+const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
+
+function loadSelectedProperties(): string[] {
+  try {
+    const stored = localStorage.getItem(SELECTED_PROPERTIES_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.every(p => typeof p === 'string')) {
+        return parsed
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return []
+}
+
+function saveSelectedProperties(properties: string[]): void {
+  try {
+    localStorage.setItem(SELECTED_PROPERTIES_KEY, JSON.stringify(properties))
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 export default function GearPlanner() {
-  const { items, setsData, loading, error, refresh } = useGearPlanner()
-  const [selectedProperties, setSelectedProperties] = useState<string[]>([])
+  const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
+  const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
+  // Track previous optimized setups reference to detect changes
+  const [prevSetups, setPrevSetups] = useState<OptimizedGearSetup[]>([])
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -36,22 +62,36 @@ export default function GearPlanner() {
     return getAllAvailableProperties(items)
   }, [items])
 
+  // Handle property selection change with persistence
+  const handlePropertiesChange = (properties: string[]) => {
+    setSelectedProperties(properties)
+    saveSelectedProperties(properties)
+  }
+
   // Optimize gear when properties change
   const optimizedSetups = useMemo(() => {
     if (selectedProperties.length < 3 || items.length === 0) return []
 
     return optimizeGear(items, setsData, {
       properties: selectedProperties,
-      maxResults: 20
+      maxResults: 20,
+      craftingData
     })
-  }, [items, setsData, selectedProperties])
+  }, [items, setsData, craftingData, selectedProperties])
 
-  // Reset selection when suggestions change
-  useEffect(() => {
-    setSelectedSuggestionIndex(0)
-  }, [optimizedSetups])
+  // Reset selection when setups change - using derivation instead of effect
+  const effectiveIndex = useMemo(() => {
+    // When the optimized setups change, reset to index 0
+    if (optimizedSetups !== prevSetups) {
+      // Update prev setups tracking via next render
+      queueMicrotask(() => setPrevSetups(optimizedSetups))
+      return 0
+    }
+    // Keep current selection in bounds
+    return Math.min(selectedSuggestionIndex, Math.max(0, optimizedSetups.length - 1))
+  }, [optimizedSetups, prevSetups, selectedSuggestionIndex])
 
-  const selectedSetup = optimizedSetups[selectedSuggestionIndex]
+  const selectedSetup = optimizedSetups[effectiveIndex]
 
   if (loading && items.length === 0) {
     return (
@@ -93,7 +133,7 @@ export default function GearPlanner() {
         <PropertySelector
           availableProperties={availableProperties}
           selectedProperties={selectedProperties}
-          onChange={setSelectedProperties}
+          onChange={handlePropertiesChange}
         />
       </Paper>
 
@@ -113,7 +153,7 @@ export default function GearPlanner() {
           <Paper elevation={2} sx={{ mb: 3 }}>
             <GearSuggestions
               suggestions={optimizedSetups}
-              selectedIndex={selectedSuggestionIndex}
+              selectedIndex={effectiveIndex}
               onSelect={setSelectedSuggestionIndex}
               selectedProperties={selectedProperties}
             />
@@ -123,9 +163,9 @@ export default function GearPlanner() {
           <Paper elevation={2} sx={{ mb: 3 }}>
             <GearDisplay
               setup={selectedSetup.setup}
-              propertyValues={selectedSetup.propertyValues}
               selectedProperties={selectedProperties}
               hoveredProperty={hoveredProperty}
+              craftingSelections={selectedSetup.craftingSelections}
             />
           </Paper>
 
@@ -136,6 +176,7 @@ export default function GearPlanner() {
               selectedProperties={selectedProperties}
               setsData={setsData}
               onPropertyHover={setHoveredProperty}
+              craftingSelections={selectedSetup.craftingSelections}
             />
           </Paper>
         </>

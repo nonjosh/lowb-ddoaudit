@@ -52,8 +52,15 @@ export function itemFitsSlot(item: Item, slot: GearSlot): boolean {
 
 /**
  * Gets all affixes from a gear setup, including set bonuses
+ * @param setup The gear setup
+ * @param setsData Set bonus data
+ * @param additionalSetMemberships Additional set memberships (e.g., from Set Augments)
  */
-export function getGearAffixes(setup: GearSetup, setsData: SetsData | null): ItemAffix[] {
+export function getGearAffixes(
+  setup: GearSetup,
+  setsData: SetsData | null,
+  additionalSetMemberships: string[] = []
+): ItemAffix[] {
   const allAffixes: ItemAffix[] = []
   const setItemCounts = new Map<string, number>()
 
@@ -83,6 +90,11 @@ export function getGearAffixes(setup: GearSetup, setsData: SetsData | null): Ite
     if (item?.affixes) {
       allAffixes.push(...item.affixes)
     }
+  }
+
+  // Add additional set memberships from crafting (e.g., Set Augments)
+  for (const setName of additionalSetMemberships) {
+    setItemCounts.set(setName, (setItemCounts.get(setName) || 0) + 1)
   }
 
   // Add set bonuses

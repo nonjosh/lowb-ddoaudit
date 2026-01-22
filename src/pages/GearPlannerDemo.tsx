@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 
 import {
   Container,
-  Grid,
   Paper,
   Typography
 } from '@mui/material'
@@ -80,9 +79,9 @@ export default function GearPlannerDemo() {
           <Paper elevation={2} sx={{ mb: 3 }}>
             <GearDisplay
               setup={selectedSetup.setup}
-              propertyValues={selectedSetup.propertyValues}
               selectedProperties={selectedProperties}
               hoveredProperty={hoveredProperty}
+              craftingSelections={selectedSetup.craftingSelections}
             />
           </Paper>
 
