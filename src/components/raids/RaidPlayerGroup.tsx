@@ -6,7 +6,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import { Box, Collapse, IconButton, Table, TableBody, TableCell, TableRow, Tooltip, Typography } from '@mui/material'
 import { memo } from 'react'
 
-import { addMs, formatLocalDateTime, formatTimeRemaining, isTimerIgnored, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
+import { addMs, formatLocalDateTime, formatTimeRemaining, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
 import CharacterNamesWithClassTooltip from '@/components/shared/CharacterNamesWithClassTooltip'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
@@ -181,10 +181,7 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlay
             <Table size="small" aria-label="characters">
               <TableBody>
                 {displayEntries.map((e) => {
-                  const ignored = (() => {
-                    try { return isTimerIgnored(e.characterId, e.lastTimestamp) } catch { return false }
-                  })()
-                  const available = ignored || isEntryAvailable(e, now)
+                  const available = isEntryAvailable(e, now)
 
                   return (
                     <TableRow key={e.characterId} hover>

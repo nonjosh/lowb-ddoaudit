@@ -1,12 +1,4 @@
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material'
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'

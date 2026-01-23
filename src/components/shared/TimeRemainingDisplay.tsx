@@ -2,7 +2,7 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RestoreIcon from '@mui/icons-material/Restore'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { type MouseEvent, useEffect, useState } from 'react'
 
 import { addIgnoredTimer, addMs, formatLocalDateTime, formatTimeRemaining, isTimerIgnored, RAID_LOCKOUT_MS, removeIgnoredTimer } from '@/api/ddoAudit'
 
@@ -13,7 +13,7 @@ interface TimeRemainingDisplayProps {
   showIgnoreButton?: boolean
 }
 
-function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string; lastTimestamp: string | null; sx?: Record<string, unknown> }) {
+export default function TimeRemainingDisplay({ characterId, lastTimestamp, available, showIgnoreButton = true }: TimeRemainingDisplayProps) {
   const [, setVersion] = useState(0)
 
   useEffect(() => {
@@ -22,76 +22,63 @@ function IgnoreButton({ characterId, lastTimestamp, sx }: { characterId: string;
     return () => window.removeEventListener('ddoaudit:ignoredTimersChanged', handler)
   }, [])
 
-  const ignored = (() => {
-    try { return isTimerIgnored(characterId, lastTimestamp) } catch { return false }
+  // Check if this timer is ignored by the user
+  const isIgnored = (() => {
+    try {
+      return isTimerIgnored(characterId, lastTimestamp)
+    } catch {
+      return false
+    }
   })()
 
-  if (ignored) {
-    return (
-      <Tooltip title="Restore this timer (undo ignore)">
-        <IconButton
-          size="small"
-          sx={sx}
-          onClick={(e) => {
-            e.stopPropagation()
-            try { removeIgnoredTimer(characterId, lastTimestamp) } catch { /* ignore */ }
-          }}
-        >
-          <RestoreIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    )
-  }
+  // If timer is ignored, treat as available
+  const effectivelyAvailable = available || isIgnored
 
-  return (
-    <Tooltip title="Ignore this timer (show character as available)">
-      <IconButton
-        size="small"
-        sx={sx}
-        onClick={(e) => {
-          e.stopPropagation()
-          try { addIgnoredTimer(characterId, lastTimestamp) } catch { /* ignore */ }
-        }}
-      >
-        <CancelIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
-  )
-}
-
-export default function TimeRemainingDisplay({ characterId, lastTimestamp, available, showIgnoreButton = true }: TimeRemainingDisplayProps) {
   const now = new Date()
   const nowTime = now.getTime()
   const readyAt = addMs(lastTimestamp, RAID_LOCKOUT_MS)
   const remaining = readyAt ? readyAt.getTime() - nowTime : NaN
 
   const lastCompletionText = formatLocalDateTime(lastTimestamp)
-  const tooltipTitle = available ? null : (
+  const tooltipTitle = effectivelyAvailable ? null : (
     <Box>
       <Typography variant="body2">Last completion: {lastCompletionText}</Typography>
     </Box>
   )
 
+  const handleToggleIgnore = (e: MouseEvent) => {
+    e.stopPropagation()
+    try {
+      if (isIgnored) {
+        removeIgnoredTimer(characterId, lastTimestamp)
+      } else {
+        addIgnoredTimer(characterId, lastTimestamp)
+      }
+    } catch {
+      // ignore errors
+    }
+  }
+
   return (
     <Tooltip title={tooltipTitle}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Typography variant="body2" sx={{ fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {formatTimeRemaining(remaining)}
-          {!Number.isFinite(remaining) && <CheckCircleIcon color="success" sx={{ width: 14, height: 14 }} />}
+          {effectivelyAvailable ? 'Available' : formatTimeRemaining(remaining)}
+          {effectivelyAvailable && <CheckCircleIcon color="success" sx={{ width: 14, height: 14 }} />}
         </Typography>
-        {!available && readyAt ? (
+        {!effectivelyAvailable && readyAt ? (
           <Typography variant="caption" color="text.secondary" display="block">
             {formatLocalDateTime(readyAt)}
           </Typography>
         ) : null}
 
-        {/* Delete / ignore timer button (client-only) */}
+        {/* Ignore/restore timer button (client-only) */}
         {showIgnoreButton && lastTimestamp ? (
-          <IgnoreButton
-            characterId={characterId}
-            lastTimestamp={lastTimestamp}
-            sx={{ ml: 'auto' }}
-          />
+          <Tooltip title={isIgnored ? 'Restore this timer (undo ignore)' : 'Ignore this timer (show character as available)'}>
+            <IconButton size="small" sx={{ ml: 'auto' }} onClick={handleToggleIgnore}>
+              {isIgnored ? <RestoreIcon fontSize="small" /> : <CancelIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
         ) : null}
       </Box>
     </Tooltip>
