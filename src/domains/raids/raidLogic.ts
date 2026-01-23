@@ -1,8 +1,10 @@
 import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS, RaidActivityEntry, CharacterData } from '@/api/ddoAudit'
-import { CHARACTERS, PLAYER_DISPLAY_NAMES } from '@/config/characters'
+import { CHARACTERS } from '@/config/characters'
 
+// Since the player name in lowb.json IS the display name, this function simply returns the player name.
+// Kept for backward compatibility with existing code.
 export function getPlayerDisplayName(playerName: string): string {
-  return PLAYER_DISPLAY_NAMES[playerName] ?? playerName
+  return playerName
 }
 
 // Lookup player by character name using CHARACTERS mapping

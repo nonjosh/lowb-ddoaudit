@@ -44,6 +44,9 @@ src/
 │   └── shared/          # Reusable shared components
 ├── config/              # Configuration (character mappings)
 ├── contexts/            # React contexts for state management
+├── data/                # Static data files
+│   ├── lowb.json        # Player name -> character names mapping
+│   └── character_ids.csv # Character name -> ID mapping
 ├── domains/             # Business logic by domain
 │   ├── characters/      # Character grouping logic
 │   ├── gearPlanner/     # Gear optimization logic
@@ -126,7 +129,17 @@ src/
 
 ### Modifying Character Configuration
 
-Edit `src/config/characters.ts` - maps character IDs to player names.
+Character data is split into two files for easier maintenance:
+
+1. **`src/data/lowb.json`**: Player name → character names mapping
+   - Edit this file to add/remove characters for a player
+   - The key IS the display name (e.g., `"老mic"` not `"OldMic"`)
+
+2. **`src/data/character_ids.csv`**: Character name → ID mapping
+   - After editing `lowb.json`, run: `npx tsx scripts/update-character-ids.ts`
+   - This fetches new character IDs from the DDO Audit API
+
+The `src/config/characters.ts` file loads these data files and generates the runtime mappings.
 
 ### Adding Business Logic
 

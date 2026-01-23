@@ -18,7 +18,7 @@ This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online
 - **API Layer**: `src/api/ddoAudit/` handles external API calls (e.g., `fetchRaidActivity`, `fetchCharactersByIds`).
 - **Business Logic**: `src/domains/` contains domain-specific functions (e.g., `raidLogic.ts` for raid grouping).
 - **State Management**: React contexts in `src/contexts/` (e.g., `CharacterContext` for shared character data).
-- **Configuration**: `src/config/characters.ts` defines `CHARACTERS_BY_PLAYER` mapping character IDs to players.
+- **Configuration**: `src/config/characters.ts` loads character mappings from `src/data/lowb.json` (player-character names) and `src/data/character_ids.csv` (character IDs).
 
 ## Key Patterns
 
@@ -48,7 +48,7 @@ This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online
 - **Imports**: Use `@/` for absolute imports from `src/` (e.g., `@/api/ddoAudit`), except for imports within the same component directory (use relative paths like `./RaidCard`). Order following standard guidelines: external libraries first, then internal modules (api/, components/, domains/, etc.), grouped and sorted alphabetically within each group.
 - **Error Handling**: Use try/catch in async fetches, set error states.
 - **State Updates**: Use `useMemo` for computed values like `raidGroups`.
-- **Config Updates**: Edit `CHARACTERS_BY_PLAYER` to add/remove characters; rebuild required.
+- **Config Updates**: Edit `src/data/lowb.json` to add/remove characters, then run `npx tsx scripts/update-character-ids.ts` to fetch IDs from API.
 
 ## Examples
 
