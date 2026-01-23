@@ -1,5 +1,5 @@
 import { DDOAUDIT_BASE_URL, MAX_CHARACTER_IDS_PER_REQUEST } from './constants'
-import { chunk } from './helpers'
+import { chunk, normalizeRaceName } from './helpers'
 
 export interface FetchOptions {
   signal?: AbortSignal
@@ -36,7 +36,12 @@ export async function fetchCharactersByIds(characterIds: string[], options: Fetc
         throw new Error(`Failed to fetch characters (${resp.status})`)
       }
       const json = await resp.json()
-      return (json?.data ?? {}) as Record<string, CharacterData>
+      const data = (json?.data ?? {}) as Record<string, CharacterData>
+      // Normalize race names (workaround for API returning "Unknown: <id>" for new races)
+      for (const char of Object.values(data)) {
+        char.race = normalizeRaceName(char.race)
+      }
+      return data
     }),
   )
 

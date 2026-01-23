@@ -1,5 +1,22 @@
 import { RAID_LOCKOUT_MS } from './constants'
 
+/**
+ * Mapping for race names that the DDO Audit API returns incorrectly.
+ * This is a temporary workaround until the upstream API is fixed.
+ */
+const RACE_NAME_OVERRIDES: Record<string, string> = {
+  'Unknown: 219': 'Dark Bargainer',
+  'Unknown: 218': 'Dhampir',
+}
+
+/**
+ * Normalizes race names returned by the DDO Audit API.
+ * Some new races are returned as "Unknown: <id>" by the API.
+ */
+export function normalizeRaceName(race: string): string {
+  return RACE_NAME_OVERRIDES[race] ?? race
+}
+
 export function chunk<T>(items: T[], size: number): T[][] {
   if (!Array.isArray(items) || items.length === 0) return []
   const chunkSize = Math.max(1, size | 0)

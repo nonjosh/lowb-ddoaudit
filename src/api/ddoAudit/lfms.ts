@@ -1,4 +1,5 @@
 import { DDOAUDIT_BASE_URL } from './constants'
+import { normalizeRaceName } from './helpers'
 
 export interface FetchOptions {
   signal?: AbortSignal
@@ -30,6 +31,19 @@ export interface LfmItem {
   difficulty?: string
   comment?: string
   adventure_active_time?: string | number
+}
+
+/**
+ * Normalizes race names for all characters in an LfmItem.
+ */
+function normalizeCharacterRaces(lfm: LfmItem): void {
+  // Leader is required
+  lfm.leader.race = normalizeRaceName(lfm.leader.race)
+  if (lfm.members) {
+    for (const member of lfm.members) {
+      member.race = normalizeRaceName(member.race)
+    }
+  }
 }
 
 export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions = {}): Promise<Record<string, LfmItem>> {
@@ -81,5 +95,12 @@ export async function fetchLfms(serverName = 'shadowdale', options: FetchOptions
     return {}
   }
 
-  return normalize(json)
+  const result = normalize(json)
+
+  // Normalize race names for all characters (workaround for API returning "Unknown: <id>" for new races)
+  for (const lfm of Object.values(result)) {
+    normalizeCharacterRaces(lfm)
+  }
+
+  return result
 }
