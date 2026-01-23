@@ -13,7 +13,8 @@ export default function Layout({ children }: LayoutProps) {
     { label: 'Raids', path: '/' },
     { label: 'Item Wiki', path: '/wiki' },
     { label: 'Wish List', path: '/wishlist' },
-    { label: 'Gear Planner', path: '/planner' }
+    { label: 'Gear Planner', path: '/planner' },
+    { label: 'TR Planner', path: '/tr-planner' }
   ]
 
   return (
