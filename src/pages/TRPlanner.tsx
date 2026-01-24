@@ -25,6 +25,7 @@ import BonusConfigPanel from '@/components/trPlanner/BonusConfigPanel'
 import LevelRuler from '@/components/trPlanner/LevelRuler'
 import PlanManager from '@/components/trPlanner/PlanManager'
 import QuestSelector from '@/components/trPlanner/QuestSelector'
+import SagaSummary from '@/components/trPlanner/SagaSummary'
 import XPProgressionChart from '@/components/trPlanner/XPProgressionChart'
 import { CHARACTERS } from '@/config/characters'
 import { useTRPlanner } from '@/contexts/useTRPlanner'
@@ -37,6 +38,8 @@ export default function TRPlanner() {
     bonuses,
     selectedQuestIds,
     selectedPackNames,
+    completedQuestIds,
+    sagaFilter,
     startLevel,
     selectedCharacterIds,
     savedPlans,
@@ -53,6 +56,9 @@ export default function TRPlanner() {
     toggleQuest,
     togglePack,
     toggleCharacter,
+    toggleQuestCompletion,
+    setSagaFilter,
+    toggleSagaFilter,
     newPlan,
     savePlan,
     loadPlan,
@@ -391,9 +397,13 @@ export default function TRPlanner() {
             packs={packs}
             selectedQuestIds={selectedQuestIds}
             selectedPackNames={selectedPackNames}
+            completedQuestIds={completedQuestIds}
+            sagaFilter={sagaFilter}
             mode={mode}
             onToggleQuest={toggleQuest}
             onTogglePack={togglePack}
+            onToggleQuestCompletion={toggleQuestCompletion}
+            onSetSagaFilter={setSagaFilter}
           />
         </Box>
 
@@ -406,6 +416,15 @@ export default function TRPlanner() {
             bonuses={bonuses}
             selectedQuests={selectedQuests}
             startLevel={startLevel}
+          />
+
+          {/* Saga Progress Summary */}
+          <SagaSummary
+            mode={mode}
+            selectedQuests={selectedQuests}
+            completedQuestIds={completedQuestIds}
+            sagaFilter={sagaFilter}
+            onToggleSagaFilter={toggleSagaFilter}
           />
 
           {/* Level Coverage Chart */}

@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 import { PlanMode, TRTier } from '@/domains/trPlanner/levelRequirements'
 import { DEFAULT_BONUS_CONFIG, XPBonusConfig } from '@/domains/trPlanner/xpCalculator'
@@ -21,6 +21,7 @@ import {
 
 const DDOAUDIT_QUESTS_URL = 'https://api.ddoaudit.com/v1/quests'
 const AREAS_URL = '/lowb-ddoaudit/data/areas.json'
+const STORAGE_KEY = 'trPlannerSelection'
 
 interface TRPlannerProviderProps {
   children: ReactNode
@@ -152,8 +153,10 @@ const initialState: TRPlannerState = {
   bonuses: DEFAULT_BONUS_CONFIG,
   selectedQuestIds: new Set(),
   selectedPackNames: new Set(),
+  completedQuestIds: new Set(),
   startLevel: 20, // Default to 20 for epic mode
   selectedCharacterIds: new Set(),
+  sagaFilter: [],
   savedPlans: [],
   currentPlanId: null,
   currentPlanName: 'New Plan',
@@ -163,13 +166,83 @@ const initialState: TRPlannerState = {
   error: null,
 }
 
+interface PersistedSelection {
+  mode: PlanMode
+  trTier: TRTier
+  bonuses: XPBonusConfig
+  selectedQuestIds: string[]
+  selectedPackNames: string[]
+  completedQuestIds: string[]
+  startLevel: number
+  selectedCharacterIds: string[]
+  sagaFilter: string[]
+  currentPlanName: string
+}
+
+function loadPersistedSelection(): Partial<TRPlannerState> | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (!stored) return null
+    const parsed = JSON.parse(stored) as PersistedSelection
+    return {
+      mode: parsed.mode,
+      trTier: parsed.trTier,
+      bonuses: parsed.bonuses,
+      selectedQuestIds: new Set(parsed.selectedQuestIds),
+      selectedPackNames: new Set(parsed.selectedPackNames),
+      completedQuestIds: new Set(parsed.completedQuestIds ?? []),
+      startLevel: parsed.startLevel,
+      selectedCharacterIds: new Set(parsed.selectedCharacterIds),
+      sagaFilter: parsed.sagaFilter ?? [],
+      currentPlanName: parsed.currentPlanName,
+    }
+  } catch (err) {
+    console.warn('Failed to load persisted TR planner selection:', err)
+    return null
+  }
+}
+
+function savePersistedSelection(state: TRPlannerState): void {
+  try {
+    const toStore: PersistedSelection = {
+      mode: state.mode,
+      trTier: state.trTier,
+      bonuses: state.bonuses,
+      selectedQuestIds: Array.from(state.selectedQuestIds),
+      selectedPackNames: Array.from(state.selectedPackNames),
+      completedQuestIds: Array.from(state.completedQuestIds),
+      startLevel: state.startLevel,
+      selectedCharacterIds: Array.from(state.selectedCharacterIds),
+      sagaFilter: state.sagaFilter,
+      currentPlanName: state.currentPlanName,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore))
+  } catch (err) {
+    console.warn('Failed to save TR planner selection:', err)
+  }
+}
+
 export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
-  const [state, setState] = useState<TRPlannerState>(initialState)
+  const [state, setState] = useState<TRPlannerState>(() => {
+    // Try to restore persisted selection on initial load
+    const persisted = loadPersistedSelection()
+    if (persisted) {
+      return { ...initialState, ...persisted }
+    }
+    return initialState
+  })
 
   // Load saved plans on mount
   useEffect(() => {
     void loadSavedPlans()
   }, [])
+
+  // Persist selection to localStorage when it changes
+  const stateRef = useRef(state)
+  stateRef.current = state
+  useEffect(() => {
+    savePersistedSelection(stateRef.current)
+  }, [state.mode, state.trTier, state.bonuses, state.selectedQuestIds, state.selectedPackNames, state.completedQuestIds, state.startLevel, state.selectedCharacterIds, state.sagaFilter, state.currentPlanName])
 
   const loadSavedPlans = async () => {
     try {
@@ -249,23 +322,31 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
     })
   }, [])
 
-  const togglePack = useCallback((packName: string) => {
+  const togglePack = useCallback((packName: string, filteredQuestIds?: string[]) => {
     setState((prev) => {
       const pack = prev.packs.find((p) => p.name === packName)
       if (!pack) return prev
 
       const newSelectedPacks = new Set(prev.selectedPackNames)
       const newSelectedQuests = new Set(prev.selectedQuestIds)
-      const packQuestIds = pack.quests.map((q) => q.id)
+      // Use filtered quest IDs if provided, otherwise use all pack quests
+      const packQuestIds = filteredQuestIds ?? pack.quests.map((q) => q.id)
 
-      if (newSelectedPacks.has(packName)) {
-        // Deselect pack and all its quests
-        newSelectedPacks.delete(packName)
+      // Check if any of the filtered quests are selected
+      const hasSelectedQuests = packQuestIds.some((id) => newSelectedQuests.has(id))
+
+      if (hasSelectedQuests) {
+        // Deselect all filtered quests
         for (const id of packQuestIds) {
           newSelectedQuests.delete(id)
         }
+        // Check if any quests from this pack are still selected
+        const anyStillSelected = pack.quests.some((q) => newSelectedQuests.has(q.id))
+        if (!anyStillSelected) {
+          newSelectedPacks.delete(packName)
+        }
       } else {
-        // Select pack and all its quests
+        // Select all filtered quests
         newSelectedPacks.add(packName)
         for (const id of packQuestIds) {
           newSelectedQuests.add(id)
@@ -308,6 +389,53 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
     }))
   }, [])
 
+  // Quest completion tracking
+  const toggleQuestCompletion = useCallback((questId: string) => {
+    setState((prev) => {
+      const newCompleted = new Set(prev.completedQuestIds)
+      if (newCompleted.has(questId)) {
+        newCompleted.delete(questId)
+      } else {
+        newCompleted.add(questId)
+      }
+      return { ...prev, completedQuestIds: newCompleted }
+    })
+  }, [])
+
+  const markQuestsCompleted = useCallback((questIds: string[]) => {
+    setState((prev) => {
+      const newCompleted = new Set(prev.completedQuestIds)
+      for (const id of questIds) {
+        newCompleted.add(id)
+      }
+      return { ...prev, completedQuestIds: newCompleted }
+    })
+  }, [])
+
+  const markQuestsIncomplete = useCallback((questIds: string[]) => {
+    setState((prev) => {
+      const newCompleted = new Set(prev.completedQuestIds)
+      for (const id of questIds) {
+        newCompleted.delete(id)
+      }
+      return { ...prev, completedQuestIds: newCompleted }
+    })
+  }, [])
+
+  // Saga filter management
+  const setSagaFilter = useCallback((sagas: string[]) => {
+    setState((prev) => ({ ...prev, sagaFilter: sagas }))
+  }, [])
+
+  const toggleSagaFilter = useCallback((sagaName: string) => {
+    setState((prev) => {
+      const newFilter = prev.sagaFilter.includes(sagaName)
+        ? prev.sagaFilter.filter((s) => s !== sagaName)
+        : [...prev.sagaFilter, sagaName]
+      return { ...prev, sagaFilter: newFilter }
+    })
+  }, [])
+
   const toggleCharacter = useCallback((characterId: string) => {
     setState((prev) => {
       const newSelected = new Set(prev.selectedCharacterIds)
@@ -332,8 +460,10 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
       bonuses: DEFAULT_BONUS_CONFIG,
       selectedQuestIds: new Set(),
       selectedPackNames: new Set(),
+      completedQuestIds: new Set(),
       startLevel: 1,
       selectedCharacterIds: new Set(),
+      sagaFilter: [],
       currentPlanId: null,
       currentPlanName: 'New Plan',
     }))
@@ -431,6 +561,11 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
     selectQuests,
     deselectQuests,
     clearSelection,
+    toggleQuestCompletion,
+    markQuestsCompleted,
+    markQuestsIncomplete,
+    setSagaFilter,
+    toggleSagaFilter,
     toggleCharacter,
     clearCharacters,
     newPlan,

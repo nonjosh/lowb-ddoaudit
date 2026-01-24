@@ -47,8 +47,15 @@ const PACK_COLORS = [
   '#607D8B', // Blue Grey
 ]
 
-function getPackColor(_packName: string, packIndex: number): string {
-  return PACK_COLORS[packIndex % PACK_COLORS.length]
+function getPackColor(packName: string): string {
+  // Use a hash of the pack name for consistent coloring regardless of order
+  let hash = 0
+  for (let i = 0; i < packName.length; i++) {
+    const char = packName.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return PACK_COLORS[Math.abs(hash) % PACK_COLORS.length]
 }
 
 interface PackCoverage {
@@ -74,7 +81,6 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
   // Group quests by pack and calculate coverage
   const packCoverages = useMemo(() => {
     const packMap = new Map<string, PackCoverage>()
-    let packIndex = 0
 
     // First pass: collect all quests with XP to calculate median XP per level
     const xpByLevel = new Map<number, number[]>()
@@ -125,7 +131,7 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
       if (!packMap.has(packName)) {
         packMap.set(packName, {
           packName,
-          color: getPackColor(packName, packIndex++),
+          color: getPackColor(packName),
           quests: [],
           minLevel: Infinity,
           maxLevel: -Infinity,
@@ -312,69 +318,98 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
           />
         ))}
 
-        {/* Character marker lines */}
-        {characterMarkers.map((char) => {
-          const charPercent = levelToPercent(char.level)
-          // Offset slightly if multiple characters at same level
-          const sameLevel = characterMarkers.filter((c) => c.level === char.level)
-          const offsetIndex = sameLevel.findIndex((c) => c.id === char.id)
-          const offset = sameLevel.length > 1 ? (offsetIndex - (sameLevel.length - 1) / 2) * 2 : 0
-          const markerColor = char.isOnline ? 'success.main' : 'warning.main'
-          const markerHoverColor = char.isOnline ? 'success.light' : 'warning.light'
+        {/* Character markers - grouped by level */}
+        {(() => {
+          // Group characters by level
+          const charsByLevel = new Map<number, typeof characterMarkers>()
+          for (const char of characterMarkers) {
+            if (!charsByLevel.has(char.level)) {
+              charsByLevel.set(char.level, [])
+            }
+            charsByLevel.get(char.level)!.push(char)
+          }
 
-          return (
-            <Tooltip
-              key={char.id}
-              title={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {char.isOnline && (
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: 'success.main',
-                      }}
-                    />
-                  )}
-                  {char.name} - lv{char.level}
-                  {char.isOnline && ' (online)'}
-                </Box>
-              }
-              arrow
-              placement="top"
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  left: `calc(${charPercent}% + ${offset}px)`,
-                  top: 0,
-                  bottom: 0,
-                  width: 2,
-                  bgcolor: markerColor,
-                  zIndex: 5,
-                  cursor: 'pointer',
-                  '&:hover': {
-                    width: 3,
-                    bgcolor: markerHoverColor,
-                  },
-                  '&::before': {
-                    content: '""',
+          return Array.from(charsByLevel.entries()).map(([level, chars]) => {
+            const charPercent = levelToPercent(level)
+            const hasOnline = chars.some((c) => c.isOnline)
+            const markerColor = hasOnline ? 'success.main' : 'warning.main'
+            const markerHoverColor = hasOnline ? 'success.light' : 'warning.light'
+            // Width based on number of characters (min 3px, max 10px)
+            const markerWidth = Math.min(10, Math.max(3, chars.length * 3))
+
+            return (
+              <Tooltip
+                key={`level-${level}`}
+                title={
+                  <Box>
+                    {chars.map((char) => (
+                      <Box key={char.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {char.isOnline && (
+                          <Box
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              bgcolor: 'success.main',
+                            }}
+                          />
+                        )}
+                        {char.name} - lv{char.level}
+                        {char.isOnline && ' (online)'}
+                      </Box>
+                    ))}
+                  </Box>
+                }
+                arrow
+                placement="top"
+              >
+                <Box
+                  sx={{
                     position: 'absolute',
-                    top: -6,
-                    left: '50%',
+                    left: `${charPercent}%`,
                     transform: 'translateX(-50%)',
-                    width: 8,
-                    height: 8,
+                    top: 0,
+                    bottom: 0,
+                    width: markerWidth,
                     bgcolor: markerColor,
-                    borderRadius: '50%',
-                    border: `2px solid ${theme.palette.background.paper}`,
-                  },
-                }}
-              />
-            </Tooltip>
-          )
-        })}
+                    zIndex: 5,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      width: markerWidth + 2,
+                      bgcolor: markerHoverColor,
+                    },
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: -6,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: chars.length > 1 ? 12 : 8,
+                      height: chars.length > 1 ? 12 : 8,
+                      bgcolor: markerColor,
+                      borderRadius: '50%',
+                      border: `2px solid ${theme.palette.background.paper}`,
+                    },
+                    '&::after': chars.length > 1 ? {
+                      content: `"${chars.length}"`,
+                      position: 'absolute',
+                      top: -18,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      color: markerColor,
+                      bgcolor: theme.palette.background.paper,
+                      padding: '0 2px',
+                      borderRadius: '2px',
+                      zIndex: 10,
+                    } : undefined,
+                  }}
+                />
+              </Tooltip>
+            )
+          })
+        })()}
 
         {/* Pack groups */}
         {packPositions.map(({ pack, packStartY, isCollapsed, questPositions }) => {
@@ -429,13 +464,13 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
                     width: `${widthPercent}%`,
                     top: rowY + 2,
                     height: ROW_HEIGHT - 4,
-                    bgcolor: item.isEstimated ? 'action.disabled' : pack.color,
+                    bgcolor: pack.color,
                     borderRadius: 1,
                     opacity: item.isEstimated ? 0.6 : 0.85,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    border: item.isEstimated ? `1px dashed ${pack.color}` : 'none',
+                    border: item.isEstimated ? `2px dashed ${theme.palette.background.paper}` : 'none',
                     px: 0.5,
                     overflow: 'hidden',
                     zIndex: 1,
@@ -529,26 +564,6 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
         )}
       </Box>
 
-      {/* Legend */}
-      {packCoverages.length > 0 && (
-        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {packCoverages.map((pack) => (
-            <Box key={pack.packName} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box
-                sx={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 0.5,
-                  bgcolor: pack.color,
-                }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                {pack.packName}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
     </Box>
   )
 }

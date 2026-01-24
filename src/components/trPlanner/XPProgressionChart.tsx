@@ -1,5 +1,7 @@
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import {
   Box,
   IconButton,
@@ -10,12 +12,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material'
 import { useMemo, useState } from 'react'
 import React from 'react'
 
+import ItemLootButton from '@/components/items/ItemLootButton'
 import { QuestWithXP } from '@/contexts/useTRPlanner'
 import {
   getHeroicXPForRank,
@@ -298,6 +302,21 @@ export default function XPProgressionChart({
     })
   }
 
+  const collapseAll = () => {
+    const collapsiblePacks = packGroups
+      .filter((g) => g.questRows.length > 1 || g.summaryRow !== null)
+      .map((g) => g.packName)
+    setCollapsedPacks(new Set(collapsiblePacks))
+  }
+
+  const expandAll = () => {
+    setCollapsedPacks(new Set())
+  }
+
+  const allCollapsed = packGroups
+    .filter((g) => g.questRows.length > 1 || g.summaryRow !== null)
+    .every((g) => collapsedPacks.has(g.packName))
+
   const totalXP = progressionData.length > 0 ? progressionData[progressionData.length - 1]?.cumulativeXP ?? 0 : 0
   const targetXP = mode === 'heroic' ? getTotalHeroicXP(trTier) : getTotalEpicXP()
   const finalRank = xpToRank(totalXP, mode, trTier)
@@ -328,9 +347,16 @@ export default function XPProgressionChart({
 
   return (
     <Paper sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        XP Progression
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h6">
+          XP Progression
+        </Typography>
+        <Tooltip title={allCollapsed ? 'Expand all packs' : 'Collapse all packs'}>
+          <IconButton size="small" onClick={allCollapsed ? expandAll : collapseAll}>
+            {allCollapsed ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Summary stats */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
@@ -375,10 +401,8 @@ export default function XPProgressionChart({
             <TableRow>
               <TableCell>Pack / Quest</TableCell>
               <TableCell align="right">Level</TableCell>
-              <TableCell align="right">XP</TableCell>
-              <TableCell align="right">Total XP</TableCell>
-              <TableCell align="center">Progress</TableCell>
-              <TableCell align="right">Levels Gained</TableCell>
+              <TableCell align="right">XP / Total</TableCell>
+              <TableCell sx={{ minWidth: 180 }}>Progress</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -421,36 +445,47 @@ export default function XPProgressionChart({
                       <Typography variant="body2" fontWeight="bold">
                         {displayRow && formatXP(group.summaryRow?.questXP ?? group.questRows.reduce((sum, r) => sum + r.questXP, 0))}
                       </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" fontWeight="bold">
-                        {displayRow && formatXP(displayRow.cumulativeXP)}
+                      <Typography variant="caption" color="text.secondary">
+                        {displayRow && `/ ${formatXP(displayRow.cumulativeXP)}`}
                       </Typography>
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell>
                       {displayRow && (
-                        <Typography variant="body2" fontWeight="bold">
-                          lv{group.questRows[0]?.startLevel ?? displayRow.startLevel}
-                          <Typography component="span" variant="caption" color="text.secondary">
-                            {' '}rank{group.questRows[0]?.startRank ?? displayRow.startRank}
+                        <Box>
+                          <Typography variant="body2" fontWeight="bold">
+                            {(group.questRows[0]?.startLevel ?? displayRow.startLevel) === displayRow.endLevel ? (
+                              <>
+                                lv{displayRow.endLevel}{' '}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{group.questRows[0]?.startRank ?? displayRow.startRank}
+                                </Typography>
+                                {' → '}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{displayRow.endRank}
+                                </Typography>
+                              </>
+                            ) : (
+                              <>
+                                lv{group.questRows[0]?.startLevel ?? displayRow.startLevel}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{group.questRows[0]?.startRank ?? displayRow.startRank}
+                                </Typography>
+                                {' → '}
+                                lv{displayRow.endLevel}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{displayRow.endRank}
+                                </Typography>
+                              </>
+                            )}
                           </Typography>
-                          {' → '}
-                          lv{displayRow.endLevel}
-                          <Typography component="span" variant="caption" color="text.secondary">
-                            {' '}rank{displayRow.endRank}
+                          <Typography
+                            variant="caption"
+                            fontWeight="bold"
+                            color={(group.summaryRow?.levelsGained ?? displayRow.levelsGained) >= 1 ? 'success.main' : 'text.secondary'}
+                          >
+                            +lv{(group.summaryRow?.levelsGained ?? group.questRows.reduce((sum, r) => sum + r.levelsGained, 0)).toFixed(1)}
                           </Typography>
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="right">
-                      {displayRow && (
-                        <Typography
-                          variant="body2"
-                          fontWeight="bold"
-                          color={(group.summaryRow?.levelsGained ?? displayRow.levelsGained) >= 1 ? 'success.main' : 'text.secondary'}
-                        >
-                          +{(group.summaryRow?.levelsGained ?? group.questRows.reduce((sum, r) => sum + r.levelsGained, 0)).toFixed(1)}
-                        </Typography>
+                        </Box>
                       )}
                     </TableCell>
                   </TableRow>
@@ -461,12 +496,10 @@ export default function XPProgressionChart({
                       key={`${row.packName}-${row.questName}-${index}`}
                       sx={{
                         display: isCollapsed ? 'none' : 'table-row',
-                        bgcolor: row.isEstimated ? `${theme.palette.warning.main}15` : 'transparent',
-                        borderLeft: row.isEstimated ? `3px solid ${theme.palette.warning.main}` : 'none',
                       }}
                     >
                       <TableCell>
-                        <Box sx={{ pl: 3 }}>
+                        <Box sx={{ pl: 3, display: 'flex', alignItems: 'center' }}>
                           <Typography variant="body2">
                             {row.questName}
                             {row.isEstimated && (
@@ -475,6 +508,7 @@ export default function XPProgressionChart({
                               </Typography>
                             )}
                           </Typography>
+                          {row.questName && <ItemLootButton questName={row.questName} />}
                         </Box>
                       </TableCell>
                       <TableCell align="right">lv{row.questLevel}</TableCell>
@@ -486,32 +520,45 @@ export default function XPProgressionChart({
                         >
                           {row.isEstimated && '~'}{formatXP(row.questXP)}
                         </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2">
-                          {formatXP(row.cumulativeXP)}
+                        <Typography variant="caption" color="text.secondary">
+                          / {formatXP(row.cumulativeXP)}
                         </Typography>
                       </TableCell>
-                      <TableCell align="center">
-                        <Typography variant="body2">
-                          lv{row.startLevel}
-                          <Typography component="span" variant="caption" color="text.secondary">
-                            {' '}rank{row.startRank}
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2">
+                            {row.startLevel === row.endLevel ? (
+                              <>
+                                lv{row.endLevel}{' '}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{row.startRank}
+                                </Typography>
+                                {' → '}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{row.endRank}
+                                </Typography>
+                              </>
+                            ) : (
+                              <>
+                                lv{row.startLevel}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{row.startRank}
+                                </Typography>
+                                {' → '}
+                                lv{row.endLevel}
+                                <Typography component="span" variant="caption" color="text.secondary">
+                                  rank{row.endRank}
+                                </Typography>
+                              </>
+                            )}
                           </Typography>
-                          {' → '}
-                          lv{row.endLevel}
-                          <Typography component="span" variant="caption" color="text.secondary">
-                            {' '}rank{row.endRank}
+                          <Typography
+                            variant="caption"
+                            color={row.levelsGained >= 1 ? 'success.main' : 'text.secondary'}
+                          >
+                            +lv{row.levelsGained.toFixed(1)}
                           </Typography>
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography
-                          variant="body2"
-                          color={row.levelsGained >= 1 ? 'success.main' : 'text.secondary'}
-                        >
-                          +{row.levelsGained.toFixed(1)}
-                        </Typography>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}

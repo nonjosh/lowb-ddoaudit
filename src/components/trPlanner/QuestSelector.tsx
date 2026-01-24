@@ -8,14 +8,8 @@ import {
   Box,
   Checkbox,
   Chip,
-  FormControl,
-  FormControlLabel,
   InputAdornment,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
-  SelectChangeEvent,
   TextField,
   Typography,
 } from '@mui/material'
@@ -29,28 +23,14 @@ interface QuestSelectorProps {
   packs: AdventurePack[]
   selectedQuestIds: Set<string>
   selectedPackNames: Set<string>
+  completedQuestIds: Set<string>
   mode: PlanMode
+  sagaFilter: string[]
   onToggleQuest: (questId: string) => void
-  onTogglePack: (packName: string) => void
+  onTogglePack: (packName: string, filteredQuestIds?: string[]) => void
+  onToggleQuestCompletion: (questId: string) => void
+  onSetSagaFilter: (sagas: string[]) => void
 }
-
-// Level filter options for heroic mode
-const HEROIC_LEVEL_FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: '1-5', label: 'lv1-5', min: 1, max: 5 },
-  { value: '6-10', label: 'lv6-10', min: 6, max: 10 },
-  { value: '11-15', label: 'lv11-15', min: 11, max: 15 },
-  { value: '16-20', label: 'lv16-20', min: 16, max: 20 },
-] as const
-
-// Level filter options for epic mode
-const EPIC_LEVEL_FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: '20-22', label: 'lv20-22', min: 20, max: 22 },
-  { value: '23-25', label: 'lv23-25', min: 23, max: 25 },
-  { value: '26-28', label: 'lv26-28', min: 26, max: 28 },
-  { value: '29-30', label: 'lv29-30', min: 29, max: 30 },
-] as const
 
 // Saga data interface
 interface Saga {
@@ -62,23 +42,20 @@ interface Saga {
   quests: string[]
 }
 
-type LevelFilterValue = string
-
 export default function QuestSelector({
   packs,
   selectedQuestIds,
+  completedQuestIds,
   mode,
+  sagaFilter,
   onToggleQuest,
   onTogglePack,
+  onToggleQuestCompletion,
+  onSetSagaFilter,
 }: QuestSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [levelFilter, setLevelFilter] = useState<LevelFilterValue>('all')
   const [patronFilter, setPatronFilter] = useState<string[]>([])
-  const [sagaFilter, setSagaFilter] = useState<string[]>([])
   const [expandedPacks, setExpandedPacks] = useState<Set<string>>(new Set())
-
-  // Get level filter options based on mode
-  const levelFilterOptions = mode === 'heroic' ? HEROIC_LEVEL_FILTERS : EPIC_LEVEL_FILTERS
 
   // Build saga quest name set for current mode
   const { sagaQuestNames, availableSagas } = useMemo(() => {
@@ -87,7 +64,14 @@ export default function QuestSelector({
     if (sagaFilter.length > 0) {
       for (const saga of sagas) {
         if (sagaFilter.includes(saga.name)) {
-          saga.quests.forEach((q) => questNames.add(q.toLowerCase()))
+          // Add exact quest names and also try to match partial names
+          for (const questName of saga.quests) {
+            questNames.add(questName.toLowerCase())
+            // Also add without "The " prefix for matching
+            if (questName.toLowerCase().startsWith('the ')) {
+              questNames.add(questName.toLowerCase().substring(4))
+            }
+          }
         }
       }
     }
@@ -107,28 +91,8 @@ export default function QuestSelector({
     return Array.from(patrons).sort()
   }, [packs])
 
-  // Reset level filter when mode changes if current filter is invalid
-  const effectiveLevelFilter = useMemo(() => {
-    const validValues = levelFilterOptions.map((f) => f.value)
-    if (!validValues.includes(levelFilter as typeof validValues[number])) {
-      return 'all' as LevelFilterValue
-    }
-    return levelFilter
-  }, [levelFilter, levelFilterOptions])
-
   const filteredPacks = useMemo(() => {
     const query = searchQuery.toLowerCase()
-
-    // Get level range inline to avoid dependency issues
-    const getLevelRange = (filter: string): { min: number; max: number } | null => {
-      const options = mode === 'heroic' ? HEROIC_LEVEL_FILTERS : EPIC_LEVEL_FILTERS
-      const option = options.find((f) => f.value === filter)
-      if (option && 'min' in option) {
-        return { min: option.min, max: option.max }
-      }
-      return null
-    }
-    const levelRange = getLevelRange(effectiveLevelFilter)
 
     return packs
       .map((pack) => {
@@ -143,13 +107,6 @@ export default function QuestSelector({
             return false
           }
 
-          // Filter by level range
-          if (levelRange) {
-            if (questLevel < levelRange.min || questLevel > levelRange.max) {
-              return false
-            }
-          }
-
           // Filter by patron
           if (patronFilter.length > 0) {
             if (!quest.patron || !patronFilter.includes(quest.patron)) {
@@ -159,7 +116,10 @@ export default function QuestSelector({
 
           // Filter by saga
           if (sagaFilter.length > 0) {
-            if (!sagaQuestNames.has(quest.name.toLowerCase())) {
+            const questNameLower = quest.name.toLowerCase()
+            // Check exact match or match without "The " prefix
+            const nameWithoutThe = questNameLower.startsWith('the ') ? questNameLower.substring(4) : questNameLower
+            if (!sagaQuestNames.has(questNameLower) && !sagaQuestNames.has(nameWithoutThe)) {
               return false
             }
           }
@@ -208,11 +168,7 @@ export default function QuestSelector({
         const minB = b.minLevel ?? 999
         return minA - minB
       })
-  }, [packs, searchQuery, effectiveLevelFilter, mode, selectedQuestIds, patronFilter, sagaFilter, sagaQuestNames])
-
-  const handleLevelFilterChange = (event: SelectChangeEvent) => {
-    setLevelFilter(event.target.value)
-  }
+  }, [packs, searchQuery, mode, selectedQuestIds, patronFilter, sagaFilter, sagaQuestNames])
 
   const handlePackExpand = (packName: string) => (_: SyntheticEvent, isExpanded: boolean) => {
     setExpandedPacks((prev) => {
@@ -260,16 +216,6 @@ export default function QuestSelector({
       />
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-        <FormControl size="small" fullWidth>
-          <InputLabel>Level</InputLabel>
-          <Select value={effectiveLevelFilter} label="Level" onChange={handleLevelFilterChange}>
-            {levelFilterOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
         <Autocomplete
           multiple
           size="small"
@@ -291,7 +237,7 @@ export default function QuestSelector({
           options={availableSagas}
           getOptionLabel={(option) => `${option.name} (${option.questCount})`}
           value={availableSagas.filter((s) => sagaFilter.includes(s.name))}
-          onChange={(_, newValue) => setSagaFilter(newValue.map((s) => s.name))}
+          onChange={(_, newValue) => onSetSagaFilter(newValue.map((s) => s.name))}
           isOptionEqualToValue={(option, value) => option.name === value.name}
           renderInput={(params) => <TextField {...params} label="Saga" placeholder="Filter by saga" />}
           renderTags={(value, getTagProps) =>
@@ -309,11 +255,16 @@ export default function QuestSelector({
         />
       </Box>
 
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <Chip
           size="small"
-          label={`${totalSelected} / ${totalQuests} selected`}
+          label={`${totalSelected} selected`}
           color={totalSelected > 0 ? 'primary' : 'default'}
+        />
+        <Chip
+          size="small"
+          label={`${totalQuests} shown`}
+          variant="outlined"
         />
       </Box>
 
@@ -340,35 +291,29 @@ export default function QuestSelector({
             >
               <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
-                sx={{ minHeight: 40, '& .MuiAccordionSummary-content': { my: 0.5 } }}
+                sx={{ minHeight: 40, '& .MuiAccordionSummary-content': { my: 0.5, alignItems: 'center' } }}
               >
-                <FormControlLabel
+                <Checkbox
+                  size="small"
+                  checked={selectionState === 'all'}
+                  indeterminate={selectionState === 'some'}
                   onClick={(e) => e.stopPropagation()}
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={selectionState === 'all'}
-                      indeterminate={selectionState === 'some'}
-                      onChange={() => onTogglePack(pack.name)}
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {pack.name}
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={pack.minLevel === pack.maxLevel ? `lv${pack.minLevel ?? '?'}` : `lv${pack.minLevel ?? '?'}-${pack.maxLevel ?? '?'}`}
-                        sx={{ height: 20, fontSize: '0.7rem' }}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        ({pack.quests.length})
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ m: 0 }}
+                  onChange={() => onTogglePack(pack.name, pack.quests.map((q) => q.id))}
+                  sx={{ p: 0.5, mr: 1 }}
                 />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {pack.name}
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={pack.minLevel === pack.maxLevel ? `lv${pack.minLevel ?? '?'}` : `lv${pack.minLevel ?? '?'}-${pack.maxLevel ?? '?'}`}
+                    sx={{ height: 20, fontSize: '0.7rem' }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    ({pack.quests.length})
+                  </Typography>
+                </Box>
               </AccordionSummary>
               <AccordionDetails sx={{ pt: 0, pb: 1 }}>
                 {pack.quests.map((quest) => (
@@ -377,7 +322,9 @@ export default function QuestSelector({
                     quest={quest}
                     mode={mode}
                     isSelected={selectedQuestIds.has(quest.id)}
+                    isCompleted={completedQuestIds.has(quest.id)}
                     onToggle={() => onToggleQuest(quest.id)}
+                    onToggleCompletion={() => onToggleQuestCompletion(quest.id)}
                   />
                 ))}
               </AccordionDetails>
@@ -399,10 +346,12 @@ interface QuestRowProps {
   quest: QuestWithXP
   mode: PlanMode
   isSelected: boolean
+  isCompleted: boolean
   onToggle: () => void
+  onToggleCompletion: () => void
 }
 
-function QuestRow({ quest, mode, isSelected, onToggle }: QuestRowProps) {
+function QuestRow({ quest, mode, isSelected, isCompleted, onToggle, onToggleCompletion }: QuestRowProps) {
   const level = mode === 'heroic' ? quest.heroicCR : quest.epicCR
   const xp =
     mode === 'heroic'
@@ -410,36 +359,50 @@ function QuestRow({ quest, mode, isSelected, onToggle }: QuestRowProps) {
       : quest.xp.epic_elite ?? quest.xp.epic_normal
 
   return (
-    <FormControlLabel
-      control={<Checkbox size="small" checked={isSelected} onChange={onToggle} />}
-      label={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-          <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }} noWrap>
-            {quest.name}
-          </Typography>
-          <Chip
-            size="small"
-            label={`lv${level}`}
-            color={isSelected ? 'primary' : 'default'}
-            sx={{ height: 18, fontSize: '0.65rem', minWidth: 35 }}
-          />
-          {xp && (
-            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50, textAlign: 'right' }}>
-              {xp.toLocaleString()}
-            </Typography>
-          )}
-          {quest.groupSize === 'Raid' && (
-            <Chip size="small" label="R" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
-          )}
-        </Box>
-      }
+    <Box
       sx={{
-        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
         ml: 2,
         mr: 0,
-        bgcolor: isSelected ? 'action.selected' : 'transparent',
+        bgcolor: isCompleted ? 'success.main' : isSelected ? 'action.selected' : 'transparent',
         borderRadius: 1,
+        opacity: isCompleted ? 0.7 : 1,
+        '&:hover': { bgcolor: isCompleted ? 'success.dark' : 'action.hover' },
       }}
-    />
+    >
+      <Checkbox size="small" checked={isSelected} onChange={onToggle} sx={{ p: 0.5 }} />
+      <Box
+        sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0, cursor: isSelected ? 'pointer' : 'default', py: 0.5 }}
+        onClick={isSelected ? onToggleCompletion : undefined}
+        title={isSelected ? (isCompleted ? 'Click to mark incomplete' : 'Click to mark completed') : undefined}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            textDecoration: isCompleted ? 'line-through' : 'none',
+          }}
+          noWrap
+        >
+          {isCompleted && '✓ '}{quest.name}
+        </Typography>
+        <Chip
+          size="small"
+          label={`lv${level}`}
+          color={isCompleted ? 'success' : isSelected ? 'primary' : 'default'}
+          sx={{ height: 18, fontSize: '0.65rem', minWidth: 35 }}
+        />
+        {xp && (
+          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 50, textAlign: 'right' }}>
+            {xp.toLocaleString()}
+          </Typography>
+        )}
+        {quest.groupSize === 'Raid' && (
+          <Chip size="small" label="R" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
+        )}
+      </Box>
+    </Box>
   )
 }

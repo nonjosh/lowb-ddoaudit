@@ -49,8 +49,10 @@ export interface TRPlannerState {
   bonuses: XPBonusConfig
   selectedQuestIds: Set<string>
   selectedPackNames: Set<string>
+  completedQuestIds: Set<string> // Track completed quests
   startLevel: number // Starting level for the plan
   selectedCharacterIds: Set<string> // Selected character IDs for level markers
+  sagaFilter: string[] // Currently selected saga filters
 
   // Saved plans
   savedPlans: TRPlan[]
@@ -77,10 +79,19 @@ export interface TRPlannerActions {
 
   // Quest selection
   toggleQuest: (questId: string) => void
-  togglePack: (packName: string) => void
+  togglePack: (packName: string, filteredQuestIds?: string[]) => void
   selectQuests: (questIds: string[]) => void
   deselectQuests: (questIds: string[]) => void
   clearSelection: () => void
+
+  // Quest completion tracking
+  toggleQuestCompletion: (questId: string) => void
+  markQuestsCompleted: (questIds: string[]) => void
+  markQuestsIncomplete: (questIds: string[]) => void
+
+  // Saga filter management
+  setSagaFilter: (sagas: string[]) => void
+  toggleSagaFilter: (sagaName: string) => void
 
   // Character selection for level markers
   toggleCharacter: (characterId: string) => void
