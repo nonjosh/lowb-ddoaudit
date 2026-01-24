@@ -16,6 +16,7 @@ export interface QuestWithXP {
   patron: string | null
   groupSize: 'Solo' | 'Party' | 'Raid'
   length: number | null
+  areaId: string | null // For matching with character location_id
   xp: {
     heroic_casual: number | null
     heroic_normal: number | null

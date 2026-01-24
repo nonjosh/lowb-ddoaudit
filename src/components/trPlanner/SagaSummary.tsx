@@ -50,6 +50,18 @@ interface SagaProgress {
   isFullySelected: boolean
 }
 
+/**
+ * Normalize quest name for matching between saga data and quests.json
+ * Handles common differences like "The", "A", "An" prefixes and singular/plural
+ */
+function normalizeQuestName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/^(the|a|an)\s+/i, '') // Remove leading articles
+    .replace(/s$/, '') // Remove trailing 's' for singular/plural
+    .trim()
+}
+
 export default function SagaSummary({ mode, selectedQuests, completedQuestIds, sagaFilter, onToggleSagaFilter }: SagaSummaryProps) {
   const [expanded, setExpanded] = useState(false)
 
@@ -58,20 +70,25 @@ export default function SagaSummary({ mode, selectedQuests, completedQuestIds, s
       ? (sagasData.heroic as Saga[])
       : [...(sagasData.epic as Saga[]), ...(sagasData.legendary as Saga[])]
 
-    // Build maps for selected and completed quest names
+    // Build maps for selected and completed quest names (normalized for matching)
+    const selectedQuestNamesNormalized = new Set(selectedQuests.map((q) => normalizeQuestName(q.name)))
+    const selectedQuestIdByNormalizedName = new Map(selectedQuests.map((q) => [normalizeQuestName(q.name), q.id]))
+    // Also keep original lowercase names for display
     const selectedQuestNames = new Set(selectedQuests.map((q) => q.name.toLowerCase()))
-    const selectedQuestIdByName = new Map(selectedQuests.map((q) => [q.name.toLowerCase(), q.id]))
 
     const progressList: SagaProgress[] = []
 
     for (const saga of sagas) {
-      const sagaQuestNames = saga.quests.map((q) => q.toLowerCase())
-      const selectedInSaga = sagaQuestNames.filter((q) => selectedQuestNames.has(q))
-      const completedInSaga = sagaQuestNames.filter((q) => {
-        const questId = selectedQuestIdByName.get(q)
+      const sagaQuestNamesNormalized = saga.quests.map((q) => normalizeQuestName(q))
+      const selectedInSaga = sagaQuestNamesNormalized.filter((q) => selectedQuestNamesNormalized.has(q))
+      const completedInSaga = sagaQuestNamesNormalized.filter((q) => {
+        const questId = selectedQuestIdByNormalizedName.get(q)
         return questId && completedQuestIds.has(questId)
       })
-      const missingQuests = saga.quests.filter((q) => !selectedQuestNames.has(q.toLowerCase()))
+      // For missing quests display, check both normalized and original names
+      const missingQuests = saga.quests.filter((q) =>
+        !selectedQuestNamesNormalized.has(normalizeQuestName(q)) && !selectedQuestNames.has(q.toLowerCase())
+      )
 
       progressList.push({
         saga,

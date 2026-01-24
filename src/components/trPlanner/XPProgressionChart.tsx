@@ -4,6 +4,7 @@ import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import {
   Box,
+  Checkbox,
   IconButton,
   Paper,
   Table,
@@ -45,11 +46,16 @@ interface XPProgressionChartProps {
   trTier: TRTier
   bonuses: XPBonusConfig
   selectedQuests: QuestWithXP[]
+  completedQuestIds: Set<string>
+  onToggleQuestCompletion: (questId: string) => void
+  onMarkQuestsCompleted: (questIds: string[]) => void
+  onMarkQuestsIncomplete: (questIds: string[]) => void
   startLevel?: number
 }
 
 interface ProgressionRow {
   packName: string
+  questId: string | null // null for pack summary rows
   questName: string | null // null for pack summary rows
   questLevel: number
   questXP: number
@@ -68,6 +74,10 @@ export default function XPProgressionChart({
   trTier,
   bonuses,
   selectedQuests,
+  completedQuestIds,
+  onToggleQuestCompletion,
+  onMarkQuestsCompleted,
+  onMarkQuestsIncomplete,
   startLevel: propStartLevel,
 }: XPProgressionChartProps) {
   const theme = useTheme()
@@ -198,6 +208,7 @@ export default function XPProgressionChart({
 
         rows.push({
           packName,
+          questId: quest.id,
           questName: quest.name,
           questLevel,
           questXP,
@@ -220,6 +231,7 @@ export default function XPProgressionChart({
       if (sortedQuests.length > 1) {
         rows.push({
           packName,
+          questId: null,
           questName: null,
           questLevel: 0,
           questXP: packXP,
@@ -392,6 +404,14 @@ export default function XPProgressionChart({
             {((totalXP / targetXP) * 100).toFixed(0)}%
           </Typography>
         </Box>
+        <Box sx={{ p: 1, bgcolor: completedQuestIds.size > 0 ? 'success.main' : 'action.hover', borderRadius: 1, opacity: completedQuestIds.size > 0 ? 0.9 : 1 }}>
+          <Typography variant="caption" color={completedQuestIds.size > 0 ? 'white' : 'text.secondary'}>
+            Completed
+          </Typography>
+          <Typography variant="h6" color={completedQuestIds.size > 0 ? 'white' : 'inherit'}>
+            {completedQuestIds.size}/{selectedQuests.length}
+          </Typography>
+        </Box>
       </Box>
 
       {/* Progression table */}
@@ -411,27 +431,53 @@ export default function XPProgressionChart({
               const displayRow = group.summaryRow ?? group.questRows[group.questRows.length - 1]
               const hasMultipleQuests = group.questRows.length > 1 || group.summaryRow !== null
 
+              // Calculate pack completion status
+              const packQuestIds = group.questRows.map((r) => r.questId).filter((id): id is string => id !== null)
+              const completedInPack = packQuestIds.filter((id) => completedQuestIds.has(id))
+              const allPackCompleted = packQuestIds.length > 0 && completedInPack.length === packQuestIds.length
+              const somePackCompleted = completedInPack.length > 0 && completedInPack.length < packQuestIds.length
+
+              const handlePackCompletionToggle = (e: React.MouseEvent) => {
+                e.stopPropagation()
+                if (allPackCompleted) {
+                  onMarkQuestsIncomplete(packQuestIds)
+                } else {
+                  onMarkQuestsCompleted(packQuestIds)
+                }
+              }
+
               return (
                 <React.Fragment key={group.packName}>
                   {/* Pack header row */}
                   <TableRow
                     sx={{
-                      bgcolor: theme.palette.action.selected,
+                      bgcolor: allPackCompleted ? 'success.main' : theme.palette.action.selected,
+                      opacity: allPackCompleted ? 0.8 : 1,
                       cursor: hasMultipleQuests ? 'pointer' : 'default',
-                      '&:hover': hasMultipleQuests ? { bgcolor: theme.palette.action.hover } : {},
+                      '&:hover': hasMultipleQuests ? { bgcolor: allPackCompleted ? 'success.dark' : theme.palette.action.hover } : {},
                     }}
                     onClick={() => hasMultipleQuests && togglePackCollapse(group.packName)}
                   >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Tooltip title={allPackCompleted ? 'Mark all incomplete' : 'Mark all completed'}>
+                          <Checkbox
+                            size="small"
+                            checked={allPackCompleted}
+                            indeterminate={somePackCompleted}
+                            onClick={handlePackCompletionToggle}
+                            sx={{ p: 0.5, mr: 0.5 }}
+                          />
+                        </Tooltip>
                         {hasMultipleQuests && (
                           <IconButton size="small" sx={{ p: 0, mr: 0.5 }}>
                             {isCollapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
                           </IconButton>
                         )}
-                        <Typography variant="body2" fontWeight="bold">
+                        <Typography variant="body2" fontWeight="bold" sx={{ textDecoration: allPackCompleted ? 'line-through' : 'none' }}>
                           📦 {group.packName}
                           {group.summaryRow ? ` (${group.questRows.length})` : ''}
+                          {allPackCompleted && ' ✓'}
                           {displayRow?.isEstimated && (
                             <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
                               *
@@ -491,77 +537,94 @@ export default function XPProgressionChart({
                   </TableRow>
 
                   {/* Quest rows (collapsible) */}
-                  {group.questRows.map((row, index) => (
-                    <TableRow
-                      key={`${row.packName}-${row.questName}-${index}`}
-                      sx={{
-                        display: isCollapsed ? 'none' : 'table-row',
-                      }}
-                    >
-                      <TableCell>
-                        <Box sx={{ pl: 3, display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body2">
-                            {row.questName}
-                            {row.isEstimated && (
-                              <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
-                                (Est.)
-                              </Typography>
-                            )}
-                          </Typography>
-                          {row.questName && <ItemLootButton questName={row.questName} />}
-                        </Box>
-                      </TableCell>
-                      <TableCell align="right">lv{row.questLevel}</TableCell>
-                      <TableCell align="right">
-                        <Typography
-                          variant="body2"
-                          color={row.isEstimated ? 'warning.main' : 'inherit'}
-                          sx={{ fontStyle: row.isEstimated ? 'italic' : 'normal' }}
-                        >
-                          {row.isEstimated && '~'}{formatXP(row.questXP)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          / {formatXP(row.cumulativeXP)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box>
-                          <Typography variant="body2">
-                            {row.startLevel === row.endLevel ? (
-                              <>
-                                lv{row.endLevel}{' '}
-                                <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{row.startRank}
+                  {group.questRows.map((row, index) => {
+                    const isCompleted = row.questId ? completedQuestIds.has(row.questId) : false
+                    return (
+                      <TableRow
+                        key={`${row.packName}-${row.questName}-${index}`}
+                        sx={{
+                          display: isCollapsed ? 'none' : 'table-row',
+                          bgcolor: isCompleted ? 'success.main' : 'transparent',
+                          opacity: isCompleted ? 0.7 : 1,
+                          '&:hover': { bgcolor: isCompleted ? 'success.dark' : 'action.hover' },
+                        }}
+                      >
+                        <TableCell>
+                          <Box sx={{ pl: 1, display: 'flex', alignItems: 'center' }}>
+                            <Tooltip title={isCompleted ? 'Mark incomplete' : 'Mark completed'}>
+                              <Checkbox
+                                size="small"
+                                checked={isCompleted}
+                                onChange={() => row.questId && onToggleQuestCompletion(row.questId)}
+                                sx={{ p: 0.5 }}
+                              />
+                            </Tooltip>
+                            <Typography
+                              variant="body2"
+                              sx={{ textDecoration: isCompleted ? 'line-through' : 'none' }}
+                            >
+                              {row.questName}
+                              {row.isEstimated && (
+                                <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
+                                  (Est.)
                                 </Typography>
-                                {' → '}
-                                <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{row.endRank}
-                                </Typography>
-                              </>
-                            ) : (
-                              <>
-                                lv{row.startLevel}
-                                <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{row.startRank}
-                                </Typography>
-                                {' → '}
-                                lv{row.endLevel}
-                                <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{row.endRank}
-                                </Typography>
-                              </>
-                            )}
-                          </Typography>
+                              )}
+                            </Typography>
+                            {row.questName && <ItemLootButton questName={row.questName} />}
+                          </Box>
+                        </TableCell>
+                        <TableCell align="right">lv{row.questLevel}</TableCell>
+                        <TableCell align="right">
                           <Typography
-                            variant="caption"
-                            color={row.levelsGained >= 1 ? 'success.main' : 'text.secondary'}
+                            variant="body2"
+                            color={row.isEstimated ? 'warning.main' : 'inherit'}
+                            sx={{ fontStyle: row.isEstimated ? 'italic' : 'normal' }}
                           >
-                            +lv{row.levelsGained.toFixed(1)}
+                            {row.isEstimated && '~'}{formatXP(row.questXP)}
                           </Typography>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          <Typography variant="caption" color="text.secondary">
+                            / {formatXP(row.cumulativeXP)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2">
+                              {row.startLevel === row.endLevel ? (
+                                <>
+                                  lv{row.endLevel}{' '}
+                                  <Typography component="span" variant="caption" color="text.secondary">
+                                    rank{row.startRank}
+                                  </Typography>
+                                  {' → '}
+                                  <Typography component="span" variant="caption" color="text.secondary">
+                                    rank{row.endRank}
+                                  </Typography>
+                                </>
+                              ) : (
+                                <>
+                                  lv{row.startLevel}
+                                  <Typography component="span" variant="caption" color="text.secondary">
+                                    rank{row.startRank}
+                                  </Typography>
+                                  {' → '}
+                                  lv{row.endLevel}
+                                  <Typography component="span" variant="caption" color="text.secondary">
+                                    rank{row.endRank}
+                                  </Typography>
+                                </>
+                              )}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color={row.levelsGained >= 1 ? 'success.main' : 'text.secondary'}
+                            >
+                              +lv{row.levelsGained.toFixed(1)}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </React.Fragment>
               )
             })}

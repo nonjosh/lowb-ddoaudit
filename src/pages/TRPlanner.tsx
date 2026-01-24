@@ -57,6 +57,8 @@ export default function TRPlanner() {
     togglePack,
     toggleCharacter,
     toggleQuestCompletion,
+    markQuestsCompleted,
+    markQuestsIncomplete,
     setSagaFilter,
     toggleSagaFilter,
     newPlan,
@@ -69,9 +71,22 @@ export default function TRPlanner() {
   } = useTRPlanner()
 
   // Character data state - fetched directly from API
-  const [charactersById, setCharactersById] = useState<Record<string, { name: string; total_level: number; is_online?: boolean }>>({})
+  const [charactersById, setCharactersById] = useState<Record<string, { name: string; total_level: number; is_online?: boolean; location_id?: string }>>({})
   const [characterLoading, setCharacterLoading] = useState(false)
   const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Track previous location IDs to detect quest enter/leave
+  const prevLocationIds = useRef<Record<string, string | undefined>>({})
+
+  // Build areaId to questId map for auto-select
+  const areaToQuestMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const quest of quests) {
+      if (quest.areaId) {
+        map.set(quest.areaId, quest.id)
+      }
+    }
+    return map
+  }, [quests])
 
   // Fetch character data from API
   const fetchCharacters = useCallback(async () => {
@@ -115,6 +130,40 @@ export default function TRPlanner() {
       void refreshQuests()
     }
   }, [quests.length, loading, error, refreshQuests])
+
+  // Auto-select quests when selected characters enter, mark completed when they leave
+  useEffect(() => {
+    if (areaToQuestMap.size === 0) return
+
+    for (const charId of selectedCharacterIds) {
+      const char = charactersById[charId]
+      if (!char?.is_online) continue
+
+      const currentLocation = char.location_id
+      const previousLocation = prevLocationIds.current[charId]
+
+      // Character entered a new quest area
+      if (currentLocation && currentLocation !== previousLocation) {
+        const questId = areaToQuestMap.get(currentLocation)
+        if (questId && !selectedQuestIds.has(questId)) {
+          // Auto-select the quest
+          toggleQuest(questId)
+        }
+      }
+
+      // Character left a quest area (was in a quest, now somewhere else or offline)
+      if (previousLocation && previousLocation !== currentLocation) {
+        const questId = areaToQuestMap.get(previousLocation)
+        if (questId && selectedQuestIds.has(questId) && !completedQuestIds.has(questId)) {
+          // Mark the quest as completed
+          toggleQuestCompletion(questId)
+        }
+      }
+
+      // Update previous location
+      prevLocationIds.current[charId] = currentLocation
+    }
+  }, [charactersById, selectedCharacterIds, areaToQuestMap, selectedQuestIds, completedQuestIds, toggleQuest, toggleQuestCompletion])
 
   // Filter selected quests (only those valid for current mode)
   const selectedQuests = useMemo(() => {
@@ -415,6 +464,10 @@ export default function TRPlanner() {
             trTier={trTier}
             bonuses={bonuses}
             selectedQuests={selectedQuests}
+            completedQuestIds={completedQuestIds}
+            onToggleQuestCompletion={toggleQuestCompletion}
+            onMarkQuestsCompleted={markQuestsCompleted}
+            onMarkQuestsIncomplete={markQuestsIncomplete}
             startLevel={startLevel}
           />
 
@@ -437,6 +490,7 @@ export default function TRPlanner() {
               trTier={trTier}
               bonuses={bonuses}
               selectedQuests={selectedQuests}
+              completedQuestIds={completedQuestIds}
               characterMarkers={selectedCharacters}
             />
           </Paper>

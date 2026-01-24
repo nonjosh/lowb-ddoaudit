@@ -82,6 +82,7 @@ function parseQuestData(data: unknown[], wildernessAreaIds: Set<number>): QuestW
         patron: typeof quest.patron === 'string' ? quest.patron : null,
         groupSize: (quest.group_size as 'Solo' | 'Party' | 'Raid') ?? 'Party',
         length: typeof quest.length === 'number' ? quest.length : null,
+        areaId: typeof quest.area_id === 'number' ? String(quest.area_id) : null,
         xp: {
           heroic_casual: parseXPValue(xp?.heroic_casual),
           heroic_normal: parseXPValue(xp?.heroic_normal),

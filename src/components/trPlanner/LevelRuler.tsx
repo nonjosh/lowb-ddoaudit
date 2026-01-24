@@ -28,6 +28,7 @@ interface LevelRulerProps {
   trTier: TRTier
   bonuses: XPBonusConfig
   selectedQuests: QuestWithXP[]
+  completedQuestIds: Set<string>
   characterMarkers?: CharacterMarker[]
 }
 
@@ -74,7 +75,7 @@ interface PackCoverage {
   totalXP: number
 }
 
-export default function LevelRuler({ mode, bonuses, selectedQuests, characterMarkers = [] }: LevelRulerProps) {
+export default function LevelRuler({ mode, bonuses, selectedQuests, completedQuestIds, characterMarkers = [] }: LevelRulerProps) {
   const theme = useTheme()
   const levelMarkers = useMemo(() => getLevelMarkers(mode), [mode])
 
@@ -190,19 +191,52 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
     return Array.from(packMap.values()).sort((a, b) => a.minLevel - b.minLevel)
   }, [selectedQuests, mode, bonuses])
 
-  // State for collapsed packs
-  const [collapsedPacks, setCollapsedPacks] = useState<Set<string>>(new Set())
+  // State for manually collapsed packs
+  const [manuallyCollapsed, setManuallyCollapsed] = useState<Set<string>>(new Set())
+  // State for packs manually expanded (overrides auto-collapse)
+  const [manuallyExpanded, setManuallyExpanded] = useState<Set<string>>(new Set())
+
+  // Auto-collapse packs when all quests are completed
+  const autoCollapsedPacks = useMemo(() => {
+    const fullyCompletedPacks = new Set<string>()
+    for (const pack of packCoverages) {
+      const allCompleted = pack.quests.every((q) => completedQuestIds.has(q.quest.id))
+      if (allCompleted && pack.quests.length > 0) {
+        fullyCompletedPacks.add(pack.packName)
+      }
+    }
+    return fullyCompletedPacks
+  }, [packCoverages, completedQuestIds])
+
+  // Determine if a pack should be collapsed
+  const isPackCollapsed = (packName: string): boolean => {
+    // Manual expansion overrides auto-collapse
+    if (manuallyExpanded.has(packName)) return false
+    // Manual collapse takes precedence
+    if (manuallyCollapsed.has(packName)) return true
+    // Otherwise, auto-collapse if all quests completed
+    return autoCollapsedPacks.has(packName)
+  }
 
   const togglePackCollapse = (packName: string) => {
-    setCollapsedPacks((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(packName)) {
+    const currentlyCollapsed = isPackCollapsed(packName)
+    if (currentlyCollapsed) {
+      // Expand: add to manually expanded, remove from manually collapsed
+      setManuallyExpanded((prev) => new Set([...prev, packName]))
+      setManuallyCollapsed((prev) => {
+        const newSet = new Set(prev)
         newSet.delete(packName)
-      } else {
-        newSet.add(packName)
-      }
-      return newSet
-    })
+        return newSet
+      })
+    } else {
+      // Collapse: add to manually collapsed, remove from manually expanded
+      setManuallyCollapsed((prev) => new Set([...prev, packName]))
+      setManuallyExpanded((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(packName)
+        return newSet
+      })
+    }
   }
 
   const totalRanks = mode === 'heroic' ? 96 : 51
@@ -233,7 +267,7 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
 
     for (const pack of packCoverages) {
       const packStartY = currentY
-      const isCollapsed = collapsedPacks.has(pack.packName)
+      const isCollapsed = isPackCollapsed(pack.packName)
       currentY += PACK_HEADER_HEIGHT
 
       const questPositions = pack.quests.map((quest, questIndex) => {
@@ -251,7 +285,8 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
       totalHeight: Math.max(200, currentY + 20),
       packPositions: positions,
     }
-  }, [packCoverages, collapsedPacks])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packCoverages, manuallyCollapsed, manuallyExpanded, autoCollapsedPacks])
 
   return (
     <Box sx={{ width: '100%' }}>
