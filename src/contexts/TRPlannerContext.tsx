@@ -20,31 +20,49 @@ import {
 } from './useTRPlanner'
 
 const DDOAUDIT_QUESTS_URL = 'https://api.ddoaudit.com/v1/quests'
+const AREAS_URL = '/lowb-ddoaudit/data/areas.json'
 
 interface TRPlannerProviderProps {
   children: ReactNode
 }
 
 /**
+ * Load areas data and return set of wilderness area IDs
+ */
+async function loadWildernessAreaIds(): Promise<Set<number>> {
+  try {
+    const response = await fetch(AREAS_URL)
+    if (!response.ok) {
+      console.warn('Failed to load areas.json, wilderness filtering disabled')
+      return new Set()
+    }
+    const areasData = (await response.json()) as { data: Array<{ id: number; is_wilderness: boolean }> }
+    const wildernessIds = new Set<number>()
+    for (const area of areasData.data) {
+      if (area.is_wilderness) {
+        wildernessIds.add(area.id)
+      }
+    }
+    return wildernessIds
+  } catch (err) {
+    console.warn('Error loading areas data:', err)
+    return new Set()
+  }
+}
+
+/**
  * Parse quest data from DDO Audit API
  */
-function parseQuestData(data: unknown[]): QuestWithXP[] {
+function parseQuestData(data: unknown[], wildernessAreaIds: Set<number>): QuestWithXP[] {
   return data
     .filter((q: unknown) => {
       // Filter out quests that have no ID or name
       const quest = q as Record<string, unknown>
       if (!quest.id || !quest.name) return false
 
-      // Ignore placeholder quests where name equals pack name and no XP data
-      // These are often just adventure pack headers in the raw data
-      const name = String(quest.name)
-      const pack = typeof quest.required_adventure_pack === 'string' ? quest.required_adventure_pack : null
-      const xp = quest.xp as Record<string, unknown> | undefined
-
-      // Check if XP object is empty or undefined
-      const hasXP = xp && Object.values(xp).some((val) => val !== null && val !== undefined)
-
-      if (pack && name === pack && !hasXP) {
+      // Filter out wilderness quests by checking area_id
+      const areaId = typeof quest.area_id === 'number' ? quest.area_id : null
+      if (areaId !== null && wildernessAreaIds.has(areaId)) {
         return false
       }
 
@@ -166,6 +184,9 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
     setState((prev) => ({ ...prev, loading: true, error: null }))
 
     try {
+      // Load wilderness area IDs first
+      const wildernessAreaIds = await loadWildernessAreaIds()
+
       const response = await fetch(DDOAUDIT_QUESTS_URL)
       if (!response.ok) {
         throw new Error(`Failed to fetch quests: ${response.status}`)
@@ -173,7 +194,7 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
 
       const json = await response.json()
       const data = Array.isArray(json) ? json : json.data ?? []
-      const quests = parseQuestData(data)
+      const quests = parseQuestData(data, wildernessAreaIds)
       const packs = groupQuestsByPack(quests)
 
       setState((prev) => ({
