@@ -30,6 +30,26 @@ interface TRPlannerProviderProps {
  */
 function parseQuestData(data: unknown[]): QuestWithXP[] {
   return data
+    .filter((q: unknown) => {
+      // Filter out quests that have no ID or name
+      const quest = q as Record<string, unknown>
+      if (!quest.id || !quest.name) return false
+
+      // Ignore placeholder quests where name equals pack name and no XP data
+      // These are often just adventure pack headers in the raw data
+      const name = String(quest.name)
+      const pack = typeof quest.required_adventure_pack === 'string' ? quest.required_adventure_pack : null
+      const xp = quest.xp as Record<string, unknown> | undefined
+
+      // Check if XP object is empty or undefined
+      const hasXP = xp && Object.values(xp).some((val) => val !== null && val !== undefined)
+
+      if (pack && name === pack && !hasXP) {
+        return false
+      }
+
+      return true
+    })
     .map((q: unknown) => {
       const quest = q as Record<string, unknown>
       const xp = quest.xp as Record<string, unknown> | undefined
@@ -40,6 +60,7 @@ function parseQuestData(data: unknown[]): QuestWithXP[] {
         heroicCR: typeof quest.heroic_normal_cr === 'number' ? quest.heroic_normal_cr : null,
         epicCR: typeof quest.epic_normal_cr === 'number' ? quest.epic_normal_cr : null,
         pack: typeof quest.required_adventure_pack === 'string' ? quest.required_adventure_pack : null,
+        patron: typeof quest.patron === 'string' ? quest.patron : null,
         groupSize: (quest.group_size as 'Solo' | 'Party' | 'Raid') ?? 'Party',
         length: typeof quest.length === 'number' ? quest.length : null,
         xp: {

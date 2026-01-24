@@ -13,6 +13,7 @@ export interface QuestWithXP {
   heroicCR: number | null
   epicCR: number | null
   pack: string | null
+  patron: string | null
   groupSize: 'Solo' | 'Party' | 'Raid'
   length: number | null
   xp: {

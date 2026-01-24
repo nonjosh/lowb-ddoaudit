@@ -4,6 +4,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Autocomplete,
   Box,
   Checkbox,
   Chip,
@@ -20,6 +21,7 @@ import {
 } from '@mui/material'
 import { SyntheticEvent, useMemo, useState } from 'react'
 
+import sagasData from '@/data/sagas.json'
 import { AdventurePack, QuestWithXP } from '@/contexts/useTRPlanner'
 import { PlanMode } from '@/domains/trPlanner/levelRequirements'
 
@@ -50,6 +52,16 @@ const EPIC_LEVEL_FILTERS = [
   { value: '29-30', label: 'lv29-30', min: 29, max: 30 },
 ] as const
 
+// Saga data interface
+interface Saga {
+  id: string
+  name: string
+  levelRange: string
+  questCount: number
+  adventurePacks: string[]
+  quests: string[]
+}
+
 type LevelFilterValue = string
 
 export default function QuestSelector({
@@ -61,10 +73,39 @@ export default function QuestSelector({
 }: QuestSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [levelFilter, setLevelFilter] = useState<LevelFilterValue>('all')
+  const [patronFilter, setPatronFilter] = useState<string[]>([])
+  const [sagaFilter, setSagaFilter] = useState<string[]>([])
   const [expandedPacks, setExpandedPacks] = useState<Set<string>>(new Set())
 
   // Get level filter options based on mode
   const levelFilterOptions = mode === 'heroic' ? HEROIC_LEVEL_FILTERS : EPIC_LEVEL_FILTERS
+
+  // Build saga quest name set for current mode
+  const { sagaQuestNames, availableSagas } = useMemo(() => {
+    const sagas = mode === 'heroic' ? sagasData.heroic : [...sagasData.epic, ...sagasData.legendary]
+    const questNames = new Set<string>()
+    if (sagaFilter.length > 0) {
+      for (const saga of sagas) {
+        if (sagaFilter.includes(saga.name)) {
+          saga.quests.forEach((q) => questNames.add(q.toLowerCase()))
+        }
+      }
+    }
+    return { sagaQuestNames: questNames, availableSagas: sagas as Saga[] }
+  }, [mode, sagaFilter])
+
+  // Extract unique patrons from all quests
+  const availablePatrons = useMemo(() => {
+    const patrons = new Set<string>()
+    for (const pack of packs) {
+      for (const quest of pack.quests) {
+        if (quest.patron) {
+          patrons.add(quest.patron)
+        }
+      }
+    }
+    return Array.from(patrons).sort()
+  }, [packs])
 
   // Reset level filter when mode changes if current filter is invalid
   const effectiveLevelFilter = useMemo(() => {
@@ -105,6 +146,20 @@ export default function QuestSelector({
           // Filter by level range
           if (levelRange) {
             if (questLevel < levelRange.min || questLevel > levelRange.max) {
+              return false
+            }
+          }
+
+          // Filter by patron
+          if (patronFilter.length > 0) {
+            if (!quest.patron || !patronFilter.includes(quest.patron)) {
+              return false
+            }
+          }
+
+          // Filter by saga
+          if (sagaFilter.length > 0) {
+            if (!sagaQuestNames.has(quest.name.toLowerCase())) {
               return false
             }
           }
@@ -153,7 +208,7 @@ export default function QuestSelector({
         const minB = b.minLevel ?? 999
         return minA - minB
       })
-  }, [packs, searchQuery, effectiveLevelFilter, mode, selectedQuestIds])
+  }, [packs, searchQuery, effectiveLevelFilter, mode, selectedQuestIds, patronFilter, sagaFilter, sagaQuestNames])
 
   const handleLevelFilterChange = (event: SelectChangeEvent) => {
     setLevelFilter(event.target.value)
@@ -204,7 +259,7 @@ export default function QuestSelector({
         fullWidth
       />
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
         <FormControl size="small" fullWidth>
           <InputLabel>Level</InputLabel>
           <Select value={effectiveLevelFilter} label="Level" onChange={handleLevelFilterChange}>
@@ -215,6 +270,36 @@ export default function QuestSelector({
             ))}
           </Select>
         </FormControl>
+        <Autocomplete
+          multiple
+          size="small"
+          options={availablePatrons}
+          value={patronFilter}
+          onChange={(_, newValue) => setPatronFilter(newValue)}
+          renderInput={(params) => <TextField {...params} label="Patron" placeholder="Filter by patron" />}
+          renderTags={(value, getTagProps) =>
+            value.map((option, index) => (
+              <Chip {...getTagProps({ index })} key={option} label={option} size="small" />
+            ))
+          }
+          sx={{ width: '100%' }}
+          limitTags={1}
+        />
+        <Autocomplete
+          multiple
+          size="small"
+          options={availableSagas.map((s) => s.name)}
+          value={sagaFilter}
+          onChange={(_, newValue) => setSagaFilter(newValue)}
+          renderInput={(params) => <TextField {...params} label="Saga" placeholder="Filter by saga" />}
+          renderTags={(value, getTagProps) =>
+            value.map((option, index) => (
+              <Chip {...getTagProps({ index })} key={option} label={option} size="small" />
+            ))
+          }
+          sx={{ width: '100%' }}
+          limitTags={1}
+        />
       </Box>
 
       <Box sx={{ mb: 2 }}>

@@ -396,6 +396,11 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
                         </Typography>
                       )}
                     </Typography>
+                    {item.quest.patron && (
+                      <Typography variant="caption" display="block" color="info.main">
+                        Patron: {item.quest.patron}
+                      </Typography>
+                    )}
                     <Typography variant="caption" display="block">
                       {pack.packName}
                     </Typography>

@@ -1,0 +1,640 @@
+{
+  "heroic": [
+    {
+      "id": "sinister-secret-of-saltmarsh-heroic",
+      "name": "Sinister Secret of Saltmarsh (Heroic)",
+      "levelRange": "3",
+      "questCount": 10,
+      "adventurePacks": ["Sinister Secret of Saltmarsh"],
+      "quests": [
+        "Salvage Operation",
+        "Danger at Dunwater",
+        "The Final Enemy",
+        "Isle of the Abbey",
+        "Tammeraut's Fate",
+        "The Styes",
+        "The Haunted House",
+        "The Sea Ghost",
+        "Murder on the High Seas",
+        "Wreck of the Kraken's Maw"
+      ]
+    },
+    {
+      "id": "pirates-of-the-thunder-sea-heroic",
+      "name": "Pirates of the Thunder Sea (Heroic)",
+      "levelRange": "4-7",
+      "questCount": 10,
+      "adventurePacks": ["Three-Barrel Cove", "Sentinels of Stormreach"],
+      "quests": [
+        "Irestone Inlet",
+        "The Legend of Two-Toed Tobias",
+        "Prove Your Worth",
+        "Ghost of a Chance",
+        "The Troglodytes' Get",
+        "Old Grey Garl",
+        "The Black Loch",
+        "Storm the Beaches",
+        "Bargain of Blood",
+        "The Tide Turns"
+      ]
+    },
+    {
+      "id": "fables-of-the-feywild-heroic",
+      "name": "Fables of the Feywild (Heroic)",
+      "levelRange": "5-6",
+      "questCount": 13,
+      "adventurePacks": ["Fables of the Feywild"],
+      "quests": [
+        "The Satyr's Lament",
+        "The Snitch",
+        "Fear Factory",
+        "The Thornwood Arena",
+        "Bogwaters",
+        "The Key to the Mines",
+        "Fernia's Folly",
+        "The Deal and the Demon",
+        "Barovian Hunting Grounds",
+        "Solace of Night",
+        "The Knights of Feydark",
+        "The Endless Revels",
+        "Lost at Last"
+      ]
+    },
+    {
+      "id": "isle-of-dread-heroic",
+      "name": "Isle of Dread (Heroic)",
+      "levelRange": "7-8",
+      "questCount": 12,
+      "adventurePacks": ["The Isle of Dread"],
+      "quests": [
+        "The Isle of Dread",
+        "Search and Rescue",
+        "Jungle Boogie",
+        "One Man's Treasure",
+        "Tribal Assault",
+        "On Your Toes",
+        "Forbidden Ground",
+        "Toil of the Troubled",
+        "Dead Men's Whispers",
+        "Revenge of the Slave Lords",
+        "The Ascent",
+        "The Fall of Taboo Island"
+      ]
+    },
+    {
+      "id": "chill-of-ravenloft-heroic",
+      "name": "The Chill of Ravenloft (Heroic)",
+      "levelRange": "8",
+      "questCount": 13,
+      "adventurePacks": ["The Chill of Ravenloft"],
+      "quests": [
+        "Land of Lamordia",
+        "The Body Snatchers",
+        "Special Delivery",
+        "Mordenkainen's Magnificent Mansion",
+        "Soul Survivors",
+        "Head's Up",
+        "Death and Taxes",
+        "Research Project",
+        "The Wrath of Mordenkainen",
+        "The Flesh Makers",
+        "Corpse of Corpses",
+        "The Final Quest",
+        "The Dark Palace"
+      ]
+    },
+    {
+      "id": "mists-of-ravenloft-heroic",
+      "name": "Mists of Ravenloft (Heroic)",
+      "levelRange": "10-12",
+      "questCount": 12,
+      "adventurePacks": ["Mists of Ravenloft"],
+      "quests": [
+        "Into the Mists",
+        "Death House",
+        "Fresh-baked Dreams",
+        "An Invitation to Dinner",
+        "Oath of Vengeance",
+        "A Raven at the Door",
+        "A Mad Tea Party",
+        "Sealed in Amber",
+        "Ravens' Bane",
+        "The Final Vintage",
+        "Wrath of the Earth",
+        "Sunrise"
+      ]
+    },
+    {
+      "id": "magic-of-myth-drannor-heroic",
+      "name": "Magic of Myth Drannor (Heroic)",
+      "levelRange": "13",
+      "questCount": 13,
+      "adventurePacks": ["Magic of Myth Drannor"],
+      "quests": [
+        "The Ruins of Myth Drannor",
+        "Ettercap Incursion",
+        "Book Burning",
+        "Narthex Nefarious",
+        "Windsoul Monastery",
+        "A House Divided",
+        "Shattered Halls",
+        "Ritual of Desecration",
+        "House Jorasco",
+        "Traitorous Ties",
+        "The Magic of Myth Drannor",
+        "Phiarlan Carnival",
+        "A Mythal Pursuit"
+      ]
+    },
+    {
+      "id": "in-the-wastes-of-gianthold-heroic",
+      "name": "In the Wastes of Gianthold (Heroic)",
+      "levelRange": "13-14",
+      "questCount": 10,
+      "adventurePacks": ["Ruins of Gianthold"],
+      "quests": [
+        "Foundation of Discord",
+        "Feast or Famine",
+        "The Maze of Madness",
+        "A Cry for Help",
+        "Trial by Fire",
+        "Madstone Crater",
+        "The Prison of the Planes",
+        "The Crucible",
+        "A Cabal for One",
+        "Gianthold Tor"
+      ]
+    },
+    {
+      "id": "cogs-explorer-dungeons-heroic",
+      "name": "Cogs Explorer Dungeons (Heroic)",
+      "levelRange": "15-16",
+      "questCount": 8,
+      "adventurePacks": ["Masterminds of Sharn"],
+      "quests": [
+        "Smash and Burn",
+        "Thralls of the Fungus Lord",
+        "The Wraithcallers",
+        "Ruinous Schemes",
+        "Scavenger Hunt",
+        "Security Detail",
+        "The Magma Must Flow",
+        "Roll Call"
+      ]
+    },
+    {
+      "id": "masterminds-of-sharn-heroic",
+      "name": "Masterminds of Sharn (Heroic)",
+      "levelRange": "15-16",
+      "questCount": 10,
+      "adventurePacks": ["Masterminds of Sharn"],
+      "quests": [
+        "Lost at Sea",
+        "Murder in the Steel Circus",
+        "Sane Asylum",
+        "A Tempest's Roar",
+        "Too Hot to Handle",
+        "Keep Your Enemies Closer",
+        "Explosive Situation",
+        "Blown to Bits",
+        "The Same Old Song",
+        "Cogsgate Irregularities"
+      ]
+    },
+    {
+      "id": "perils-of-cormyr-heroic",
+      "name": "Perils of Cormyr (Heroic)",
+      "levelRange": "15-19",
+      "questCount": 24,
+      "adventurePacks": [
+        "Shadow Over Wheloon",
+        "The Druid's Deep",
+        "High Road of Shadows",
+        "The Secret of the Storm Horns"
+      ],
+      "quests": [
+        "Disciples of Shar",
+        "Escape Plan",
+        "Shadow of a Doubt",
+        "Friends in Low Places",
+        "A Lesson in Deception",
+        "The Thrill of the Hunt",
+        "Army of Shadow",
+        "Through a Mirror Darkly",
+        "Outbreak",
+        "Overgrowth",
+        "Thorn and Paw",
+        "The Druid's Curse",
+        "A Stay at the Inn",
+        "Detour",
+        "Lost in the Swamp",
+        "Rest Stop",
+        "The End of the Road",
+        "Murder by Night",
+        "The Riddle",
+        "The Tracker's Trap",
+        "Lines of Supply",
+        "Breaking the Ranks",
+        "A Break in the Ice",
+        "What Goes Up"
+      ]
+    },
+    {
+      "id": "honor-of-the-huntsilvers-heroic",
+      "name": "Honor of the Huntsilvers (Heroic)",
+      "levelRange": "16-19",
+      "questCount": 16,
+      "adventurePacks": [
+        "The Druid's Deep",
+        "High Road of Shadows",
+        "Shadow Over Wheloon",
+        "The Secret of the Storm Horns"
+      ],
+      "quests": [
+        "Friends in Low Places",
+        "A Lesson in Deception",
+        "The Thrill of the Hunt",
+        "Army of Shadow",
+        "Through a Mirror Darkly",
+        "The Druid's Curse",
+        "A Stay at the Inn",
+        "Detour",
+        "Lost in the Swamp",
+        "Rest Stop",
+        "The End of the Road",
+        "The Tracker's Trap",
+        "Lines of Supply",
+        "Breaking the Ranks",
+        "A Break in the Ice",
+        "What Goes Up"
+      ]
+    },
+    {
+      "id": "vecna-unleashed-heroic",
+      "name": "Vecna Unleashed (Heroic)",
+      "levelRange": "18",
+      "questCount": 13,
+      "adventurePacks": ["Vecna Unleashed"],
+      "quests": [
+        "Growing Pains",
+        "Order in the Court!",
+        "Three Paths to Battle",
+        "Fire Over Morgrave",
+        "Vecna Unleashed",
+        "Grand Theft Aureon",
+        "Into the Mist",
+        "The Mirror Speaks",
+        "Scry! Scry! Again!",
+        "The Last Word",
+        "A God's Witness",
+        "Tethered Souls",
+        "The Rites of the Lich Queen"
+      ]
+    }
+  ],
+  "epic": [
+    {
+      "id": "pirates-of-the-thunder-sea-epic",
+      "name": "Pirates of the Thunder Sea (Epic)",
+      "levelRange": "20-25",
+      "questCount": 10,
+      "adventurePacks": ["Three-Barrel Cove", "Sentinels of Stormreach"],
+      "quests": [
+        "Irestone Inlet",
+        "The Legend of Two-Toed Tobias",
+        "Prove Your Worth",
+        "Ghost of a Chance",
+        "The Troglodytes' Get",
+        "Old Grey Garl",
+        "The Black Loch",
+        "Storm the Beaches",
+        "Bargain of Blood",
+        "The Tide Turns"
+      ]
+    },
+    {
+      "id": "menace-of-the-underdark-epic",
+      "name": "Menace of the Underdark (Epic)",
+      "levelRange": "21-23",
+      "questCount": 6,
+      "adventurePacks": ["Menace of the Underdark"],
+      "quests": [
+        "Beyond the Rift",
+        "House of Broken Chains",
+        "The House of Rusted Blades",
+        "House of Death Undone",
+        "The Portal Opens",
+        "Unquiet Graves"
+      ]
+    },
+    {
+      "id": "the-end-of-eberron-epic",
+      "name": "The End of Eberron",
+      "levelRange": "21-23",
+      "questCount": 4,
+      "adventurePacks": ["Menace of the Underdark"],
+      "quests": [
+        "House of Death Undone",
+        "House of Broken Chains",
+        "The House of Rusted Blades",
+        "Beyond the Rift"
+      ]
+    },
+    {
+      "id": "the-planeswalkers-path-epic",
+      "name": "The Planeswalker's Path",
+      "levelRange": "21-26",
+      "questCount": 8,
+      "adventurePacks": [
+        "Menace of the Underdark",
+        "High Road of Shadows",
+        "Shadow Over Wheloon"
+      ],
+      "quests": [
+        "Beyond the Rift",
+        "House of Broken Chains",
+        "The House of Rusted Blades",
+        "House of Death Undone",
+        "A Stay at the Inn",
+        "Detour",
+        "Lost in the Swamp",
+        "Rest Stop"
+      ]
+    },
+    {
+      "id": "perils-of-cormyr-epic",
+      "name": "Perils of Cormyr (Epic)",
+      "levelRange": "21-27",
+      "questCount": 24,
+      "adventurePacks": [
+        "Shadow Over Wheloon",
+        "The Druid's Deep",
+        "High Road of Shadows",
+        "The Secret of the Storm Horns",
+        "Menace of the Underdark"
+      ],
+      "quests": [
+        "Disciples of Shar",
+        "Escape Plan",
+        "Shadow of a Doubt",
+        "Friends in Low Places",
+        "A Lesson in Deception",
+        "The Thrill of the Hunt",
+        "Army of Shadow",
+        "Through a Mirror Darkly",
+        "Outbreak",
+        "Overgrowth",
+        "Thorn and Paw",
+        "The Druid's Curse",
+        "A Stay at the Inn",
+        "Detour",
+        "Lost in the Swamp",
+        "Rest Stop",
+        "The End of the Road",
+        "Murder by Night",
+        "The Riddle",
+        "The Tracker's Trap",
+        "Lines of Supply",
+        "Breaking the Ranks",
+        "A Break in the Ice",
+        "What Goes Up"
+      ]
+    },
+    {
+      "id": "honor-of-the-huntsilvers-epic",
+      "name": "Honor of the Huntsilvers (Epic)",
+      "levelRange": "23-27",
+      "questCount": 16,
+      "adventurePacks": [
+        "The Druid's Deep",
+        "High Road of Shadows",
+        "Shadow Over Wheloon",
+        "The Secret of the Storm Horns"
+      ],
+      "quests": [
+        "Friends in Low Places",
+        "A Lesson in Deception",
+        "The Thrill of the Hunt",
+        "Army of Shadow",
+        "Through a Mirror Darkly",
+        "The Druid's Curse",
+        "A Stay at the Inn",
+        "Detour",
+        "Lost in the Swamp",
+        "Rest Stop",
+        "The End of the Road",
+        "The Tracker's Trap",
+        "Lines of Supply",
+        "Breaking the Ranks",
+        "A Break in the Ice",
+        "What Goes Up"
+      ]
+    },
+    {
+      "id": "in-the-wastes-of-gianthold-epic",
+      "name": "In the Wastes of Gianthold (Epic)",
+      "levelRange": "24",
+      "questCount": 10,
+      "adventurePacks": ["Ruins of Gianthold"],
+      "quests": [
+        "Foundation of Discord",
+        "Feast or Famine",
+        "The Maze of Madness",
+        "A Cry for Help",
+        "Trial by Fire",
+        "Madstone Crater",
+        "The Prison of the Planes",
+        "The Crucible",
+        "A Cabal for One",
+        "Gianthold Tor"
+      ]
+    }
+  ],
+  "legendary": [
+    {
+      "id": "mists-of-ravenloft-legendary",
+      "name": "Mists of Ravenloft (Epic)",
+      "levelRange": "31-32",
+      "questCount": 12,
+      "adventurePacks": ["Mists of Ravenloft"],
+      "quests": [
+        "Into the Mists",
+        "Death House",
+        "Fresh-baked Dreams",
+        "An Invitation to Dinner",
+        "Oath of Vengeance",
+        "A Raven at the Door",
+        "A Mad Tea Party",
+        "Sealed in Amber",
+        "Ravens' Bane",
+        "The Final Vintage",
+        "Wrath of the Earth",
+        "Sunrise"
+      ]
+    },
+    {
+      "id": "cogs-explorer-dungeons-legendary",
+      "name": "Cogs Explorer Dungeons (Epic)",
+      "levelRange": "32",
+      "questCount": 8,
+      "adventurePacks": ["Masterminds of Sharn"],
+      "quests": [
+        "Smash and Burn",
+        "Thralls of the Fungus Lord",
+        "The Wraithcallers",
+        "Ruinous Schemes",
+        "Scavenger Hunt",
+        "Security Detail",
+        "The Magma Must Flow",
+        "Roll Call"
+      ]
+    },
+    {
+      "id": "masterminds-of-sharn-legendary",
+      "name": "Masterminds of Sharn (Legendary)",
+      "levelRange": "32",
+      "questCount": 10,
+      "adventurePacks": ["Masterminds of Sharn"],
+      "quests": [
+        "Lost at Sea",
+        "Murder in the Steel Circus",
+        "Sane Asylum",
+        "A Tempest's Roar",
+        "Too Hot to Handle",
+        "Keep Your Enemies Closer",
+        "Explosive Situation",
+        "Blown to Bits",
+        "The Same Old Song",
+        "Cogsgate Irregularities"
+      ]
+    },
+    {
+      "id": "fables-of-the-feywild-legendary",
+      "name": "Fables of the Feywild (Legendary)",
+      "levelRange": "32",
+      "questCount": 13,
+      "adventurePacks": ["Fables of the Feywild"],
+      "quests": [
+        "The Satyr's Lament",
+        "The Snitch",
+        "Fear Factory",
+        "The Thornwood Arena",
+        "Bogwaters",
+        "The Key to the Mines",
+        "Fernia's Folly",
+        "The Deal and the Demon",
+        "Barovian Hunting Grounds",
+        "Solace of Night",
+        "The Knights of Feydark",
+        "The Endless Revels",
+        "Lost at Last"
+      ]
+    },
+    {
+      "id": "sinister-secret-of-saltmarsh-legendary",
+      "name": "Sinister Secret of Saltmarsh (Legendary)",
+      "levelRange": "32",
+      "questCount": 10,
+      "adventurePacks": ["Sinister Secret of Saltmarsh"],
+      "quests": [
+        "Salvage Operation",
+        "Danger at Dunwater",
+        "The Final Enemy",
+        "Isle of the Abbey",
+        "Tammeraut's Fate",
+        "The Styes",
+        "The Haunted House",
+        "The Sea Ghost",
+        "Murder on the High Seas",
+        "Wreck of the Kraken's Maw"
+      ]
+    },
+    {
+      "id": "isle-of-dread-legendary",
+      "name": "Isle of Dread (Legendary)",
+      "levelRange": "33-34",
+      "questCount": 12,
+      "adventurePacks": ["The Isle of Dread"],
+      "quests": [
+        "The Isle of Dread",
+        "Search and Rescue",
+        "Jungle Boogie",
+        "One Man's Treasure",
+        "Tribal Assault",
+        "On Your Toes",
+        "Forbidden Ground",
+        "Toil of the Troubled",
+        "Dead Men's Whispers",
+        "Revenge of the Slave Lords",
+        "The Ascent",
+        "The Fall of Taboo Island"
+      ]
+    },
+    {
+      "id": "vecna-unleashed-legendary",
+      "name": "Vecna Unleashed (Legendary)",
+      "levelRange": "34",
+      "questCount": 13,
+      "adventurePacks": ["Vecna Unleashed"],
+      "quests": [
+        "Growing Pains",
+        "Order in the Court!",
+        "Three Paths to Battle",
+        "Fire Over Morgrave",
+        "Vecna Unleashed",
+        "Grand Theft Aureon",
+        "Into the Mist",
+        "The Mirror Speaks",
+        "Scry! Scry! Again!",
+        "The Last Word",
+        "A God's Witness",
+        "Tethered Souls",
+        "The Rites of the Lich Queen"
+      ]
+    },
+    {
+      "id": "magic-of-myth-drannor-legendary",
+      "name": "Magic of Myth Drannor (Legendary)",
+      "levelRange": "35",
+      "questCount": 13,
+      "adventurePacks": ["Magic of Myth Drannor"],
+      "quests": [
+        "The Ruins of Myth Drannor",
+        "Ettercap Incursion",
+        "Book Burning",
+        "Narthex Nefarious",
+        "Windsoul Monastery",
+        "A House Divided",
+        "Shattered Halls",
+        "Ritual of Desecration",
+        "House Jorasco",
+        "Traitorous Ties",
+        "The Magic of Myth Drannor",
+        "Phiarlan Carnival",
+        "A Mythal Pursuit"
+      ]
+    },
+    {
+      "id": "chill-of-ravenloft-legendary",
+      "name": "The Chill of Ravenloft (Legendary)",
+      "levelRange": "36",
+      "questCount": 13,
+      "adventurePacks": ["The Chill of Ravenloft"],
+      "quests": [
+        "Land of Lamordia",
+        "The Body Snatchers",
+        "Special Delivery",
+        "Mordenkainen's Magnificent Mansion",
+        "Soul Survivors",
+        "Head's Up",
+        "Death and Taxes",
+        "Research Project",
+        "The Wrath of Mordenkainen",
+        "The Flesh Makers",
+        "Corpse of Corpses",
+        "The Final Quest",
+        "The Dark Palace"
+      ]
+    }
+  ]
+}
