@@ -18,6 +18,7 @@ import {
   getEpicXPForRank,
   getTotalHeroicXP,
   getTotalEpicXP,
+  levelToStartRank,
   PlanMode,
   rankToLevel,
   TRTier,
@@ -36,6 +37,7 @@ interface XPProgressionChartProps {
   trTier: TRTier
   bonuses: XPBonusConfig
   selectedQuests: QuestWithXP[]
+  startLevel?: number
 }
 
 interface ProgressionRow {
@@ -50,6 +52,7 @@ interface ProgressionRow {
   endRank: number
   levelsGained: number
   isPackSummary: boolean
+  isEstimated: boolean // true if XP is estimated (no data from API)
 }
 
 export default function XPProgressionChart({
@@ -57,12 +60,21 @@ export default function XPProgressionChart({
   trTier,
   bonuses,
   selectedQuests,
+  startLevel: propStartLevel,
 }: XPProgressionChartProps) {
   const theme = useTheme()
 
+  // Default start level based on mode
+  const startLevelDefault = propStartLevel ?? (mode === 'heroic' ? 1 : 20)
+
   const progressionData = useMemo(() => {
     const rows: ProgressionRow[] = []
-    let cumulativeXP = 0
+    // Calculate starting XP based on start level
+    const startRank = levelToStartRank(startLevelDefault, mode)
+    const initialXP = mode === 'heroic'
+      ? getHeroicXPForRank(startRank, trTier)
+      : getEpicXPForRank(startRank)
+    let cumulativeXP = initialXP
 
     // Group quests by pack
     const packMap = new Map<string, QuestWithXP[]>()
@@ -85,6 +97,49 @@ export default function XPProgressionChart({
       return minA - minB
     })
 
+    // First pass: collect all quests with XP to calculate median XP per level
+    const xpByLevel = new Map<number, number[]>()
+    for (const quest of selectedQuests) {
+      const questLevel = mode === 'heroic' ? quest.heroicCR : quest.epicCR
+      if (questLevel === null) continue
+
+      const tier = mode === 'heroic' ? 'heroic' : 'epic'
+      const difficulty = bonuses.firstTimeCompletion === 'none' ? 'elite' : bonuses.firstTimeCompletion
+      const baseXP = getBaseXP(quest.xp, tier, difficulty === 'reaper' ? 'elite' : difficulty)
+      if (baseXP !== null) {
+        if (!xpByLevel.has(questLevel)) {
+          xpByLevel.set(questLevel, [])
+        }
+        const xpResult = calculateQuestXP(baseXP, bonuses, tier, quest.groupSize === 'Raid')
+        xpByLevel.get(questLevel)!.push(xpResult.totalXP)
+      }
+    }
+
+    // Calculate median XP per level
+    const getMedianXP = (level: number): number => {
+      const xps = xpByLevel.get(level)
+      if (xps && xps.length > 0) {
+        const sorted = [...xps].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 ? sorted[mid] : Math.floor((sorted[mid - 1] + sorted[mid]) / 2)
+      }
+      // Fallback: check nearby levels
+      for (let offset = 1; offset <= 3; offset++) {
+        const lower = xpByLevel.get(level - offset)
+        const upper = xpByLevel.get(level + offset)
+        if (lower && lower.length > 0) {
+          const sorted = [...lower].sort((a, b) => a - b)
+          return sorted[Math.floor(sorted.length / 2)]
+        }
+        if (upper && upper.length > 0) {
+          const sorted = [...upper].sort((a, b) => a - b)
+          return sorted[Math.floor(sorted.length / 2)]
+        }
+      }
+      // Default estimate based on level (rough approximation)
+      return mode === 'heroic' ? level * 3000 : level * 10000
+    }
+
     // Process each pack
     for (const [packName, quests] of sortedPacks) {
       // Sort quests within pack by level
@@ -97,6 +152,7 @@ export default function XPProgressionChart({
       const packStartXP = cumulativeXP
       const packStartRank = xpToRank(cumulativeXP, mode, trTier)
       const packStartLevel = rankToLevel(packStartRank, mode)
+      let packHasEstimated = false
 
       // Process each quest in the pack
       for (const quest of sortedQuests) {
@@ -107,15 +163,25 @@ export default function XPProgressionChart({
         const difficulty =
           bonuses.firstTimeCompletion === 'none' ? 'elite' : bonuses.firstTimeCompletion
         const baseXP = getBaseXP(quest.xp, tier, difficulty === 'reaper' ? 'elite' : difficulty)
-        if (baseXP === null) continue
 
-        const xpResult = calculateQuestXP(baseXP, bonuses, tier, quest.groupSize === 'Raid')
+        // Calculate XP - use actual or estimate
+        const isEstimated = baseXP === null
+        let questXPBeforePenalty: number
 
-        const startRank = xpToRank(cumulativeXP, mode, trTier)
-        const startLevel = rankToLevel(startRank, mode)
+        if (baseXP !== null) {
+          const xpResult = calculateQuestXP(baseXP, bonuses, tier, quest.groupSize === 'Raid')
+          questXPBeforePenalty = xpResult.totalXP
+        } else {
+          // Estimate XP based on median of same-level quests
+          questXPBeforePenalty = getMedianXP(questLevel)
+          packHasEstimated = true
+        }
+
+        const currentRank = xpToRank(cumulativeXP, mode, trTier)
+        const currentLevel = rankToLevel(currentRank, mode)
 
         // Apply over-level penalty based on character's current level
-        const questXP = applyOverLevelPenalty(xpResult.totalXP, startLevel, questLevel, tier)
+        const questXP = applyOverLevelPenalty(questXPBeforePenalty, currentLevel, questLevel, tier)
 
         cumulativeXP += questXP
 
@@ -128,12 +194,13 @@ export default function XPProgressionChart({
           questLevel,
           questXP,
           cumulativeXP,
-          startLevel,
-          startRank,
+          startLevel: currentLevel,
+          startRank: currentRank,
           endLevel,
           endRank,
-          levelsGained: endLevel - startLevel + (endRank - startRank) / 5,
+          levelsGained: endLevel - currentLevel + (endRank - currentRank) / 5,
           isPackSummary: false,
+          isEstimated,
         })
       }
 
@@ -155,12 +222,13 @@ export default function XPProgressionChart({
           endRank: packEndRank,
           levelsGained: packEndLevel - packStartLevel + (packEndRank - packStartRank) / 5,
           isPackSummary: true,
+          isEstimated: packHasEstimated,
         })
       }
     }
 
     return rows
-  }, [selectedQuests, mode, trTier, bonuses])
+  }, [selectedQuests, mode, trTier, bonuses, startLevelDefault])
 
   const totalXP = progressionData.length > 0 ? progressionData[progressionData.length - 1]?.cumulativeXP ?? 0 : 0
   const targetXP = mode === 'heroic' ? getTotalHeroicXP(trTier) : getTotalEpicXP()
@@ -252,18 +320,33 @@ export default function XPProgressionChart({
                 sx={{
                   bgcolor: row.isPackSummary
                     ? theme.palette.action.selected
-                    : 'transparent',
+                    : row.isEstimated
+                      ? `${theme.palette.warning.main}15`
+                      : 'transparent',
                   fontWeight: row.isPackSummary ? 'bold' : 'normal',
+                  borderLeft: row.isEstimated && !row.isPackSummary ? `3px solid ${theme.palette.warning.main}` : 'none',
                 }}
               >
                 <TableCell>
                   {row.isPackSummary ? (
                     <Typography variant="body2" fontWeight="bold">
                       📦 {row.packName} (Total)
+                      {row.isEstimated && (
+                        <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
+                          *
+                        </Typography>
+                      )}
                     </Typography>
                   ) : (
                     <Box sx={{ pl: 2 }}>
-                      <Typography variant="body2">{row.questName}</Typography>
+                      <Typography variant="body2">
+                        {row.questName}
+                        {row.isEstimated && (
+                          <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
+                            (Est.)
+                          </Typography>
+                        )}
+                      </Typography>
                     </Box>
                   )}
                 </TableCell>
@@ -274,8 +357,10 @@ export default function XPProgressionChart({
                   <Typography
                     variant="body2"
                     fontWeight={row.isPackSummary ? 'bold' : 'normal'}
+                    color={row.isEstimated ? 'warning.main' : 'inherit'}
+                    sx={{ fontStyle: row.isEstimated ? 'italic' : 'normal' }}
                   >
-                    {formatXP(row.questXP)}
+                    {row.isEstimated && '~'}{formatXP(row.questXP)}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">

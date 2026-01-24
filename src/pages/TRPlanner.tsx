@@ -1,8 +1,10 @@
 import RefreshIcon from '@mui/icons-material/Refresh'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Container,
   FormControl,
@@ -11,17 +13,20 @@ import {
   Paper,
   Select,
   SelectChangeEvent,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
-import { MouseEvent, useEffect, useMemo } from 'react'
+import { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { fetchCharactersByIds } from '@/api/ddoAudit'
 import BonusConfigPanel from '@/components/trPlanner/BonusConfigPanel'
 import LevelRuler from '@/components/trPlanner/LevelRuler'
 import PlanManager from '@/components/trPlanner/PlanManager'
 import QuestSelector from '@/components/trPlanner/QuestSelector'
 import XPProgressionChart from '@/components/trPlanner/XPProgressionChart'
+import { CHARACTERS } from '@/config/characters'
 import { useTRPlanner } from '@/contexts/useTRPlanner'
 import { PlanMode, TRTier } from '@/domains/trPlanner/levelRequirements'
 
@@ -32,6 +37,8 @@ export default function TRPlanner() {
     bonuses,
     selectedQuestIds,
     selectedPackNames,
+    startLevel,
+    selectedCharacterIds,
     savedPlans,
     currentPlanId,
     currentPlanName,
@@ -42,8 +49,10 @@ export default function TRPlanner() {
     setMode,
     setTRTier,
     updateBonus,
+    setStartLevel,
     toggleQuest,
     togglePack,
+    toggleCharacter,
     newPlan,
     savePlan,
     loadPlan,
@@ -52,6 +61,47 @@ export default function TRPlanner() {
     setPlanName,
     refreshQuests,
   } = useTRPlanner()
+
+  // Character data state - fetched directly from API
+  const [charactersById, setCharactersById] = useState<Record<string, { name: string; total_level: number }>>({})
+  const [characterLoading, setCharacterLoading] = useState(false)
+  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Fetch character data from API
+  const fetchCharacters = useCallback(async () => {
+    const characterIds = Object.keys(CHARACTERS)
+    if (characterIds.length === 0) return
+
+    setCharacterLoading(true)
+    try {
+      const data = await fetchCharactersByIds(characterIds)
+      setCharactersById(data as Record<string, { name: string; total_level: number }>)
+    } catch (err) {
+      console.error('Failed to fetch character data:', err)
+    } finally {
+      setCharacterLoading(false)
+    }
+  }, [])
+
+  // Fetch characters on mount and every 60 seconds
+  useEffect(() => {
+    void fetchCharacters()
+
+    const scheduleNextFetch = () => {
+      fetchTimeoutRef.current = setTimeout(() => {
+        void fetchCharacters()
+        scheduleNextFetch()
+      }, 60000) // 60 seconds
+    }
+
+    scheduleNextFetch()
+
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+      }
+    }
+  }, [fetchCharacters])
 
   // Load quest data on mount
   useEffect(() => {
@@ -119,12 +169,45 @@ export default function TRPlanner() {
   const handleModeChange = (_: MouseEvent<HTMLElement>, newMode: PlanMode | null) => {
     if (newMode) {
       setMode(newMode)
+      // Update start level to appropriate default when mode changes
+      if (newMode === 'heroic') {
+        setStartLevel(1)
+      } else {
+        setStartLevel(20)
+      }
     }
   }
 
   const handleTRTierChange = (event: SelectChangeEvent) => {
     setTRTier(event.target.value as TRTier)
   }
+
+  const handleStartLevelChange = (event: SelectChangeEvent<number>) => {
+    setStartLevel(event.target.value as number)
+  }
+
+  // Filter characters within level range for the current mode
+  const availableCharacters = useMemo(() => {
+    const minLevel = mode === 'heroic' ? 1 : 20
+    const maxLevel = mode === 'heroic' ? 20 : 30
+
+    return Object.entries(charactersById)
+      .filter(([, char]) => {
+        const level = char?.total_level
+        return level !== undefined && level >= minLevel && level <= maxLevel
+      })
+      .map(([id, char]) => ({
+        id,
+        name: char.name,
+        level: char.total_level,
+      }))
+      .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+  }, [charactersById, mode])
+
+  // Get selected characters with their info
+  const selectedCharacters = useMemo(() => {
+    return availableCharacters.filter((c) => selectedCharacterIds.has(c.id))
+  }, [availableCharacters, selectedCharacterIds])
 
   if (loading && quests.length === 0) {
     return (
@@ -194,6 +277,73 @@ export default function TRPlanner() {
             </Select>
           </FormControl>
 
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <InputLabel>Start Level</InputLabel>
+            <Select
+              value={startLevel}
+              label="Start Level"
+              onChange={handleStartLevelChange}
+            >
+              {(mode === 'heroic'
+                ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+                : [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+              ).map((level) => (
+                <MenuItem key={level} value={level}>
+                  L{level}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {availableCharacters.length > 0 ? (
+            <Autocomplete
+              multiple
+              size="small"
+              options={availableCharacters}
+              getOptionLabel={(option) => `${option.name} (L${option.level})`}
+              value={selectedCharacters}
+              onChange={(_, newValue) => {
+                // Clear current selection and add new ones
+                for (const char of selectedCharacters) {
+                  if (!newValue.find((v) => v.id === char.id)) {
+                    toggleCharacter(char.id)
+                  }
+                }
+                for (const char of newValue) {
+                  if (!selectedCharacterIds.has(char.id)) {
+                    toggleCharacter(char.id)
+                  }
+                }
+              }}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...rest } = props
+                return (
+                  <li key={key} {...rest}>
+                    <Checkbox size="small" checked={selected} sx={{ mr: 1 }} />
+                    {option.name} (L{option.level})
+                  </li>
+                )
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Character Markers"
+                  placeholder="Select..."
+                />
+              )}
+              sx={{ minWidth: 200 }}
+              loading={characterLoading}
+              disableCloseOnSelect
+            />
+          ) : characterLoading ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={20} />
+              <Typography variant="caption" color="text.secondary">
+                Loading characters...
+              </Typography>
+            </Box>
+          ) : null}
+
           <Box sx={{ flex: 1 }} />
 
           <Typography variant="body2" color="text.secondary">
@@ -212,17 +362,17 @@ export default function TRPlanner() {
         />
       </Box>
 
-      {/* Main Content - Two column layout */}
+      {/* Main Content - Two column layout (responsive for vertical monitors) */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '350px 1fr' },
+          gridTemplateColumns: { xs: '1fr', md: '320px 1fr', lg: '350px 1fr' },
           gap: 2,
           alignItems: 'start',
         }}
       >
         {/* Quest Selector - Left side */}
-        <Box sx={{ maxHeight: 'calc(100vh - 350px)', minHeight: 400 }}>
+        <Box sx={{ maxHeight: { xs: 'none', md: 'calc(100vh - 350px)' }, minHeight: 400 }}>
           <QuestSelector
             packs={packs}
             selectedQuestIds={selectedQuestIds}
@@ -241,6 +391,7 @@ export default function TRPlanner() {
             trTier={trTier}
             bonuses={bonuses}
             selectedQuests={selectedQuests}
+            startLevel={startLevel}
           />
 
           {/* Level Coverage Chart */}
@@ -253,6 +404,7 @@ export default function TRPlanner() {
               trTier={trTier}
               bonuses={bonuses}
               selectedQuests={selectedQuests}
+              characterMarkers={selectedCharacters}
             />
           </Paper>
         </Box>

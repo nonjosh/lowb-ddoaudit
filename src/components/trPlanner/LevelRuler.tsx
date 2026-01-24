@@ -14,11 +14,18 @@ import {
   XPBonusConfig,
 } from '@/domains/trPlanner/xpCalculator'
 
+export interface CharacterMarker {
+  id: string
+  name: string
+  level: number
+}
+
 interface LevelRulerProps {
   mode: PlanMode
   trTier: TRTier
   bonuses: XPBonusConfig
   selectedQuests: QuestWithXP[]
+  characterMarkers?: CharacterMarker[]
 }
 
 // Color palette for different packs
@@ -50,13 +57,14 @@ interface PackCoverage {
     endLevel: number
     xp: number
     baseXP: number
+    isEstimated: boolean // true if XP is estimated (no data from API)
   }[]
   minLevel: number
   maxLevel: number
   totalXP: number
 }
 
-export default function LevelRuler({ mode, bonuses, selectedQuests }: LevelRulerProps) {
+export default function LevelRuler({ mode, bonuses, selectedQuests, characterMarkers = [] }: LevelRulerProps) {
   const theme = useTheme()
   const levelMarkers = useMemo(() => getLevelMarkers(mode), [mode])
 
@@ -64,6 +72,49 @@ export default function LevelRuler({ mode, bonuses, selectedQuests }: LevelRuler
   const packCoverages = useMemo(() => {
     const packMap = new Map<string, PackCoverage>()
     let packIndex = 0
+
+    // First pass: collect all quests with XP to calculate median XP per level
+    const xpByLevel = new Map<number, number[]>()
+    for (const quest of selectedQuests) {
+      const questLevel = mode === 'heroic' ? quest.heroicCR : quest.epicCR
+      if (questLevel === null) continue
+
+      const tier = mode === 'heroic' ? 'heroic' : 'epic'
+      const difficulty = bonuses.firstTimeCompletion === 'none' ? 'elite' : bonuses.firstTimeCompletion
+      const baseXP = getBaseXP(quest.xp, tier, difficulty === 'reaper' ? 'elite' : difficulty)
+      if (baseXP !== null) {
+        if (!xpByLevel.has(questLevel)) {
+          xpByLevel.set(questLevel, [])
+        }
+        const xpResult = calculateQuestXP(baseXP, bonuses, tier, quest.groupSize === 'Raid')
+        xpByLevel.get(questLevel)!.push(xpResult.totalXP)
+      }
+    }
+
+    // Calculate median XP per level
+    const getMedianXP = (level: number): number => {
+      const xps = xpByLevel.get(level)
+      if (xps && xps.length > 0) {
+        const sorted = [...xps].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 ? sorted[mid] : Math.floor((sorted[mid - 1] + sorted[mid]) / 2)
+      }
+      // Fallback: check nearby levels
+      for (let offset = 1; offset <= 3; offset++) {
+        const lower = xpByLevel.get(level - offset)
+        const upper = xpByLevel.get(level + offset)
+        if (lower && lower.length > 0) {
+          const sorted = [...lower].sort((a, b) => a - b)
+          return sorted[Math.floor(sorted.length / 2)]
+        }
+        if (upper && upper.length > 0) {
+          const sorted = [...upper].sort((a, b) => a - b)
+          return sorted[Math.floor(sorted.length / 2)]
+        }
+      }
+      // Default estimate based on level (rough approximation)
+      return mode === 'heroic' ? level * 3000 : level * 10000
+    }
 
     // Group by pack and sort quests within each pack
     for (const quest of selectedQuests) {
@@ -85,9 +136,21 @@ export default function LevelRuler({ mode, bonuses, selectedQuests }: LevelRuler
       const tier = mode === 'heroic' ? 'heroic' : 'epic'
       const difficulty = bonuses.firstTimeCompletion === 'none' ? 'elite' : bonuses.firstTimeCompletion
       const baseXP = getBaseXP(quest.xp, tier, difficulty === 'reaper' ? 'elite' : difficulty)
-      if (baseXP === null) continue
 
-      const xpResult = calculateQuestXP(baseXP, bonuses, tier, quest.groupSize === 'Raid')
+      // Use actual XP if available, otherwise estimate
+      const isEstimated = baseXP === null
+      let xp: number
+      let actualBaseXP: number
+
+      if (baseXP !== null) {
+        const xpResult = calculateQuestXP(baseXP, bonuses, tier, quest.groupSize === 'Raid')
+        xp = xpResult.totalXP
+        actualBaseXP = baseXP
+      } else {
+        // Estimate XP based on median of same-level quests
+        xp = getMedianXP(questLevel)
+        actualBaseXP = 0
+      }
 
       const startLevel = questLevel
       const endLevel = Math.min(
@@ -100,12 +163,13 @@ export default function LevelRuler({ mode, bonuses, selectedQuests }: LevelRuler
         quest,
         startLevel,
         endLevel,
-        xp: xpResult.totalXP,
-        baseXP,
+        xp,
+        baseXP: actualBaseXP,
+        isEstimated,
       })
       pack.minLevel = Math.min(pack.minLevel, startLevel)
       pack.maxLevel = Math.max(pack.maxLevel, endLevel)
-      pack.totalXP += xpResult.totalXP
+      pack.totalXP += xp
     }
 
     // Sort quests within each pack by level
@@ -129,13 +193,36 @@ export default function LevelRuler({ mode, bonuses, selectedQuests }: LevelRuler
   const ROW_HEIGHT = 28
   const PACK_HEADER_HEIGHT = 24
 
-  // Calculate total height needed
-  const totalHeight = useMemo(() => {
-    let height = 0
+  // Calculate total height needed and pre-compute Y positions
+  const { totalHeight, packPositions } = useMemo(() => {
+    let currentY = 0
+    const positions: Array<{
+      pack: PackCoverage
+      packStartY: number
+      questPositions: Array<{
+        quest: PackCoverage['quests'][0]
+        questIndex: number
+        rowY: number
+      }>
+    }> = []
+
     for (const pack of packCoverages) {
-      height += PACK_HEADER_HEIGHT + pack.quests.length * ROW_HEIGHT
+      const packStartY = currentY
+      currentY += PACK_HEADER_HEIGHT
+
+      const questPositions = pack.quests.map((quest, questIndex) => {
+        const rowY = currentY
+        currentY += ROW_HEIGHT
+        return { quest, questIndex, rowY }
+      })
+
+      positions.push({ pack, packStartY, questPositions })
     }
-    return Math.max(200, height + 20)
+
+    return {
+      totalHeight: Math.max(200, currentY + 20),
+      packPositions: positions,
+    }
   }, [packCoverages])
 
   return (
@@ -203,121 +290,174 @@ export default function LevelRuler({ mode, bonuses, selectedQuests }: LevelRuler
           />
         ))}
 
+        {/* Character marker lines */}
+        {characterMarkers.map((char) => {
+          const charPercent = levelToPercent(char.level)
+          // Offset slightly if multiple characters at same level
+          const sameLevel = characterMarkers.filter((c) => c.level === char.level)
+          const offsetIndex = sameLevel.findIndex((c) => c.id === char.id)
+          const offset = sameLevel.length > 1 ? (offsetIndex - (sameLevel.length - 1) / 2) * 2 : 0
+
+          return (
+            <Tooltip
+              key={char.id}
+              title={`${char.name} - Level ${char.level}`}
+              arrow
+              placement="top"
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: `calc(${charPercent}% + ${offset}px)`,
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  bgcolor: 'warning.main',
+                  zIndex: 5,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    width: 3,
+                    bgcolor: 'warning.light',
+                  },
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: -6,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 8,
+                    height: 8,
+                    bgcolor: 'warning.main',
+                    borderRadius: '50%',
+                    border: `2px solid ${theme.palette.background.paper}`,
+                  },
+                }}
+              />
+            </Tooltip>
+          )
+        })}
+
         {/* Pack groups */}
-        {(() => {
-          let currentY = 0
-          return packCoverages.map((pack) => {
-            const packStartY = currentY
-            currentY += PACK_HEADER_HEIGHT
+        {packPositions.map(({ pack, packStartY, questPositions }) => {
+          const questRows = questPositions.map(({ quest: item, questIndex, rowY }) => {
+            const leftPercent = levelToPercent(item.startLevel)
+            const rightPercent = levelToPercent(item.endLevel + 1)
+            const widthPercent = Math.max(2, rightPercent - leftPercent)
 
-            const questRows = pack.quests.map((item, questIndex) => {
-              const leftPercent = levelToPercent(item.startLevel)
-              const rightPercent = levelToPercent(item.endLevel + 1)
-              const widthPercent = Math.max(2, rightPercent - leftPercent)
-              const rowY = currentY
-              currentY += ROW_HEIGHT
-
-              return (
-                <Tooltip
-                  key={`${item.quest.id}-${questIndex}`}
-                  title={
-                    <Box>
-                      <Typography variant="body2" fontWeight="bold">
-                        {item.quest.name}
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        {pack.packName}
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        Level: {item.startLevel} | XP: {item.xp.toLocaleString()}
-                      </Typography>
+            return (
+              <Tooltip
+                key={`${item.quest.id}-${questIndex}`}
+                title={
+                  <Box>
+                    <Typography variant="body2" fontWeight="bold">
+                      {item.quest.name}
+                      {item.isEstimated && (
+                        <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
+                          (Est.)
+                        </Typography>
+                      )}
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      {pack.packName}
+                    </Typography>
+                    <Typography variant="caption" display="block" color={item.isEstimated ? 'warning.main' : 'inherit'}>
+                      Level: {item.startLevel} | XP: {item.isEstimated ? '~' : ''}{item.xp.toLocaleString()}
+                      {item.isEstimated && ' (estimated)'}
+                    </Typography>
+                    {!item.isEstimated && (
                       <Typography variant="caption" display="block">
                         Base XP: {item.baseXP.toLocaleString()} | Size: {item.quest.groupSize}
                       </Typography>
-                    </Box>
-                  }
-                  arrow
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: `${leftPercent}%`,
-                      width: `${widthPercent}%`,
-                      top: rowY + 2,
-                      height: ROW_HEIGHT - 4,
-                      bgcolor: pack.color,
-                      borderRadius: 1,
-                      opacity: 0.85,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      px: 0.5,
-                      overflow: 'hidden',
-                      zIndex: 1,
-                      '&:hover': {
-                        opacity: 1,
-                        zIndex: 10,
-                      },
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: 'white',
-                        fontWeight: 500,
-                        fontSize: '0.65rem',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        textShadow: '0 0 2px rgba(0,0,0,0.5)',
-                      }}
-                    >
-                      {item.quest.name}
-                    </Typography>
+                    )}
+                    {item.isEstimated && (
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        Size: {item.quest.groupSize} | No XP data available
+                      </Typography>
+                    )}
                   </Box>
-                </Tooltip>
-              )
-            })
-
-            return (
-              <Box key={pack.packName}>
-                {/* Pack header */}
+                }
+                arrow
+              >
                 <Box
                   sx={{
                     position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    top: packStartY,
-                    height: PACK_HEADER_HEIGHT,
-                    bgcolor: 'action.hover',
-                    borderBottom: `1px solid ${theme.palette.divider}`,
+                    left: `${leftPercent}%`,
+                    width: `${widthPercent}%`,
+                    top: rowY + 2,
+                    height: ROW_HEIGHT - 4,
+                    bgcolor: item.isEstimated ? 'action.disabled' : pack.color,
+                    borderRadius: 1,
+                    opacity: item.isEstimated ? 0.6 : 0.85,
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    px: 1,
-                    zIndex: 2,
+                    border: item.isEstimated ? `1px dashed ${pack.color}` : 'none',
+                    px: 0.5,
+                    overflow: 'hidden',
+                    zIndex: 1,
+                    '&:hover': {
+                      opacity: 1,
+                      zIndex: 10,
+                    },
                   }}
                 >
-                  <Box
+                  <Typography
+                    variant="caption"
                     sx={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 0.5,
-                      bgcolor: pack.color,
-                      mr: 1,
+                      color: 'white',
+                      fontWeight: 500,
+                      fontSize: '0.65rem',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      textShadow: '0 0 2px rgba(0,0,0,0.5)',
                     }}
-                  />
-                  <Typography variant="caption" fontWeight="bold" sx={{ flex: 1 }}>
-                    {pack.packName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {pack.quests.length} quests • {pack.totalXP.toLocaleString()} XP
+                  >
+                    {item.quest.name}
                   </Typography>
                 </Box>
-                {questRows}
-              </Box>
+              </Tooltip>
             )
           })
-        })()}
+
+          return (
+            <Box key={pack.packName}>
+              {/* Pack header */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: packStartY,
+                  height: PACK_HEADER_HEIGHT,
+                  bgcolor: 'action.hover',
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  px: 1,
+                  zIndex: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 0.5,
+                    bgcolor: pack.color,
+                    mr: 1,
+                  }}
+                />
+                <Typography variant="caption" fontWeight="bold" sx={{ flex: 1 }}>
+                  {pack.packName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {pack.quests.length} quests • {pack.totalXP.toLocaleString()} XP
+                </Typography>
+              </Box>
+              {questRows}
+            </Box>
+          )
+        })}
 
         {/* Empty state */}
         {packCoverages.length === 0 && (

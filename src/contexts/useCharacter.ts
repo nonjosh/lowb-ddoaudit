@@ -41,3 +41,10 @@ export function useCharacter() {
   }
   return context
 }
+
+/**
+ * Optional version of useCharacter that returns null when not in a CharacterProvider
+ */
+export function useCharacterOptional(): CharacterContextType | null {
+  return useContext(CharacterContext)
+}

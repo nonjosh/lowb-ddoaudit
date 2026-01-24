@@ -48,6 +48,8 @@ export interface TRPlannerState {
   bonuses: XPBonusConfig
   selectedQuestIds: Set<string>
   selectedPackNames: Set<string>
+  startLevel: number // Starting level for the plan
+  selectedCharacterIds: Set<string> // Selected character IDs for level markers
 
   // Saved plans
   savedPlans: TRPlan[]
@@ -70,6 +72,7 @@ export interface TRPlannerActions {
   setTRTier: (tier: TRTier) => void
   setBonuses: (bonuses: XPBonusConfig) => void
   updateBonus: <K extends keyof XPBonusConfig>(key: K, value: XPBonusConfig[K]) => void
+  setStartLevel: (level: number) => void
 
   // Quest selection
   toggleQuest: (questId: string) => void
@@ -77,6 +80,10 @@ export interface TRPlannerActions {
   selectQuests: (questIds: string[]) => void
   deselectQuests: (questIds: string[]) => void
   clearSelection: () => void
+
+  // Character selection for level markers
+  toggleCharacter: (characterId: string) => void
+  clearCharacters: () => void
 
   // Plan management
   newPlan: () => void

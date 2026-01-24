@@ -113,6 +113,8 @@ const initialState: TRPlannerState = {
   bonuses: DEFAULT_BONUS_CONFIG,
   selectedQuestIds: new Set(),
   selectedPackNames: new Set(),
+  startLevel: 20, // Default to 20 for epic mode
+  selectedCharacterIds: new Set(),
   savedPlans: [],
   currentPlanId: null,
   currentPlanName: 'New Plan',
@@ -189,6 +191,10 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
     }))
   }, [])
 
+  const setStartLevel = useCallback((level: number) => {
+    setState((prev) => ({ ...prev, startLevel: level }))
+  }, [])
+
   const toggleQuest = useCallback((questId: string) => {
     setState((prev) => {
       const newSelected = new Set(prev.selectedQuestIds)
@@ -260,6 +266,22 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
     }))
   }, [])
 
+  const toggleCharacter = useCallback((characterId: string) => {
+    setState((prev) => {
+      const newSelected = new Set(prev.selectedCharacterIds)
+      if (newSelected.has(characterId)) {
+        newSelected.delete(characterId)
+      } else {
+        newSelected.add(characterId)
+      }
+      return { ...prev, selectedCharacterIds: newSelected }
+    })
+  }, [])
+
+  const clearCharacters = useCallback(() => {
+    setState((prev) => ({ ...prev, selectedCharacterIds: new Set() }))
+  }, [])
+
   const newPlan = useCallback(() => {
     setState((prev) => ({
       ...prev,
@@ -268,6 +290,8 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
       bonuses: DEFAULT_BONUS_CONFIG,
       selectedQuestIds: new Set(),
       selectedPackNames: new Set(),
+      startLevel: 1,
+      selectedCharacterIds: new Set(),
       currentPlanId: null,
       currentPlanName: 'New Plan',
     }))
@@ -359,11 +383,14 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
     setTRTier,
     setBonuses,
     updateBonus,
+    setStartLevel,
     toggleQuest,
     togglePack,
     selectQuests,
     deselectQuests,
     clearSelection,
+    toggleCharacter,
+    clearCharacters,
     newPlan,
     savePlan,
     loadPlan,
