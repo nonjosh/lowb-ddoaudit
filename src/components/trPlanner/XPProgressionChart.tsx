@@ -1,5 +1,9 @@
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
   Box,
+  Collapse,
+  IconButton,
   Paper,
   Table,
   TableBody,
@@ -10,7 +14,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import React from 'react'
 
 import { QuestWithXP } from '@/contexts/useTRPlanner'
 import {
@@ -230,6 +235,70 @@ export default function XPProgressionChart({
     return rows
   }, [selectedQuests, mode, trTier, bonuses, startLevelDefault])
 
+  // Group rows by pack for collapsible display
+  const packGroups = useMemo(() => {
+    const groups: Array<{
+      packName: string
+      summaryRow: ProgressionRow | null
+      questRows: ProgressionRow[]
+    }> = []
+
+    let currentPack: string | null = null
+    let currentQuests: ProgressionRow[] = []
+
+    for (const row of progressionData) {
+      if (row.isPackSummary) {
+        groups.push({
+          packName: row.packName,
+          summaryRow: row,
+          questRows: currentQuests,
+        })
+        currentPack = null
+        currentQuests = []
+      } else {
+        if (currentPack !== row.packName) {
+          if (currentPack !== null && currentQuests.length > 0) {
+            // Pack with only one quest (no summary row)
+            groups.push({
+              packName: currentPack,
+              summaryRow: null,
+              questRows: currentQuests,
+            })
+          }
+          currentPack = row.packName
+          currentQuests = []
+        }
+        currentQuests.push(row)
+      }
+    }
+
+    // Handle last pack if no summary
+    if (currentPack !== null && currentQuests.length > 0) {
+      groups.push({
+        packName: currentPack,
+        summaryRow: null,
+        questRows: currentQuests,
+      })
+    }
+
+    return groups
+  }, [progressionData])
+
+  // State for collapsed packs
+  const [collapsedPacks, setCollapsedPacks] = useState<Set<string>>(new Set())
+
+  const togglePackCollapse = (packName: string) => {
+    setCollapsedPacks((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(packName)) {
+        newSet.delete(packName)
+      } else {
+        newSet.add(packName)
+      }
+      return newSet
+    })
+  }
+
   const totalXP = progressionData.length > 0 ? progressionData[progressionData.length - 1]?.cumulativeXP ?? 0 : 0
   const targetXP = mode === 'heroic' ? getTotalHeroicXP(trTier) : getTotalEpicXP()
   const finalRank = xpToRank(totalXP, mode, trTier)
@@ -271,10 +340,10 @@ export default function XPProgressionChart({
             Final Level
           </Typography>
           <Typography variant="h6">
-            L{finalLevel}
+            lv{finalLevel}
             <Typography component="span" variant="body2" color="text.secondary">
               {' '}
-              (Rank {finalRank})
+              (rank {finalRank})
             </Typography>
           </Typography>
         </Box>
@@ -314,90 +383,142 @@ export default function XPProgressionChart({
             </TableRow>
           </TableHead>
           <TableBody>
-            {progressionData.map((row, index) => (
-              <TableRow
-                key={`${row.packName}-${row.questName ?? 'summary'}-${index}`}
-                sx={{
-                  bgcolor: row.isPackSummary
-                    ? theme.palette.action.selected
-                    : row.isEstimated
-                      ? `${theme.palette.warning.main}15`
-                      : 'transparent',
-                  fontWeight: row.isPackSummary ? 'bold' : 'normal',
-                  borderLeft: row.isEstimated && !row.isPackSummary ? `3px solid ${theme.palette.warning.main}` : 'none',
-                }}
-              >
-                <TableCell>
-                  {row.isPackSummary ? (
-                    <Typography variant="body2" fontWeight="bold">
-                      📦 {row.packName} (Total)
-                      {row.isEstimated && (
-                        <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
-                          *
+            {packGroups.map((group) => {
+              const isCollapsed = collapsedPacks.has(group.packName)
+              const displayRow = group.summaryRow ?? group.questRows[group.questRows.length - 1]
+              const hasMultipleQuests = group.questRows.length > 1 || group.summaryRow !== null
+
+              return (
+                <React.Fragment key={group.packName}>
+                  {/* Pack header row */}
+                  <TableRow
+                    sx={{
+                      bgcolor: theme.palette.action.selected,
+                      cursor: hasMultipleQuests ? 'pointer' : 'default',
+                      '&:hover': hasMultipleQuests ? { bgcolor: theme.palette.action.hover } : {},
+                    }}
+                    onClick={() => hasMultipleQuests && togglePackCollapse(group.packName)}
+                  >
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {hasMultipleQuests && (
+                          <IconButton size="small" sx={{ p: 0, mr: 0.5 }}>
+                            {isCollapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
+                          </IconButton>
+                        )}
+                        <Typography variant="body2" fontWeight="bold">
+                          📦 {group.packName}
+                          {group.summaryRow ? ` (${group.questRows.length})` : ''}
+                          {displayRow?.isEstimated && (
+                            <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
+                              *
+                            </Typography>
+                          )}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="right" />
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight="bold">
+                        {displayRow && formatXP(group.summaryRow?.questXP ?? group.questRows.reduce((sum, r) => sum + r.questXP, 0))}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight="bold">
+                        {displayRow && formatXP(displayRow.cumulativeXP)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      {displayRow && (
+                        <Typography variant="body2" fontWeight="bold">
+                          lv{group.questRows[0]?.startLevel ?? displayRow.startLevel}
+                          <Typography component="span" variant="caption" color="text.secondary">
+                            {' '}rank{group.questRows[0]?.startRank ?? displayRow.startRank}
+                          </Typography>
+                          {' → '}
+                          lv{displayRow.endLevel}
+                          <Typography component="span" variant="caption" color="text.secondary">
+                            {' '}rank{displayRow.endRank}
+                          </Typography>
                         </Typography>
                       )}
-                    </Typography>
-                  ) : (
-                    <Box sx={{ pl: 2 }}>
-                      <Typography variant="body2">
-                        {row.questName}
-                        {row.isEstimated && (
-                          <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
-                            (Est.)
+                    </TableCell>
+                    <TableCell align="right">
+                      {displayRow && (
+                        <Typography
+                          variant="body2"
+                          fontWeight="bold"
+                          color={(group.summaryRow?.levelsGained ?? displayRow.levelsGained) >= 1 ? 'success.main' : 'text.secondary'}
+                        >
+                          +{(group.summaryRow?.levelsGained ?? group.questRows.reduce((sum, r) => sum + r.levelsGained, 0)).toFixed(1)}
+                        </Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Quest rows (collapsible) */}
+                  {group.questRows.map((row, index) => (
+                    <TableRow
+                      key={`${row.packName}-${row.questName}-${index}`}
+                      sx={{
+                        display: isCollapsed ? 'none' : 'table-row',
+                        bgcolor: row.isEstimated ? `${theme.palette.warning.main}15` : 'transparent',
+                        borderLeft: row.isEstimated ? `3px solid ${theme.palette.warning.main}` : 'none',
+                      }}
+                    >
+                      <TableCell>
+                        <Box sx={{ pl: 3 }}>
+                          <Typography variant="body2">
+                            {row.questName}
+                            {row.isEstimated && (
+                              <Typography component="span" variant="caption" color="warning.main" sx={{ ml: 1 }}>
+                                (Est.)
+                              </Typography>
+                            )}
                           </Typography>
-                        )}
-                      </Typography>
-                    </Box>
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  {!row.isPackSummary && `L${row.questLevel}`}
-                </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    variant="body2"
-                    fontWeight={row.isPackSummary ? 'bold' : 'normal'}
-                    color={row.isEstimated ? 'warning.main' : 'inherit'}
-                    sx={{ fontStyle: row.isEstimated ? 'italic' : 'normal' }}
-                  >
-                    {row.isEstimated && '~'}{formatXP(row.questXP)}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    variant="body2"
-                    fontWeight={row.isPackSummary ? 'bold' : 'normal'}
-                  >
-                    {formatXP(row.cumulativeXP)}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">
-                  <Typography
-                    variant="body2"
-                    fontWeight={row.isPackSummary ? 'bold' : 'normal'}
-                  >
-                    L{row.startLevel}
-                    <Typography component="span" variant="caption" color="text.secondary">
-                      {' '}R{row.startRank}
-                    </Typography>
-                    {' → '}
-                    L{row.endLevel}
-                    <Typography component="span" variant="caption" color="text.secondary">
-                      {' '}R{row.endRank}
-                    </Typography>
-                  </Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    variant="body2"
-                    fontWeight={row.isPackSummary ? 'bold' : 'normal'}
-                    color={row.levelsGained >= 1 ? 'success.main' : 'text.secondary'}
-                  >
-                    +{row.levelsGained.toFixed(1)}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ))}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">lv{row.questLevel}</TableCell>
+                      <TableCell align="right">
+                        <Typography
+                          variant="body2"
+                          color={row.isEstimated ? 'warning.main' : 'inherit'}
+                          sx={{ fontStyle: row.isEstimated ? 'italic' : 'normal' }}
+                        >
+                          {row.isEstimated && '~'}{formatXP(row.questXP)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2">
+                          {formatXP(row.cumulativeXP)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2">
+                          lv{row.startLevel}
+                          <Typography component="span" variant="caption" color="text.secondary">
+                            {' '}rank{row.startRank}
+                          </Typography>
+                          {' → '}
+                          lv{row.endLevel}
+                          <Typography component="span" variant="caption" color="text.secondary">
+                            {' '}rank{row.endRank}
+                          </Typography>
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography
+                          variant="body2"
+                          color={row.levelsGained >= 1 ? 'success.main' : 'text.secondary'}
+                        >
+                          +{row.levelsGained.toFixed(1)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
+              )
+            })}
           </TableBody>
         </Table>
       </TableContainer>

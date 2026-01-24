@@ -35,19 +35,19 @@ interface QuestSelectorProps {
 // Level filter options for heroic mode
 const HEROIC_LEVEL_FILTERS = [
   { value: 'all', label: 'All' },
-  { value: '1-5', label: 'L1-5', min: 1, max: 5 },
-  { value: '6-10', label: 'L6-10', min: 6, max: 10 },
-  { value: '11-15', label: 'L11-15', min: 11, max: 15 },
-  { value: '16-20', label: 'L16-20', min: 16, max: 20 },
+  { value: '1-5', label: 'lv1-5', min: 1, max: 5 },
+  { value: '6-10', label: 'lv6-10', min: 6, max: 10 },
+  { value: '11-15', label: 'lv11-15', min: 11, max: 15 },
+  { value: '16-20', label: 'lv16-20', min: 16, max: 20 },
 ] as const
 
 // Level filter options for epic mode
 const EPIC_LEVEL_FILTERS = [
   { value: 'all', label: 'All' },
-  { value: '20-22', label: 'L20-22', min: 20, max: 22 },
-  { value: '23-25', label: 'L23-25', min: 23, max: 25 },
-  { value: '26-28', label: 'L26-28', min: 26, max: 28 },
-  { value: '29-30', label: 'L29-30', min: 29, max: 30 },
+  { value: '20-22', label: 'lv20-22', min: 20, max: 22 },
+  { value: '23-25', label: 'lv23-25', min: 23, max: 25 },
+  { value: '26-28', label: 'lv26-28', min: 26, max: 28 },
+  { value: '29-30', label: 'lv29-30', min: 29, max: 30 },
 ] as const
 
 type LevelFilterValue = string
@@ -267,7 +267,7 @@ export default function QuestSelector({
                       </Typography>
                       <Chip
                         size="small"
-                        label={pack.minLevel === pack.maxLevel ? `L${pack.minLevel ?? '?'}` : `L${pack.minLevel ?? '?'}-${pack.maxLevel ?? '?'}`}
+                        label={pack.minLevel === pack.maxLevel ? `lv${pack.minLevel ?? '?'}` : `lv${pack.minLevel ?? '?'}-${pack.maxLevel ?? '?'}`}
                         sx={{ height: 20, fontSize: '0.7rem' }}
                       />
                       <Typography variant="caption" color="text.secondary">
@@ -327,7 +327,7 @@ function QuestRow({ quest, mode, isSelected, onToggle }: QuestRowProps) {
           </Typography>
           <Chip
             size="small"
-            label={`L${level}`}
+            label={`lv${level}`}
             color={isSelected ? 'primary' : 'default'}
             sx={{ height: 18, fontSize: '0.65rem', minWidth: 35 }}
           />

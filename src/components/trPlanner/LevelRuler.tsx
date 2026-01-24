@@ -1,5 +1,7 @@
-import { Box, Tooltip, Typography, useTheme } from '@mui/material'
-import { useMemo } from 'react'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { Box, IconButton, Tooltip, Typography, useTheme } from '@mui/material'
+import { useMemo, useState } from 'react'
 
 import { QuestWithXP } from '@/contexts/useTRPlanner'
 import {
@@ -18,6 +20,7 @@ export interface CharacterMarker {
   id: string
   name: string
   level: number
+  isOnline?: boolean
 }
 
 interface LevelRulerProps {
@@ -181,6 +184,21 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
     return Array.from(packMap.values()).sort((a, b) => a.minLevel - b.minLevel)
   }, [selectedQuests, mode, bonuses])
 
+  // State for collapsed packs
+  const [collapsedPacks, setCollapsedPacks] = useState<Set<string>>(new Set())
+
+  const togglePackCollapse = (packName: string) => {
+    setCollapsedPacks((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(packName)) {
+        newSet.delete(packName)
+      } else {
+        newSet.add(packName)
+      }
+      return newSet
+    })
+  }
+
   const totalRanks = mode === 'heroic' ? 96 : 51
 
   // Calculate ruler width based on level
@@ -199,6 +217,7 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
     const positions: Array<{
       pack: PackCoverage
       packStartY: number
+      isCollapsed: boolean
       questPositions: Array<{
         quest: PackCoverage['quests'][0]
         questIndex: number
@@ -208,22 +227,25 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
 
     for (const pack of packCoverages) {
       const packStartY = currentY
+      const isCollapsed = collapsedPacks.has(pack.packName)
       currentY += PACK_HEADER_HEIGHT
 
       const questPositions = pack.quests.map((quest, questIndex) => {
-        const rowY = currentY
-        currentY += ROW_HEIGHT
+        const rowY = isCollapsed ? packStartY + PACK_HEADER_HEIGHT : currentY
+        if (!isCollapsed) {
+          currentY += ROW_HEIGHT
+        }
         return { quest, questIndex, rowY }
       })
 
-      positions.push({ pack, packStartY, questPositions })
+      positions.push({ pack, packStartY, isCollapsed, questPositions })
     }
 
     return {
       totalHeight: Math.max(200, currentY + 20),
       packPositions: positions,
     }
-  }, [packCoverages])
+  }, [packCoverages, collapsedPacks])
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -297,11 +319,28 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
           const sameLevel = characterMarkers.filter((c) => c.level === char.level)
           const offsetIndex = sameLevel.findIndex((c) => c.id === char.id)
           const offset = sameLevel.length > 1 ? (offsetIndex - (sameLevel.length - 1) / 2) * 2 : 0
+          const markerColor = char.isOnline ? 'success.main' : 'warning.main'
+          const markerHoverColor = char.isOnline ? 'success.light' : 'warning.light'
 
           return (
             <Tooltip
               key={char.id}
-              title={`${char.name} - Level ${char.level}`}
+              title={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {char.isOnline && (
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: 'success.main',
+                      }}
+                    />
+                  )}
+                  {char.name} - lv{char.level}
+                  {char.isOnline && ' (online)'}
+                </Box>
+              }
               arrow
               placement="top"
             >
@@ -312,12 +351,12 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
                   top: 0,
                   bottom: 0,
                   width: 2,
-                  bgcolor: 'warning.main',
+                  bgcolor: markerColor,
                   zIndex: 5,
                   cursor: 'pointer',
                   '&:hover': {
                     width: 3,
-                    bgcolor: 'warning.light',
+                    bgcolor: markerHoverColor,
                   },
                   '&::before': {
                     content: '""',
@@ -327,7 +366,7 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
                     transform: 'translateX(-50%)',
                     width: 8,
                     height: 8,
-                    bgcolor: 'warning.main',
+                    bgcolor: markerColor,
                     borderRadius: '50%',
                     border: `2px solid ${theme.palette.background.paper}`,
                   },
@@ -338,8 +377,8 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
         })}
 
         {/* Pack groups */}
-        {packPositions.map(({ pack, packStartY, questPositions }) => {
-          const questRows = questPositions.map(({ quest: item, questIndex, rowY }) => {
+        {packPositions.map(({ pack, packStartY, isCollapsed, questPositions }) => {
+          const questRows = isCollapsed ? null : questPositions.map(({ quest: item, questIndex, rowY }) => {
             const leftPercent = levelToPercent(item.startLevel)
             const rightPercent = levelToPercent(item.endLevel + 1)
             const widthPercent = Math.max(2, rightPercent - leftPercent)
@@ -361,7 +400,7 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
                       {pack.packName}
                     </Typography>
                     <Typography variant="caption" display="block" color={item.isEstimated ? 'warning.main' : 'inherit'}>
-                      Level: {item.startLevel} | XP: {item.isEstimated ? '~' : ''}{item.xp.toLocaleString()}
+                      lv{item.startLevel} | XP: {item.isEstimated ? '~' : ''}{item.xp.toLocaleString()}
                       {item.isEstimated && ' (estimated)'}
                     </Typography>
                     {!item.isEstimated && (
@@ -424,6 +463,7 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
             <Box key={pack.packName}>
               {/* Pack header */}
               <Box
+                onClick={() => togglePackCollapse(pack.packName)}
                 sx={{
                   position: 'absolute',
                   left: 0,
@@ -436,8 +476,15 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, characterMar
                   alignItems: 'center',
                   px: 1,
                   zIndex: 2,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: 'action.selected',
+                  },
                 }}
               >
+                <IconButton size="small" sx={{ p: 0, mr: 0.5 }}>
+                  {isCollapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
+                </IconButton>
                 <Box
                   sx={{
                     width: 10,

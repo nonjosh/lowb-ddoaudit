@@ -27,6 +27,7 @@ export interface XPBonusConfig {
   xpElixir: 0 | 10 | 20 | 30 | 50 // percentage
   vipBonus: boolean // 10%
   vipGroupBonus: boolean // 1% per player, max 5% party / 11% raid
+  weeklyBonus: 0 | 5 | 10 | 15 | 20 | 25 | 30 // Weekly random bonus percentage
 }
 
 /**
@@ -65,6 +66,7 @@ export const DEFAULT_BONUS_CONFIG: XPBonusConfig = {
   xpElixir: 0,
   vipBonus: true,
   vipGroupBonus: false,
+  weeklyBonus: 0,
 }
 
 /**
@@ -181,6 +183,7 @@ export function calculateMultiplicativeBonusPercentage(config: XPBonusConfig): n
   if (config.shipBuff) total += 0.05
   total += config.xpElixir / 100
   if (config.vipBonus) total += 0.10
+  total += config.weeklyBonus / 100
 
   return total
 }

@@ -217,6 +217,24 @@ export default function BonusConfigPanel({ bonuses, mode, onUpdateBonus, bonusPe
             </FormControl>
           </Tooltip>
         )}
+        <Tooltip title="Random weekly XP bonus event (varies each week)" arrow placement="top">
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <InputLabel>Weekly</InputLabel>
+            <Select
+              value={String(bonuses.weeklyBonus)}
+              label="Weekly"
+              onChange={handleSelectChange('weeklyBonus')}
+            >
+              <MenuItem value="0">None</MenuItem>
+              <MenuItem value="5">5%</MenuItem>
+              <MenuItem value="10">10%</MenuItem>
+              <MenuItem value="15">15%</MenuItem>
+              <MenuItem value="20">20%</MenuItem>
+              <MenuItem value="25">25%</MenuItem>
+              <MenuItem value="30">30%</MenuItem>
+            </Select>
+          </FormControl>
+        </Tooltip>
       </Box>
     </Paper>
   )

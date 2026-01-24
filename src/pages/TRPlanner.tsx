@@ -63,7 +63,7 @@ export default function TRPlanner() {
   } = useTRPlanner()
 
   // Character data state - fetched directly from API
-  const [charactersById, setCharactersById] = useState<Record<string, { name: string; total_level: number }>>({})
+  const [charactersById, setCharactersById] = useState<Record<string, { name: string; total_level: number; is_online?: boolean }>>({})
   const [characterLoading, setCharacterLoading] = useState(false)
   const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -75,7 +75,7 @@ export default function TRPlanner() {
     setCharacterLoading(true)
     try {
       const data = await fetchCharactersByIds(characterIds)
-      setCharactersById(data as Record<string, { name: string; total_level: number }>)
+      setCharactersById(data as Record<string, { name: string; total_level: number; is_online?: boolean }>)
     } catch (err) {
       console.error('Failed to fetch character data:', err)
     } finally {
@@ -200,6 +200,7 @@ export default function TRPlanner() {
         id,
         name: char.name,
         level: char.total_level,
+        isOnline: char.is_online ?? false,
       }))
       .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
   }, [charactersById, mode])
@@ -289,7 +290,7 @@ export default function TRPlanner() {
                 : [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
               ).map((level) => (
                 <MenuItem key={level} value={level}>
-                  L{level}
+                  lv{level}
                 </MenuItem>
               ))}
             </Select>
@@ -300,7 +301,7 @@ export default function TRPlanner() {
               multiple
               size="small"
               options={availableCharacters}
-              getOptionLabel={(option) => `${option.name} (L${option.level})`}
+              getOptionLabel={(option) => `${option.name} (lv${option.level})`}
               value={selectedCharacters}
               onChange={(_, newValue) => {
                 // Clear current selection and add new ones
@@ -320,7 +321,20 @@ export default function TRPlanner() {
                 return (
                   <li key={key} {...rest}>
                     <Checkbox size="small" checked={selected} sx={{ mr: 1 }} />
-                    {option.name} (L{option.level})
+                    {option.isOnline && (
+                      <Box
+                        component="span"
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: 'success.main',
+                          display: 'inline-block',
+                          mr: 0.5,
+                        }}
+                      />
+                    )}
+                    {option.name} (lv{option.level})
                   </li>
                 )
               }}

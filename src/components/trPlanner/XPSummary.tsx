@@ -87,7 +87,7 @@ export default function XPSummary({ mode, trTier, bonuses, selectedQuests, onBon
 
         <Box>
           <Typography variant="caption" color="text.secondary">
-            Required XP ({mode === 'heroic' ? `L1→20, TR ${trTier}` : 'L20→30'})
+            Required XP ({mode === 'heroic' ? `lv1→20, TR ${trTier}` : 'lv20→30'})
           </Typography>
           <Typography variant="h5" fontWeight="bold">
             {formatXP(summary.requiredXP)}
