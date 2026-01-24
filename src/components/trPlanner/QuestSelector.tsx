@@ -288,13 +288,20 @@ export default function QuestSelector({
         <Autocomplete
           multiple
           size="small"
-          options={availableSagas.map((s) => s.name)}
-          value={sagaFilter}
-          onChange={(_, newValue) => setSagaFilter(newValue)}
+          options={availableSagas}
+          getOptionLabel={(option) => `${option.name} (${option.questCount})`}
+          value={availableSagas.filter((s) => sagaFilter.includes(s.name))}
+          onChange={(_, newValue) => setSagaFilter(newValue.map((s) => s.name))}
+          isOptionEqualToValue={(option, value) => option.name === value.name}
           renderInput={(params) => <TextField {...params} label="Saga" placeholder="Filter by saga" />}
           renderTags={(value, getTagProps) =>
             value.map((option, index) => (
-              <Chip {...getTagProps({ index })} key={option} label={option} size="small" />
+              <Chip
+                {...getTagProps({ index })}
+                key={option.id}
+                label={`${option.name} (${option.questCount})`}
+                size="small"
+              />
             ))
           }
           sx={{ width: '100%' }}
