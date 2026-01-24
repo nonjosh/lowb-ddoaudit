@@ -65,9 +65,13 @@ function normalizeRaidName(name: string | null | undefined): string {
 /**
  * Gets the update version for a raid name.
  * @param raidName The display name of the raid
- * @returns The update version string (e.g., "U75.7") or null if not found
+ * @returns The update version string (e.g., "U75") or null if not found
  */
 export function getRaidUpdate(raidName: string | null | undefined): string | null {
   const key = normalizeRaidName(raidName)
-  return RAID_UPDATE_MAP[key] ?? null
+  const fullVersion = RAID_UPDATE_MAP[key]
+  if (!fullVersion) return null
+
+  // Return only the major version (e.g., "U72.1" -> "U72")
+  return fullVersion.split('.')[0]
 }
