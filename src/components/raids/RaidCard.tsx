@@ -21,6 +21,7 @@ import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useWishlist } from '@/contexts/useWishlist'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
+import { getRaidUpdate } from '@/domains/raids/raidUpdates'
 
 import RaidTimerTable from './RaidTimerTable'
 
@@ -53,6 +54,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
     return () => window.removeEventListener('ddoaudit:ignoredTimersChanged', handler)
   }, [])
   const raidNotes = getRaidNotesForRaidName(g.raidName)
+  const raidUpdate = getRaidUpdate(g.raidName)
 
   const friendsInRaid = useMemo(() => {
     const present = new Set<string>((g.entries ?? []).filter((e: RaidEntry) => e?.isInRaid).map((e: RaidEntry) => String(e?.playerName ?? '')))
@@ -121,7 +123,18 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Typography variant="h6">{g.raidName}</Typography>
+                <Typography variant="h6">
+                  {raidUpdate && (
+                    <Typography
+                      component="span"
+                      variant="caption"
+                      sx={{ color: 'text.secondary', mr: 0.5 }}
+                    >
+                      [{raidUpdate}]
+                    </Typography>
+                  )}
+                  {g.raidName}
+                </Typography>
                 {hasWishForQuestName(g.raidName) ? (
                   <Tooltip title="Contains an item in your wish list">
                     <FavoriteIcon sx={{ width: 18, height: 18, color: 'error.main' }} />
