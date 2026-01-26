@@ -36,8 +36,10 @@ export default function TRPlanner() {
     mode,
     trTier,
     bonuses,
-    selectedQuestIds,
-    selectedPackNames,
+    selectedQuestIds: heroicEpicSelectedQuestIds,
+    selectedPackNames: heroicEpicSelectedPackNames,
+    etrSelectedQuestIds,
+    etrSelectedPackNames,
     completedQuestIds,
     sagaFilter,
     startLevel,
@@ -77,6 +79,22 @@ export default function TRPlanner() {
   // Track previous location IDs to detect quest enter/leave
   const prevLocationIds = useRef<Record<string, string | undefined>>({})
 
+  // Compute effective selected quest IDs based on mode
+  // In ETR mode, use etrSelectedQuestIds; otherwise use heroicEpicSelectedQuestIds
+  const selectedQuestIds = useMemo(() => {
+    return mode === 'etr' ? etrSelectedQuestIds : heroicEpicSelectedQuestIds
+  }, [mode, etrSelectedQuestIds, heroicEpicSelectedQuestIds])
+
+  const selectedPackNames = useMemo(() => {
+    return mode === 'etr' ? etrSelectedPackNames : heroicEpicSelectedPackNames
+  }, [mode, etrSelectedPackNames, heroicEpicSelectedPackNames])
+
+  // Compute quest IDs selected in the other epic/etr mode (for mutual exclusion)
+  const otherModeSelectedQuestIds = useMemo(() => {
+    if (mode === 'epic') return etrSelectedQuestIds
+    if (mode === 'etr') return heroicEpicSelectedQuestIds
+    return new Set<string>() // heroic mode has no mutual exclusion
+  }, [mode, etrSelectedQuestIds, heroicEpicSelectedQuestIds])
   // Build areaId to questId map for auto-select
   const areaToQuestMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -228,6 +246,7 @@ export default function TRPlanner() {
       if (newMode === 'heroic') {
         setStartLevel(1)
       } else {
+        // Both epic and etr start at level 20
         setStartLevel(20)
       }
     }
@@ -322,6 +341,7 @@ export default function TRPlanner() {
           >
             <ToggleButton value="heroic">Heroic (1-20)</ToggleButton>
             <ToggleButton value="epic">Epic (20-30)</ToggleButton>
+            <ToggleButton value="etr">ETR (20-30)</ToggleButton>
           </ToggleButtonGroup>
 
           <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -447,6 +467,7 @@ export default function TRPlanner() {
             selectedQuestIds={selectedQuestIds}
             selectedPackNames={selectedPackNames}
             completedQuestIds={completedQuestIds}
+            otherModeSelectedQuestIds={otherModeSelectedQuestIds}
             sagaFilter={sagaFilter}
             mode={mode}
             onToggleQuest={toggleQuest}

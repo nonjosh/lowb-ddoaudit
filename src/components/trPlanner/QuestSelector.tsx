@@ -1,4 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import SearchIcon from '@mui/icons-material/Search'
 import {
   Accordion,
@@ -11,12 +12,14 @@ import {
   InputAdornment,
   Paper,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { SyntheticEvent, useMemo, useState } from 'react'
 
 import sagasData from '@/data/sagas.json'
 import { AdventurePack, QuestWithXP } from '@/contexts/useTRPlanner'
+import { useWishlist } from '@/contexts/useWishlist'
 import { PlanMode } from '@/domains/trPlanner/levelRequirements'
 
 interface QuestSelectorProps {
@@ -24,10 +27,11 @@ interface QuestSelectorProps {
   selectedQuestIds: Set<string>
   selectedPackNames: Set<string>
   completedQuestIds: Set<string>
+  otherModeSelectedQuestIds?: Set<string> // Quests selected in other epic/etr mode (for mutual exclusion)
   mode: PlanMode
   sagaFilter: string[]
   onToggleQuest: (questId: string) => void
-  onTogglePack: (packName: string, filteredQuestIds?: string[]) => void
+  onTogglePack: (packName: string, filteredQuestIds?: string[], forceSelect?: boolean) => void
   onToggleQuestCompletion: (questId: string) => void
   onSetSagaFilter: (sagas: string[]) => void
 }
@@ -46,6 +50,7 @@ export default function QuestSelector({
   packs,
   selectedQuestIds,
   completedQuestIds,
+  otherModeSelectedQuestIds,
   mode,
   sagaFilter,
   onToggleQuest,
@@ -56,6 +61,8 @@ export default function QuestSelector({
   const [searchQuery, setSearchQuery] = useState('')
   const [patronFilter, setPatronFilter] = useState<string[]>([])
   const [expandedPacks, setExpandedPacks] = useState<Set<string>>(new Set())
+
+  const { hasWishForQuestName } = useWishlist()
 
   // Build saga quest name set for current mode
   const { sagaQuestNames, availableSagas } = useMemo(() => {
@@ -101,6 +108,9 @@ export default function QuestSelector({
           const questLevel = mode === 'heroic' ? quest.heroicCR : quest.epicCR
           // Only show quests that have a level in the current mode
           if (questLevel === null) return false
+
+          // In epic/etr modes, exclude quests selected in the other mode (mutual exclusion)
+          if (otherModeSelectedQuestIds?.has(quest.id)) return false
 
           // Filter by search query
           if (query && !quest.name.toLowerCase().includes(query) && !pack.name.toLowerCase().includes(query)) {
@@ -155,21 +165,13 @@ export default function QuestSelector({
         }
       })
       .filter((pack) => pack.quests.length > 0)
-      // Sort packs by minimum level
+      // Sort packs by minimum level only (no longer pinning selected packs)
       .sort((a, b) => {
-        // Packs with selected quests come first
-        const aHasSelected = a.quests.some((q) => selectedQuestIds.has(q.id))
-        const bHasSelected = b.quests.some((q) => selectedQuestIds.has(q.id))
-        if (aHasSelected && !bHasSelected) return -1
-        if (!aHasSelected && bHasSelected) return 1
-
-        // Then by level
         const minA = a.minLevel ?? 999
         const minB = b.minLevel ?? 999
         return minA - minB
       })
-  }, [packs, searchQuery, mode, selectedQuestIds, patronFilter, sagaFilter, sagaQuestNames])
-
+  }, [packs, searchQuery, mode, selectedQuestIds, patronFilter, sagaFilter, sagaQuestNames, otherModeSelectedQuestIds])
   const handlePackExpand = (packName: string) => (_: SyntheticEvent, isExpanded: boolean) => {
     setExpandedPacks((prev) => {
       const newSet = new Set(prev)
@@ -323,6 +325,7 @@ export default function QuestSelector({
                     mode={mode}
                     isSelected={selectedQuestIds.has(quest.id)}
                     isCompleted={completedQuestIds.has(quest.id)}
+                    hasWishlistItem={hasWishForQuestName(quest.name)}
                     onToggle={() => onToggleQuest(quest.id)}
                     onToggleCompletion={() => onToggleQuestCompletion(quest.id)}
                   />
@@ -347,11 +350,12 @@ interface QuestRowProps {
   mode: PlanMode
   isSelected: boolean
   isCompleted: boolean
+  hasWishlistItem: boolean
   onToggle: () => void
   onToggleCompletion: () => void
 }
 
-function QuestRow({ quest, mode, isSelected, isCompleted, onToggle, onToggleCompletion }: QuestRowProps) {
+function QuestRow({ quest, mode, isSelected, isCompleted, hasWishlistItem, onToggle, onToggleCompletion }: QuestRowProps) {
   const level = mode === 'heroic' ? quest.heroicCR : quest.epicCR
   const xp =
     mode === 'heroic'
@@ -377,6 +381,11 @@ function QuestRow({ quest, mode, isSelected, isCompleted, onToggle, onToggleComp
         onClick={isSelected ? onToggleCompletion : undefined}
         title={isSelected ? (isCompleted ? 'Click to mark incomplete' : 'Click to mark completed') : undefined}
       >
+        {hasWishlistItem && (
+          <Tooltip title="Has wishlist item" arrow>
+            <FavoriteIcon sx={{ fontSize: 14, color: 'error.main' }} />
+          </Tooltip>
+        )}
         <Typography
           variant="body2"
           sx={{

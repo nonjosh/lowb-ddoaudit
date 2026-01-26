@@ -154,6 +154,8 @@ const initialState: TRPlannerState = {
   bonuses: DEFAULT_BONUS_CONFIG,
   selectedQuestIds: new Set(),
   selectedPackNames: new Set(),
+  etrSelectedQuestIds: new Set(),
+  etrSelectedPackNames: new Set(),
   completedQuestIds: new Set(),
   startLevel: 20, // Default to 20 for epic mode
   selectedCharacterIds: new Set(),
@@ -173,6 +175,8 @@ interface PersistedSelection {
   bonuses: XPBonusConfig
   selectedQuestIds: string[]
   selectedPackNames: string[]
+  etrSelectedQuestIds: string[]
+  etrSelectedPackNames: string[]
   completedQuestIds: string[]
   startLevel: number
   selectedCharacterIds: string[]
@@ -191,6 +195,8 @@ function loadPersistedSelection(): Partial<TRPlannerState> | null {
       bonuses: parsed.bonuses,
       selectedQuestIds: new Set(parsed.selectedQuestIds),
       selectedPackNames: new Set(parsed.selectedPackNames),
+      etrSelectedQuestIds: new Set(parsed.etrSelectedQuestIds ?? []),
+      etrSelectedPackNames: new Set(parsed.etrSelectedPackNames ?? []),
       completedQuestIds: new Set(parsed.completedQuestIds ?? []),
       startLevel: parsed.startLevel,
       selectedCharacterIds: new Set(parsed.selectedCharacterIds),
@@ -211,6 +217,8 @@ function savePersistedSelection(state: TRPlannerState): void {
       bonuses: state.bonuses,
       selectedQuestIds: Array.from(state.selectedQuestIds),
       selectedPackNames: Array.from(state.selectedPackNames),
+      etrSelectedQuestIds: Array.from(state.etrSelectedQuestIds),
+      etrSelectedPackNames: Array.from(state.etrSelectedPackNames),
       completedQuestIds: Array.from(state.completedQuestIds),
       startLevel: state.startLevel,
       selectedCharacterIds: Array.from(state.selectedCharacterIds),
@@ -313,30 +321,58 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
 
   const toggleQuest = useCallback((questId: string) => {
     setState((prev) => {
-      const newSelected = new Set(prev.selectedQuestIds)
-      if (newSelected.has(questId)) {
-        newSelected.delete(questId)
+      // In ETR mode, operate on etrSelectedQuestIds; otherwise on selectedQuestIds
+      if (prev.mode === 'etr') {
+        const newSelected = new Set(prev.etrSelectedQuestIds)
+        if (newSelected.has(questId)) {
+          newSelected.delete(questId)
+        } else {
+          newSelected.add(questId)
+        }
+        return { ...prev, etrSelectedQuestIds: newSelected }
       } else {
-        newSelected.add(questId)
+        const newSelected = new Set(prev.selectedQuestIds)
+        if (newSelected.has(questId)) {
+          newSelected.delete(questId)
+        } else {
+          newSelected.add(questId)
+        }
+        return { ...prev, selectedQuestIds: newSelected }
       }
-      return { ...prev, selectedQuestIds: newSelected }
     })
   }, [])
 
-  const togglePack = useCallback((packName: string, filteredQuestIds?: string[]) => {
+  const togglePack = useCallback((packName: string, filteredQuestIds?: string[], forceSelect?: boolean) => {
     setState((prev) => {
       const pack = prev.packs.find((p) => p.name === packName)
       if (!pack) return prev
 
-      const newSelectedPacks = new Set(prev.selectedPackNames)
-      const newSelectedQuests = new Set(prev.selectedQuestIds)
+      // In ETR mode, operate on etrSelectedPackNames and etrSelectedQuestIds
+      const isEtrMode = prev.mode === 'etr'
+      const newSelectedPacks = new Set(isEtrMode ? prev.etrSelectedPackNames : prev.selectedPackNames)
+      const newSelectedQuests = new Set(isEtrMode ? prev.etrSelectedQuestIds : prev.selectedQuestIds)
       // Use filtered quest IDs if provided, otherwise use all pack quests
       const packQuestIds = filteredQuestIds ?? pack.quests.map((q) => q.id)
 
-      // Check if any of the filtered quests are selected
-      const hasSelectedQuests = packQuestIds.some((id) => newSelectedQuests.has(id))
+      // Count selected quests
+      const selectedCount = packQuestIds.filter((id) => newSelectedQuests.has(id)).length
+      const allSelected = selectedCount === packQuestIds.length
+      const someSelected = selectedCount > 0 && !allSelected
 
-      if (hasSelectedQuests) {
+      // Determine action:
+      // - If forceSelect is provided, use that
+      // - If some selected (indeterminate), select remaining
+      // - If all selected, deselect all
+      // - If none selected, select all
+      const shouldSelect = forceSelect ?? (someSelected || selectedCount === 0)
+
+      if (shouldSelect) {
+        // Select all filtered quests
+        newSelectedPacks.add(packName)
+        for (const id of packQuestIds) {
+          newSelectedQuests.add(id)
+        }
+      } else {
         // Deselect all filtered quests
         for (const id of packQuestIds) {
           newSelectedQuests.delete(id)
@@ -346,18 +382,21 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
         if (!anyStillSelected) {
           newSelectedPacks.delete(packName)
         }
-      } else {
-        // Select all filtered quests
-        newSelectedPacks.add(packName)
-        for (const id of packQuestIds) {
-          newSelectedQuests.add(id)
-        }
       }
 
-      return {
-        ...prev,
-        selectedPackNames: newSelectedPacks,
-        selectedQuestIds: newSelectedQuests,
+      // Return with appropriate state keys based on mode
+      if (isEtrMode) {
+        return {
+          ...prev,
+          etrSelectedPackNames: newSelectedPacks,
+          etrSelectedQuestIds: newSelectedQuests,
+        }
+      } else {
+        return {
+          ...prev,
+          selectedPackNames: newSelectedPacks,
+          selectedQuestIds: newSelectedQuests,
+        }
       }
     })
   }, [])
@@ -461,6 +500,8 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
       bonuses: DEFAULT_BONUS_CONFIG,
       selectedQuestIds: new Set(),
       selectedPackNames: new Set(),
+      etrSelectedQuestIds: new Set(),
+      etrSelectedPackNames: new Set(),
       completedQuestIds: new Set(),
       startLevel: 1,
       selectedCharacterIds: new Set(),

@@ -30,6 +30,7 @@ import {
   levelToStartRank,
   PlanMode,
   rankToLevel,
+  rankToWithinLevelRank,
   TRTier,
   xpToRank,
 } from '@/domains/trPlanner/levelRequirements'
@@ -503,23 +504,23 @@ export default function XPProgressionChart({
                               <>
                                 lv{displayRow.endLevel}{' '}
                                 <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{group.questRows[0]?.startRank ?? displayRow.startRank}
+                                  rank{rankToWithinLevelRank(group.questRows[0]?.startRank ?? displayRow.startRank, mode)}
                                 </Typography>
                                 {' → '}
                                 <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{displayRow.endRank}
+                                  rank{rankToWithinLevelRank(displayRow.endRank, mode)}
                                 </Typography>
                               </>
                             ) : (
                               <>
                                 lv{group.questRows[0]?.startLevel ?? displayRow.startLevel}
                                 <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{group.questRows[0]?.startRank ?? displayRow.startRank}
+                                  rank{rankToWithinLevelRank(group.questRows[0]?.startRank ?? displayRow.startRank, mode)}
                                 </Typography>
                                 {' → '}
                                 lv{displayRow.endLevel}
                                 <Typography component="span" variant="caption" color="text.secondary">
-                                  rank{displayRow.endRank}
+                                  rank{rankToWithinLevelRank(displayRow.endRank, mode)}
                                 </Typography>
                               </>
                             )}
@@ -593,23 +594,23 @@ export default function XPProgressionChart({
                                 <>
                                   lv{row.endLevel}{' '}
                                   <Typography component="span" variant="caption" color="text.secondary">
-                                    rank{row.startRank}
+                                    rank{rankToWithinLevelRank(row.startRank, mode)}
                                   </Typography>
                                   {' → '}
                                   <Typography component="span" variant="caption" color="text.secondary">
-                                    rank{row.endRank}
+                                    rank{rankToWithinLevelRank(row.endRank, mode)}
                                   </Typography>
                                 </>
                               ) : (
                                 <>
                                   lv{row.startLevel}
                                   <Typography component="span" variant="caption" color="text.secondary">
-                                    rank{row.startRank}
+                                    rank{rankToWithinLevelRank(row.startRank, mode)}
                                   </Typography>
                                   {' → '}
                                   lv{row.endLevel}
                                   <Typography component="span" variant="caption" color="text.secondary">
-                                    rank{row.endRank}
+                                    rank{rankToWithinLevelRank(row.endRank, mode)}
                                   </Typography>
                                 </>
                               )}

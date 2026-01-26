@@ -48,8 +48,10 @@ export interface TRPlannerState {
   mode: PlanMode
   trTier: TRTier
   bonuses: XPBonusConfig
-  selectedQuestIds: Set<string>
+  selectedQuestIds: Set<string> // Heroic/Epic quest selection
   selectedPackNames: Set<string>
+  etrSelectedQuestIds: Set<string> // ETR-specific quest selection (mutually exclusive with epic)
+  etrSelectedPackNames: Set<string>
   completedQuestIds: Set<string> // Track completed quests
   startLevel: number // Starting level for the plan
   selectedCharacterIds: Set<string> // Selected character IDs for level markers
@@ -80,7 +82,7 @@ export interface TRPlannerActions {
 
   // Quest selection
   toggleQuest: (questId: string) => void
-  togglePack: (packName: string, filteredQuestIds?: string[]) => void
+  togglePack: (packName: string, filteredQuestIds?: string[], forceSelect?: boolean) => void
   selectQuests: (questIds: string[]) => void
   deselectQuests: (questIds: string[]) => void
   clearSelection: () => void

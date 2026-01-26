@@ -369,8 +369,8 @@ export default function LevelRuler({ mode, bonuses, selectedQuests, completedQue
             const hasOnline = chars.some((c) => c.isOnline)
             const markerColor = hasOnline ? 'success.main' : 'warning.main'
             const markerHoverColor = hasOnline ? 'success.light' : 'warning.light'
-            // Width based on number of characters (min 3px, max 10px)
-            const markerWidth = Math.min(10, Math.max(3, chars.length * 3))
+            // Width based on number of characters (min 2px, max 6px)
+            const markerWidth = Math.min(6, Math.max(2, chars.length * 2))
 
             return (
               <Tooltip

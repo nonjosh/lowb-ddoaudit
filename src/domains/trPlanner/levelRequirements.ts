@@ -6,7 +6,7 @@
  */
 
 export type TRTier = '1-3' | '4-7' | '8+'
-export type PlanMode = 'heroic' | 'epic'
+export type PlanMode = 'heroic' | 'epic' | 'etr'
 
 /**
  * Heroic XP requirements per rank (base, lives 1-3)
@@ -147,6 +147,23 @@ export function levelToStartRank(level: number, mode: PlanMode): number {
     if (level < 20) return 0
     if (level > 30) return 50
     return (level - 20) * 5
+  }
+}
+
+/**
+ * Convert total rank to within-level rank (0-4)
+ * In DDO, each level has 5 ranks numbered 0-4. This converts the
+ * cumulative rank to the rank displayed in-game for that level.
+ */
+export function rankToWithinLevelRank(rank: number, mode: PlanMode): number {
+  if (mode === 'heroic') {
+    if (rank <= 0) return 0
+    if (rank >= 96) return 0 // At cap
+    return (rank - 1) % 5
+  } else {
+    if (rank < 0) return 0
+    if (rank >= 50) return 0 // At cap
+    return rank % 5
   }
 }
 
