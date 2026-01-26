@@ -7,7 +7,7 @@ const RAID_UPDATE_MAP: Record<string, string> = {
   // 2025-2026 Releases
   'relentless': 'U75.7',
   'den of vipers': 'U72.1',
-  'threats old and new': 'U70',
+  'threats old and new': 'U69.3',
 
   // Legendary & Standalone Raids
   'legendary chronoscope': 'U72',
