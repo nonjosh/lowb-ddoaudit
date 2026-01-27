@@ -90,6 +90,11 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
         quests: item.quests,
         url: item.url,
         addedAt: Date.now(),
+        // Extended item data
+        affixes: item.affixes,
+        crafting: item.crafting,
+        sets: item.sets,
+        artifact: item.artifact,
       }
       return { ...prev, [key]: entry }
     })

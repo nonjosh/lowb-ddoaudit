@@ -5,6 +5,7 @@ import {
   fetchItemsWithMetadata,
   fetchSetsWithMetadata,
 } from '@/api/ddoGearPlanner'
+import { extractAugmentsAsItems } from '@/domains/gearPlanner'
 
 import { GearPlannerContext, GearPlannerContextValue } from './useGearPlanner'
 
@@ -17,6 +18,7 @@ interface GearPlannerProviderProps {
 export function GearPlannerProvider({ children }: GearPlannerProviderProps) {
   const [state, setState] = useState<GearPlannerState>({
     items: [],
+    augmentItems: [],
     craftingData: null,
     setsData: null,
     loading: false,
@@ -41,8 +43,12 @@ export function GearPlannerProvider({ children }: GearPlannerProviderProps) {
         setsResult.updatedAt
       ].filter((value): value is number => typeof value === 'number')
 
+      // Extract augments from crafting data as pseudo-items
+      const augmentItems = extractAugmentsAsItems(craftingResult.data)
+
       setState({
         items: itemsResult.data,
+        augmentItems,
         craftingData: craftingResult.data,
         setsData: setsResult.data,
         loading: false,

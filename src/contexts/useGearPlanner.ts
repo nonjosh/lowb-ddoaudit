@@ -4,6 +4,7 @@ import type { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
 
 export interface GearPlannerContextValue {
   items: Item[]
+  augmentItems: Item[]
   craftingData: CraftingData | null
   setsData: SetsData | null
   loading: boolean

@@ -10,9 +10,10 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
+import { Item, CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
 import { RaidNotes } from '@/domains/raids/raidNotes'
+import { AffixLike, formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, highlightText } from '@/utils/affixHelpers'
 
 import ItemTableFilters from './ItemTableFilters'
 import ItemTableRow from './ItemTableRow'
@@ -23,12 +24,6 @@ interface ItemLootTableProps {
   craftingData: CraftingData | null
   raidNotes: RaidNotes | null
   questLevel?: number
-}
-
-interface CraftingAffix {
-  name: string
-  type: string
-  value: number | string
 }
 
 export default function ItemLootTable({ questItems, setsData, craftingData, raidNotes, questLevel }: ItemLootTableProps) {
@@ -104,40 +99,6 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     return Array.from(mlCount.entries()).map(([ml, count]) => ({ ml, count })).sort((a, b) => a.ml - b.ml)
   }, [questItems])
 
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text
-    const lowerText = text.toLowerCase()
-    const lowerQuery = query.toLowerCase()
-    const index = lowerText.indexOf(lowerQuery)
-    if (index === -1) return text
-    const before = text.slice(0, index)
-    const match = text.slice(index, index + query.length)
-    const after = text.slice(index + query.length)
-    return <>{before}<mark>{match}</mark>{after}</>
-  }
-
-  const formatAffixPlain = (affix: ItemAffix) => {
-    let text = affix.name
-    if (affix.value && affix.value !== 1 && affix.value !== '1') {
-      text += ` +${affix.value}`
-    }
-    if (affix.type && affix.type !== 'bool') {
-      text += ` (${affix.type})`
-    }
-    return text
-  }
-
-  const formatAffix = (affix: ItemAffix, query: string = '') => {
-    let text = highlightText(affix.name, query)
-    if (affix.value && affix.value !== 1 && affix.value !== '1') {
-      text = <>{text} +{affix.value}</>
-    }
-    if (affix.type && affix.type !== 'bool') {
-      text = <>{text} ({affix.type})</>
-    }
-    return text
-  }
-
   const filteredItems = useMemo(() => {
     return questItems.filter(item => {
       const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
@@ -178,43 +139,22 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     })
   }, [questItems, searchText, typeFilter, effectFilter, mlFilter, isWished])
 
-  const getWikiUrl = (url: string | undefined) => {
-    if (!url) return null
-    const urlStr = url.trim()
-    if ((urlStr.startsWith('/page/') || urlStr.startsWith('/Page/')) &&
-      !urlStr.includes('..') &&
-      !urlStr.includes('//')) {
-      return `https://ddowiki.com${urlStr}`
-    }
-    return null
-  }
-
-  const getAugmentColor = (text: string) => {
-    const lower = text.toLowerCase()
-    if (lower.includes('blue augment slot')) return '#2196f3'
-    if (lower.includes('red augment slot')) return '#f44336'
-    if (lower.includes('yellow augment slot')) return '#ffeb3b'
-    if (lower.includes('green augment slot')) return '#4caf50'
-    if (lower.includes('purple augment slot')) return '#9c27b0'
-    if (lower.includes('orange augment slot')) return '#ff9800'
-    if (lower.includes('colorless augment slot')) return '#e0e0e0'
-    return undefined
-  }
-
   const getCraftingOptions = (craft: string) => {
     if (!craftingData) return []
     const data = craftingData
     if (data[craft] && data[craft]["*"]) {
       const items = data[craft]["*"]
       if (items.length > 0 && items[0].affixes) {
-        const affixMap = new Map<string, CraftingAffix>()
+        const affixMap = new Map<string, AffixLike>()
         items.forEach((item) => {
           if (item.affixes) {
             item.affixes.forEach(affix => {
               const key = `${affix.name}-${affix.type}`
               const existing = affixMap.get(key)
-              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-              const existingValue = existing ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value) : 0
+              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : (affix.value ?? 0)
+              const existingValue = existing?.value != null
+                ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value)
+                : 0
               if (!existing || currentValue > existingValue) {
                 affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
               }

@@ -11,57 +11,18 @@ import {
   Typography,
   Button
 } from '@mui/material'
-import { ReactElement, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { fetchQuestsById, Quest } from '@/api/ddoAudit'
-import { Item, ItemAffix } from '@/api/ddoGearPlanner'
-import { useGearPlanner } from '@/contexts/useGearPlanner'
-import { useWishlist } from '@/contexts/useWishlist'
+import { Item } from '@/api/ddoGearPlanner'
 import ItemTableFilters from '@/components/items/ItemTableFilters'
 import ItemTableRow from '@/components/items/ItemTableRow'
-
-interface CraftingAffix {
-  name: string
-  type: string
-  value: number | string
-}
-
-const highlightText = (text: string, query: string): string | ReactElement => {
-  if (!query) return text
-  const lowerText = text.toLowerCase()
-  const lowerQuery = query.toLowerCase()
-  const index = lowerText.indexOf(lowerQuery)
-  if (index === -1) return text
-  const before = text.slice(0, index)
-  const match = text.slice(index, index + query.length)
-  const after = text.slice(index + query.length)
-  return <>{before}<mark>{match}</mark>{after}</>
-}
-
-const formatAffixPlain = (affix: ItemAffix) => {
-  let text = affix.name
-  if (affix.value && affix.value !== 1 && affix.value !== '1') {
-    text += ` +${affix.value}`
-  }
-  if (affix.type && affix.type !== 'bool') {
-    text += ` (${affix.type})`
-  }
-  return text
-}
-
-const formatAffix = (affix: ItemAffix, query: string = ''): string | ReactElement => {
-  let text = highlightText(affix.name, query)
-  if (affix.value && affix.value !== 1 && affix.value !== '1') {
-    text = <>{text} +{affix.value}</>
-  }
-  if (affix.type && affix.type !== 'bool') {
-    text = <>{text} ({affix.type})</>
-  }
-  return text
-}
+import { useGearPlanner } from '@/contexts/useGearPlanner'
+import { useWishlist } from '@/contexts/useWishlist'
+import { AffixLike, formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, highlightText } from '@/utils/affixHelpers'
 
 export default function ItemWiki() {
-  const { items, craftingData, setsData, loading, refresh, error } = useGearPlanner()
+  const { items, augmentItems, craftingData, setsData, loading, refresh, error } = useGearPlanner()
   const { isWished } = useWishlist()
 
   const [searchText, setSearchText] = useState('')
@@ -74,6 +35,9 @@ export default function ItemWiki() {
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
 
   const boxRef = useRef<HTMLDivElement>(null)
+
+  // Combine regular items with augment items
+  const allItems = useMemo(() => [...items, ...augmentItems], [items, augmentItems])
 
   useEffect(() => {
     fetchQuestsById().then(setQuestsById).catch(console.error)
@@ -125,7 +89,7 @@ export default function ItemWiki() {
 
   const uniqueTypes = useMemo(() => {
     // Filter items based on everything BUT type filter
-    const relevantItems = items.filter(item => {
+    const relevantItems = allItems.filter(item => {
       const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
 
@@ -175,11 +139,11 @@ export default function ItemWiki() {
       }
       return a.display.localeCompare(b.display)
     })
-  }, [items, searchText, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
+  }, [allItems, searchText, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
 
   const uniqueEffects = useMemo(() => {
     // Filter items based on everything BUT effect filter
-    const relevantItems = items.filter(item => {
+    const relevantItems = allItems.filter(item => {
       const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
 
@@ -213,18 +177,18 @@ export default function ItemWiki() {
       })
     })
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
-  }, [items, searchText, typeFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
+  }, [allItems, searchText, typeFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
 
   const filteredItems = useMemo(() => {
     // If no data or still loading initial data (and no stale data), return empty
-    if (!items.length) return []
+    if (!allItems.length) return []
 
     // If no search and no filters, prevent rendering thousands of items
     if (searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && minMl === 1 && maxMl === 34) {
       return []
     }
 
-    return items.filter(item => {
+    return allItems.filter(item => {
       const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
 
@@ -275,45 +239,24 @@ export default function ItemWiki() {
       // Then by name
       return a.name.localeCompare(b.name)
     })
-  }, [items, searchText, typeFilter, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack, isWished])
-
-  const getWikiUrl = (url: string | undefined) => {
-    if (!url) return null
-    const urlStr = url.trim()
-    if ((urlStr.startsWith('/page/') || urlStr.startsWith('/Page/')) &&
-      !urlStr.includes('..') &&
-      !urlStr.includes('//')) {
-      return `https://ddowiki.com${urlStr}`
-    }
-    return null
-  }
-
-  const getAugmentColor = (text: string) => {
-    const lower = text.toLowerCase()
-    if (lower.includes('blue augment slot')) return '#2196f3'
-    if (lower.includes('red augment slot')) return '#f44336'
-    if (lower.includes('yellow augment slot')) return '#ffeb3b'
-    if (lower.includes('green augment slot')) return '#4caf50'
-    if (lower.includes('purple augment slot')) return '#9c27b0'
-    if (lower.includes('orange augment slot')) return '#ff9800'
-    if (lower.includes('colorless augment slot')) return '#e0e0e0'
-    return undefined
-  }
+  }, [allItems, searchText, typeFilter, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack, isWished])
 
   const getCraftingOptions = (craft: string) => {
     if (!craftingData) return []
     const data = craftingData
     if (data[craft] && data[craft]["*"]) {
-      const items = data[craft]["*"]
-      if (items.length > 0 && items[0].affixes) {
-        const affixMap = new Map<string, CraftingAffix>()
-        items.forEach((item) => {
+      const craftItems = data[craft]["*"]
+      if (craftItems.length > 0 && craftItems[0].affixes) {
+        const affixMap = new Map<string, AffixLike>()
+        craftItems.forEach((item) => {
           if (item.affixes) {
             item.affixes.forEach(affix => {
               const key = `${affix.name}-${affix.type}`
               const existing = affixMap.get(key)
-              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-              const existingValue = existing ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value) : 0
+              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : (affix.value ?? 0)
+              const existingValue = existing && existing.value
+                ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value)
+                : 0
               if (!existing || currentValue > existingValue) {
                 affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
               }
@@ -322,7 +265,7 @@ export default function ItemWiki() {
         })
         return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
       } else {
-        return items.map((item) => item.name ?? '')
+        return craftItems.map((item) => item.name ?? '')
       }
     } else if (data[craft]) {
       const options: string[] = []
@@ -345,14 +288,14 @@ export default function ItemWiki() {
 
   return (
     <Container maxWidth={false} sx={{ py: 4, px: 2, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
-      {items.length === 0 && !loading && (
+      {allItems.length === 0 && !loading && (
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography color="error" gutterBottom>Failed to load items or database is empty.</Typography>
           <Button variant="contained" onClick={() => refresh(true)}>Retry Load</Button>
         </Box>
       )}
 
-      {items.length > 0 && (
+      {allItems.length > 0 && (
         <TableContainer component={Paper} variant="outlined" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Box sx={{ flexShrink: 0 }}>
             <ItemTableFilters
