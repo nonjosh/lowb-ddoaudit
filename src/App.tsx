@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import Layout from '@/components/layout/Layout'
 import { GearPlannerProvider } from '@/contexts/GearPlannerContext'
@@ -24,11 +24,18 @@ function App() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/wiki" element={<ItemWiki />} />
-                    <Route path="/planner" element={<GearPlanner />} />
-                    <Route path="/planner-demo" element={<GearPlannerDemo />} />
-                    <Route path="/wishlist" element={<Wishlist />} />
+                    {/* Gear-related routes */}
+                    <Route path="/gear/wiki" element={<ItemWiki />} />
+                    <Route path="/gear/wishlist" element={<Wishlist />} />
+                    <Route path="/gear/planner" element={<GearPlanner />} />
+                    <Route path="/gear/planner-demo" element={<GearPlannerDemo />} />
+                    {/* Other tools */}
                     <Route path="/tr-planner" element={<TRPlanner />} />
+                    {/* Redirects for backward compatibility */}
+                    <Route path="/wiki" element={<Navigate to="/gear/wiki" replace />} />
+                    <Route path="/wishlist" element={<Navigate to="/gear/wishlist" replace />} />
+                    <Route path="/planner" element={<Navigate to="/gear/planner" replace />} />
+                    <Route path="/planner-demo" element={<Navigate to="/gear/planner-demo" replace />} />
                   </Routes>
                 </Layout>
               </LfmProvider>

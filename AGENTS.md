@@ -111,6 +111,19 @@ src/
 - Areas: `areas.json` from ddo-audit-service
 - Items/Crafting/Sets: from ddo-gear-planner
 
+## Routes
+
+| Path                 | Page              | Description                    |
+| -------------------- | ----------------- | ------------------------------ |
+| `/`                  | Dashboard         | Raid timers & loot tracking    |
+| `/gear/wiki`         | Wiki              | Browse/search all items        |
+| `/gear/wishlist`     | Wishlist          | Track desired items            |
+| `/gear/planner`      | Gear Planner      | Optimize gear sets             |
+| `/gear/planner-demo` | Gear Planner Demo | Demo version (hidden from nav) |
+| `/tr-planner`        | TR Planner        | TR progression planning        |
+
+**Note**: Old routes (`/wiki`, `/wishlist`, `/planner`, `/planner-demo`) redirect to new paths for backward compatibility.
+
 ## Common Tasks
 
 ### Adding a New Component
@@ -157,3 +170,4 @@ Add to appropriate domain in `src/domains/` (e.g., raid logic → `raids/raidLog
 - Material-UI 7 has breaking changes from v5/v6 - use v7 patterns
 - The app is deployed to GitHub Pages with a base path
 - Vite config uses rolldown-vite override for faster builds
+- The build script generates `404.html` for GitHub Pages SPA routing support

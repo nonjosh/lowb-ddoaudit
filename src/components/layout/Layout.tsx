@@ -1,21 +1,59 @@
-import { AppBar, Box, Button, Container, Toolbar, Typography } from '@mui/material'
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
+import { AppBar, Box, Button, Container, Menu, MenuItem, Toolbar, Typography } from '@mui/material'
+import { MouseEvent, ReactNode, useState } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
-import { ReactNode } from 'react'
 
 interface LayoutProps {
   children: ReactNode
 }
 
+interface NavItem {
+  label: string
+  path: string
+}
+
+interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+type NavEntry = NavItem | NavGroup
+
+function isNavGroup(entry: NavEntry): entry is NavGroup {
+  return 'items' in entry
+}
+
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
 
-  const navItems = [
+  const navEntries: NavEntry[] = [
     { label: 'Raids', path: '/' },
-    { label: 'Item Wiki', path: '/wiki' },
-    { label: 'Wish List', path: '/wishlist' },
-    { label: 'Gear Planner', path: '/planner' },
-    { label: 'TR Planner', path: '/tr-planner' }
+    {
+      label: 'Gear',
+      items: [
+        { label: 'Wiki', path: '/gear/wiki' },
+        { label: 'Wishlist', path: '/gear/wishlist' },
+        { label: 'Planner', path: '/gear/planner' },
+      ],
+    },
+    { label: 'TR Planner', path: '/tr-planner' },
   ]
+
+  const handleMenuOpen = (event: MouseEvent<HTMLElement>, label: string) => {
+    setAnchorEl(event.currentTarget)
+    setOpenMenu(label)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+    setOpenMenu(null)
+  }
+
+  const isGroupActive = (group: NavGroup) => {
+    return group.items.some((item) => location.pathname === item.path)
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -41,18 +79,57 @@ export default function Layout({ children }: LayoutProps) {
             </Typography>
 
             <Box sx={{ flexGrow: 1, display: 'flex', gap: 1 }}>
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path
+              {navEntries.map((entry) => {
+                if (isNavGroup(entry)) {
+                  const isActive = isGroupActive(entry)
+                  return (
+                    <Box key={entry.label}>
+                      <Button
+                        onClick={(e) => handleMenuOpen(e, entry.label)}
+                        variant={isActive ? 'contained' : 'text'}
+                        color={isActive ? 'primary' : 'inherit'}
+                        endIcon={<ArrowDropDownIcon />}
+                        sx={{ my: 2 }}
+                      >
+                        {entry.label}
+                      </Button>
+                      <Menu
+                        anchorEl={anchorEl}
+                        open={openMenu === entry.label}
+                        onClose={handleMenuClose}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                      >
+                        {entry.items.map((item) => {
+                          const isItemActive = location.pathname === item.path
+                          return (
+                            <MenuItem
+                              key={item.path}
+                              component={RouterLink}
+                              to={item.path}
+                              onClick={handleMenuClose}
+                              selected={isItemActive}
+                            >
+                              {item.label}
+                            </MenuItem>
+                          )
+                        })}
+                      </Menu>
+                    </Box>
+                  )
+                }
+
+                const isActive = location.pathname === entry.path
                 return (
                   <Button
-                    key={item.path}
+                    key={entry.path}
                     component={RouterLink}
-                    to={item.path}
+                    to={entry.path}
                     variant={isActive ? 'contained' : 'text'}
                     color={isActive ? 'primary' : 'inherit'}
                     sx={{ my: 2, display: 'block' }}
                   >
-                    {item.label}
+                    {entry.label}
                   </Button>
                 )
               })}
