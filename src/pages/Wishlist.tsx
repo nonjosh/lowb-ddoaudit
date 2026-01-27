@@ -95,7 +95,7 @@ function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: Wishl
       </TableCell>
       <TableCell>
         {(item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand')
-          ? (item.slot === 'Augment' ? `Augment (${item.type})` : item.slot)
+          ? (item.slot === 'Augment' ? `Augment (${item.type})` : (item.slot === 'Armor' && item.type ? item.type : item.slot))
           : (item.type || '—')}
       </TableCell>
       <TableCell>
