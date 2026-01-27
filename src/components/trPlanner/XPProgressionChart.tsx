@@ -31,6 +31,7 @@ import {
   PlanMode,
   rankToLevel,
   rankToWithinLevelRank,
+  rankToDisplayRank,
   TRTier,
   xpToRank,
 } from '@/domains/trPlanner/levelRequirements'
@@ -381,7 +382,7 @@ export default function XPProgressionChart({
             lv{finalLevel}
             <Typography component="span" variant="body2" color="text.secondary">
               {' '}
-              (rank {finalRank})
+              (rank {rankToDisplayRank(finalRank, mode)})
             </Typography>
           </Typography>
         </Box>

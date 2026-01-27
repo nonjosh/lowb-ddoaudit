@@ -168,6 +168,41 @@ export function rankToWithinLevelRank(rank: number, mode: PlanMode): number {
 }
 
 /**
+ * Convert cumulative rank to DDO's display rank for epic levels.
+ * DDO displays epic ranks as 1-40, where:
+ * - Level 20 ranks 1-4 = display ranks 1-4
+ * - Level 21 ranks 1-4 = display ranks 5-8
+ * - ...
+ * - Level 29 ranks 1-4 = display ranks 37-40
+ * - Level 30 = display rank 40 (cap)
+ *
+ * Note: Internal cumulative ranks are 0-50, but display uses 1-40.
+ */
+export function rankToDisplayRank(rank: number, mode: PlanMode): number {
+  if (mode === 'heroic') {
+    // For heroic, just return the cumulative rank (1-96)
+    return rank
+  } else {
+    // For epic/etr, convert to DDO's 1-40 display format
+    if (rank <= 0) return 0
+    if (rank >= 50) return 40 // Cap
+
+    const level = rankToLevel(rank, mode)
+    const withinLevelRank = rank % 5 // 0-4
+
+    // Convert to display: (level - 20) * 4 + withinLevelRank
+    // But withinLevelRank 0 means we just leveled up, so display as previous level's rank 4
+    if (withinLevelRank === 0) {
+      // Just hit this level, display as previous level's max rank
+      return Math.max(0, (level - 20) * 4)
+    } else {
+      // Within level ranks 1-4 map to display ranks
+      return (level - 20) * 4 + withinLevelRank
+    }
+  }
+}
+
+/**
  * Get XP required for a specific level range
  */
 export function getXPForLevelRange(
