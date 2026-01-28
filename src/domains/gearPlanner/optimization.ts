@@ -39,6 +39,8 @@ export interface OptimizationOptions {
   maxML?: number
   /** Crafting data for augment optimization */
   craftingData?: CraftingData | null
+  /** Optional filter function to exclude items (e.g., filter to available items only) */
+  itemFilter?: (item: Item) => boolean
 }
 
 /**
@@ -151,10 +153,15 @@ export function optimizeGear(
   setsData: SetsData | null,
   options: OptimizationOptions
 ): OptimizedGearSetup[] {
-  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData } = options
+  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter } = options
 
-  // Filter items by ML range
-  const filteredItems = items.filter(item => item.ml >= minML && item.ml <= maxML)
+  // Filter items by ML range and optional custom filter
+  let filteredItems = items.filter(item => item.ml >= minML && item.ml <= maxML)
+
+  // Apply custom filter if provided (e.g., for available items only)
+  if (itemFilter) {
+    filteredItems = filteredItems.filter(itemFilter)
+  }
 
   // For each slot, get top items that provide the selected properties
   const slotItems = new Map<string, Item[]>()

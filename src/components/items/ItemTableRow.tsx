@@ -12,6 +12,7 @@ import {
 import React from 'react'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
+import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useWishlist } from '@/contexts/useWishlist'
 import { RaidNotes } from '@/domains/raids/raidNotes'
@@ -59,6 +60,7 @@ export default function ItemTableRow({
           <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
             {highlightText(item.name, searchText)}
           </Typography>
+          <InventoryBadge itemName={item.name} />
           <Tooltip title={wished ? 'Remove from wish list' : 'Add to wish list'}>
             <IconButton
               size="small"

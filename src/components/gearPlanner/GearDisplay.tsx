@@ -1,5 +1,9 @@
 import { useState } from 'react'
 
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import {
   Box,
   Card,
@@ -17,14 +21,17 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import ExpandLessIcon from '@mui/icons-material/ExpandLess'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
-import FavoriteIcon from '@mui/icons-material/Favorite'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
-import { GearCraftingSelections, GearSetup, getCraftingSetMemberships } from '@/domains/gearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
+import {
+  GearCraftingSelections,
+  GearSetup,
+  getCraftingSetMemberships
+} from '@/domains/gearPlanner'
+
+import InventoryBadge from './InventoryBadge'
+import LoadEquippedButton from './LoadEquippedButton'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -44,6 +51,7 @@ interface GearDisplayProps {
   onSetAugmentHover?: (setName: string | null) => void
   craftingSelections?: GearCraftingSelections
   setsData?: SetsData | null
+  onLoadEquipped?: (characterId: number) => void
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -228,9 +236,12 @@ function GearSlotCard({
             </IconButton>
           </Tooltip>
         </Box>
-        <Typography variant="body2" fontWeight="bold" gutterBottom>
-          {item.name}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography variant="body2" fontWeight="bold" gutterBottom>
+            {item.name}
+          </Typography>
+          <InventoryBadge itemName={item.name} showBTC />
+        </Box>
         <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
           ML {item.ml}
         </Typography>
@@ -330,7 +341,8 @@ export default function GearDisplay({
   onAugmentHover,
   onSetAugmentHover,
   craftingSelections,
-  setsData
+  setsData,
+  onLoadEquipped
 }: GearDisplayProps) {
   const [craftingExpanded, setCraftingExpanded] = useState(false)
   const [setsExpanded, setSetsExpanded] = useState(true)
@@ -475,9 +487,12 @@ export default function GearDisplay({
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Selected Gear Setup
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">
+          Selected Gear Setup
+        </Typography>
+        {onLoadEquipped && <LoadEquippedButton onLoadEquipped={onLoadEquipped} />}
+      </Box>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {equippedSlots.map(slot => (
