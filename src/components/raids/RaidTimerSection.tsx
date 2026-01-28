@@ -2,13 +2,13 @@ import TimerIcon from '@mui/icons-material/Timer'
 import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchQuestsById, LfmItem, Quest } from '@/api/ddoAudit'
+import { fetchQuestsById, Quest } from '@/api/ddoAudit'
 import raidNotesRaw from '@/assets/raid_notes.txt?raw'
 import LfmParticipantsDialog from '@/components/lfm/LfmParticipantsDialog'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useLfm } from '@/contexts/useLfm'
-import { normalizeLfm, LfmDisplayData } from '@/domains/lfm/lfmHelpers'
+import { normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
 
 import RaidCard from './RaidCard'
@@ -143,8 +143,26 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
     return list.map((x) => x.g)
   }, [raidGroups, lfms, tierFilter, questsByIdLocal])
 
-  const [selectedLfm, setSelectedLfm] = useState<LfmDisplayData | null>(null)
-  const [selectedRaidGroup, setSelectedRaidGroup] = useState<RaidGroup | null>(null)
+  const [selectedLfmId, setSelectedLfmId] = useState<string | null>(null)
+
+  // Derive selectedLfm from live lfms data so it refreshes automatically
+  const selectedLfm = useMemo(() => {
+    if (!selectedLfmId) return null
+    const lfmsById = lfms ?? {}
+    const lfm = lfmsById[selectedLfmId]
+    if (!lfm) return null
+    const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
+    return normalizeLfm(lfm, quest)
+  }, [selectedLfmId, lfms, questsByIdLocal])
+
+  // Derive selectedRaidGroup from live sortedRaidGroups
+  const selectedRaidGroup = useMemo(() => {
+    if (!selectedLfmId) return null
+    const lfm = (lfms ?? {})[selectedLfmId]
+    if (!lfm) return null
+    const questId = String(lfm.quest_id ?? '')
+    return sortedRaidGroups.find((g) => g.questId === questId) || null
+  }, [selectedLfmId, lfms, sortedRaidGroups])
 
   const selectedRaidData = useMemo(() => {
     if (!selectedRaidGroup) return null
@@ -154,19 +172,14 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
 
   const handleLfmClick = (questId: string) => {
     const lfmsById = lfms ?? {}
-    let lfm: LfmItem | undefined = lfmsById[questId]
-    if (!lfm) {
-      lfm = Object.values(lfmsById ?? {}).find((l) => String(l?.quest_id ?? '') === String(questId))
+    let lfmId: string | undefined = lfmsById[questId] ? questId : undefined
+    if (!lfmId) {
+      // Find by quest_id match
+      const entry = Object.entries(lfmsById ?? {}).find(([, l]) => String(l?.quest_id ?? '') === String(questId))
+      if (entry) lfmId = entry[0]
     }
-    if (!lfm) return
-
-    const quest = (questsByIdLocal ?? {})[String(lfm?.quest_id ?? '')] ?? null
-    const normalizedLfm = normalizeLfm(lfm, quest)
-    setSelectedLfm(normalizedLfm)
-
-    // Find the corresponding raid group
-    const raidGroup = sortedRaidGroups.find((g) => g.questId === questId)
-    setSelectedRaidGroup(raidGroup || null)
+    if (!lfmId) return
+    setSelectedLfmId(lfmId)
   }
   return (
     <>
@@ -216,7 +229,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
           })}
         </Stack>
       )}
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfm(null)} selectedRaidData={selectedRaidData} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfmId(null)} selectedRaidData={selectedRaidData} />
     </>
   )
 }
