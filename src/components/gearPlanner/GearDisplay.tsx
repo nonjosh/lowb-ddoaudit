@@ -26,10 +26,22 @@ import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import { GearCraftingSelections, GearSetup, getCraftingSetMemberships } from '@/domains/gearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
 
+// Type for hovering on a specific bonus source (property + bonus type cell)
+interface HoveredBonusSource {
+  property: string
+  bonusType: string
+  augmentNames?: string[]
+}
+
 interface GearDisplayProps {
   setup: GearSetup
   selectedProperties: string[]
   hoveredProperty?: string | null
+  hoveredAugment?: string | null
+  hoveredSetAugment?: string | null
+  hoveredBonusSource?: HoveredBonusSource | null
+  onAugmentHover?: (augmentName: string | null) => void
+  onSetAugmentHover?: (setName: string | null) => void
   craftingSelections?: GearCraftingSelections
   setsData?: SetsData | null
 }
@@ -132,7 +144,9 @@ function GearSlotCard({
   selectedProperties,
   setup,
   slots,
-  hoveredProperty
+  hoveredProperty,
+  hoveredBonusSource,
+  slottedAugmentNames
 }: {
   slotName: string
   item: Item | undefined
@@ -140,6 +154,8 @@ function GearSlotCard({
   setup: GearSetup
   slots: string[]
   hoveredProperty?: string | null
+  hoveredBonusSource?: HoveredBonusSource | null
+  slottedAugmentNames?: string[]
 }) {
   const { isWished, toggleWish } = useWishlist()
 
@@ -169,14 +185,27 @@ function GearSlotCard({
   // Check if this item has the hovered property
   const hasHoveredProperty = hoveredProperty && regularAffixes.some(a => a.name === hoveredProperty)
 
+  // Check if this item has an affix that matches the hovered bonus source
+  const hasHoveredBonusSource = hoveredBonusSource && regularAffixes.some(
+    a => a.name === hoveredBonusSource.property && (a.type || 'Untyped') === hoveredBonusSource.bonusType
+  )
+
+  // Check if this item has augments that are highlighted from hoveredBonusSource.augmentNames
+  const hasHighlightedAugment = hoveredBonusSource?.augmentNames?.some(
+    augName => slottedAugmentNames?.includes(augName)
+  )
+
+  // Combine highlighting conditions
+  const isHighlighted = hasHoveredProperty || hasHoveredBonusSource || hasHighlightedAugment
+
   return (
     <Card
       variant="outlined"
       sx={{
         height: '100%',
-        boxShadow: hasHoveredProperty ? 3 : 0,
-        borderColor: hasHoveredProperty ? 'primary.main' : 'divider',
-        borderWidth: hasHoveredProperty ? 2 : 1,
+        boxShadow: isHighlighted ? 3 : 0,
+        borderColor: isHighlighted ? 'primary.main' : 'divider',
+        borderWidth: isHighlighted ? 2 : 1,
         transition: 'all 0.2s'
       }}
     >
@@ -220,6 +249,13 @@ function GearSlotCard({
             const isSelected = selectedProperties.includes(affix.name)
             const isHovered = hoveredProperty === affix.name
 
+            // Check if this affix matches the hovered bonus source
+            const isBonusSourceHovered = hoveredBonusSource &&
+              affix.name === hoveredBonusSource.property &&
+              (affix.type || 'Untyped') === hoveredBonusSource.bonusType
+
+            const shouldHighlight = isHovered || isBonusSourceHovered
+
             return (
               <Typography
                 key={idx}
@@ -228,9 +264,9 @@ function GearSlotCard({
                 sx={{
                   fontWeight: isHighest ? 'bold' : 'normal',
                   color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary'),
-                  backgroundColor: isHovered ? 'action.selected' : 'transparent',
-                  px: isHovered ? 0.5 : 0,
-                  borderRadius: isHovered ? 0.5 : 0,
+                  backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                  px: shouldHighlight ? 0.5 : 0,
+                  borderRadius: shouldHighlight ? 0.5 : 0,
                   transition: 'all 0.2s'
                 }}
               >
@@ -288,6 +324,11 @@ export default function GearDisplay({
   setup,
   selectedProperties,
   hoveredProperty,
+  hoveredAugment,
+  hoveredSetAugment,
+  hoveredBonusSource,
+  onAugmentHover,
+  onSetAugmentHover,
   craftingSelections,
   setsData
 }: GearDisplayProps) {
@@ -298,9 +339,21 @@ export default function GearDisplay({
   // Only show slots that have items equipped
   const equippedSlots = slots.filter(slot => getItemForSlot(setup, slot) !== undefined)
 
+  // Build a map of slot -> slotted augment names for highlighting
+  const slotToAugmentNames = new Map<string, string[]>()
+  equippedSlots.forEach(slot => {
+    const selections = craftingSelections?.[slot]
+    if (selections) {
+      const augmentNames = selections
+        .filter(s => s.option?.name)
+        .map(s => s.option!.name!)
+      slotToAugmentNames.set(slot, augmentNames)
+    }
+  })
+
   // Collect all crafting selections grouped by slot type (including non-augments)
   // Track both total slots per type and slotted options
-  const craftingSlotsByType = new Map<string, { total: number; slotted: { name: string; affixes: ItemAffix[]; set?: string }[] }>()
+  const craftingSlotsByType = new Map<string, { total: number; slotted: { name: string; affixes: ItemAffix[]; set?: string; slot: string }[] }>()
   let totalCraftingSlots = 0
   let usedCraftingSlots = 0
 
@@ -329,11 +382,12 @@ export default function GearDisplay({
             usedCraftingSlots++
           }
 
-          // Add to slotted list
+          // Add to slotted list with slot info
           slotTypeData.slotted.push({
             name: selection.option.name || 'Unknown',
             affixes: selection.option.affixes || [],
-            set: selection.option.set
+            set: selection.option.set,
+            slot
           })
         }
       })
@@ -341,20 +395,23 @@ export default function GearDisplay({
   })
 
   // Group slotted items by name and count occurrences
-  const groupSlottedByName = (slotted: { name: string; affixes: ItemAffix[]; set?: string }[]) => {
-    const grouped = new Map<string, { count: number; affixes: ItemAffix[]; set?: string }>()
+  const groupSlottedByName = (slotted: { name: string; affixes: ItemAffix[]; set?: string; slot: string }[]) => {
+    const grouped = new Map<string, { count: number; affixes: ItemAffix[]; set?: string; slots: string[] }>()
     for (const item of slotted) {
       if (grouped.has(item.name)) {
-        grouped.get(item.name)!.count++
+        const data = grouped.get(item.name)!
+        data.count++
+        data.slots.push(item.slot)
       } else {
-        grouped.set(item.name, { count: 1, affixes: item.affixes, set: item.set })
+        grouped.set(item.name, { count: 1, affixes: item.affixes, set: item.set, slots: [item.slot] })
       }
     }
     return Array.from(grouped.entries()).map(([name, data]) => ({
       name,
       count: data.count,
       affixes: data.affixes,
-      set: data.set
+      set: data.set,
+      slots: data.slots
     }))
   }
 
@@ -432,6 +489,8 @@ export default function GearDisplay({
               setup={setup}
               slots={slots}
               hoveredProperty={hoveredProperty}
+              hoveredBonusSource={hoveredBonusSource}
+              slottedAugmentNames={slotToAugmentNames.get(slot)}
             />
           </Grid>
         ))}
@@ -561,32 +620,57 @@ export default function GearDisplay({
                           <TableCell>
                             {groupedSlotted.length > 0 ? (
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                {groupedSlotted.map((aug, idx) => (
-                                  <Tooltip
-                                    key={idx}
-                                    title={
-                                      <Box>
-                                        {aug.affixes.map((affix, i) => (
-                                          <Typography key={i} variant="caption" display="block">
-                                            {formatAffix(affix)}
-                                          </Typography>
-                                        ))}
-                                        {aug.set && (
-                                          <Typography variant="caption" display="block" color="secondary.light">
-                                            Set: {aug.set}
-                                          </Typography>
-                                        )}
-                                      </Box>
-                                    }
-                                  >
-                                    <Typography
-                                      variant="body2"
-                                      sx={{ cursor: 'help', '&:hover': { color: 'primary.main' } }}
+                                {groupedSlotted.map((aug, idx) => {
+                                  // Check if this augment should be highlighted
+                                  const isAugmentHovered = hoveredAugment === aug.name
+                                  const isSetAugmentHovered = aug.set && hoveredSetAugment === aug.set
+                                  const isHighlightedFromBonusSource = hoveredBonusSource?.augmentNames?.includes(aug.name)
+                                  const shouldHighlight = isAugmentHovered || isSetAugmentHovered || isHighlightedFromBonusSource
+
+                                  return (
+                                    <Tooltip
+                                      key={idx}
+                                      title={
+                                        <Box>
+                                          {aug.affixes.map((affix, i) => (
+                                            <Typography key={i} variant="caption" display="block">
+                                              {formatAffix(affix)}
+                                            </Typography>
+                                          ))}
+                                          {aug.set && (
+                                            <Typography variant="caption" display="block" color="secondary.light">
+                                              Set: {aug.set}
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                      }
                                     >
-                                      {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
-                                    </Typography>
-                                  </Tooltip>
-                                ))}
+                                      <Typography
+                                        variant="body2"
+                                        onMouseEnter={() => {
+                                          onAugmentHover?.(aug.name)
+                                          if (aug.set) {
+                                            onSetAugmentHover?.(aug.set)
+                                          }
+                                        }}
+                                        onMouseLeave={() => {
+                                          onAugmentHover?.(null)
+                                          onSetAugmentHover?.(null)
+                                        }}
+                                        sx={{
+                                          cursor: 'help',
+                                          backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                          px: shouldHighlight ? 0.5 : 0,
+                                          borderRadius: shouldHighlight ? 0.5 : 0,
+                                          transition: 'all 0.2s',
+                                          '&:hover': { color: 'primary.main' }
+                                        }}
+                                      >
+                                        {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
+                                      </Typography>
+                                    </Tooltip>
+                                  )
+                                })}
                               </Box>
                             ) : (
                               <Typography variant="body2" color="text.secondary">

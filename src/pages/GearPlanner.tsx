@@ -19,6 +19,13 @@ import { getAllAvailableProperties, optimizeGear } from '@/domains/gearPlanner'
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
 const SELECTED_INDEX_KEY = 'gearPlanner_selectedIndex'
 
+// Type for hovering on a specific bonus source (property + bonus type cell)
+interface HoveredBonusSource {
+  property: string
+  bonusType: string
+  augmentNames?: string[]
+}
+
 function loadSelectedProperties(): string[] {
   try {
     const stored = localStorage.getItem(SELECTED_PROPERTIES_KEY)
@@ -70,6 +77,9 @@ export default function GearPlanner() {
   const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(loadSelectedIndex)
   const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
+  const [hoveredAugment, setHoveredAugment] = useState<string | null>(null)
+  const [hoveredSetAugment, setHoveredSetAugment] = useState<string | null>(null)
+  const [hoveredBonusSource, setHoveredBonusSource] = useState<HoveredBonusSource | null>(null)
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -190,6 +200,11 @@ export default function GearPlanner() {
               setup={selectedSetup.setup}
               selectedProperties={selectedProperties}
               hoveredProperty={hoveredProperty}
+              hoveredAugment={hoveredAugment}
+              hoveredSetAugment={hoveredSetAugment}
+              hoveredBonusSource={hoveredBonusSource}
+              onAugmentHover={setHoveredAugment}
+              onSetAugmentHover={setHoveredSetAugment}
               craftingSelections={selectedSetup.craftingSelections}
               setsData={setsData}
             />
@@ -202,6 +217,8 @@ export default function GearPlanner() {
               selectedProperties={selectedProperties}
               setsData={setsData}
               onPropertyHover={setHoveredProperty}
+              onBonusSourceHover={setHoveredBonusSource}
+              hoveredAugment={hoveredAugment}
               craftingSelections={selectedSetup.craftingSelections}
             />
           </Paper>

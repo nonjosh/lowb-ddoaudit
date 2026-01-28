@@ -13,10 +13,20 @@ import SummaryTable from '@/components/gearPlanner/SummaryTable'
 import { getAllAvailableProperties, optimizeGear } from '@/domains/gearPlanner'
 import { mockItems, mockSetsData } from '@/domains/gearPlanner/mockData'
 
+// Type for hovering on a specific bonus source (property + bonus type cell)
+interface HoveredBonusSource {
+  property: string
+  bonusType: string
+  augmentNames?: string[]
+}
+
 export default function GearPlannerDemo() {
   const [selectedProperties, setSelectedProperties] = useState<string[]>(['Strength', 'Constitution', 'Doublestrike'])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
   const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
+  const [hoveredAugment, setHoveredAugment] = useState<string | null>(null)
+  const [hoveredSetAugment, setHoveredSetAugment] = useState<string | null>(null)
+  const [hoveredBonusSource, setHoveredBonusSource] = useState<HoveredBonusSource | null>(null)
 
   // Get available properties from mock items
   const availableProperties = useMemo(() => {
@@ -81,6 +91,11 @@ export default function GearPlannerDemo() {
               setup={selectedSetup.setup}
               selectedProperties={selectedProperties}
               hoveredProperty={hoveredProperty}
+              hoveredAugment={hoveredAugment}
+              hoveredSetAugment={hoveredSetAugment}
+              hoveredBonusSource={hoveredBonusSource}
+              onAugmentHover={setHoveredAugment}
+              onSetAugmentHover={setHoveredSetAugment}
               craftingSelections={selectedSetup.craftingSelections}
               setsData={mockSetsData}
             />
@@ -93,6 +108,8 @@ export default function GearPlannerDemo() {
               selectedProperties={selectedProperties}
               setsData={mockSetsData}
               onPropertyHover={setHoveredProperty}
+              onBonusSourceHover={setHoveredBonusSource}
+              hoveredAugment={hoveredAugment}
             />
           </Paper>
         </>

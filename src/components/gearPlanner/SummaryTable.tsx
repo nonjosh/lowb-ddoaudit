@@ -14,11 +14,20 @@ import {
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import { GearCraftingSelections, GearSetup, getCraftingAffixes } from '@/domains/gearPlanner'
 
+// Type for hovering on a specific bonus source (property + bonus type cell)
+interface HoveredBonusSource {
+  property: string
+  bonusType: string
+  augmentNames?: string[]
+}
+
 interface SummaryTableProps {
   setup: GearSetup
   selectedProperties: string[]
   setsData: SetsData | null
   onPropertyHover?: (property: string | null) => void
+  onBonusSourceHover?: (source: HoveredBonusSource | null) => void
+  hoveredAugment?: string | null
   craftingSelections?: GearCraftingSelections
 }
 
@@ -63,6 +72,8 @@ export default function SummaryTable({
   setup,
   selectedProperties,
   onPropertyHover,
+  onBonusSourceHover,
+  hoveredAugment,
   craftingSelections
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
@@ -220,6 +231,14 @@ export default function SummaryTable({
                     slots.indexOf(a.slot) - slots.indexOf(b.slot)
                   )
 
+                  // Get all augment names that contribute to this cell
+                  const augmentNamesInCell = sortedSources
+                    .filter(s => s.isFromAugment && s.augmentName)
+                    .map(s => s.augmentName!)
+
+                  // Check if this cell should be highlighted because a contributing augment is hovered
+                  const isHighlightedByAugment = hoveredAugment && augmentNamesInCell.includes(hoveredAugment)
+
                   const tooltipContent = (
                     <Box>
                       {sortedSources.map((source, idx) => {
@@ -249,9 +268,28 @@ export default function SummaryTable({
                   )
 
                   return (
-                    <TableCell key={property} align="right">
+                    <TableCell
+                      key={property}
+                      align="right"
+                      onMouseEnter={() => {
+                        onBonusSourceHover?.({
+                          property,
+                          bonusType,
+                          augmentNames: augmentNamesInCell.length > 0 ? augmentNamesInCell : undefined
+                        })
+                      }}
+                      onMouseLeave={() => onBonusSourceHover?.(null)}
+                      sx={{
+                        cursor: 'help',
+                        backgroundColor: isHighlightedByAugment ? 'action.selected' : 'inherit',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }}
+                    >
                       <Tooltip title={tooltipContent} arrow>
-                        <span style={{ cursor: 'help' }}>
+                        <span>
                           +{bonusData.value}
                         </span>
                       </Tooltip>
