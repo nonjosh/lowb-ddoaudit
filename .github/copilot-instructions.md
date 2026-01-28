@@ -6,6 +6,7 @@
 - **Organize imports after updating files**: Always organize imports using the IDE's organize imports feature (e.g., VS Code's "Organize Imports" command) after making changes to ensure clean, sorted imports.
 - **Check for unused variables and imports**: After substantive changes, run `npm run lint` to detect unused variables, imports, or other warnings, and fix them to maintain clean, error-free code.
 - **Remove trailing whitespace and ensure newline at end**: After editing files, remove any trailing whitespace from lines and ensure each file ends with a single newline character for consistent formatting.
+- **Update Game Logic Documentation**: When modifying DDO game mechanics (raid timers, XP, gear/affixes, augments, sets, ransack), YOU MUST update the corresponding documentation in `docs/game-logic/`. See `AGENTS.md` for the full documentation index.
 
 ## Project Overview
 

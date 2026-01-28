@@ -15,6 +15,7 @@ This file provides instructions for AI coding agents (GitHub Copilot, OpenAI Cod
 3. **Run linting** - After substantive changes, run `npm run lint` to catch errors.
 4. **Clean formatting** - Remove trailing whitespace; ensure files end with a single newline.
 5. **Maintain Documentation** - If you add new directories, major features, or change the project structure, YOU MUST update this `AGENTS.md` file to reflect those changes immediately.
+6. **Update Game Logic Docs** - When modifying DDO game mechanics (raid timers, XP calculation, gear/affix logic, augments, sets), YOU MUST update the corresponding documentation in `docs/game-logic/`. See [Game Logic Documentation](#game-logic-documentation) below.
 
 ## Tech Stack
 
@@ -52,12 +53,23 @@ src/
 │   ├── gearPlanner/     # Gear optimization logic
 │   ├── lfm/             # LFM helper functions
 │   ├── quests/          # Quest helper functions
-│   └── raids/           # Raid grouping and timer logic
+│   ├── raids/           # Raid grouping and timer logic
+│   └── trPlanner/       # TR planning and XP calculation
 ├── hooks/               # Custom React hooks
 ├── pages/               # Page-level components
 ├── storage/             # IndexedDB storage (Dexie)
 ├── styles/              # Theme configuration
 └── utils/               # Utility functions
+
+docs/
+└── game-logic/          # DDO game mechanics documentation (MUST be kept updated)
+    ├── README.md        # Index of all game logic docs
+    ├── raids.md         # Raid lockout timers
+    ├── xp-leveling.md   # XP calculation and leveling
+    ├── gear-affixes.md  # Gear and affix stacking
+    ├── augments-crafting.md  # Augments and crafting slots
+    ├── set-bonuses.md   # Set item bonuses
+    └── ransack.md       # Chest ransack timers
 ```
 
 ## Key Patterns
@@ -171,3 +183,49 @@ Add to appropriate domain in `src/domains/` (e.g., raid logic → `raids/raidLog
 - The app is deployed to GitHub Pages with a base path
 - Vite config uses rolldown-vite override for faster builds
 - The build script generates `404.html` for GitHub Pages SPA routing support
+
+## Game Logic Documentation
+
+**Location**: `docs/game-logic/`
+
+This directory contains comprehensive documentation of DDO game mechanics implemented in the codebase. **You MUST update these documents when modifying game logic.**
+
+| Document                                                     | Covers                                                  | Key Source Files                             |
+| ------------------------------------------------------------ | ------------------------------------------------------- | -------------------------------------------- |
+| [raids.md](docs/game-logic/raids.md)                         | Raid lockouts (66h), tier filtering, character grouping | `src/domains/raids/raidLogic.ts`             |
+| [xp-leveling.md](docs/game-logic/xp-leveling.md)             | XP calculation, bonuses, penalties, TR scaling          | `src/domains/trPlanner/`                     |
+| [gear-affixes.md](docs/game-logic/gear-affixes.md)           | Affix stacking rules, gear optimization                 | `src/domains/gearPlanner/affixStacking.ts`   |
+| [augments-crafting.md](docs/game-logic/augments-crafting.md) | Augment slots, crafting options, color compatibility    | `src/domains/gearPlanner/craftingHelpers.ts` |
+| [set-bonuses.md](docs/game-logic/set-bonuses.md)             | Set thresholds, Set Augments                            | `src/api/ddoGearPlanner/sets.ts`             |
+| [ransack.md](docs/game-logic/ransack.md)                     | Chest ransack timers (168h)                             | `src/storage/ransackDb.ts`                   |
+
+### When to Update Game Logic Docs
+
+Update the corresponding document when you:
+
+1. **Change constants** (e.g., timer durations, XP values, level thresholds)
+2. **Modify calculation formulas** (e.g., XP bonuses, affix stacking)
+3. **Add new game mechanics** (e.g., new augment types, new set patterns)
+4. **Fix bugs** in existing game logic
+5. **Add new data sources** that affect game calculations
+
+### Document Format
+
+Each game logic document includes:
+
+- **Overview**: What the mechanic does in DDO
+- **Game Rules (DDO Official)**: The actual game rules
+- **Implementation**: How this codebase implements them
+- **Constants & Configuration**: Hardcoded values
+- **Related Files**: Links to source code
+- **Changelog**: History of changes
+
+### Key Constants Reference
+
+| Constant          | Value              | Location                                     |
+| ----------------- | ------------------ | -------------------------------------------- |
+| `RAID_LOCKOUT_MS` | 66 hours (2d 18h)  | `src/api/ddoAudit/constants.ts`              |
+| Ransack Duration  | 168 hours (7 days) | `src/storage/ransackDb.ts`                   |
+| TR Multipliers    | 1x / 1.5x / 2x     | `src/domains/trPlanner/levelRequirements.ts` |
+| Heroic XP Cap     | 1,900,000          | `src/domains/trPlanner/levelRequirements.ts` |
+| Epic XP Cap       | 8,250,000          | `src/domains/trPlanner/levelRequirements.ts` |
