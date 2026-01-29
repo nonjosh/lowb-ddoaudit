@@ -35,6 +35,8 @@ const MAX_ML_KEY = 'gearPlanner_maxML'
 const ARMOR_TYPE_KEY = 'gearPlanner_armorType'
 const EXCLUDE_SET_AUGMENTS_KEY = 'gearPlanner_excludeSetAugments'
 const MUST_INCLUDE_ARTIFACT_KEY = 'gearPlanner_mustIncludeArtifact'
+const PINNED_SLOTS_KEY = 'gearPlanner_pinnedSlots'
+const AUTO_OPTIMIZE_KEY = 'gearPlanner_autoOptimize'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -195,6 +197,49 @@ function saveMustIncludeArtifact(mustInclude: boolean): void {
   }
 }
 
+function loadPinnedSlots(): Set<string> {
+  try {
+    const stored = localStorage.getItem(PINNED_SLOTS_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.filter(s => typeof s === 'string'))
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return new Set()
+}
+
+function savePinnedSlots(pinnedSlots: Set<string>): void {
+  try {
+    localStorage.setItem(PINNED_SLOTS_KEY, JSON.stringify(Array.from(pinnedSlots)))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadAutoOptimize(): boolean {
+  try {
+    const stored = localStorage.getItem(AUTO_OPTIMIZE_KEY)
+    if (stored !== null) {
+      return stored === 'true'
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return true // Default to auto-optimize enabled
+}
+
+function saveAutoOptimize(autoOptimize: boolean): void {
+  try {
+    localStorage.setItem(AUTO_OPTIMIZE_KEY, String(autoOptimize))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
   const { inventoryMap, isItemAvailableForCharacters, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems } = useTrove()
@@ -214,6 +259,10 @@ export default function GearPlanner() {
   const [excludeSetAugments, setExcludeSetAugments] = useState(loadExcludeSetAugments)
   const [mustIncludeArtifact, setMustIncludeArtifact] = useState(loadMustIncludeArtifact)
   const [hoveredSetName, setHoveredSetName] = useState<string | null>(null)
+  const [pinnedSlots, setPinnedSlots] = useState<Set<string>>(loadPinnedSlots)
+  const [pinnedItems, setPinnedItems] = useState<GearSetup>({})
+  const [autoOptimize, setAutoOptimize] = useState(loadAutoOptimize)
+  const [optimizationKey, setOptimizationKey] = useState(0)
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -233,6 +282,44 @@ export default function GearPlanner() {
     if (!setsData) return []
     return Object.keys(setsData).sort()
   }, [setsData])
+
+  // Handle pin/unpin slot
+  const handleTogglePin = useCallback((slot: string, currentSetup: GearSetup) => {
+    setPinnedSlots(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(slot)) {
+        newSet.delete(slot)
+        // Remove from pinned items
+        setPinnedItems(prevItems => {
+          const newItems = { ...prevItems }
+          delete newItems[slot as keyof GearSetup]
+          return newItems
+        })
+      } else {
+        newSet.add(slot)
+        // Add current item to pinned items
+        const item = currentSetup[slot as keyof GearSetup]
+        if (item) {
+          setPinnedItems(prevItems => ({
+            ...prevItems,
+            [slot]: item
+          }))
+        }
+      }
+      savePinnedSlots(newSet)
+      return newSet
+    })
+    // Don't clear manual setup - pinned items should stay
+    // Trigger re-optimization if auto-optimize is enabled
+    if (autoOptimize) {
+      setOptimizationKey(k => k + 1)
+    }
+  }, [autoOptimize])
+
+  // Handle manual refresh button click
+  const handleManualRefresh = useCallback(() => {
+    setOptimizationKey(k => k + 1)
+  }, [])
 
   // Handle property selection change with persistence
   const handlePropertiesChange = (properties: string[]) => {
@@ -341,6 +428,12 @@ export default function GearPlanner() {
   const optimizedSetups = useMemo(() => {
     if (selectedProperties.length < 3 || items.length === 0) return []
 
+    // Build pinned gear setup from pinnedItems state
+    let pinnedGearSetup: GearSetup | undefined = undefined
+    if (pinnedSlots.size > 0 && Object.keys(pinnedItems).length > 0) {
+      pinnedGearSetup = { ...pinnedItems }
+    }
+
     // Create item filter for available items mode
     const itemFilter =
       availableItemsOnly && inventoryMap.size > 0
@@ -355,9 +448,12 @@ export default function GearPlanner() {
       maxML,
       armorType,
       excludeSetAugments,
-      mustIncludeArtifact
+      mustIncludeArtifact,
+      pinnedGear: pinnedGearSetup
     })
-  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap.size, isItemAvailableForCharacters, maxML, armorType, excludeSetAugments, mustIncludeArtifact])
+    // optimizationKey is intentionally included to force re-optimization when manual refresh is clicked
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap, isItemAvailableForCharacters, maxML, armorType, excludeSetAugments, mustIncludeArtifact, pinnedSlots, pinnedItems, optimizationKey])
 
   // Handle manual gear change
   const handleGearChange = useCallback((slot: string, item: Item | undefined) => {
@@ -518,9 +614,40 @@ export default function GearPlanner() {
       {/* Optimization Filters */}
       {selectedProperties.length >= 3 && (
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Optimization Filters
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Typography variant="subtitle1">
+              Optimization Filters
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={autoOptimize}
+                    onChange={(e) => {
+                      const newValue = e.target.checked
+                      setAutoOptimize(newValue)
+                      saveAutoOptimize(newValue)
+                    }}
+                    size="small"
+                  />
+                }
+                label="Auto-refresh"
+                labelPlacement="start"
+                sx={{ m: 0 }}
+              />
+              <Box sx={{ width: 90, display: 'flex', justifyContent: 'flex-end' }}>
+                {!autoOptimize && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleManualRefresh}
+                  >
+                    Refresh
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </Box>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <InputLabel>Max Item Level</InputLabel>
@@ -634,6 +761,8 @@ export default function GearPlanner() {
               onGearChange={handleGearChange}
               availableItems={items}
               onPropertyAdd={handlePropertyAdd}
+              pinnedSlots={pinnedSlots}
+              onTogglePin={handleTogglePin}
             />
           </Paper>
 

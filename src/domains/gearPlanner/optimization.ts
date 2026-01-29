@@ -76,6 +76,8 @@ export interface OptimizationOptions {
   excludeSetAugments?: boolean
   /** Whether to require at least one minor artifact in the setup */
   mustIncludeArtifact?: boolean
+  /** Pinned gear setup - these items will be kept fixed */
+  pinnedGear?: GearSetup
 }
 
 /**
@@ -218,7 +220,7 @@ export function optimizeGear(
   setsData: SetsData | null,
   options: OptimizationOptions
 ): OptimizedGearSetup[] {
-  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false } = options
+  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false, pinnedGear } = options
 
   // Filter items by ML range and optional custom filter
   let filteredItems = items.filter(item => item.ml >= minML && item.ml <= maxML)
@@ -228,10 +230,32 @@ export function optimizeGear(
     filteredItems = filteredItems.filter(itemFilter)
   }
 
+  // Determine which slots are pinned
+  const pinnedSlots = new Set<string>()
+  if (pinnedGear) {
+    for (const key of Object.keys(pinnedGear) as (keyof GearSetup)[]) {
+      if (pinnedGear[key]) {
+        pinnedSlots.add(key)
+      }
+    }
+  }
+
   // For each slot, get top items that provide the selected properties
   const slotItems = new Map<string, Item[]>()
 
   for (const slot of GEAR_SLOTS) {
+    // Skip pinned slots - they won't be optimized
+    const slotKey = getSlotKey(slot)
+    if (slot === 'Ring') {
+      // For rings, check both ring1 and ring2
+      if (pinnedSlots.has('ring1') && pinnedSlots.has('ring2')) {
+        continue // Both pinned, skip this slot entirely
+      }
+      // If only one is pinned, we'll handle it below
+    } else if (pinnedSlots.has(slotKey)) {
+      continue // Skip pinned slots
+    }
+
     let itemsForSlot = getItemsBySlot(filteredItems, slot)
 
     // Apply armor type filter for Armor slot
@@ -318,27 +342,34 @@ export function optimizeGear(
   let results: OptimizedGearSetup[] = []
 
   // Generate base setup with top item per slot
-  const baseSetup: GearSetup = {}
+  // Start with pinned gear if provided
+  const baseSetup: GearSetup = pinnedGear ? { ...pinnedGear } : {}
 
   for (const slot of GEAR_SLOTS) {
     const items = slotItems.get(slot) || []
     if (items.length > 0) {
       if (slot === 'Ring') {
-        // For rings, check artifact limit for both slots
-        const validRing1 = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, 'ring1'))
-        if (validRing1) {
-          baseSetup.ring1 = validRing1
-          const validRing2 = items.find(item => item !== validRing1 && !wouldViolateArtifactLimit(baseSetup, item, 'ring2'))
+        // Handle rings - only fill unpinned ring slots
+        if (!pinnedSlots.has('ring1')) {
+          const validRing1 = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, 'ring1'))
+          if (validRing1) {
+            baseSetup.ring1 = validRing1
+          }
+        }
+        if (!pinnedSlots.has('ring2')) {
+          const validRing2 = items.find(item => item !== baseSetup.ring1 && !wouldViolateArtifactLimit(baseSetup, item, 'ring2'))
           if (validRing2) {
             baseSetup.ring2 = validRing2
           }
         }
       } else {
         const key = getSlotKey(slot)
-        // Find first item that doesn't violate artifact limit
-        const validItem = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, key))
-        if (validItem) {
-          baseSetup[key] = validItem
+        // Only fill if not pinned
+        if (!pinnedSlots.has(key)) {
+          const validItem = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, key))
+          if (validItem) {
+            baseSetup[key] = validItem
+          }
         }
       }
     }
@@ -363,38 +394,69 @@ export function optimizeGear(
     const items = slotItems.get(slot) || []
     if (items.length < 2) continue
 
-    for (let i = 1; i < Math.min(items.length, 3); i++) {
-      const altSetup = { ...baseSetup }
-
-      if (slot === 'Ring') {
-        // Check artifact limit before assigning
-        if (!wouldViolateArtifactLimit(altSetup, items[i], 'ring1')) {
-          altSetup.ring1 = items[i]
-        } else {
-          continue // Skip this alternative
-        }
-      } else {
-        const key = getSlotKey(slot)
-        // Check artifact limit before assigning
-        if (!wouldViolateArtifactLimit(altSetup, items[i], key)) {
-          altSetup[key] = items[i]
-        } else {
-          continue // Skip this alternative
+    // Skip pinned slots
+    const key = getSlotKey(slot)
+    if (slot === 'Ring') {
+      // For rings, only swap unpinned ones
+      if (!pinnedSlots.has('ring1')) {
+        for (let i = 1; i < Math.min(items.length, 3); i++) {
+          const altSetup = { ...baseSetup }
+          if (!wouldViolateArtifactLimit(altSetup, items[i], 'ring1')) {
+            altSetup.ring1 = items[i]
+            const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments)
+            results.push({
+              setup: altSetup,
+              score: result.score,
+              propertyValues: result.propertyValues,
+              unusedAugments: result.unusedAugments,
+              totalAugments: result.totalAugments,
+              extraProperties: result.extraProperties,
+              otherEffects: result.otherEffects,
+              activeSets: result.activeSets,
+              craftingSelections: result.craftingSelections
+            })
+          }
         }
       }
-
-      const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments)
-      results.push({
-        setup: altSetup,
-        score: result.score,
-        propertyValues: result.propertyValues,
-        unusedAugments: result.unusedAugments,
-        totalAugments: result.totalAugments,
-        extraProperties: result.extraProperties,
-        otherEffects: result.otherEffects,
-        activeSets: result.activeSets,
-        craftingSelections: result.craftingSelections
-      })
+      if (!pinnedSlots.has('ring2')) {
+        for (let i = 1; i < Math.min(items.length, 3); i++) {
+          const altSetup = { ...baseSetup }
+          if (items[i] !== altSetup.ring1 && !wouldViolateArtifactLimit(altSetup, items[i], 'ring2')) {
+            altSetup.ring2 = items[i]
+            const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments)
+            results.push({
+              setup: altSetup,
+              score: result.score,
+              propertyValues: result.propertyValues,
+              unusedAugments: result.unusedAugments,
+              totalAugments: result.totalAugments,
+              extraProperties: result.extraProperties,
+              otherEffects: result.otherEffects,
+              activeSets: result.activeSets,
+              craftingSelections: result.craftingSelections
+            })
+          }
+        }
+      }
+    } else if (!pinnedSlots.has(key)) {
+      for (let i = 1; i < Math.min(items.length, 3); i++) {
+        const altSetup = { ...baseSetup }
+        if (!wouldViolateArtifactLimit(altSetup, items[i], key)) {
+          altSetup[key] = items[i]
+          const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments)
+          results.push({
+            setup: altSetup,
+            score: result.score,
+            propertyValues: result.propertyValues,
+            unusedAugments: result.unusedAugments,
+            totalAugments: result.totalAugments,
+            extraProperties: result.extraProperties,
+            otherEffects: result.otherEffects,
+            activeSets: result.activeSets,
+            craftingSelections: result.craftingSelections
+          })
+        }
+      }
     }
   }
 
@@ -422,22 +484,31 @@ export function optimizeGear(
       let foundSetItems = false
 
       for (const slot of GEAR_SLOTS) {
-        const items = slotItems.get(slot) || []
-        // Find first item from this set for this slot
-        const setItem = items.find(item => item.sets?.includes(setName))
-        if (setItem) {
-          foundSetItems = true
-          if (slot === 'Ring') {
-            if (!setSetup.ring1 && !wouldViolateArtifactLimit(setSetup, setItem, 'ring1')) {
+        const key = getSlotKey(slot)
+        // Skip pinned slots
+        if (slot === 'Ring') {
+          if (!pinnedSlots.has('ring1')) {
+            const items = slotItems.get(slot) || []
+            const setItem = items.find(item => item.sets?.includes(setName))
+            if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, 'ring1')) {
               setSetup.ring1 = setItem
-            } else if (!setSetup.ring2 && !wouldViolateArtifactLimit(setSetup, setItem, 'ring2')) {
+              foundSetItems = true
+            }
+          }
+          if (!pinnedSlots.has('ring2')) {
+            const items = slotItems.get(slot) || []
+            const setItem = items.find(item => item.sets?.includes(setName) && item !== setSetup.ring1)
+            if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, 'ring2')) {
               setSetup.ring2 = setItem
+              foundSetItems = true
             }
-          } else {
-            const key = getSlotKey(slot)
-            if (!wouldViolateArtifactLimit(setSetup, setItem, key)) {
-              setSetup[key] = setItem
-            }
+          }
+        } else if (!pinnedSlots.has(key)) {
+          const items = slotItems.get(slot) || []
+          const setItem = items.find(item => item.sets?.includes(setName))
+          if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, key)) {
+            setSetup[key] = setItem
+            foundSetItems = true
           }
         }
       }

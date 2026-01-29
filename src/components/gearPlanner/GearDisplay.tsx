@@ -7,6 +7,8 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import LaunchIcon from '@mui/icons-material/Launch'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
+import PushPinIcon from '@mui/icons-material/PushPin'
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import {
   Box,
   Card,
@@ -64,6 +66,8 @@ interface GearDisplayProps {
   onGearChange?: (slot: string, item: Item | undefined) => void
   availableItems?: Item[]
   onPropertyAdd?: (property: string) => void
+  pinnedSlots?: Set<string>
+  onTogglePin?: (slot: string, currentSetup: GearSetup) => void
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -165,7 +169,9 @@ function GearSlotCard({
   onGearChange,
   onSetNameHover,
   availableItems,
-  onPropertyAdd
+  onPropertyAdd,
+  isPinned,
+  onTogglePin
 }: {
   slotName: string
   item: Item | undefined
@@ -180,6 +186,8 @@ function GearSlotCard({
   onSetNameHover?: (setName: string | null) => void
   availableItems?: Item[]
   onPropertyAdd?: (property: string) => void
+  isPinned?: boolean
+  onTogglePin?: () => void
 }) {
   const { isWished, toggleWish } = useWishlist()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -189,9 +197,26 @@ function GearSlotCard({
       <>
         <Card variant="outlined" sx={{ height: '100%' }}>
           <CardContent>
-            <Typography variant="subtitle2" color="primary" gutterBottom>
-              {slotName}
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                {slotName}
+              </Typography>
+              {onTogglePin && (
+                <Tooltip title={isPinned ? "Unpin slot" : "Pin slot (empty)"}>
+                  <IconButton
+                    size="small"
+                    onClick={onTogglePin}
+                    sx={{ mt: -0.5, mr: -0.5 }}
+                  >
+                    {isPinned ? (
+                      <PushPinIcon fontSize="small" color="primary" />
+                    ) : (
+                      <PushPinOutlinedIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Not equipped
             </Typography>
@@ -270,13 +295,18 @@ function GearSlotCard({
             </Typography>
             <Box sx={{ display: 'flex', gap: 0.5, mt: -0.5, mr: -0.5 }}>
               <InventoryBadge itemName={item.name} showBTC />
-              {onGearChange && availableItems && availableItems.length > 0 && (
-                <Tooltip title="Change item">
+              {onTogglePin && (
+                <Tooltip title={isPinned ? "Unpin item" : "Pin item to slot"}>
                   <IconButton
                     size="small"
-                    onClick={() => setDialogOpen(true)}
+                    onClick={onTogglePin}
+                    color={isPinned ? "primary" : "default"}
                   >
-                    <SwapHorizIcon fontSize="small" />
+                    {isPinned ? (
+                      <PushPinIcon fontSize="small" />
+                    ) : (
+                      <PushPinOutlinedIcon fontSize="small" />
+                    )}
                   </IconButton>
                 </Tooltip>
               )}
@@ -294,7 +324,7 @@ function GearSlotCard({
               </Tooltip>
             </Box>
           </Box>
-          <Box sx={{ mb: 1 }}>
+          <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
             {getWikiUrl(item.url) ? (
               <Link
                 href={getWikiUrl(item.url)!}
@@ -314,9 +344,20 @@ function GearSlotCard({
                 </Typography>
               </Link>
             ) : (
-              <Typography variant="body2" fontWeight="bold">
+              <Typography variant="body2" fontWeight="bold" component="span">
                 {item.name}
               </Typography>
+            )}
+            {onGearChange && availableItems && availableItems.length > 0 && (
+              <Tooltip title="Change item">
+                <IconButton
+                  size="small"
+                  onClick={() => setDialogOpen(true)}
+                  sx={{ p: 0.25, ml: 0.5 }}
+                >
+                  <SwapHorizIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
             )}
           </Box>
 
@@ -492,7 +533,9 @@ export default function GearDisplay({
   onLoadEquipped,
   onGearChange,
   availableItems,
-  onPropertyAdd
+  onPropertyAdd,
+  pinnedSlots,
+  onTogglePin
 }: GearDisplayProps) {
   const [craftingExpanded, setCraftingExpanded] = useState(false)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
@@ -712,6 +755,8 @@ export default function GearDisplay({
                 onSetNameHover={onSetNameHover}
                 availableItems={slotAvailableItems}
                 onPropertyAdd={onPropertyAdd}
+                isPinned={pinnedSlots?.has(slot)}
+                onTogglePin={onTogglePin ? () => onTogglePin(slot, setup) : undefined}
               />
             </Grid>
           )
