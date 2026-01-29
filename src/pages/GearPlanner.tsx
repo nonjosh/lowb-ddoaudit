@@ -29,6 +29,7 @@ import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearS
 import { Item } from '@/api/ddoGearPlanner'
 
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
+const SELECTED_SETS_KEY = 'gearPlanner_selectedSets'
 const SELECTED_INDEX_KEY = 'gearPlanner_selectedIndex'
 const MAX_ML_KEY = 'gearPlanner_maxML'
 const ARMOR_TYPE_KEY = 'gearPlanner_armorType'
@@ -60,6 +61,29 @@ function loadSelectedProperties(): string[] {
 function saveSelectedProperties(properties: string[]): void {
   try {
     localStorage.setItem(SELECTED_PROPERTIES_KEY, JSON.stringify(properties))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadSelectedSets(): string[] {
+  try {
+    const stored = localStorage.getItem(SELECTED_SETS_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.every(s => typeof s === 'string')) {
+        return parsed
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return []
+}
+
+function saveSelectedSets(sets: string[]): void {
+  try {
+    localStorage.setItem(SELECTED_SETS_KEY, JSON.stringify(sets))
   } catch {
     // Ignore storage errors
   }
@@ -175,6 +199,7 @@ export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
   const { inventoryMap, isItemAvailableForCharacters, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems } = useTrove()
   const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
+  const [selectedSets, setSelectedSets] = useState<string[]>(loadSelectedSets)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(loadSelectedIndex)
   const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
   const [hoveredAugment, setHoveredAugment] = useState<string | null>(null)
@@ -203,6 +228,12 @@ export default function GearPlanner() {
     return getAllAvailableProperties(items)
   }, [items])
 
+  // Get available sets from setsData
+  const availableSets = useMemo(() => {
+    if (!setsData) return []
+    return Object.keys(setsData).sort()
+  }, [setsData])
+
   // Handle property selection change with persistence
   const handlePropertiesChange = (properties: string[]) => {
     setSelectedProperties(properties)
@@ -213,6 +244,31 @@ export default function GearPlanner() {
     // Clear manual setup when properties change
     setManualSetup(null)
   }
+
+  // Handle set effects selection change with persistence
+  const handleSetsChange = (sets: string[]) => {
+    setSelectedSets(sets)
+    saveSelectedSets(sets)
+    // Reset to first suggestion when sets change
+    setSelectedSuggestionIndex(0)
+    saveSelectedIndex(0)
+    // Clear manual setup when sets change
+    setManualSetup(null)
+  }
+
+  // Handle adding a new property from gear display
+  const handlePropertyAdd = useCallback((property: string) => {
+    if (!selectedProperties.includes(property)) {
+      const newProperties = [...selectedProperties, property]
+      setSelectedProperties(newProperties)
+      saveSelectedProperties(newProperties)
+      // Reset to first suggestion when properties change
+      setSelectedSuggestionIndex(0)
+      saveSelectedIndex(0)
+      // Clear manual setup when properties change
+      setManualSetup(null)
+    }
+  }, [selectedProperties])
 
   // Handle suggestion selection change with persistence
   const handleSuggestionSelect = (index: number) => {
@@ -453,6 +509,9 @@ export default function GearPlanner() {
           availableProperties={availableProperties}
           selectedProperties={selectedProperties}
           onChange={handlePropertiesChange}
+          availableSets={availableSets}
+          selectedSets={selectedSets}
+          onSetsChange={handleSetsChange}
         />
       </Paper>
 
@@ -574,6 +633,7 @@ export default function GearPlanner() {
               onLoadEquipped={handleLoadEquipped}
               onGearChange={handleGearChange}
               availableItems={items}
+              onPropertyAdd={handlePropertyAdd}
             />
           </Paper>
 

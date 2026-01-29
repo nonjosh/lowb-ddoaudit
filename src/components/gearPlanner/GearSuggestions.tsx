@@ -25,7 +25,7 @@ interface GearSuggestionsProps {
   selectedProperties: string[]
 }
 
-type SortColumn = 'augments' | 'other' | string
+type SortColumn = 'augments' | 'other' | 'sets' | string
 type SortDirection = 'asc' | 'desc'
 
 interface SortableHeaderCellProps {
@@ -107,6 +107,8 @@ export default function GearSuggestions({
           comparison = bUsed - aUsed
         } else if (sortColumn === 'other') {
           comparison = (b.extraProperties || 0) - (a.extraProperties || 0)
+        } else if (sortColumn === 'sets') {
+          comparison = (b.activeSets || 0) - (a.activeSets || 0)
         } else {
           const aVal = a.propertyValues.get(sortColumn) || 0
           const bVal = b.propertyValues.get(sortColumn) || 0
@@ -176,7 +178,14 @@ export default function GearSuggestions({
                 sortDirection={sortDirection}
                 onHeaderClick={handleHeaderClick}
               />
-              <TableCell align="right">Sets</TableCell>
+              <SortableHeaderCell
+                column="sets"
+                label="Sets"
+                align="right"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onHeaderClick={handleHeaderClick}
+              />
               <SortableHeaderCell
                 column="other"
                 label="Other Effects"

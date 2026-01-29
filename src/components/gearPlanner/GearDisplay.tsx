@@ -5,6 +5,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
+import LaunchIcon from '@mui/icons-material/Launch'
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import {
   Box,
   Card,
@@ -61,6 +63,7 @@ interface GearDisplayProps {
   onLoadEquipped?: (characterId: number) => void
   onGearChange?: (slot: string, item: Item | undefined) => void
   availableItems?: Item[]
+  onPropertyAdd?: (property: string) => void
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -93,6 +96,13 @@ function getAugmentColor(text: string): string | undefined {
   if (lower.includes('orange augment slot')) return '#ff9800'
   if (lower.includes('colorless augment slot')) return '#e0e0e0'
   return undefined
+}
+
+// Convert augment name to ddowiki URL format
+function getAugmentWikiUrl(augmentName: string): string {
+  // Replace spaces with underscores for ddowiki URL format
+  const formattedName = augmentName.replace(/\s+/g, '_')
+  return `https://ddowiki.com/page/Item:${formattedName}`
 }
 
 // Crafting slot type priority for sorting
@@ -154,7 +164,8 @@ function GearSlotCard({
   slottedAugmentNames,
   onGearChange,
   onSetNameHover,
-  availableItems
+  availableItems,
+  onPropertyAdd
 }: {
   slotName: string
   item: Item | undefined
@@ -168,6 +179,7 @@ function GearSlotCard({
   onGearChange?: (item: Item | undefined) => void
   onSetNameHover?: (setName: string | null) => void
   availableItems?: Item[]
+  onPropertyAdd?: (property: string) => void
 }) {
   const { isWished, toggleWish } = useWishlist()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -377,21 +389,45 @@ function GearSlotCard({
               const shouldHighlight = isHovered || isBonusSourceHovered
 
               return (
-                <Typography
+                <Box
                   key={idx}
-                  variant="caption"
-                  display="block"
                   sx={{
-                    fontWeight: isHighest ? 'bold' : 'normal',
-                    color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary'),
-                    backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
-                    px: shouldHighlight ? 0.5 : 0,
-                    borderRadius: shouldHighlight ? 0.5 : 0,
-                    transition: 'all 0.2s'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5
                   }}
                 >
-                  {formatAffix(affix)}
-                </Typography>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    sx={{
+                      flex: 1,
+                      fontWeight: isHighest ? 'bold' : 'normal',
+                      color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary'),
+                      backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                      px: shouldHighlight ? 0.5 : 0,
+                      borderRadius: shouldHighlight ? 0.5 : 0,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {formatAffix(affix)}
+                  </Typography>
+                  {!isSelected && onPropertyAdd && affix.type !== 'bool' && (
+                    <Tooltip title="Add to selected properties">
+                      <IconButton
+                        size="small"
+                        onClick={() => onPropertyAdd(affix.name)}
+                        sx={{
+                          p: 0.25,
+                          opacity: 0.6,
+                          '&:hover': { opacity: 1 }
+                        }}
+                      >
+                        <AddCircleOutlineIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
               )
             })}
           </Box>
@@ -455,7 +491,8 @@ export default function GearDisplay({
   setsData,
   onLoadEquipped,
   onGearChange,
-  availableItems
+  availableItems,
+  onPropertyAdd
 }: GearDisplayProps) {
   const [craftingExpanded, setCraftingExpanded] = useState(false)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
@@ -611,6 +648,12 @@ export default function GearDisplay({
   // Default collapse if no active sets
   const [setsExpanded, setSetsExpanded] = useState(activeSetCount > 0)
 
+  // Count minor artifacts in setup
+  const minorArtifactCount = allSlots.filter(slot => {
+    const item = getItemForSlot(setup, slot)
+    return item?.artifact === true
+  }).length
+
   return (
     <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -619,6 +662,29 @@ export default function GearDisplay({
         </Typography>
         {onLoadEquipped && <LoadEquippedButton onLoadEquipped={onLoadEquipped} />}
       </Box>
+
+      {/* Minor Artifact Warning */}
+      {minorArtifactCount > 1 && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            bgcolor: 'warning.main',
+            color: 'warning.contrastText',
+            borderRadius: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <Typography variant="body2" fontWeight="bold">
+            ⚠️ Warning: {minorArtifactCount} Minor Artifacts Equipped
+          </Typography>
+          <Typography variant="body2">
+            — Only 1 minor artifact can be worn at a time. This setup is invalid.
+          </Typography>
+        </Box>
+      )}
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {allSlots.map(slot => {
@@ -645,6 +711,7 @@ export default function GearDisplay({
                 onGearChange={onGearChange ? (item) => onGearChange(slot, item) : undefined}
                 onSetNameHover={onSetNameHover}
                 availableItems={slotAvailableItems}
+                onPropertyAdd={onPropertyAdd}
               />
             </Grid>
           )
@@ -809,47 +876,61 @@ export default function GearDisplay({
                                   const shouldHighlight = isAugmentHovered || isSetAugmentHovered || isHighlightedFromBonusSource
 
                                   return (
-                                    <Tooltip
-                                      key={idx}
-                                      title={
-                                        <Box>
-                                          {aug.affixes.map((affix, i) => (
-                                            <Typography key={i} variant="caption" display="block">
-                                              {formatAffix(affix)}
-                                            </Typography>
-                                          ))}
-                                          {aug.set && (
-                                            <Typography variant="caption" display="block" color="secondary.light">
-                                              Set: {aug.set}
-                                            </Typography>
-                                          )}
-                                        </Box>
-                                      }
-                                    >
-                                      <Typography
-                                        variant="body2"
-                                        onMouseEnter={() => {
-                                          onAugmentHover?.(aug.name)
-                                          if (aug.set) {
-                                            onSetAugmentHover?.(aug.set)
-                                          }
-                                        }}
-                                        onMouseLeave={() => {
-                                          onAugmentHover?.(null)
-                                          onSetAugmentHover?.(null)
-                                        }}
-                                        sx={{
-                                          cursor: 'help',
-                                          backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
-                                          px: shouldHighlight ? 0.5 : 0,
-                                          borderRadius: shouldHighlight ? 0.5 : 0,
-                                          transition: 'all 0.2s',
-                                          '&:hover': { color: 'primary.main' }
-                                        }}
+                                    <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Tooltip
+                                        title={
+                                          <Box>
+                                            {aug.affixes.map((affix, i) => (
+                                              <Typography key={i} variant="caption" display="block">
+                                                {formatAffix(affix)}
+                                              </Typography>
+                                            ))}
+                                            {aug.set && (
+                                              <Typography variant="caption" display="block" color="secondary.light">
+                                                Set: {aug.set}
+                                              </Typography>
+                                            )}
+                                          </Box>
+                                        }
                                       >
-                                        {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
-                                      </Typography>
-                                    </Tooltip>
+                                        <Typography
+                                          variant="body2"
+                                          onMouseEnter={() => {
+                                            onAugmentHover?.(aug.name)
+                                            if (aug.set) {
+                                              onSetAugmentHover?.(aug.set)
+                                            }
+                                          }}
+                                          onMouseLeave={() => {
+                                            onAugmentHover?.(null)
+                                            onSetAugmentHover?.(null)
+                                          }}
+                                          sx={{
+                                            cursor: 'help',
+                                            backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                            px: shouldHighlight ? 0.5 : 0,
+                                            borderRadius: shouldHighlight ? 0.5 : 0,
+                                            transition: 'all 0.2s',
+                                            '&:hover': { color: 'primary.main' }
+                                          }}
+                                        >
+                                          {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
+                                        </Typography>
+                                      </Tooltip>
+                                      <Tooltip title="View on DDO Wiki">
+                                        <IconButton
+                                          size="small"
+                                          component="a"
+                                          href={getAugmentWikiUrl(aug.name)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{ p: 0.25 }}
+                                        >
+                                          <LaunchIcon sx={{ fontSize: 14 }} />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <InventoryBadge itemName={aug.name} variant="icon" size="small" />
+                                    </Box>
                                   )
                                 })}
                               </Box>
