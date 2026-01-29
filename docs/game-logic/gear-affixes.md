@@ -36,6 +36,15 @@ DDO gear has **affixes** (properties like "+10 Strength") with **bonus types** (
 - **Boolean affixes**: Binary on/off (e.g., "Feather Falling")
 - Boolean affixes are **ignored** in numerical calculations
 
+### Minor Artifact Limit
+
+**Game Rule**: A character can only wear **ONE minor artifact** at a time.
+
+- **Major artifacts** (raid loot): Unlimited
+- **Minor artifacts**: Maximum 1 equipped
+- Items have `artifact: true` field to indicate minor artifact status
+- Optimization must validate artifact count before equipping
+
 ## Implementation
 
 ### Data Structures
@@ -263,7 +272,64 @@ The optimizer uses a **greedy algorithm**:
 4. Select top items per slot (keep top 20)
 5. Generate base setup with best item per slot
 6. Generate alternatives by swapping slots
-7. Sort results by: unused augments > extra properties > score
+7. **Validate minor artifact limit** before adding items
+8. Sort results by: unused augments > extra properties > score
+
+### Minor Artifact Validation
+
+**File**: `src/domains/gearPlanner/optimization.ts`
+
+```typescript
+/**
+ * Count how many minor artifacts are in a gear setup
+ * DDO rules: Only 1 minor artifact can be worn at a time
+ */
+function countMinorArtifacts(setup: GearSetup): number {
+  const slots: (keyof GearSetup)[] = [
+    "armor",
+    "belt",
+    "boots",
+    "bracers",
+    "cloak",
+    "gloves",
+    "goggles",
+    "helm",
+    "necklace",
+    "ring1",
+    "ring2",
+    "trinket",
+  ];
+  return slots.filter((slot) => setup[slot]?.artifact === true).length;
+}
+
+/**
+ * Check if adding an item would violate the minor artifact limit
+ */
+function wouldViolateArtifactLimit(
+  setup: GearSetup,
+  newItem: Item,
+  slot: string,
+): boolean {
+  if (!newItem.artifact) return false; // Not an artifact, no problem
+
+  // Count current artifacts excluding the slot we're replacing
+  const currentCount = countMinorArtifacts(setup);
+  const slotKey = slot as keyof GearSetup;
+  const replacingArtifact = setup[slotKey]?.artifact === true;
+
+  // If we're replacing an artifact with an artifact, count stays same
+  if (replacingArtifact) return false;
+
+  // If we're adding an artifact, check if we'd exceed limit
+  return currentCount >= 1;
+}
+```
+
+The optimization algorithm checks artifact limits at three points:
+
+1. **Base setup generation**: Skip artifacts if limit reached
+2. **Alternative generation**: Skip swaps that would violate limit
+3. **Set-focused combinations**: Only add artifact set items if valid
 
 ## Related Files
 

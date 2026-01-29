@@ -298,6 +298,7 @@ export function scoreCraftingOption(
  * @param itemName The item name
  * @param itemML The item's minimum level
  * @param selectedProperties Properties to optimize for
+ * @param excludeSetAugments Whether to exclude set augments
  * @returns The best option, or null if no valid options
  */
 export function findBestCraftingOption(
@@ -305,7 +306,8 @@ export function findBestCraftingOption(
   slotType: string,
   itemName: string,
   itemML: number,
-  selectedProperties: string[]
+  selectedProperties: string[],
+  excludeSetAugments = false
 ): CraftingOption | null {
   // Skip random slots
   if (isRandomSlot(slotType)) {
@@ -313,7 +315,12 @@ export function findBestCraftingOption(
   }
 
   const options = getAvailableCraftingOptions(craftingData, slotType, itemName)
-  const validOptions = filterCraftingOptionsByML(options, itemML)
+  let validOptions = filterCraftingOptionsByML(options, itemML)
+
+  // Filter out set augments if requested
+  if (excludeSetAugments) {
+    validOptions = validOptions.filter(option => !option.set)
+  }
 
   if (validOptions.length === 0) {
     return null
@@ -356,27 +363,33 @@ export type GearCraftingSelections = Record<string, SelectedCraftingOption[]>
  * @param item The item to select options for
  * @param craftingData The full crafting data
  * @param selectedProperties Properties to optimize for
+ * @param excludeSetAugments Whether to exclude set augments
  * @returns Array of selected crafting options
  */
 export function autoSelectCraftingOptions(
   item: Item,
   craftingData: CraftingData | null,
-  selectedProperties: string[]
+  selectedProperties: string[],
+  excludeSetAugments = false
 ): SelectedCraftingOption[] {
   if (!item.crafting || item.crafting.length === 0) {
     return []
   }
 
-  return item.crafting.map(slotType => ({
-    slotType,
-    option: findBestCraftingOption(
+  return item.crafting.map(slotType => {
+    const option = findBestCraftingOption(
       craftingData,
       slotType,
       item.name,
       item.ml,
-      selectedProperties
+      selectedProperties,
+      excludeSetAugments
     )
-  }))
+    return {
+      slotType,
+      option
+    }
+  })
 }
 
 /**
@@ -501,6 +514,7 @@ function getSetMinThreshold(setName: string, setsData: SetsData | null): number 
  * @param selectedProperties Properties to optimize for
  * @param baseAffixes Affixes already provided by items (to avoid duplicating)
  * @param setsData Sets data for checking set bonus thresholds
+ * @param excludeSetAugments Whether to exclude set augments from optimization
  * @returns GearCraftingSelections with optimal non-redundant augment choices
  */
 export function autoSelectCraftingOptionsForGearSetup(
@@ -508,7 +522,8 @@ export function autoSelectCraftingOptionsForGearSetup(
   craftingData: CraftingData | null,
   selectedProperties: string[],
   baseAffixes: ItemAffix[],
-  setsData: SetsData | null = null
+  setsData: SetsData | null = null,
+  excludeSetAugments = false
 ): GearCraftingSelections {
   const slotKeys = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -580,6 +595,10 @@ export function autoSelectCraftingOptionsForGearSetup(
       for (const option of validOptions) {
         // Check if this is a Set Augment (has a set property)
         if (option.set) {
+          // Skip set augments if requested
+          if (excludeSetAugments) {
+            continue
+          }
           setAugmentCandidates.push({
             gearSlot: slotKey,
             slotIndex: i,

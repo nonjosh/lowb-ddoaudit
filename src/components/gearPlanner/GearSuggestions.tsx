@@ -176,6 +176,7 @@ export default function GearSuggestions({
                 sortDirection={sortDirection}
                 onHeaderClick={handleHeaderClick}
               />
+              <TableCell align="right">Sets</TableCell>
               <SortableHeaderCell
                 column="other"
                 label="Other Effects"
@@ -222,6 +223,9 @@ export default function GearSuggestions({
                       {suggestion.totalAugments !== undefined && suggestion.unusedAugments !== undefined
                         ? `${suggestion.totalAugments - suggestion.unusedAugments}/${suggestion.totalAugments}`
                         : '-'}
+                    </TableCell>
+                    <TableCell align="right">
+                      {suggestion.activeSets !== undefined ? suggestion.activeSets : '-'}
                     </TableCell>
                     <TableCell align="right">
                       {suggestion.otherEffects && suggestion.otherEffects.length > 0 ? (

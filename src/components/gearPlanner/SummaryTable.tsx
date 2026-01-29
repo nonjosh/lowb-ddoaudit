@@ -12,7 +12,7 @@ import {
 } from '@mui/material'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
-import { GearCraftingSelections, GearSetup, getCraftingAffixes } from '@/domains/gearPlanner'
+import { GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships } from '@/domains/gearPlanner'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -28,6 +28,7 @@ interface SummaryTableProps {
   onPropertyHover?: (property: string | null) => void
   onBonusSourceHover?: (source: HoveredBonusSource | null) => void
   hoveredAugment?: string | null
+  hoveredSetName?: string | null
   craftingSelections?: GearCraftingSelections
 }
 
@@ -71,9 +72,11 @@ function getBonusTypePriority(type: string): number {
 export default function SummaryTable({
   setup,
   selectedProperties,
+  setsData,
   onPropertyHover,
   onBonusSourceHover,
   hoveredAugment,
+  hoveredSetName,
   craftingSelections
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
@@ -84,6 +87,7 @@ export default function SummaryTable({
     slotName: string
     itemName: string
     augmentName?: string
+    setName?: string
     isFromSet?: boolean
     isFromAugment?: boolean
     sourceValue: number
@@ -102,7 +106,9 @@ export default function SummaryTable({
     slot: string,
     itemName: string,
     isFromAugment: boolean,
-    augmentName?: string
+    augmentName?: string,
+    isFromSet?: boolean,
+    setName?: string
   ) => {
     if (affix.type === 'bool' || !selectedProperties.includes(affix.name)) return
 
@@ -133,7 +139,9 @@ export default function SummaryTable({
       slotName: slotDisplayNames[slot],
       itemName,
       augmentName,
+      setName,
       isFromAugment,
+      isFromSet,
       sourceValue: value
     })
   }
@@ -162,7 +170,42 @@ export default function SummaryTable({
   })
 
   // Process set bonuses
-  // TODO: Track which items are part of sets and mark set bonuses appropriately
+  // Count set items and add set bonus sources
+  const setItemCounts = new Map<string, number>()
+
+  slots.forEach(slot => {
+    const item = getItemForSlot(setup, slot)
+    if (item?.sets) {
+      for (const setName of item.sets) {
+        setItemCounts.set(setName, (setItemCounts.get(setName) || 0) + 1)
+      }
+    }
+  })
+
+  // Add set bonuses from crafting selections (Set Augments)
+  const craftingSetMemberships = getCraftingSetMemberships(
+    Object.values(craftingSelections || {}).flat()
+  )
+  for (const setName of craftingSetMemberships) {
+    setItemCounts.set(setName, (setItemCounts.get(setName) || 0) + 1)
+  }
+
+  // Add active set bonus affixes as sources
+  if (setsData) {
+    for (const [setName, count] of setItemCounts.entries()) {
+      const setBonuses = setsData[setName]
+      if (setBonuses) {
+        for (const bonus of setBonuses) {
+          if (count >= bonus.threshold) {
+            // Add each affix from this set bonus as a source
+            bonus.affixes.forEach(affix => {
+              addBonusSource(affix, 'set', setName, false, undefined, true, setName)
+            })
+          }
+        }
+      }
+    }
+  }
 
   // Calculate totals for each property
   const propertyTotals = new Map<string, number>()
@@ -236,18 +279,32 @@ export default function SummaryTable({
                     .filter(s => s.isFromAugment && s.augmentName)
                     .map(s => s.augmentName!)
 
+                  // Get all set names that contribute to this cell
+                  const setNamesInCell = sortedSources
+                    .filter(s => s.isFromSet && s.setName)
+                    .map(s => s.setName!)
+
                   // Check if this cell should be highlighted because a contributing augment is hovered
                   const isHighlightedByAugment = hoveredAugment && augmentNamesInCell.includes(hoveredAugment)
+
+                  // Check if this cell should be highlighted because a contributing set is hovered
+                  const isHighlightedBySet = hoveredSetName && setNamesInCell.includes(hoveredSetName)
 
                   const tooltipContent = (
                     <Box>
                       {sortedSources.map((source, idx) => {
                         const isStacking = source.sourceValue === maxValue
-                        // For augments, only show augment name; for items, show numbered slot + item name
+                        // For set bonuses, show set name; for augments, show augment name; for items, show slot + item
                         const slotNumber = slots.indexOf(source.slot) + 1
-                        const displayName = source.isFromAugment && source.augmentName
-                          ? source.augmentName
-                          : `${slotNumber}. ${source.slotName}: ${source.itemName}`
+                        let displayName: string
+                        if (source.isFromSet && source.setName) {
+                          displayName = `${source.setName} Set`
+                        } else if (source.isFromAugment && source.augmentName) {
+                          displayName = source.augmentName
+                        } else {
+                          displayName = `${slotNumber}. ${source.slotName}: ${source.itemName}`
+                        }
+
                         return (
                           <Typography
                             key={idx}
@@ -260,7 +317,6 @@ export default function SummaryTable({
                           >
                             {displayName} (+{source.sourceValue})
                             {source.isFromAugment && ' (Augment)'}
-                            {source.isFromSet && ' (Set Bonus)'}
                           </Typography>
                         )
                       })}
@@ -281,7 +337,7 @@ export default function SummaryTable({
                       onMouseLeave={() => onBonusSourceHover?.(null)}
                       sx={{
                         cursor: 'help',
-                        backgroundColor: isHighlightedByAugment ? 'action.selected' : 'inherit',
+                        backgroundColor: (isHighlightedByAugment || isHighlightedBySet) ? 'action.selected' : 'inherit',
                         transition: 'all 0.2s',
                         '&:hover': {
                           backgroundColor: 'action.hover'

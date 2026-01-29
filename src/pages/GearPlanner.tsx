@@ -26,9 +26,14 @@ import TroveImportDialog from '@/components/gearPlanner/TroveImportDialog'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup } from '@/domains/gearPlanner'
+import { Item } from '@/api/ddoGearPlanner'
 
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
 const SELECTED_INDEX_KEY = 'gearPlanner_selectedIndex'
+const MAX_ML_KEY = 'gearPlanner_maxML'
+const ARMOR_TYPE_KEY = 'gearPlanner_armorType'
+const EXCLUDE_SET_AUGMENTS_KEY = 'gearPlanner_excludeSetAugments'
+const MUST_INCLUDE_ARTIFACT_KEY = 'gearPlanner_mustIncludeArtifact'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -83,6 +88,89 @@ function saveSelectedIndex(index: number): void {
   }
 }
 
+function loadMaxML(): number {
+  try {
+    const stored = localStorage.getItem(MAX_ML_KEY)
+    if (stored) {
+      const parsed = parseInt(stored, 10)
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 40) {
+        return parsed
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return 34 // Default to level 34
+}
+
+function saveMaxML(maxML: number): void {
+  try {
+    localStorage.setItem(MAX_ML_KEY, String(maxML))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadArmorType(): string {
+  try {
+    const stored = localStorage.getItem(ARMOR_TYPE_KEY)
+    if (stored) {
+      return stored
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return 'Any'
+}
+
+function saveArmorType(armorType: string): void {
+  try {
+    localStorage.setItem(ARMOR_TYPE_KEY, armorType)
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadExcludeSetAugments(): boolean {
+  try {
+    const stored = localStorage.getItem(EXCLUDE_SET_AUGMENTS_KEY)
+    if (stored) {
+      return stored === 'true'
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return false
+}
+
+function saveExcludeSetAugments(exclude: boolean): void {
+  try {
+    localStorage.setItem(EXCLUDE_SET_AUGMENTS_KEY, String(exclude))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadMustIncludeArtifact(): boolean {
+  try {
+    const stored = localStorage.getItem(MUST_INCLUDE_ARTIFACT_KEY)
+    if (stored) {
+      return stored === 'true'
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return false
+}
+
+function saveMustIncludeArtifact(mustInclude: boolean): void {
+  try {
+    localStorage.setItem(MUST_INCLUDE_ARTIFACT_KEY, String(mustInclude))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
   const { inventoryMap, isItemAvailableForCharacters, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems } = useTrove()
@@ -96,6 +184,11 @@ export default function GearPlanner() {
   const [availableItemsOnly, setAvailableItemsOnly] = useState(false)
   const [includeRandomLoots] = useState(false)
   const [manualSetup, setManualSetup] = useState<OptimizedGearSetup | null>(null)
+  const [maxML, setMaxML] = useState(loadMaxML)
+  const [armorType, setArmorType] = useState(loadArmorType)
+  const [excludeSetAugments, setExcludeSetAugments] = useState(loadExcludeSetAugments)
+  const [mustIncludeArtifact, setMustIncludeArtifact] = useState(loadMustIncludeArtifact)
+  const [hoveredSetName, setHoveredSetName] = useState<string | null>(null)
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -170,7 +263,7 @@ export default function GearPlanner() {
     }
 
     // Calculate score with empty properties (just to have valid data)
-    const result = calculateScore(setup, selectedProperties, setsData, craftingData)
+    const result = calculateScore(setup, selectedProperties, setsData, craftingData, excludeSetAugments)
 
     setManualSetup({
       setup,
@@ -180,12 +273,13 @@ export default function GearPlanner() {
       totalAugments: result.totalAugments,
       extraProperties: result.extraProperties,
       otherEffects: result.otherEffects,
+      activeSets: result.activeSets,
       craftingSelections: result.craftingSelections
     })
 
     // Reset property selection index since we're showing manual setup
     setSelectedSuggestionIndex(0)
-  }, [getEquippedItems, items, selectedProperties, setsData, craftingData])
+  }, [getEquippedItems, items, selectedProperties, setsData, craftingData, excludeSetAugments])
 
   // Optimize gear when properties change
   const optimizedSetups = useMemo(() => {
@@ -201,9 +295,38 @@ export default function GearPlanner() {
       properties: selectedProperties,
       maxResults: 20,
       craftingData,
-      itemFilter
+      itemFilter,
+      maxML,
+      armorType,
+      excludeSetAugments,
+      mustIncludeArtifact
     })
-  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap.size, isItemAvailableForCharacters])
+  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap.size, isItemAvailableForCharacters, maxML, armorType, excludeSetAugments, mustIncludeArtifact])
+
+  // Handle manual gear change
+  const handleGearChange = useCallback((slot: string, item: Item | undefined) => {
+    // Get the current setup (from manual setup or selected suggestion)
+    const currentSetup = manualSetup || optimizedSetups[Math.min(selectedSuggestionIndex, optimizedSetups.length - 1)]
+    if (!currentSetup) return
+
+    const newSetup: GearSetup = { ...currentSetup.setup }
+    newSetup[slot as keyof GearSetup] = item
+
+    // Recalculate score
+    const result = calculateScore(newSetup, selectedProperties, setsData, craftingData, excludeSetAugments)
+
+    setManualSetup({
+      setup: newSetup,
+      score: result.score,
+      propertyValues: result.propertyValues,
+      unusedAugments: result.unusedAugments,
+      totalAugments: result.totalAugments,
+      extraProperties: result.extraProperties,
+      otherEffects: result.otherEffects,
+      activeSets: result.activeSets,
+      craftingSelections: result.craftingSelections
+    })
+  }, [manualSetup, optimizedSetups, selectedSuggestionIndex, selectedProperties, setsData, craftingData, excludeSetAugments])
 
   // Keep selection in bounds when suggestions change
   const effectiveIndex = useMemo(() => {
@@ -333,6 +456,84 @@ export default function GearPlanner() {
         />
       </Paper>
 
+      {/* Optimization Filters */}
+      {selectedProperties.length >= 3 && (
+        <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Optimization Filters
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Max Item Level</InputLabel>
+              <Select
+                value={maxML}
+                label="Max Item Level"
+                onChange={(e) => {
+                  const newMaxML = Number(e.target.value)
+                  setMaxML(newMaxML)
+                  saveMaxML(newMaxML)
+                }}
+              >
+                {Array.from({ length: 34 }, (_, i) => 34 - i).map(level => (
+                  <MenuItem key={level} value={level}>
+                    Level {level}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Armor Type</InputLabel>
+              <Select
+                value={armorType}
+                label="Armor Type"
+                onChange={(e) => {
+                  const newArmorType = e.target.value
+                  setArmorType(newArmorType)
+                  saveArmorType(newArmorType)
+                }}
+              >
+                <MenuItem value="Any">Any</MenuItem>
+                <MenuItem value="Cloth">Cloth</MenuItem>
+                <MenuItem value="Light">Light</MenuItem>
+                <MenuItem value="Medium">Medium</MenuItem>
+                <MenuItem value="Heavy">Heavy</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={excludeSetAugments}
+                  onChange={(e) => {
+                    const newValue = e.target.checked
+                    setExcludeSetAugments(newValue)
+                    saveExcludeSetAugments(newValue)
+                  }}
+                  size="small"
+                />
+              }
+              label="Exclude Set Augments"
+            />
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mustIncludeArtifact}
+                  onChange={(e) => {
+                    const newValue = e.target.checked
+                    setMustIncludeArtifact(newValue)
+                    saveMustIncludeArtifact(newValue)
+                  }}
+                  size="small"
+                />
+              }
+              label="Must Include Minor Artifact"
+            />
+          </Box>
+        </Paper>
+      )}
+
       {/* Show message if less than 3 properties selected */}
       {selectedProperties.length > 0 && selectedProperties.length < 3 && (
         <Paper sx={{ p: 3, mb: 3, textAlign: 'center', bgcolor: 'action.hover' }}>
@@ -364,11 +565,15 @@ export default function GearPlanner() {
               hoveredAugment={hoveredAugment}
               hoveredSetAugment={hoveredSetAugment}
               hoveredBonusSource={hoveredBonusSource}
+              hoveredSetName={hoveredSetName}
               onAugmentHover={setHoveredAugment}
               onSetAugmentHover={setHoveredSetAugment}
+              onSetNameHover={setHoveredSetName}
               craftingSelections={selectedSetup.craftingSelections}
               setsData={setsData}
               onLoadEquipped={handleLoadEquipped}
+              onGearChange={handleGearChange}
+              availableItems={items}
             />
           </Paper>
 
@@ -381,6 +586,7 @@ export default function GearPlanner() {
               onPropertyHover={setHoveredProperty}
               onBonusSourceHover={setHoveredBonusSource}
               hoveredAugment={hoveredAugment}
+              hoveredSetName={hoveredSetName}
               craftingSelections={selectedSetup.craftingSelections}
             />
           </Paper>

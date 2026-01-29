@@ -4,6 +4,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import {
   Box,
   Card,
@@ -11,6 +12,7 @@ import {
   Collapse,
   Grid,
   IconButton,
+  Link,
   Paper,
   Table,
   TableBody,
@@ -29,9 +31,12 @@ import {
   GearSetup,
   getCraftingSetMemberships
 } from '@/domains/gearPlanner'
+import { formatAffix, getWikiUrl } from '@/utils/affixHelpers'
 
 import InventoryBadge from './InventoryBadge'
+import ItemSelectionDialog from './ItemSelectionDialog'
 import LoadEquippedButton from './LoadEquippedButton'
+import { SetItemsDialog } from './SetItemsDialog'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -47,11 +52,15 @@ interface GearDisplayProps {
   hoveredAugment?: string | null
   hoveredSetAugment?: string | null
   hoveredBonusSource?: HoveredBonusSource | null
+  hoveredSetName?: string | null
   onAugmentHover?: (augmentName: string | null) => void
   onSetAugmentHover?: (setName: string | null) => void
+  onSetNameHover?: (setName: string | null) => void
   craftingSelections?: GearCraftingSelections
   setsData?: SetsData | null
   onLoadEquipped?: (characterId: number) => void
+  onGearChange?: (slot: string, item: Item | undefined) => void
+  availableItems?: Item[]
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -102,19 +111,6 @@ function getCraftingSlotPriority(slotType: string): number {
   return 100 // others
 }
 
-// Format affix display text
-function formatAffix(affix: ItemAffix): string {
-  let text = affix.name
-  if (affix.value && affix.value !== 1 && affix.value !== '1' && affix.type !== 'bool') {
-    text += ` +${affix.value}`
-  }
-  // Hide () if untyped bonus
-  if (affix.type && affix.type !== 'bool' && affix.type !== '') {
-    text += ` (${affix.type})`
-  }
-  return text
-}
-
 // Check if this property has the highest bonus of its type across all gear
 function isHighestBonus(
   item: Item,
@@ -154,7 +150,11 @@ function GearSlotCard({
   slots,
   hoveredProperty,
   hoveredBonusSource,
-  slottedAugmentNames
+  hoveredSetName,
+  slottedAugmentNames,
+  onGearChange,
+  onSetNameHover,
+  availableItems
 }: {
   slotName: string
   item: Item | undefined
@@ -163,22 +163,49 @@ function GearSlotCard({
   slots: string[]
   hoveredProperty?: string | null
   hoveredBonusSource?: HoveredBonusSource | null
+  hoveredSetName?: string | null
   slottedAugmentNames?: string[]
+  onGearChange?: (item: Item | undefined) => void
+  onSetNameHover?: (setName: string | null) => void
+  availableItems?: Item[]
 }) {
   const { isWished, toggleWish } = useWishlist()
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   if (!item) {
     return (
-      <Card variant="outlined" sx={{ height: '100%' }}>
-        <CardContent>
-          <Typography variant="subtitle2" color="primary" gutterBottom>
-            {slotName}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Not equipped
-          </Typography>
-        </CardContent>
-      </Card>
+      <>
+        <Card variant="outlined" sx={{ height: '100%' }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="primary" gutterBottom>
+              {slotName}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Not equipped
+            </Typography>
+            {onGearChange && availableItems && availableItems.length > 0 && (
+              <Tooltip title="Select item">
+                <IconButton
+                  size="small"
+                  onClick={() => setDialogOpen(true)}
+                  sx={{ mt: 0.5 }}
+                >
+                  <SwapHorizIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </CardContent>
+        </Card>
+        {onGearChange && availableItems && (
+          <ItemSelectionDialog
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            items={availableItems}
+            slotName={slotName}
+            onSelect={(item) => onGearChange(item)}
+          />
+        )}
+      </>
     )
   }
 
@@ -203,108 +230,179 @@ function GearSlotCard({
     augName => slottedAugmentNames?.includes(augName)
   )
 
+  // Check if this item is part of the hovered set
+  const isPartOfHoveredSet = hoveredSetName && item.sets?.includes(hoveredSetName)
+
   // Combine highlighting conditions
-  const isHighlighted = hasHoveredProperty || hasHoveredBonusSource || hasHighlightedAugment
+  const isHighlighted = hasHoveredProperty || hasHoveredBonusSource || hasHighlightedAugment || isPartOfHoveredSet
 
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        height: '100%',
-        boxShadow: isHighlighted ? 3 : 0,
-        borderColor: isHighlighted ? 'primary.main' : 'divider',
-        borderWidth: isHighlighted ? 2 : 1,
-        transition: 'all 0.2s'
-      }}
-    >
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Typography variant="subtitle2" color="primary" gutterBottom>
-            {slotName}
-          </Typography>
-          <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
-            <IconButton
-              size="small"
-              onClick={() => toggleWish(item)}
-              sx={{ mt: -0.5, mr: -0.5 }}
-            >
-              {wished ? (
-                <FavoriteIcon fontSize="small" color="error" />
-              ) : (
-                <FavoriteBorderIcon fontSize="small" />
+    <>
+      <Card
+        variant="outlined"
+        sx={{
+          height: '100%',
+          boxShadow: isHighlighted ? 3 : (item.artifact ? 2 : 0),
+          borderColor: item.artifact ? 'warning.main' : (isHighlighted ? 'primary.main' : 'divider'),
+          borderWidth: item.artifact || isHighlighted ? 2 : 1,
+          transition: 'all 0.2s',
+          ...(item.artifact && {
+            boxShadow: '0 0 8px rgba(255, 152, 0, 0.3)'
+          })
+        }}
+      >
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Typography variant="subtitle2" color="primary" gutterBottom>
+              {slotName}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.5, mt: -0.5, mr: -0.5 }}>
+              <InventoryBadge itemName={item.name} showBTC />
+              {onGearChange && availableItems && availableItems.length > 0 && (
+                <Tooltip title="Change item">
+                  <IconButton
+                    size="small"
+                    onClick={() => setDialogOpen(true)}
+                  >
+                    <SwapHorizIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               )}
-            </IconButton>
-          </Tooltip>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography variant="body2" fontWeight="bold" gutterBottom>
-            {item.name}
-          </Typography>
-          <InventoryBadge itemName={item.name} showBTC />
-        </Box>
-        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-          ML {item.ml}
-        </Typography>
-
-        {/* Quest/Source */}
-        {item.quests && item.quests.length > 0 && (
-          <Typography variant="caption" color="text.secondary" display="block" gutterBottom sx={{ fontStyle: 'italic' }}>
-            {item.quests[0]}
-          </Typography>
-        )}
-
-        {/* All Properties */}
-        <Box sx={{ mt: 1 }}>
-          {regularAffixes.map((affix, idx) => {
-            const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots)
-            const isSelected = selectedProperties.includes(affix.name)
-            const isHovered = hoveredProperty === affix.name
-
-            // Check if this affix matches the hovered bonus source
-            const isBonusSourceHovered = hoveredBonusSource &&
-              affix.name === hoveredBonusSource.property &&
-              (affix.type || 'Untyped') === hoveredBonusSource.bonusType
-
-            const shouldHighlight = isHovered || isBonusSourceHovered
-
-            return (
-              <Typography
-                key={idx}
-                variant="caption"
-                display="block"
+              <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
+                <IconButton
+                  size="small"
+                  onClick={() => toggleWish(item)}
+                >
+                  {wished ? (
+                    <FavoriteIcon fontSize="small" color="error" />
+                  ) : (
+                    <FavoriteBorderIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+          <Box sx={{ mb: 1 }}>
+            {getWikiUrl(item.url) ? (
+              <Link
+                href={getWikiUrl(item.url)!}
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
-                  fontWeight: isHighest ? 'bold' : 'normal',
-                  color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary'),
-                  backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
-                  px: shouldHighlight ? 0.5 : 0,
-                  borderRadius: shouldHighlight ? 0.5 : 0,
-                  transition: 'all 0.2s'
+                  color: 'text.primary',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    color: 'primary.main'
+                  }
                 }}
               >
-                {formatAffix(affix)}
+                <Typography variant="body2" fontWeight="bold" component="span">
+                  {item.name}
+                </Typography>
+              </Link>
+            ) : (
+              <Typography variant="body2" fontWeight="bold">
+                {item.name}
               </Typography>
-            )
-          })}
-        </Box>
+            )}
+          </Box>
 
-        {/* Crafting Slots - show all crafting options */}
-        {craftingSlots.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <Typography variant="caption" color="text.secondary">
+              ML {item.ml}
+            </Typography>
+            {item.quests && item.quests.length > 0 && (
+              <Link
+                href={`https://ddowiki.com/page/${item.quests[0].replace(/\s+/g, '_')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  color: 'text.secondary',
+                  fontStyle: 'italic',
+                  fontSize: '0.75rem',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    color: 'primary.main'
+                  }
+                }}
+              >
+                {item.quests[0]}
+              </Link>
+            )}
+          </Box>
+
+          {/* Set Membership Badges */}
+          {item.sets && item.sets.length > 0 && onGearChange && (
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1 }}>
+              {item.sets.map((setName, idx) => (
+                <Tooltip key={idx} title={`Part of ${setName} set`}>
+                  <Box
+                    component="span"
+                    onMouseEnter={() => onSetNameHover?.(setName)}
+                    onMouseLeave={() => onSetNameHover?.(null)}
+                    sx={{
+                      bgcolor: 'secondary.main',
+                      color: 'secondary.contrastText',
+                      px: 0.5,
+                      py: 0.25,
+                      borderRadius: 0.5,
+                      fontSize: '0.65rem',
+                      display: 'inline-block',
+                      lineHeight: 1.2,
+                      cursor: 'help',
+                      '&:hover': { opacity: 0.8 }
+                    }}
+                  >
+                    Set: {setName}
+                  </Box>
+                </Tooltip>
+              ))}
+            </Box>
+          )}
+
+          {/* All Properties */}
           <Box sx={{ mt: 1 }}>
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {regularAffixes.map((affix, idx) => {
+              const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots)
+              const isSelected = selectedProperties.includes(affix.name)
+              const isHovered = hoveredProperty === affix.name
+
+              // Check if this affix matches the hovered bonus source
+              const isBonusSourceHovered = hoveredBonusSource &&
+                affix.name === hoveredBonusSource.property &&
+                (affix.type || 'Untyped') === hoveredBonusSource.bonusType
+
+              const shouldHighlight = isHovered || isBonusSourceHovered
+
+              return (
+                <Typography
+                  key={idx}
+                  variant="caption"
+                  display="block"
+                  sx={{
+                    fontWeight: isHighest ? 'bold' : 'normal',
+                    color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary'),
+                    backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                    px: shouldHighlight ? 0.5 : 0,
+                    borderRadius: shouldHighlight ? 0.5 : 0,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {formatAffix(affix)}
+                </Typography>
+              )
+            })}
+          </Box>
+
+          {/* Crafting Slots - show all crafting options */}
+          {craftingSlots.length > 0 && (
+            <Box sx={{ mt: 1 }}>
               {craftingSlots.map((craftingSlot, idx) => {
                 const bgColor = getAugmentColor(craftingSlot)
-                // Get short name for display
-                const shortName = craftingSlot
-                  .replace(' Augment Slot', '')
-                  .replace(' Slot', '')
-                  .replace('(Accessory - Artifact)', '(Art)')
-                  .replace('(Accessory)', '(Acc)')
-                  .replace('(Weapon - Quarterstaff)', '(WpnQ)')
-                  .replace('(Weapon)', '(Wpn)')
-                  .replace('(Armor)', '(Arm)')
-
                 return (
-                  <Tooltip key={idx} title={craftingSlot}>
+                  <Box key={idx} sx={{ mb: 0.25 }}>
                     <Box
                       component="span"
                       sx={{
@@ -313,21 +411,32 @@ function GearSlotCard({
                         px: 0.5,
                         py: 0.25,
                         borderRadius: 0.5,
-                        fontSize: '0.65rem',
+                        fontSize: '0.75rem',
                         display: 'inline-block',
                         lineHeight: 1.2
                       }}
                     >
-                      {shortName}
+                      {craftingSlot}
                     </Box>
-                  </Tooltip>
+                  </Box>
                 )
               })}
             </Box>
-          </Box>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+      {/* Item Selection Dialog */}
+      {onGearChange && availableItems && (
+        <ItemSelectionDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          items={availableItems}
+          currentItem={item}
+          slotName={slotName}
+          onSelect={(newItem) => onGearChange(newItem)}
+        />
+      )}
+    </>
   )
 }
 
@@ -338,22 +447,27 @@ export default function GearDisplay({
   hoveredAugment,
   hoveredSetAugment,
   hoveredBonusSource,
+  hoveredSetName,
   onAugmentHover,
   onSetAugmentHover,
+  onSetNameHover,
   craftingSelections,
   setsData,
-  onLoadEquipped
+  onLoadEquipped,
+  onGearChange,
+  availableItems
 }: GearDisplayProps) {
   const [craftingExpanded, setCraftingExpanded] = useState(false)
-  const [setsExpanded, setSetsExpanded] = useState(true)
+  const [setDialogOpen, setSetDialogOpen] = useState(false)
+  const [selectedSetName, setSelectedSetName] = useState<string>('')
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
-  // Only show slots that have items equipped
-  const equippedSlots = slots.filter(slot => getItemForSlot(setup, slot) !== undefined)
+  // Show all slots, not just equipped ones
+  const allSlots = slots
 
   // Build a map of slot -> slotted augment names for highlighting
   const slotToAugmentNames = new Map<string, string[]>()
-  equippedSlots.forEach(slot => {
+  allSlots.forEach(slot => {
     const selections = craftingSelections?.[slot]
     if (selections) {
       const augmentNames = selections
@@ -369,7 +483,7 @@ export default function GearDisplay({
   let totalCraftingSlots = 0
   let usedCraftingSlots = 0
 
-  equippedSlots.forEach(slot => {
+  allSlots.forEach(slot => {
     const item = getItemForSlot(setup, slot)
     if (item && item.crafting) {
       const selections = craftingSelections?.[slot]
@@ -435,19 +549,22 @@ export default function GearDisplay({
     return a[0].localeCompare(b[0]) // alphabetical within same priority
   })
 
-  // Calculate active set bonuses
-  interface ActiveSetBonus {
+  // Calculate all set bonuses (active and inactive)
+  interface SetBonusInfo {
     setName: string
     count: number
-    threshold: number
-    affixes: ItemAffix[]
+    bonuses: Array<{
+      threshold: number
+      affixes: ItemAffix[]
+      isActive: boolean
+    }>
   }
-  const activeSetBonuses: ActiveSetBonus[] = []
+  const allSetBonuses: SetBonusInfo[] = []
 
   if (setsData) {
     // Count set pieces from items
     const setItemCounts = new Map<string, number>()
-    equippedSlots.forEach(slot => {
+    allSlots.forEach(slot => {
       const item = getItemForSlot(setup, slot)
       if (item?.sets) {
         for (const setName of item.sets) {
@@ -458,7 +575,7 @@ export default function GearDisplay({
 
     // Add set memberships from crafting (Set Augments)
     if (craftingSelections) {
-      for (const slot of equippedSlots) {
+      for (const slot of allSlots) {
         const selections = craftingSelections[slot] || []
         const setMemberships = getCraftingSetMemberships(selections)
         for (const setName of setMemberships) {
@@ -467,23 +584,32 @@ export default function GearDisplay({
       }
     }
 
-    // Determine which set bonuses are active
+    // Build set bonus info for all sets
     for (const [setName, count] of setItemCounts.entries()) {
       const setBonuses = setsData[setName]
       if (setBonuses) {
-        for (const bonus of setBonuses) {
-          if (count >= bonus.threshold) {
-            activeSetBonuses.push({
-              setName,
-              count,
-              threshold: bonus.threshold,
-              affixes: bonus.affixes
-            })
-          }
-        }
+        const bonusesInfo = setBonuses.map(bonus => ({
+          threshold: bonus.threshold,
+          affixes: bonus.affixes,
+          isActive: count >= bonus.threshold
+        }))
+
+        allSetBonuses.push({
+          setName,
+          count,
+          bonuses: bonusesInfo
+        })
       }
     }
   }
+
+  // Count how many sets have active bonuses
+  const activeSetCount = allSetBonuses.filter(setInfo =>
+    setInfo.bonuses.some(bonus => bonus.isActive)
+  ).length
+
+  // Default collapse if no active sets
+  const [setsExpanded, setSetsExpanded] = useState(activeSetCount > 0)
 
   return (
     <Box sx={{ p: 2 }}>
@@ -495,24 +621,38 @@ export default function GearDisplay({
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {equippedSlots.map(slot => (
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={slot}>
-            <GearSlotCard
-              slotName={slotDisplayNames[slot]}
-              item={getItemForSlot(setup, slot)}
-              selectedProperties={selectedProperties}
-              setup={setup}
-              slots={slots}
-              hoveredProperty={hoveredProperty}
-              hoveredBonusSource={hoveredBonusSource}
-              slottedAugmentNames={slotToAugmentNames.get(slot)}
-            />
-          </Grid>
-        ))}
+        {allSlots.map(slot => {
+          // Get available items for this slot (filtered by slot type)
+          const slotAvailableItems = availableItems?.filter(item => {
+            if (slot === 'ring1' || slot === 'ring2') {
+              return item.slot === 'Ring'
+            }
+            return item.slot === slotDisplayNames[slot]
+          })
+
+          return (
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={slot}>
+              <GearSlotCard
+                slotName={slotDisplayNames[slot]}
+                item={getItemForSlot(setup, slot)}
+                selectedProperties={selectedProperties}
+                setup={setup}
+                slots={slots}
+                hoveredProperty={hoveredProperty}
+                hoveredBonusSource={hoveredBonusSource}
+                hoveredSetName={hoveredSetName}
+                slottedAugmentNames={slotToAugmentNames.get(slot)}
+                onGearChange={onGearChange ? (item) => onGearChange(slot, item) : undefined}
+                onSetNameHover={onSetNameHover}
+                availableItems={slotAvailableItems}
+              />
+            </Grid>
+          )
+        })}
       </Grid>
 
-      {/* Active Set Bonuses Section */}
-      {activeSetBonuses.length > 0 && (
+      {/* Set Bonuses Section */}
+      {allSetBonuses.length > 0 && (
         <Card variant="outlined" sx={{ mt: 2 }}>
           <CardContent sx={{ pb: setsExpanded ? 2 : '8px !important' }}>
             <Box
@@ -525,7 +665,7 @@ export default function GearDisplay({
               onClick={() => setSetsExpanded(!setsExpanded)}
             >
               <Typography variant="subtitle1">
-                Active Set Bonuses ({activeSetBonuses.length})
+                Set Bonuses ({activeSetCount} active)
               </Typography>
               <IconButton size="small">
                 {setsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -537,36 +677,61 @@ export default function GearDisplay({
                   <TableHead>
                     <TableRow>
                       <TableCell>Set Name</TableCell>
-                      <TableCell>Pieces</TableCell>
+                      <TableCell>Threshold</TableCell>
                       <TableCell>Bonuses</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {activeSetBonuses.map((setBonus, idx) => (
-                      <TableRow key={`${setBonus.setName}-${setBonus.threshold}-${idx}`}>
-                        <TableCell>{setBonus.setName}</TableCell>
-                        <TableCell>{setBonus.count}/{setBonus.threshold}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                            {setBonus.affixes.map((affix, i) => {
-                              const isSelected = selectedProperties.includes(affix.name)
-                              return (
-                                <Typography
-                                  key={i}
-                                  variant="body2"
-                                  sx={{
-                                    color: isSelected ? 'success.main' : 'text.secondary',
-                                    fontWeight: isSelected ? 'bold' : 'normal'
-                                  }}
-                                >
-                                  {formatAffix(affix)}
-                                </Typography>
-                              )
-                            })}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {allSetBonuses.flatMap((setInfo) =>
+                      setInfo.bonuses.map((bonus, idx) => (
+                        <TableRow
+                          key={`${setInfo.setName}-${bonus.threshold}-${idx}`}
+                          sx={{
+                            opacity: bonus.isActive ? 1 : 0.5,
+                            backgroundColor: bonus.isActive ? 'inherit' : 'action.hover'
+                          }}
+                        >
+                          <TableCell
+                            onMouseEnter={() => onSetNameHover?.(setInfo.setName)}
+                            onMouseLeave={() => onSetNameHover?.(null)}
+                            onClick={() => {
+                              setSelectedSetName(setInfo.setName)
+                              setSetDialogOpen(true)
+                            }}
+                            sx={{
+                              cursor: 'pointer',
+                              '&:hover': { backgroundColor: 'action.hover', textDecoration: 'underline' }
+                            }}
+                          >
+                            <Tooltip title={bonus.isActive ? 'Click to view set items' : `Need ${bonus.threshold - setInfo.count} more pieces. Click to view set items.`}>
+                              <span>{setInfo.setName}</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell>
+                            {setInfo.count}/{bonus.threshold} {bonus.isActive ? '✓' : ''}
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                              {bonus.affixes.map((affix, i) => {
+                                const isSelected = selectedProperties.includes(affix.name)
+                                return (
+                                  <Typography
+                                    key={i}
+                                    variant="body2"
+                                    sx={{
+                                      color: bonus.isActive && isSelected ? 'success.main' : 'text.secondary',
+                                      fontWeight: bonus.isActive && isSelected ? 'bold' : 'normal'
+                                    }}
+                                  >
+                                    {formatAffix(affix)}
+                                  </Typography>
+                                )
+                              })}
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -608,25 +773,26 @@ export default function GearDisplay({
                     {sortedCraftingTypes.map(([slotType, data]) => {
                       const groupedSlotted = groupSlottedByName(data.slotted)
                       const bgColor = getAugmentColor(slotType)
-                      const shortName = slotType
-                        .replace(' Augment Slot', '')
-                        .replace(' Slot', '')
 
                       return (
                         <TableRow key={slotType}>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Box
+                                component="span"
                                 sx={{
-                                  width: 16,
-                                  height: 16,
+                                  bgcolor: bgColor || 'grey.700',
+                                  color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
+                                  px: 0.5,
+                                  py: 0.25,
                                   borderRadius: 0.5,
-                                  bgcolor: bgColor || 'grey.700'
+                                  fontSize: '0.75rem',
+                                  display: 'inline-block',
+                                  lineHeight: 1.2
                                 }}
-                              />
-                              <Typography variant="body2">
-                                {shortName}
-                              </Typography>
+                              >
+                                {slotType}
+                              </Box>
                               <Typography variant="body2" color="text.secondary">
                                 ({data.slotted.length}/{data.total})
                               </Typography>
@@ -702,6 +868,18 @@ export default function GearDisplay({
             </Collapse>
           </CardContent>
         </Card>
+      )}
+
+      {/* Set Items Dialog */}
+      {availableItems && (
+        <SetItemsDialog
+          open={setDialogOpen}
+          onClose={() => setSetDialogOpen(false)}
+          setName={selectedSetName}
+          allItems={availableItems}
+          currentSetup={setup}
+          setsData={setsData}
+        />
       )}
     </Box>
   )
