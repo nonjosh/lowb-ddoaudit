@@ -35,6 +35,7 @@ import {
   GearSetup,
   getCraftingSetMemberships
 } from '@/domains/gearPlanner'
+import { generateCraftingOptionName } from '@/domains/gearPlanner/augmentHelpers'
 import { formatAffix, getWikiUrl } from '@/utils/affixHelpers'
 
 import InventoryBadge from './InventoryBadge'
@@ -590,7 +591,7 @@ export default function GearDisplay({
 
           // Add to slotted list with slot info
           slotTypeData.slotted.push({
-            name: selection.option.name || 'Unknown',
+            name: generateCraftingOptionName(selection.option),
             affixes: selection.option.affixes || [],
             set: selection.option.set,
             slot
@@ -827,16 +828,40 @@ export default function GearDisplay({
                               {bonus.affixes.map((affix, i) => {
                                 const isSelected = selectedProperties.includes(affix.name)
                                 return (
-                                  <Typography
+                                  <Box
                                     key={i}
-                                    variant="body2"
                                     sx={{
-                                      color: bonus.isActive && isSelected ? 'success.main' : 'text.secondary',
-                                      fontWeight: bonus.isActive && isSelected ? 'bold' : 'normal'
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 0.5
                                     }}
                                   >
-                                    {formatAffix(affix)}
-                                  </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        flex: 1,
+                                        color: bonus.isActive && isSelected ? 'success.main' : 'text.secondary',
+                                        fontWeight: bonus.isActive && isSelected ? 'bold' : 'normal'
+                                      }}
+                                    >
+                                      {formatAffix(affix)}
+                                    </Typography>
+                                    {!isSelected && onPropertyAdd && affix.type !== 'bool' && (
+                                      <Tooltip title="Add to selected properties">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => onPropertyAdd(affix.name)}
+                                          sx={{
+                                            p: 0.25,
+                                            opacity: 0.6,
+                                            '&:hover': { opacity: 1 }
+                                          }}
+                                        >
+                                          <AddCircleOutlineIcon sx={{ fontSize: 14 }} />
+                                        </IconButton>
+                                      </Tooltip>
+                                    )}
+                                  </Box>
                                 )
                               })}
                             </Box>

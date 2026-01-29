@@ -264,6 +264,11 @@ export default function GearPlanner() {
   const [autoOptimize, setAutoOptimize] = useState(loadAutoOptimize)
   const [optimizationKey, setOptimizationKey] = useState(0)
 
+  // Sort characters alphabetically by name
+  const sortedCharacters = useMemo(() => {
+    return [...characters].sort((a, b) => a.name.localeCompare(b.name))
+  }, [characters])
+
   // Load data on mount if not already loaded
   useEffect(() => {
     if (items.length === 0 && !loading && !error) {
@@ -328,8 +333,7 @@ export default function GearPlanner() {
     // Reset to first suggestion when properties change
     setSelectedSuggestionIndex(0)
     saveSelectedIndex(0)
-    // Clear manual setup when properties change
-    setManualSetup(null)
+    // Don't clear manual setup - let optimization re-run with pinned items
   }
 
   // Handle set effects selection change with persistence
@@ -352,10 +356,13 @@ export default function GearPlanner() {
       // Reset to first suggestion when properties change
       setSelectedSuggestionIndex(0)
       saveSelectedIndex(0)
-      // Clear manual setup when properties change
-      setManualSetup(null)
+      // Don't clear manual setup - let optimization re-run with pinned items
+      // Trigger re-optimization if auto-optimize is enabled
+      if (autoOptimize) {
+        setOptimizationKey(k => k + 1)
+      }
     }
-  }, [selectedProperties])
+  }, [selectedProperties, autoOptimize])
 
   // Handle suggestion selection change with persistence
   const handleSuggestionSelect = (index: number) => {
@@ -405,6 +412,22 @@ export default function GearPlanner() {
       }
     }
 
+    // Clear pins for slots that have different items than currently pinned
+    const newPinnedSlots = new Set<string>()
+    const newPinnedItems: GearSetup = {}
+    pinnedSlots.forEach(slot => {
+      const pinnedItem = pinnedItems[slot as keyof GearSetup]
+      const loadedItem = setup[slot as keyof GearSetup]
+      // Keep pin only if the same item is in the loaded setup
+      if (pinnedItem && loadedItem && pinnedItem.name === loadedItem.name) {
+        newPinnedSlots.add(slot)
+        newPinnedItems[slot as keyof GearSetup] = pinnedItem
+      }
+    })
+    setPinnedSlots(newPinnedSlots)
+    setPinnedItems(newPinnedItems)
+    savePinnedSlots(newPinnedSlots)
+
     // Calculate score with empty properties (just to have valid data)
     const result = calculateScore(setup, selectedProperties, setsData, craftingData, excludeSetAugments)
 
@@ -422,7 +445,7 @@ export default function GearPlanner() {
 
     // Reset property selection index since we're showing manual setup
     setSelectedSuggestionIndex(0)
-  }, [getEquippedItems, items, selectedProperties, setsData, craftingData, excludeSetAugments])
+  }, [getEquippedItems, items, selectedProperties, setsData, craftingData, excludeSetAugments, pinnedSlots, pinnedItems])
 
   // Optimize gear when properties change
   const optimizedSetups = useMemo(() => {
@@ -553,7 +576,7 @@ export default function GearPlanner() {
                   }}
                 >
                   <MenuItem value="">All Characters</MenuItem>
-                  {characters.map((char) => (
+                  {sortedCharacters.map((char) => (
                     <MenuItem key={char.id} value={String(char.id)}>
                       {char.name}
                     </MenuItem>

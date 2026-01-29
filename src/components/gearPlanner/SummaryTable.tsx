@@ -13,6 +13,7 @@ import {
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import { GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships } from '@/domains/gearPlanner'
+import { isComplexProperty } from '@/domains/gearPlanner/affixStacking'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -100,6 +101,25 @@ export default function SummaryTable({
 
   const propertyBonuses = new Map<string, Map<string, BonusTypeData>>()
 
+  // Complex property expansion mapping
+  const COMPLEX_PROPERTIES: Record<string, string[]> = {
+    'Well Rounded': ['Strength', 'Constitution', 'Dexterity', 'Intelligence', 'Wisdom', 'Charisma'],
+    'Sheltering': ['Physical Sheltering', 'Magical Sheltering']
+  }
+
+  // Expand a complex property affix into its component properties
+  const expandComplexAffix = (affix: ItemAffix): ItemAffix[] => {
+    const expanded = COMPLEX_PROPERTIES[affix.name]
+    if (!expanded) {
+      return [affix]
+    }
+    return expanded.map(componentName => ({
+      name: componentName,
+      type: affix.type,
+      value: affix.value
+    }))
+  }
+
   // Helper to add a bonus source
   const addBonusSource = (
     affix: ItemAffix,
@@ -110,40 +130,45 @@ export default function SummaryTable({
     isFromSet?: boolean,
     setName?: string
   ) => {
-    if (affix.type === 'bool' || !selectedProperties.includes(affix.name)) return
+    // Expand complex properties first
+    const expandedAffixes = expandComplexAffix(affix)
 
-    const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
-    if (isNaN(value) || typeof value !== 'number') return
+    for (const expandedAffix of expandedAffixes) {
+      if (expandedAffix.type === 'bool' || !selectedProperties.includes(expandedAffix.name)) continue
 
-    const propertyName = affix.name
-    const bonusType = affix.type || 'Untyped'
+      const value = typeof expandedAffix.value === 'string' ? parseFloat(expandedAffix.value) : expandedAffix.value
+      if (isNaN(value) || typeof value !== 'number') continue
 
-    if (!propertyBonuses.has(propertyName)) {
-      propertyBonuses.set(propertyName, new Map())
+      const propertyName = expandedAffix.name
+      const bonusType = expandedAffix.type || 'Untyped'
+
+      if (!propertyBonuses.has(propertyName)) {
+        propertyBonuses.set(propertyName, new Map())
+      }
+
+      const propertyMap = propertyBonuses.get(propertyName)!
+      if (!propertyMap.has(bonusType)) {
+        propertyMap.set(bonusType, { value: 0, sources: [] })
+      }
+
+      const bonusData = propertyMap.get(bonusType)!
+
+      // For same bonus type, only keep highest value but track all sources
+      if (value > bonusData.value) {
+        bonusData.value = value
+      }
+
+      bonusData.sources.push({
+        slot,
+        slotName: slotDisplayNames[slot],
+        itemName,
+        augmentName,
+        setName,
+        isFromAugment,
+        isFromSet,
+        sourceValue: value
+      })
     }
-
-    const propertyMap = propertyBonuses.get(propertyName)!
-    if (!propertyMap.has(bonusType)) {
-      propertyMap.set(bonusType, { value: 0, sources: [] })
-    }
-
-    const bonusData = propertyMap.get(bonusType)!
-
-    // For same bonus type, only keep highest value but track all sources
-    if (value > bonusData.value) {
-      bonusData.value = value
-    }
-
-    bonusData.sources.push({
-      slot,
-      slotName: slotDisplayNames[slot],
-      itemName,
-      augmentName,
-      setName,
-      isFromAugment,
-      isFromSet,
-      sourceValue: value
-    })
   }
 
   // Process each slot's item affixes

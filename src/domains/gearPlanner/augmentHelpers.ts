@@ -71,6 +71,33 @@ export function extractAugmentsAsItems(craftingData: CraftingData | null): Item[
 }
 
 /**
+ * Generates a name for a crafting option based on its properties.
+ * Handles augments, set bonuses, and affix selections.
+ */
+export function generateCraftingOptionName(option: { name?: string; affixes?: { name: string; value?: string | number; type?: string }[]; set?: string }): string {
+  // If option has a name, use it
+  if (option.name) return option.name
+
+  // If option has a set, use set name
+  if (option.set) return `${option.set} Set`
+
+  // Generate from affixes
+  if (option.affixes && option.affixes.length > 0) {
+    const firstAffix = option.affixes[0]
+    let name = firstAffix.name
+    if (firstAffix.value && firstAffix.value !== 1 && firstAffix.value !== '1') {
+      name += ` +${firstAffix.value}`
+    }
+    if (firstAffix.type && firstAffix.type !== 'bool') {
+      name += ` (${firstAffix.type})`
+    }
+    return name
+  }
+
+  return 'Empty Slot'
+}
+
+/**
  * Generates a name for an augment based on its affixes when no name is provided.
  */
 function generateAugmentName(affixes: { name: string; value?: string | number; type?: string }[]): string {

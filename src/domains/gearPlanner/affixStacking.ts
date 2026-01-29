@@ -12,15 +12,54 @@ export interface PropertyValue {
 }
 
 /**
+ * Complex properties that expand to multiple underlying properties
+ */
+const COMPLEX_PROPERTIES: Record<string, string[]> = {
+  'Well Rounded': ['Strength', 'Constitution', 'Dexterity', 'Intelligence', 'Wisdom', 'Charisma'],
+  'Sheltering': ['Physical Sheltering', 'Magical Sheltering']
+}
+
+/**
+ * Check if a property is a complex property
+ */
+export function isComplexProperty(propertyName: string): boolean {
+  return propertyName in COMPLEX_PROPERTIES
+}
+
+/**
+ * Expand a complex property affix into its component properties
+ */
+function expandComplexAffix(affix: ItemAffix): ItemAffix[] {
+  const expanded = COMPLEX_PROPERTIES[affix.name]
+  if (!expanded) {
+    return [affix]
+  }
+
+  // Create an affix for each component property with the same type and value
+  return expanded.map(componentName => ({
+    name: componentName,
+    type: affix.type,
+    value: affix.value
+  }))
+}
+
+/**
  * Combines multiple affixes, applying stacking rules:
  * - Affixes of the same type do NOT stack (highest value wins)
  * - Affixes of different types DO stack
  * - Boolean affixes are ignored for numerical calculations
+ * - Complex properties are expanded to their component properties
  */
 export function combineAffixes(affixes: ItemAffix[]): Map<string, PropertyValue> {
   const propertyMap = new Map<string, PropertyValue>()
 
+  // First, expand complex properties
+  const expandedAffixes: ItemAffix[] = []
   for (const affix of affixes) {
+    expandedAffixes.push(...expandComplexAffix(affix))
+  }
+
+  for (const affix of expandedAffixes) {
     // Skip boolean affixes for numerical calculations
     if (affix.type === 'bool') {
       continue
@@ -69,7 +108,7 @@ export function getPropertyTotal(combinedAffixes: Map<string, PropertyValue>, pr
 }
 
 /**
- * Gets all property names from combined affixes
+ * Gets all property names from combined affixes (excluding complex properties)
  */
 export function getAllPropertyNames(combinedAffixes: Map<string, PropertyValue>): string[] {
   return Array.from(combinedAffixes.keys()).sort()

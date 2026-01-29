@@ -36,6 +36,26 @@ DDO gear has **affixes** (properties like "+10 Strength") with **bonus types** (
 - **Boolean affixes**: Binary on/off (e.g., "Feather Falling")
 - Boolean affixes are **ignored** in numerical calculations
 
+### Complex Properties
+
+Some properties are **complex** - they represent multiple underlying properties:
+
+| Complex Property | Expands To                                                             |
+| ---------------- | ---------------------------------------------------------------------- |
+| Well Rounded     | Strength + Constitution + Dexterity + Intelligence + Wisdom + Charisma |
+| Sheltering       | Physical Sheltering + Magical Sheltering                               |
+
+**Game Rules**:
+
+- "Well Rounded +3" means **all six attributes** gain +3 of the given bonus type
+- "Sheltering 10%" means **both** Physical and Magical Sheltering gain 10% of the given bonus type
+
+**Implementation Notes**:
+
+- Complex properties should be **expanded** during calculation, not tracked as single properties
+- When displaying Property Breakdown, show individual components (Strength, Constitution, etc.)
+- Complex properties should be **excluded** from property selection dropdowns (select individual components instead)
+
 ### Minor Artifact Limit
 
 **Game Rule**: A character can only wear **ONE minor artifact** at a time.

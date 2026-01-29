@@ -570,5 +570,11 @@ export function getAllAvailableProperties(items: Item[]): string[] {
     }
   }
 
-  return Array.from(propertySet).sort()
+  // Import isComplexProperty to filter out complex properties
+  const { isComplexProperty } = require('./affixStacking')
+
+  // Filter out complex properties from the available list
+  return Array.from(propertySet)
+    .filter(prop => !isComplexProperty(prop))
+    .sort()
 }
