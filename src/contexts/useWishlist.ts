@@ -6,7 +6,7 @@ export interface WishlistEntry {
   key: string
   name: string
   ml: number
-  slot: string
+  slot?: string // Optional for augments
   type?: string
   quests?: string[]
   url?: string
@@ -16,13 +16,14 @@ export interface WishlistEntry {
   crafting?: string[]
   sets?: string[]
   artifact?: boolean
+  isAugment?: boolean // Flag to identify augment entries
 }
 
 export interface WishlistContextValue {
   entriesByKey: Record<string, WishlistEntry>
   keys: string[]
-  isWished: (item: Pick<Item, 'name' | 'ml' | 'slot' | 'type'>) => boolean
-  toggleWish: (item: Pick<Item, 'name' | 'ml' | 'slot' | 'type' | 'quests' | 'url' | 'affixes' | 'crafting' | 'sets' | 'artifact'>) => void
+  isWished: (item: Pick<Item, 'name' | 'ml' | 'slot' | 'type'> | { name: string; ml?: number; isAugment: true }) => boolean
+  toggleWish: (item: Pick<Item, 'name' | 'ml' | 'slot' | 'type' | 'quests' | 'url' | 'affixes' | 'crafting' | 'sets' | 'artifact'> | { name: string; ml?: number; affixes?: ItemAffix[]; quests?: string[]; isAugment: true }) => void
   removeWish: (key: string) => void
   clearAll: () => void
   hasWishForQuestName: (questName: string) => boolean

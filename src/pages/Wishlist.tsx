@@ -46,7 +46,7 @@ function entryToItem(entry: WishlistEntry): Item {
   return {
     name: entry.name,
     ml: entry.ml,
-    slot: entry.slot,
+    slot: entry.slot ?? 'Augment', // Default to 'Augment' for augment entries
     type: entry.type,
     quests: entry.quests,
     url: entry.url,

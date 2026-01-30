@@ -10,11 +10,18 @@ function normalizePart(value: string) {
   return String(value ?? '').trim().toLowerCase()
 }
 
-function getWishlistKey(item: Pick<Item, 'name' | 'ml' | 'slot' | 'type'>) {
+function getWishlistKey(item: Pick<Item, 'name' | 'ml' | 'slot' | 'type'> | { name: string; ml?: number; isAugment?: true }) {
   const name = normalizePart(item.name)
   const ml = Number(item.ml ?? 0)
-  const slot = normalizePart(item.slot)
-  const type = normalizePart(item.type ?? '')
+
+  // Handle augments (no slot property)
+  if ('isAugment' in item && item.isAugment) {
+    return `augment__${name}__${ml}`
+  }
+
+  // Handle items (has slot property)
+  const slot = normalizePart('slot' in item ? item.slot : '')
+  const type = normalizePart('type' in item ? (item.type ?? '') : '')
   return `${name}__${ml}__${slot}__${type}`
 }
 
@@ -81,20 +88,36 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
         const { [key]: _, ...rest } = prev
         return rest
       }
+
+      // Handle augments
+      if ('isAugment' in item && item.isAugment) {
+        const entry: WishlistEntry = {
+          key,
+          name: item.name,
+          ml: Number(item.ml ?? 0),
+          quests: item.quests,
+          addedAt: Date.now(),
+          affixes: item.affixes,
+          isAugment: true,
+        }
+        return { ...prev, [key]: entry }
+      }
+
+      // Handle items
       const entry: WishlistEntry = {
         key,
         name: item.name,
-        ml: item.ml,
-        slot: item.slot,
-        type: item.type,
-        quests: item.quests,
-        url: item.url,
+        ml: 'ml' in item ? Number(item.ml ?? 0) : 0,
+        slot: 'slot' in item ? item.slot : undefined,
+        type: 'type' in item ? item.type : undefined,
+        quests: 'quests' in item ? item.quests : undefined,
+        url: 'url' in item ? item.url : undefined,
         addedAt: Date.now(),
         // Extended item data
-        affixes: item.affixes,
-        crafting: item.crafting,
-        sets: item.sets,
-        artifact: item.artifact,
+        affixes: 'affixes' in item ? item.affixes : undefined,
+        crafting: 'crafting' in item ? item.crafting : undefined,
+        sets: 'sets' in item ? item.sets : undefined,
+        artifact: 'artifact' in item ? item.artifact : undefined,
       }
       return { ...prev, [key]: entry }
     })

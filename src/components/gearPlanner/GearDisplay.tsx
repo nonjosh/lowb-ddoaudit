@@ -559,6 +559,7 @@ export default function GearDisplay({
   excludedAugments = [],
   onExcludedAugmentsChange
 }: GearDisplayProps) {
+  const { isWished, toggleWish } = useWishlist()
   const [craftingExpanded, setCraftingExpanded] = useState(false)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
   const [selectedSetName, setSelectedSetName] = useState<string>('')
@@ -1020,6 +1021,25 @@ export default function GearDisplay({
                                         </IconButton>
                                       </Tooltip>
                                       <InventoryBadge itemName={aug.name} variant="icon" size="small" />
+                                      {(() => {
+                                        const augmentItem = { name: aug.name, ml: 0, isAugment: true as const, affixes: aug.affixes }
+                                        const wished = isWished(augmentItem)
+                                        return (
+                                          <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => toggleWish(augmentItem)}
+                                              sx={{ p: 0.25 }}
+                                            >
+                                              {wished ? (
+                                                <FavoriteIcon sx={{ fontSize: 14 }} color="error" />
+                                              ) : (
+                                                <FavoriteBorderIcon sx={{ fontSize: 14 }} />
+                                              )}
+                                            </IconButton>
+                                          </Tooltip>
+                                        )
+                                      })()}
                                       {onExcludedAugmentsChange && (
                                         <Tooltip title={excludedAugments.includes(aug.name) ? "Remove from ignore list" : "Ignore this augment"}>
                                           <IconButton
