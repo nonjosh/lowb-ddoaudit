@@ -13,7 +13,7 @@ This file provides instructions for AI coding agents (GitHub Copilot, OpenAI Cod
 1. **Do NOT start dev server manually** - The devcontainer automatically runs `npm run dev`. Manual starts cause port conflicts.
 2. **Organize imports** - After editing files, organize imports (external libraries first, then internal modules alphabetically).
 3. **Run linting** - After substantive changes, run `npm run lint` to catch errors.
-4. **Clean formatting** - Remove trailing whitespace; ensure files end with a single newline.
+4. **Clean formatting** - Remove trailing whitespace from all lines; ensure files end with a single newline.
 5. **ALWAYS verify build output** - After running `npm run build` or `npm run lint`, YOU MUST check the exit code and read the actual error messages. DO NOT report success if there are build errors, TypeScript errors, or ESLint warnings. If the build fails, fix ALL errors before proceeding.
 6. **Maintain Documentation** - If you add new directories, major features, or change the project structure, YOU MUST update this `AGENTS.md` file to reflect those changes immediately.
 7. **Update Game Logic Docs** - When modifying DDO game mechanics (raid timers, XP calculation, gear/affix logic, augments, sets), YOU MUST update the corresponding documentation in `docs/game-logic/`. See [Game Logic Documentation](#game-logic-documentation) below.
