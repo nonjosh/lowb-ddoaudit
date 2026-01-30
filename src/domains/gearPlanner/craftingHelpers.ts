@@ -307,7 +307,8 @@ export function findBestCraftingOption(
   itemName: string,
   itemML: number,
   selectedProperties: string[],
-  excludeSetAugments = false
+  excludeSetAugments = false,
+  excludedAugments: string[] = []
 ): CraftingOption | null {
   // Skip random slots
   if (isRandomSlot(slotType)) {
@@ -320,6 +321,11 @@ export function findBestCraftingOption(
   // Filter out set augments if requested
   if (excludeSetAugments) {
     validOptions = validOptions.filter(option => !option.set)
+  }
+
+  // Filter out excluded augments
+  if (excludedAugments.length > 0) {
+    validOptions = validOptions.filter(option => !option.name || !excludedAugments.includes(option.name))
   }
 
   if (validOptions.length === 0) {
@@ -370,7 +376,8 @@ export function autoSelectCraftingOptions(
   item: Item,
   craftingData: CraftingData | null,
   selectedProperties: string[],
-  excludeSetAugments = false
+  excludeSetAugments = false,
+  excludedAugments: string[] = []
 ): SelectedCraftingOption[] {
   if (!item.crafting || item.crafting.length === 0) {
     return []
@@ -383,7 +390,8 @@ export function autoSelectCraftingOptions(
       item.name,
       item.ml,
       selectedProperties,
-      excludeSetAugments
+      excludeSetAugments,
+      excludedAugments
     )
     return {
       slotType,
@@ -523,7 +531,8 @@ export function autoSelectCraftingOptionsForGearSetup(
   selectedProperties: string[],
   baseAffixes: ItemAffix[],
   setsData: SetsData | null = null,
-  excludeSetAugments = false
+  excludeSetAugments = false,
+  excludedAugments: string[] = []
 ): GearCraftingSelections {
   const slotKeys = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -577,7 +586,9 @@ export function autoSelectCraftingOptionsForGearSetup(
           slotType,
           item.name,
           item.ml,
-          selectedProperties
+          selectedProperties,
+          excludeSetAugments,
+          excludedAugments
         )
         result[slotKey][i].option = bestOption
         // Mark these affixes as covered
@@ -590,7 +601,12 @@ export function autoSelectCraftingOptionsForGearSetup(
       // For augment slots AND affix selection slots, collect as candidates
       // This ensures we don't slot multiple Dolorous/Melancholic with same bonus type
       const options = getAvailableCraftingOptions(craftingData, slotType, item.name)
-      const validOptions = filterCraftingOptionsByML(options, item.ml)
+      let validOptions = filterCraftingOptionsByML(options, item.ml)
+
+      // Filter out excluded augments
+      if (excludedAugments.length > 0) {
+        validOptions = validOptions.filter(option => !option.name || !excludedAugments.includes(option.name))
+      }
 
       for (const option of validOptions) {
         // Check if this is a Set Augment (has a set property)

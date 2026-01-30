@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import BlockIcon from '@mui/icons-material/Block'
 import InventoryIcon from '@mui/icons-material/Inventory2'
 import {
   Badge,
@@ -9,6 +10,7 @@ import {
   Container,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
@@ -20,9 +22,11 @@ import {
 
 import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
+import IgnoreListDialog from '@/components/gearPlanner/SettingsDialog'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
 import TroveImportDialog from '@/components/gearPlanner/TroveImportDialog'
+
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup } from '@/domains/gearPlanner'
@@ -37,6 +41,9 @@ const EXCLUDE_SET_AUGMENTS_KEY = 'gearPlanner_excludeSetAugments'
 const MUST_INCLUDE_ARTIFACT_KEY = 'gearPlanner_mustIncludeArtifact'
 const PINNED_SLOTS_KEY = 'gearPlanner_pinnedSlots'
 const AUTO_OPTIMIZE_KEY = 'gearPlanner_autoOptimize'
+const EXCLUDED_PACKS_KEY = 'gearPlanner_excludedPacks'
+const EXCLUDED_AUGMENTS_KEY = 'gearPlanner_excludedAugments'
+const EXCLUDED_ITEMS_KEY = 'gearPlanner_excludedItems'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -240,9 +247,72 @@ function saveAutoOptimize(autoOptimize: boolean): void {
   }
 }
 
+function loadExcludedPacks(): string[] {
+  try {
+    const stored = localStorage.getItem(EXCLUDED_PACKS_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) return parsed
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return []
+}
+
+function saveExcludedPacks(packs: string[]): void {
+  try {
+    localStorage.setItem(EXCLUDED_PACKS_KEY, JSON.stringify(packs))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadExcludedAugments(): string[] {
+  try {
+    const stored = localStorage.getItem(EXCLUDED_AUGMENTS_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) return parsed
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return []
+}
+
+function saveExcludedAugments(augments: string[]): void {
+  try {
+    localStorage.setItem(EXCLUDED_AUGMENTS_KEY, JSON.stringify(augments))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadExcludedItems(): string[] {
+  try {
+    const stored = localStorage.getItem(EXCLUDED_ITEMS_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) return parsed
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return []
+}
+
+function saveExcludedItems(items: string[]): void {
+  try {
+    localStorage.setItem(EXCLUDED_ITEMS_KEY, JSON.stringify(items))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
-  const { inventoryMap, isItemAvailableForCharacters, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems } = useTrove()
+  const { inventoryMap, isItemAvailableForCharacters, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems, hiddenCharacterIds } = useTrove()
   const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
   const [selectedSets, setSelectedSets] = useState<string[]>(loadSelectedSets)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(loadSelectedIndex)
@@ -263,11 +333,17 @@ export default function GearPlanner() {
   const [pinnedItems, setPinnedItems] = useState<GearSetup>({})
   const [autoOptimize, setAutoOptimize] = useState(loadAutoOptimize)
   const [optimizationKey, setOptimizationKey] = useState(0)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [excludedPacks, setExcludedPacks] = useState<string[]>(loadExcludedPacks)
+  const [excludedAugments, setExcludedAugments] = useState<string[]>(loadExcludedAugments)
+  const [excludedItems, setExcludedItems] = useState<string[]>(loadExcludedItems)
 
-  // Sort characters alphabetically by name
+  // Sort characters alphabetically by name and filter out hidden
   const sortedCharacters = useMemo(() => {
-    return [...characters].sort((a, b) => a.name.localeCompare(b.name))
-  }, [characters])
+    return [...characters]
+      .filter(char => !hiddenCharacterIds.includes(char.id))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [characters, hiddenCharacterIds])
 
   // Load data on mount if not already loaded
   useEffect(() => {
@@ -325,6 +401,44 @@ export default function GearPlanner() {
   const handleManualRefresh = useCallback(() => {
     setOptimizationKey(k => k + 1)
   }, [])
+
+  // Handle exclusion changes
+  const handleExcludedPacksChange = useCallback((packs: string[]) => {
+    setExcludedPacks(packs)
+    saveExcludedPacks(packs)
+    if (autoOptimize) {
+      setOptimizationKey(k => k + 1)
+    }
+  }, [autoOptimize])
+
+  const handleExcludedAugmentsChange = useCallback((augments: string[]) => {
+    setExcludedAugments(augments)
+    saveExcludedAugments(augments)
+    if (autoOptimize) {
+      setOptimizationKey(k => k + 1)
+    }
+  }, [autoOptimize])
+
+  const handleExcludedItemsChange = useCallback((items: string[]) => {
+    setExcludedItems(items)
+    saveExcludedItems(items)
+    if (autoOptimize) {
+      setOptimizationKey(k => k + 1)
+    }
+  }, [autoOptimize])
+
+  const handleToggleItemIgnore = useCallback((itemName: string) => {
+    setExcludedItems(prev => {
+      const newList = prev.includes(itemName)
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+      saveExcludedItems(newList)
+      if (autoOptimize) {
+        setOptimizationKey(k => k + 1)
+      }
+      return newList
+    })
+  }, [autoOptimize])
 
   // Handle property selection change with persistence
   const handlePropertiesChange = (properties: string[]) => {
@@ -457,12 +571,25 @@ export default function GearPlanner() {
       pinnedGearSetup = { ...pinnedItems }
     }
 
-    // Create item filter for available items mode
-    const itemFilter =
-      availableItemsOnly && inventoryMap.size > 0
-        ? (item: { name: string }) => isItemAvailableForCharacters(item.name)
-        : undefined
+    // Create item filter for available items mode and exclusions
+    const itemFilter = (item: { name: string; quests?: string[] }) => {
+      // Check if excluded by name
+      if (excludedItems.includes(item.name)) return false
 
+      // Check if from excluded adventure pack
+      if (excludedPacks.length > 0 && item.quests) {
+        if (item.quests.some(quest => excludedPacks.includes(quest))) {
+          return false
+        }
+      }
+
+      // Check if available for characters (if mode is enabled)
+      if (availableItemsOnly && inventoryMap.size > 0) {
+        return isItemAvailableForCharacters(item.name)
+      }
+
+      return true
+    }
     return optimizeGear(items, setsData, {
       properties: selectedProperties,
       maxResults: 20,
@@ -472,11 +599,12 @@ export default function GearPlanner() {
       armorType,
       excludeSetAugments,
       mustIncludeArtifact,
-      pinnedGear: pinnedGearSetup
+      pinnedGear: pinnedGearSetup,
+      excludedAugments
     })
     // optimizationKey is intentionally included to force re-optimization when manual refresh is clicked
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap, isItemAvailableForCharacters, maxML, armorType, excludeSetAugments, mustIncludeArtifact, pinnedSlots, pinnedItems, optimizationKey])
+  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap, isItemAvailableForCharacters, maxML, armorType, excludeSetAugments, mustIncludeArtifact, pinnedSlots, pinnedItems, excludedItems, excludedPacks, excludedAugments, optimizationKey])
 
   // Handle manual gear change
   const handleGearChange = useCallback((slot: string, item: Item | undefined) => {
@@ -549,20 +677,36 @@ export default function GearPlanner() {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-          <Badge
-            badgeContent={inventoryMap.size > 0 ? '✓' : undefined}
-            color="success"
-            overlap="circular"
-          >
-            <Button
-              variant="outlined"
-              startIcon={<InventoryIcon />}
-              onClick={() => setTroveDialogOpen(true)}
-              size="small"
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Ignore List - Exclude items, augments, and adventure packs">
+              <IconButton
+                onClick={() => setSettingsDialogOpen(true)}
+                size="small"
+                color={excludedPacks.length + excludedAugments.length + excludedItems.length > 0 ? 'error' : 'default'}
+              >
+                <Badge
+                  badgeContent={excludedPacks.length + excludedAugments.length + excludedItems.length || undefined}
+                  color="error"
+                >
+                  <BlockIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+            <Badge
+              badgeContent={inventoryMap.size > 0 ? '✓' : undefined}
+              color="success"
+              overlap="circular"
             >
-              Import Trove Data
-            </Button>
-          </Badge>
+              <Button
+                variant="outlined"
+                startIcon={<InventoryIcon />}
+                onClick={() => setTroveDialogOpen(true)}
+                size="small"
+              >
+                Import Trove Data
+              </Button>
+            </Badge>
+          </Box>
           {inventoryMap.size > 0 && (
             <>
               <FormControl size="small" sx={{ minWidth: 200 }}>
@@ -583,6 +727,15 @@ export default function GearPlanner() {
                   ))}
                 </Select>
               </FormControl>
+              {selectedCharacterId !== null && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleLoadEquipped(selectedCharacterId)}
+                >
+                  Load {sortedCharacters.find(c => c.id === selectedCharacterId)?.name}'s Gear
+                </Button>
+              )}
               <Tooltip title="Only show gear setups using items you own">
                 <FormControlLabel
                   control={
@@ -622,6 +775,19 @@ export default function GearPlanner() {
         onClose={() => setTroveDialogOpen(false)}
       />
 
+      {/* Ignore List Dialog */}
+      <IgnoreListDialog
+        open={settingsDialogOpen}
+        onClose={() => setSettingsDialogOpen(false)}
+        items={items}
+        excludedPacks={excludedPacks}
+        onExcludedPacksChange={handleExcludedPacksChange}
+        excludedAugments={excludedAugments}
+        onExcludedAugmentsChange={handleExcludedAugmentsChange}
+        excludedItems={excludedItems}
+        onExcludedItemsChange={handleExcludedItemsChange}
+      />
+
       {/* Section 1: Property Selector */}
       <Paper elevation={2} sx={{ mb: 3 }}>
         <PropertySelector
@@ -631,46 +797,21 @@ export default function GearPlanner() {
           availableSets={availableSets}
           selectedSets={selectedSets}
           onSetsChange={handleSetsChange}
+          autoOptimize={autoOptimize}
+          onAutoOptimizeChange={(value) => {
+            setAutoOptimize(value)
+            saveAutoOptimize(value)
+          }}
+          onManualRefresh={handleManualRefresh}
         />
       </Paper>
 
       {/* Optimization Filters */}
       {selectedProperties.length >= 3 && (
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="subtitle1">
-              Optimization Filters
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={autoOptimize}
-                    onChange={(e) => {
-                      const newValue = e.target.checked
-                      setAutoOptimize(newValue)
-                      saveAutoOptimize(newValue)
-                    }}
-                    size="small"
-                  />
-                }
-                label="Auto-refresh"
-                labelPlacement="start"
-                sx={{ m: 0 }}
-              />
-              <Box sx={{ width: 90, display: 'flex', justifyContent: 'flex-end' }}>
-                {!autoOptimize && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={handleManualRefresh}
-                  >
-                    Refresh
-                  </Button>
-                )}
-              </Box>
-            </Box>
-          </Box>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Optimization Filters
+          </Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <InputLabel>Max Item Level</InputLabel>
@@ -780,12 +921,15 @@ export default function GearPlanner() {
               onSetNameHover={setHoveredSetName}
               craftingSelections={selectedSetup.craftingSelections}
               setsData={setsData}
-              onLoadEquipped={handleLoadEquipped}
               onGearChange={handleGearChange}
               availableItems={items}
               onPropertyAdd={handlePropertyAdd}
               pinnedSlots={pinnedSlots}
               onTogglePin={handleTogglePin}
+              excludedItems={excludedItems}
+              onToggleItemIgnore={handleToggleItemIgnore}
+              excludedAugments={excludedAugments}
+              onExcludedAugmentsChange={handleExcludedAugmentsChange}
             />
           </Paper>
 

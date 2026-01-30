@@ -1,8 +1,11 @@
 import {
   Autocomplete,
   Box,
+  Button,
   Chip,
   FormControl,
+  FormControlLabel,
+  Switch,
   TextField,
   Typography
 } from '@mui/material'
@@ -33,6 +36,9 @@ interface PropertySelectorProps {
   availableSets?: string[]
   selectedSets?: string[]
   onSetsChange?: (sets: string[]) => void
+  autoOptimize?: boolean
+  onAutoOptimizeChange?: (value: boolean) => void
+  onManualRefresh?: () => void
 }
 
 // Sortable chip component for properties
@@ -139,7 +145,10 @@ export default function PropertySelector({
   onChange,
   availableSets,
   selectedSets,
-  onSetsChange
+  onSetsChange,
+  autoOptimize,
+  onAutoOptimizeChange,
+  onManualRefresh
 }: PropertySelectorProps) {
   const propertySensors = useSensors(
     useSensor(PointerSensor),
@@ -177,9 +186,36 @@ export default function PropertySelector({
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Select Properties to Optimize
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h6">
+          Select Properties to Optimize
+        </Typography>
+        {onAutoOptimizeChange && onManualRefresh && (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {!autoOptimize && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onManualRefresh}
+              >
+                Refresh
+              </Button>
+            )}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={autoOptimize ?? true}
+                  onChange={(e) => onAutoOptimizeChange(e.target.checked)}
+                  size="small"
+                />
+              }
+              label="Auto-refresh"
+              labelPlacement="start"
+              sx={{ m: 0 }}
+            />
+          </Box>
+        )}
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Select 3 or more properties to find the best gear combinations. Drag to reorder.
       </Typography>

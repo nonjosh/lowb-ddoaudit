@@ -40,15 +40,23 @@ DDO gear has **affixes** (properties like "+10 Strength") with **bonus types** (
 
 Some properties are **complex** - they represent multiple underlying properties:
 
-| Complex Property | Expands To                                                             |
-| ---------------- | ---------------------------------------------------------------------- |
-| Well Rounded     | Strength + Constitution + Dexterity + Intelligence + Wisdom + Charisma |
-| Sheltering       | Physical Sheltering + Magical Sheltering                               |
+| Complex Property | Expands To                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Well Rounded     | Strength + Constitution + Dexterity + Intelligence + Wisdom + Charisma                                                          |
+| Sheltering       | Physical Sheltering + Magical Sheltering                                                                                        |
+| Parrying         | Fortitude Save + Reflex Save + Will Save + Armor Class                                                                          |
+| Spell DC         | Abjuration DC + Conjuration DC + Divination DC + Enchantment DC + Evocation DC + Illusion DC + Necromancy DC + Transmutation DC |
+| Tactic DC        | Stunning DC + Sunder DC + Trip DC                                                                                               |
 
 **Game Rules**:
 
 - "Well Rounded +3" means **all six attributes** gain +3 of the given bonus type
 - "Sheltering 10%" means **both** Physical and Magical Sheltering gain 10% of the given bonus type
+- "Parrying +5" means all three saves AND armor class gain +5 of the given bonus type
+- "Spell DC +2" means all eight spell school DCs gain +2 of the given bonus type
+- "Tactic DC +3" means all three tactical DCs gain +3 of the given bonus type
+
+**Note**: "Luck" for all skills and saves would be too broad (50+ properties) and is not currently implemented as a complex property.
 
 **Implementation Notes**:
 

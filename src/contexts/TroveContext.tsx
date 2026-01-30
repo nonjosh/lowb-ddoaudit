@@ -5,10 +5,12 @@ import type { TroveCharacter, TroveItemLocation } from '@/api/trove/types'
 import {
   clearTroveData,
   loadTroveCharacters,
+  loadTroveHiddenCharacters,
   loadTroveImportTime,
   loadTroveInventory,
   loadTroveSelectedCharacters,
   saveTroveCharacters,
+  saveTroveHiddenCharacters,
   saveTroveImportTime,
   saveTroveInventory,
   saveTroveSelectedCharacters
@@ -30,6 +32,7 @@ export function TroveProvider({ children }: TroveProviderProps) {
   >(new Map())
   const [characters, setCharacters] = useState<TroveCharacter[]>([])
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null)
+  const [hiddenCharacterIds, setHiddenCharacterIds] = useState<number[]>([])
   const [importedAt, setImportedAt] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,16 +41,18 @@ export function TroveProvider({ children }: TroveProviderProps) {
   useEffect(() => {
     async function loadSavedData() {
       try {
-        const [inventory, chars, time, selected] = await Promise.all([
+        const [inventory, chars, time, selected, hidden] = await Promise.all([
           loadTroveInventory(),
           loadTroveCharacters(),
           loadTroveImportTime(),
-          loadTroveSelectedCharacters()
+          loadTroveSelectedCharacters(),
+          loadTroveHiddenCharacters()
         ])
 
         setInventoryMap(inventory)
         setCharacters(chars)
         setImportedAt(time)
+        setHiddenCharacterIds(hidden)
         // Convert array to single value (use first if exists)
         setSelectedCharacterId(selected.length > 0 ? selected[0] : null)
       } catch (err) {
@@ -94,10 +99,22 @@ export function TroveProvider({ children }: TroveProviderProps) {
       setInventoryMap(new Map())
       setCharacters([])
       setSelectedCharacterId(null)
+      setHiddenCharacterIds([])
       setImportedAt(null)
     } catch (err) {
       console.error('Failed to clear Trove data:', err)
     }
+  }, [])
+
+  // Toggle character visibility
+  const toggleCharacterVisibility = useCallback(async (characterId: number) => {
+    setHiddenCharacterIds(prev => {
+      const newHidden = prev.includes(characterId)
+        ? prev.filter(id => id !== characterId)
+        : [...prev, characterId]
+      saveTroveHiddenCharacters(newHidden).catch(console.error)
+      return newHidden
+    })
   }, [])
 
   // Set selected character
@@ -141,11 +158,16 @@ export function TroveProvider({ children }: TroveProviderProps) {
         // Shared bank (characterId = 0) is always available
         if (loc.characterId === 0) return true
 
-        // BTA items are available to all
-        if (loc.binding !== 'BoundToCharacter') return true
+        // BTA items (explicitly BoundToAccount) are available to all characters
+        if (loc.binding === 'BoundToAccount') return true
 
         // BTC items only count if owned by the selected character
-        return loc.characterId === selectedCharacterId
+        if (loc.binding === 'BoundToCharacter') {
+          return loc.characterId === selectedCharacterId
+        }
+
+        // For any other binding type or undefined binding, treat as unavailable to be safe
+        return false
       })
     },
     [inventoryMap, selectedCharacterId]
@@ -195,12 +217,14 @@ export function TroveProvider({ children }: TroveProviderProps) {
     inventoryMap,
     characters,
     selectedCharacterId,
+    hiddenCharacterIds,
     importedAt,
     loading,
     error,
     importFiles,
     clearData,
     setSelectedCharacter: setSelectedCharacterAction,
+    toggleCharacterVisibility,
     hasItem,
     getItemLocations,
     isItemAvailableForCharacters,

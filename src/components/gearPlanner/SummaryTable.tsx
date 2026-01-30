@@ -13,7 +13,6 @@ import {
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import { GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships } from '@/domains/gearPlanner'
-import { isComplexProperty } from '@/domains/gearPlanner/affixStacking'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {

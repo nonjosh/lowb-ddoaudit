@@ -10,6 +10,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import DeleteIcon from '@mui/icons-material/Delete'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import {
   Alert,
   Box,
@@ -57,7 +59,9 @@ export default function TroveImportDialog({
     importFiles,
     clearData,
     inventoryMap,
-    getStats
+    getStats,
+    hiddenCharacterIds,
+    toggleCharacterVisibility
   } = useTrove()
 
   const [step, setStep] = useState<ImportStep>(
@@ -307,10 +311,22 @@ export default function TroveImportDialog({
             </Typography>
             {characters.map((char) => {
               const count = stats.btcPerCharacter.get(char.id) || 0
+              const isHidden = hiddenCharacterIds.includes(char.id)
               return (
-                <Typography key={char.id} variant="body2" color="text.secondary">
-                  {char.name}: {count} items
-                </Typography>
+                <Box key={char.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ opacity: isHidden ? 0.5 : 1 }}>
+                    {char.name}: {count} items
+                  </Typography>
+                  <Tooltip title={isHidden ? "Show in character dropdown" : "Hide from character dropdown"}>
+                    <IconButton
+                      size="small"
+                      onClick={() => toggleCharacterVisibility(char.id)}
+                      color={isHidden ? "default" : "primary"}
+                    >
+                      {isHidden ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               )
             })}
           </Box>

@@ -12,7 +12,7 @@ export interface TroveInventoryRecord {
 }
 
 export interface TroveMetaRecord {
-  key: 'characters' | 'importedAt' | 'selectedCharacters'
+  key: 'characters' | 'importedAt' | 'selectedCharacters' | 'hiddenCharacters'
   value: unknown
 }
 
@@ -122,6 +122,23 @@ export async function loadTroveImportTime(): Promise<number | null> {
  */
 export async function loadTroveSelectedCharacters(): Promise<number[]> {
   const record = await troveDb.meta.get('selectedCharacters')
+  return (record?.value as number[]) || []
+}
+
+/**
+ * Save hidden character IDs
+ */
+export async function saveTroveHiddenCharacters(
+  characterIds: number[]
+): Promise<void> {
+  await troveDb.meta.put({ key: 'hiddenCharacters', value: characterIds })
+}
+
+/**
+ * Load hidden character IDs
+ */
+export async function loadTroveHiddenCharacters(): Promise<number[]> {
+  const record = await troveDb.meta.get('hiddenCharacters')
   return (record?.value as number[]) || []
 }
 

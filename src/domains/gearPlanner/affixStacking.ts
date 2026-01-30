@@ -16,7 +16,20 @@ export interface PropertyValue {
  */
 const COMPLEX_PROPERTIES: Record<string, string[]> = {
   'Well Rounded': ['Strength', 'Constitution', 'Dexterity', 'Intelligence', 'Wisdom', 'Charisma'],
-  'Sheltering': ['Physical Sheltering', 'Magical Sheltering']
+  'Sheltering': ['Physical Sheltering', 'Magical Sheltering'],
+  'Parrying': ['Fortitude Save', 'Reflex Save', 'Will Save', 'Armor Class'],
+  'Spell DC': [
+    'Abjuration DC',
+    'Conjuration DC',
+    'Divination DC',
+    'Enchantment DC',
+    'Evocation DC',
+    'Illusion DC',
+    'Necromancy DC',
+    'Transmutation DC'
+  ],
+  'Tactic DC': ['Stunning DC', 'Sunder DC', 'Trip DC']
+  // Note: 'Luck' for all skills and saves would be too broad and is not included
 }
 
 /**

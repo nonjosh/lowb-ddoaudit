@@ -11,6 +11,7 @@ export interface TroveContextValue {
   inventoryMap: Map<string, TroveItemLocation[]>
   characters: TroveCharacter[]
   selectedCharacterId: number | null
+  hiddenCharacterIds: number[]
   importedAt: number | null
   loading: boolean
   error: string | null
@@ -19,6 +20,7 @@ export interface TroveContextValue {
   importFiles: (files: File[]) => Promise<void>
   clearData: () => Promise<void>
   setSelectedCharacter: (characterId: number | null) => Promise<void>
+  toggleCharacterVisibility: (characterId: number) => Promise<void>
 
   // Helpers
   hasItem: (itemName: string) => boolean
@@ -32,12 +34,14 @@ const defaultContext: TroveContextValue = {
   inventoryMap: new Map(),
   characters: [],
   selectedCharacterId: null,
+  hiddenCharacterIds: [],
   importedAt: null,
   loading: false,
   error: null,
   importFiles: async () => { },
   clearData: async () => { },
   setSelectedCharacter: async () => { },
+  toggleCharacterVisibility: async () => { },
   hasItem: () => false,
   getItemLocations: () => [],
   isItemAvailableForCharacters: () => false,

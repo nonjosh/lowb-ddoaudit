@@ -1,14 +1,15 @@
 import { useState } from 'react'
 
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
+import BlockIcon from '@mui/icons-material/Block'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import LaunchIcon from '@mui/icons-material/Launch'
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import PushPinIcon from '@mui/icons-material/PushPin'
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import {
   Box,
   Card,
@@ -40,7 +41,6 @@ import { formatAffix, getWikiUrl } from '@/utils/affixHelpers'
 
 import InventoryBadge from './InventoryBadge'
 import ItemSelectionDialog from './ItemSelectionDialog'
-import LoadEquippedButton from './LoadEquippedButton'
 import { SetItemsDialog } from './SetItemsDialog'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
@@ -63,12 +63,15 @@ interface GearDisplayProps {
   onSetNameHover?: (setName: string | null) => void
   craftingSelections?: GearCraftingSelections
   setsData?: SetsData | null
-  onLoadEquipped?: (characterId: number) => void
   onGearChange?: (slot: string, item: Item | undefined) => void
   availableItems?: Item[]
   onPropertyAdd?: (property: string) => void
   pinnedSlots?: Set<string>
   onTogglePin?: (slot: string, currentSetup: GearSetup) => void
+  excludedItems?: string[]
+  onToggleItemIgnore?: (itemName: string) => void
+  excludedAugments?: string[]
+  onExcludedAugmentsChange?: (augments: string[]) => void
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -172,7 +175,9 @@ function GearSlotCard({
   availableItems,
   onPropertyAdd,
   isPinned,
-  onTogglePin
+  onTogglePin,
+  isIgnored,
+  onToggleIgnore
 }: {
   slotName: string
   item: Item | undefined
@@ -189,6 +194,8 @@ function GearSlotCard({
   onPropertyAdd?: (property: string) => void
   isPinned?: boolean
   onTogglePin?: () => void
+  isIgnored?: boolean
+  onToggleIgnore?: () => void
 }) {
   const { isWished, toggleWish } = useWishlist()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -323,6 +330,17 @@ function GearSlotCard({
                   )}
                 </IconButton>
               </Tooltip>
+              {onToggleIgnore && (
+                <Tooltip title={isIgnored ? "Remove from ignore list" : "Ignore this item"}>
+                  <IconButton
+                    size="small"
+                    onClick={onToggleIgnore}
+                    color={isIgnored ? "warning" : "default"}
+                  >
+                    <BlockIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
           </Box>
           <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -531,12 +549,15 @@ export default function GearDisplay({
   onSetNameHover,
   craftingSelections,
   setsData,
-  onLoadEquipped,
   onGearChange,
   availableItems,
   onPropertyAdd,
   pinnedSlots,
-  onTogglePin
+  onTogglePin,
+  excludedItems = [],
+  onToggleItemIgnore,
+  excludedAugments = [],
+  onExcludedAugmentsChange
 }: GearDisplayProps) {
   const [craftingExpanded, setCraftingExpanded] = useState(false)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
@@ -700,12 +721,9 @@ export default function GearDisplay({
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">
-          Selected Gear Setup
-        </Typography>
-        {onLoadEquipped && <LoadEquippedButton onLoadEquipped={onLoadEquipped} />}
-      </Box>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Selected Gear Setup
+      </Typography>
 
       {/* Minor Artifact Warning */}
       {minorArtifactCount > 1 && (
@@ -758,6 +776,8 @@ export default function GearDisplay({
                 onPropertyAdd={onPropertyAdd}
                 isPinned={pinnedSlots?.has(slot)}
                 onTogglePin={onTogglePin ? () => onTogglePin(slot, setup) : undefined}
+                isIgnored={getItemForSlot(setup, slot) ? excludedItems.includes(getItemForSlot(setup, slot)!.name) : false}
+                onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
               />
             </Grid>
           )
@@ -1000,6 +1020,23 @@ export default function GearDisplay({
                                         </IconButton>
                                       </Tooltip>
                                       <InventoryBadge itemName={aug.name} variant="icon" size="small" />
+                                      {onExcludedAugmentsChange && (
+                                        <Tooltip title={excludedAugments.includes(aug.name) ? "Remove from ignore list" : "Ignore this augment"}>
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                              const newList = excludedAugments.includes(aug.name)
+                                                ? excludedAugments.filter(name => name !== aug.name)
+                                                : [...excludedAugments, aug.name]
+                                              onExcludedAugmentsChange(newList)
+                                            }}
+                                            sx={{ p: 0.25 }}
+                                            color={excludedAugments.includes(aug.name) ? "warning" : "default"}
+                                          >
+                                            <BlockIcon sx={{ fontSize: 14 }} />
+                                          </IconButton>
+                                        </Tooltip>
+                                      )}
                                     </Box>
                                   )
                                 })}
