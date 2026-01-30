@@ -10,6 +10,7 @@ import {
   FormControl,
   IconButton,
   InputLabel,
+  Link,
   MenuItem,
   Paper,
   Select,
@@ -28,7 +29,6 @@ import { fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item, SetsData } from '@/api/ddoGearPlanner'
 import ItemCraftingDisplay from '@/components/items/ItemCraftingDisplay'
 import ItemSetTooltip from '@/components/items/ItemSetTooltip'
-import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useWishlist, WishlistEntry } from '@/contexts/useWishlist'
 import { formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, AffixLike } from '@/utils/affixHelpers'
@@ -65,7 +65,10 @@ interface WishlistItemRowProps {
 }
 
 function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: WishlistItemRowProps) {
-  const wikiUrl = getWikiUrl(item.url)
+  // Get wiki URL for both regular items and augments
+  // For augments without a URL field, generate one from the name
+  const wikiUrl = getWikiUrl(item.url) ||
+    (item.slot === 'Augment' ? `https://ddowiki.com/page/Item:${item.name.replace(/\s+/g, '_')}` : null)
   const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
 
   return (
@@ -73,9 +76,29 @@ function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: Wishl
       <TableCell>{item.ml}</TableCell>
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
-            {item.name}
-          </Typography>
+          {wikiUrl ? (
+            <Link
+              href={wikiUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                color: augmentColor || 'text.primary',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: 'primary.main'
+                }
+              }}
+            >
+              {item.name}
+            </Link>
+          ) : (
+            <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
+              {item.name}
+            </Typography>
+          )}
           <IconButton
             size="small"
             onClick={onRemove}
@@ -84,7 +107,6 @@ function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: Wishl
           >
             <DeleteSweepIcon fontSize="small" />
           </IconButton>
-          {wikiUrl && <DdoWikiLink wikiUrl={wikiUrl} />}
         </Box>
         {item.slot && (item.slot === 'Weapon' || item.slot === 'Offhand') && (
           <Typography variant="caption" color="text.secondary" display="block">
@@ -137,9 +159,10 @@ interface CollapsibleGroupProps {
   onRemove: (key: string) => void
   getCraftingOptions: (craft: string) => string[]
   defaultExpanded?: boolean
+  isQuestGroup?: boolean
 }
 
-function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defaultExpanded = true }: CollapsibleGroupProps) {
+function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defaultExpanded = true, isQuestGroup = false }: CollapsibleGroupProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
 
   return (
@@ -151,9 +174,29 @@ function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defau
         <TableCell colSpan={5}>
           <Stack direction="row" alignItems="center" spacing={1}>
             {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            <Typography variant="subtitle2" fontWeight="bold">
-              {group.label}
-            </Typography>
+            {isQuestGroup ? (
+              <Link
+                href={`https://ddowiki.com/page/${group.label.replace(/\s+/g, '_')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                sx={{
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    color: 'primary.main'
+                  }
+                }}
+              >
+                {group.label}
+              </Link>
+            ) : (
+              <Typography variant="subtitle2" fontWeight="bold">
+                {group.label}
+              </Typography>
+            )}
             <Chip size="small" label={group.items.length} />
           </Stack>
         </TableCell>
@@ -206,12 +249,46 @@ export default function Wishlist() {
   }, [craftingData, loading, error, refresh])
 
   const questNameToPack = useMemo(() => {
-    const map = new Map<string, string>()
+    // Extended Map interface with fuzzy lookup
+    interface QuestPackMap extends Map<string, string> {
+      fuzzyGet?: (questName: string) => string | undefined
+    }
+
+    const map: QuestPackMap = new Map<string, string>()
+
+    // Build a normalized lookup for quest names
+    const normalizedQuestMap = new Map<string, { originalName: string; pack: string }>()
     Object.values(questsById).forEach(q => {
       if (q.name && q.required_adventure_pack) {
+        // Store both the exact name and normalized version
         map.set(q.name, q.required_adventure_pack)
+
+        // Normalize: lowercase, remove "the " prefix, remove extra spaces
+        const normalized = q.name.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim()
+        normalizedQuestMap.set(normalized, {
+          originalName: q.name,
+          pack: q.required_adventure_pack
+        })
       }
     })
+
+    // Add fuzzy lookup function to the map
+    map.fuzzyGet = (questName: string): string | undefined => {
+      // Try exact match first
+      if (map.has(questName)) {
+        return map.get(questName)
+      }
+
+      // Try normalized match
+      const normalized = questName.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim()
+      const fuzzyMatch = normalizedQuestMap.get(normalized)
+      if (fuzzyMatch) {
+        return fuzzyMatch.pack
+      }
+
+      return undefined
+    }
+
     return map
   }, [questsById])
 
@@ -289,7 +366,8 @@ export default function Wishlist() {
         // Group by adventure pack
         const packs = new Set<string>()
         item.quests.forEach(questName => {
-          const pack = questNameToPack.get(questName)
+          // Try fuzzy lookup
+          const pack = questNameToPack.fuzzyGet?.(questName) || questNameToPack.get(questName)
           if (pack) {
             packs.add(pack)
           }
@@ -406,6 +484,7 @@ export default function Wishlist() {
                     setsData={setsData}
                     onRemove={removeWish}
                     getCraftingOptions={getCraftingOptions}
+                    isQuestGroup={groupingMode === 'quest'}
                   />
                 ))
               )}
