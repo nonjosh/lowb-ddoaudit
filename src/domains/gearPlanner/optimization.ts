@@ -80,6 +80,8 @@ export interface OptimizationOptions {
   pinnedGear?: GearSetup
   /** Augment names to exclude from crafting optimization */
   excludedAugments?: string[]
+  /** Adventure pack names to exclude (filters augments by their source quests) */
+  excludedPacks?: string[]
 }
 
 /**
@@ -92,7 +94,8 @@ export function calculateScore(
   setsData: SetsData | null,
   craftingData?: CraftingData | null,
   excludeSetAugments = false,
-  excludedAugments: string[] = []
+  excludedAugments: string[] = [],
+  excludedPacks: string[] = []
 ): {
   score: number
   propertyValues: Map<string, number>
@@ -121,7 +124,8 @@ export function calculateScore(
     baseAffixes,
     setsData,
     excludeSetAugments,
-    excludedAugments
+    excludedAugments,
+    excludedPacks
   )
 
   // Collect set memberships from crafting (e.g., Set Augments)
@@ -224,7 +228,7 @@ export function optimizeGear(
   setsData: SetsData | null,
   options: OptimizationOptions
 ): OptimizedGearSetup[] {
-  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false, pinnedGear, excludedAugments = [] } = options
+  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false, pinnedGear, excludedAugments = [], excludedPacks = [] } = options
 
   // Filter items by ML range and optional custom filter
   let filteredItems = items.filter(item => item.ml >= minML && item.ml <= maxML)
@@ -290,7 +294,7 @@ export function optimizeGear(
       // Also consider crafting options when scoring
       let craftingScore = 0
       if (craftingData && item.crafting) {
-        const selections = autoSelectCraftingOptions(item, craftingData, properties, excludeSetAugments, excludedAugments)
+        const selections = autoSelectCraftingOptions(item, craftingData, properties, excludeSetAugments, excludedAugments, excludedPacks)
         const craftingAffixes = getCraftingAffixes(selections)
         const craftingCombined = combineAffixes(craftingAffixes)
         for (const property of properties) {
@@ -379,7 +383,7 @@ export function optimizeGear(
     }
   }
 
-  const baseResult = calculateScore(baseSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments)
+  const baseResult = calculateScore(baseSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks)
   results.push({
     setup: baseSetup,
     score: baseResult.score,
@@ -407,7 +411,7 @@ export function optimizeGear(
           const altSetup = { ...baseSetup }
           if (!wouldViolateArtifactLimit(altSetup, items[i], 'ring1')) {
             altSetup.ring1 = items[i]
-            const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments)
+            const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks)
             results.push({
               setup: altSetup,
               score: result.score,
@@ -427,7 +431,7 @@ export function optimizeGear(
           const altSetup = { ...baseSetup }
           if (items[i] !== altSetup.ring1 && !wouldViolateArtifactLimit(altSetup, items[i], 'ring2')) {
             altSetup.ring2 = items[i]
-            const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments)
+            const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks)
             results.push({
               setup: altSetup,
               score: result.score,
@@ -447,7 +451,7 @@ export function optimizeGear(
         const altSetup = { ...baseSetup }
         if (!wouldViolateArtifactLimit(altSetup, items[i], key)) {
           altSetup[key] = items[i]
-          const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments)
+          const result = calculateScore(altSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks)
           results.push({
             setup: altSetup,
             score: result.score,
@@ -518,7 +522,7 @@ export function optimizeGear(
       }
 
       if (foundSetItems) {
-        const result = calculateScore(setSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments)
+        const result = calculateScore(setSetup, properties, setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks)
         results.push({
           setup: setSetup,
           score: result.score,

@@ -299,6 +299,8 @@ export function scoreCraftingOption(
  * @param itemML The item's minimum level
  * @param selectedProperties Properties to optimize for
  * @param excludeSetAugments Whether to exclude set augments
+ * @param excludedAugments Augment names to exclude from optimization
+ * @param excludedPacks Adventure pack names to exclude (filters augments by source quests)
  * @returns The best option, or null if no valid options
  */
 export function findBestCraftingOption(
@@ -308,7 +310,8 @@ export function findBestCraftingOption(
   itemML: number,
   selectedProperties: string[],
   excludeSetAugments = false,
-  excludedAugments: string[] = []
+  excludedAugments: string[] = [],
+  excludedPacks: string[] = []
 ): CraftingOption | null {
   // Skip random slots
   if (isRandomSlot(slotType)) {
@@ -323,9 +326,17 @@ export function findBestCraftingOption(
     validOptions = validOptions.filter(option => !option.set)
   }
 
-  // Filter out excluded augments
+  // Filter out excluded augments by name
   if (excludedAugments.length > 0) {
     validOptions = validOptions.filter(option => !option.name || !excludedAugments.includes(option.name))
+  }
+
+  // Filter out augments from excluded adventure packs
+  if (excludedPacks.length > 0) {
+    validOptions = validOptions.filter(option => {
+      if (!option.quests) return true // If no quest source, don't filter
+      return !option.quests.some(quest => excludedPacks.includes(quest))
+    })
   }
 
   if (validOptions.length === 0) {
@@ -370,6 +381,8 @@ export type GearCraftingSelections = Record<string, SelectedCraftingOption[]>
  * @param craftingData The full crafting data
  * @param selectedProperties Properties to optimize for
  * @param excludeSetAugments Whether to exclude set augments
+ * @param excludedAugments Augment names to exclude from optimization
+ * @param excludedPacks Adventure pack names to exclude (filters augments by source quests)
  * @returns Array of selected crafting options
  */
 export function autoSelectCraftingOptions(
@@ -377,7 +390,8 @@ export function autoSelectCraftingOptions(
   craftingData: CraftingData | null,
   selectedProperties: string[],
   excludeSetAugments = false,
-  excludedAugments: string[] = []
+  excludedAugments: string[] = [],
+  excludedPacks: string[] = []
 ): SelectedCraftingOption[] {
   if (!item.crafting || item.crafting.length === 0) {
     return []
@@ -391,7 +405,8 @@ export function autoSelectCraftingOptions(
       item.ml,
       selectedProperties,
       excludeSetAugments,
-      excludedAugments
+      excludedAugments,
+      excludedPacks
     )
     return {
       slotType,
@@ -523,6 +538,8 @@ function getSetMinThreshold(setName: string, setsData: SetsData | null): number 
  * @param baseAffixes Affixes already provided by items (to avoid duplicating)
  * @param setsData Sets data for checking set bonus thresholds
  * @param excludeSetAugments Whether to exclude set augments from optimization
+ * @param excludedAugments Augment names to exclude from optimization
+ * @param excludedPacks Adventure pack names to exclude (filters augments by source quests)
  * @returns GearCraftingSelections with optimal non-redundant augment choices
  */
 export function autoSelectCraftingOptionsForGearSetup(
@@ -532,7 +549,8 @@ export function autoSelectCraftingOptionsForGearSetup(
   baseAffixes: ItemAffix[],
   setsData: SetsData | null = null,
   excludeSetAugments = false,
-  excludedAugments: string[] = []
+  excludedAugments: string[] = [],
+  excludedPacks: string[] = []
 ): GearCraftingSelections {
   const slotKeys = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -588,7 +606,8 @@ export function autoSelectCraftingOptionsForGearSetup(
           item.ml,
           selectedProperties,
           excludeSetAugments,
-          excludedAugments
+          excludedAugments,
+          excludedPacks
         )
         result[slotKey][i].option = bestOption
         // Mark these affixes as covered
@@ -603,9 +622,17 @@ export function autoSelectCraftingOptionsForGearSetup(
       const options = getAvailableCraftingOptions(craftingData, slotType, item.name)
       let validOptions = filterCraftingOptionsByML(options, item.ml)
 
-      // Filter out excluded augments
+      // Filter out excluded augments by name
       if (excludedAugments.length > 0) {
         validOptions = validOptions.filter(option => !option.name || !excludedAugments.includes(option.name))
+      }
+
+      // Filter out augments from excluded adventure packs
+      if (excludedPacks.length > 0) {
+        validOptions = validOptions.filter(option => {
+          if (!option.quests) return true // If no quest source, don't filter
+          return !option.quests.some(quest => excludedPacks.includes(quest))
+        })
       }
 
       for (const option of validOptions) {

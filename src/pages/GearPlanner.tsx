@@ -600,7 +600,8 @@ export default function GearPlanner() {
       excludeSetAugments,
       mustIncludeArtifact,
       pinnedGear: pinnedGearSetup,
-      excludedAugments
+      excludedAugments,
+      excludedPacks
     })
     // optimizationKey is intentionally included to force re-optimization when manual refresh is clicked
     // eslint-disable-next-line react-hooks/exhaustive-deps
