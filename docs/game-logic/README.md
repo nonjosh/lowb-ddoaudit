@@ -11,6 +11,7 @@ This directory contains comprehensive documentation of Dungeons & Dragons Online
 | [Gear & Affixes](./gear-affixes.md)           | Affix stacking, property calculation    | `src/domains/gearPlanner/` |
 | [Augments & Crafting](./augments-crafting.md) | Augment slots, crafting options         | `src/domains/gearPlanner/` |
 | [Set Bonuses](./set-bonuses.md)               | Set item thresholds and bonuses         | `src/api/ddoGearPlanner/`  |
+| [Weapon Styles](./weapon-styles.md)           | Fighting styles, weapon combinations    | `src/domains/gearPlanner/` |
 | [Ransack Timers](./ransack.md)                | Chest ransack tracking                  | `src/storage/ransackDb.ts` |
 
 ## Maintenance Requirements

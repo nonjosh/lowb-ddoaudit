@@ -20,6 +20,23 @@ DDO items can have **crafting slots** that allow players to add augments or sele
 | Moon      | Moon Augment Slot      | (Moon gems) |
 | Sun       | Sun Augment Slot       | (Sun gems)  |
 
+### Lammodia Augment Slots
+
+**Lammodia augments** are special augment slots found on certain items. They are characterized by their specific slot names:
+
+| Slot Name                 | Item Type | Notes                        |
+| ------------------------- | --------- | ---------------------------- |
+| Melancholic Slot (Weapon) | Weapon    | Accepts Melancholic augments |
+| Dolorous Slot (Weapon)    | Weapon    | Accepts Dolorous augments    |
+| Miserable Slot (Weapon)   | Weapon    | Accepts Miserable augments   |
+| Woeful Slot (Weapon)      | Weapon    | Accepts Woeful augments      |
+| Melancholic Slot          | Accessory | Accepts Melancholic augments |
+| Dolorous Slot             | Accessory | Accepts Dolorous augments    |
+| Miserable Slot            | Accessory | Accepts Miserable augments   |
+| Woeful Slot               | Accessory | Accepts Woeful augments      |
+
+**UI Sorting**: Lammodia augments are sorted to the bottom of crafting slot lists (weapon variants appear last, after accessory variants).
+
 ### Augment Slot Compatibility
 
 **Core Rule**: Some augments can fit in multiple slot colors.

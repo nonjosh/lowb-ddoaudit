@@ -1,5 +1,5 @@
 import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
-import { combineAffixes, getPropertyTotal } from './affixStacking'
+import { combineAffixes, getPropertyTotal, isComplexProperty } from './affixStacking'
 import {
   autoSelectCraftingOptions,
   autoSelectCraftingOptionsForGearSetup,
@@ -8,6 +8,7 @@ import {
   getCraftingSetMemberships,
   GearCraftingSelections
 } from './craftingHelpers'
+import { FightingStyle, getValidWeaponsForStyle } from './fightingStyles'
 import { getGearAffixes, GearSetup, GEAR_SLOTS, getItemsBySlot, getSlotKey } from './gearSetup'
 
 /**
@@ -15,7 +16,7 @@ import { getGearAffixes, GearSetup, GEAR_SLOTS, getItemsBySlot, getSlotKey } fro
  * DDO rules: Only 1 minor artifact can be worn at a time
  */
 function countMinorArtifacts(setup: GearSetup): number {
-  const slots: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+  const slots: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket', 'mainHand', 'offHand']
   return slots.filter(slot => setup[slot]?.artifact === true).length
 }
 
@@ -82,6 +83,12 @@ export interface OptimizationOptions {
   excludedAugments?: string[]
   /** Adventure pack names to exclude (filters augments by their source quests) */
   excludedPacks?: string[]
+  /** Fighting style for weapon optimization */
+  fightingStyle?: FightingStyle
+  /** Main hand weapon types to allow (empty = all types allowed) */
+  mainHandTypes?: string[]
+  /** Off hand types to allow (empty = all types allowed) */
+  offHandTypes?: string[]
 }
 
 /**
@@ -106,7 +113,7 @@ export function calculateScore(
   activeSets: number
   craftingSelections: GearCraftingSelections
 } {
-  const slotKeys: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+  const slotKeys: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket', 'mainHand', 'offHand']
 
   // Get base affixes from gear first (without crafting) to know what's already covered
   const baseAffixes = getGearAffixes(setup, setsData, [])
@@ -228,7 +235,7 @@ export function optimizeGear(
   setsData: SetsData | null,
   options: OptimizationOptions
 ): OptimizedGearSetup[] {
-  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false, pinnedGear, excludedAugments = [], excludedPacks = [] } = options
+  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false, pinnedGear, excludedAugments = [], excludedPacks = [], fightingStyle = 'none', mainHandTypes = [], offHandTypes = [] } = options
 
   // Filter items by ML range and optional custom filter
   let filteredItems = items.filter(item => item.ml >= minML && item.ml <= maxML)
@@ -265,6 +272,21 @@ export function optimizeGear(
     }
 
     let itemsForSlot = getItemsBySlot(filteredItems, slot)
+
+    // Apply weapon filtering based on fighting style
+    if (slot === 'Weapon') {
+      itemsForSlot = getValidWeaponsForStyle(itemsForSlot, fightingStyle, 'mainHand')
+      // Apply main hand type filter if specified
+      if (mainHandTypes.length > 0) {
+        itemsForSlot = itemsForSlot.filter(item => item.type && mainHandTypes.includes(item.type))
+      }
+    } else if (slot === 'Offhand') {
+      itemsForSlot = getValidWeaponsForStyle(itemsForSlot, fightingStyle, 'offHand')
+      // Apply off hand type filter if specified
+      if (offHandTypes.length > 0) {
+        itemsForSlot = itemsForSlot.filter(item => item.type && offHandTypes.includes(item.type))
+      }
+    }
 
     // Apply armor type filter for Armor slot
     if (slot === 'Armor' && armorType !== 'Any') {
@@ -368,6 +390,22 @@ export function optimizeGear(
           const validRing2 = items.find(item => item !== baseSetup.ring1 && !wouldViolateArtifactLimit(baseSetup, item, 'ring2'))
           if (validRing2) {
             baseSetup.ring2 = validRing2
+          }
+        }
+      } else if (slot === 'Weapon') {
+        // Handle main hand weapon
+        if (!pinnedSlots.has('mainHand')) {
+          const validWeapon = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, 'mainHand'))
+          if (validWeapon) {
+            baseSetup.mainHand = validWeapon
+          }
+        }
+      } else if (slot === 'Offhand') {
+        // Handle off-hand
+        if (!pinnedSlots.has('offHand')) {
+          const validOffhand = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, 'offHand'))
+          if (validOffhand) {
+            baseSetup.offHand = validOffhand
           }
         }
       } else {
@@ -511,6 +549,24 @@ export function optimizeGear(
               foundSetItems = true
             }
           }
+        } else if (slot === 'Weapon') {
+          if (!pinnedSlots.has('mainHand')) {
+            const items = slotItems.get(slot) || []
+            const setItem = items.find(item => item.sets?.includes(setName))
+            if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, 'mainHand')) {
+              setSetup.mainHand = setItem
+              foundSetItems = true
+            }
+          }
+        } else if (slot === 'Offhand') {
+          if (!pinnedSlots.has('offHand')) {
+            const items = slotItems.get(slot) || []
+            const setItem = items.find(item => item.sets?.includes(setName))
+            if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, 'offHand')) {
+              setSetup.offHand = setItem
+              foundSetItems = true
+            }
+          }
         } else if (!pinnedSlots.has(key)) {
           const items = slotItems.get(slot) || []
           const setItem = items.find(item => item.sets?.includes(setName))
@@ -542,7 +598,7 @@ export function optimizeGear(
   if (mustIncludeArtifact) {
     results = results.filter(result => {
       const setup = result.setup
-      const slots: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+      const slots: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket', 'mainHand', 'offHand']
       return slots.some(slot => setup[slot]?.artifact === true)
     })
   }
@@ -577,9 +633,6 @@ export function getAllAvailableProperties(items: Item[]): string[] {
       }
     }
   }
-
-  // Import isComplexProperty to filter out complex properties
-  const { isComplexProperty } = require('./affixStacking')
 
   // Filter out complex properties from the available list
   return Array.from(propertySet)

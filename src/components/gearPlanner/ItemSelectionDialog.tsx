@@ -1,22 +1,29 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 
 import CloseIcon from '@mui/icons-material/Close'
 import SearchIcon from '@mui/icons-material/Search'
 import {
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   IconButton,
   InputAdornment,
+  InputLabel,
+  MenuItem,
+  OutlinedInput,
   Paper,
+  Select,
   TextField,
   Typography
 } from '@mui/material'
 
 import { Item } from '@/api/ddoGearPlanner'
+import type { CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { formatAffix } from '@/utils/affixHelpers'
 import InventoryBadge from './InventoryBadge'
 import { ItemSelectionTable } from './ItemSelectionTable'
@@ -28,6 +35,8 @@ interface ItemSelectionDialogProps {
   currentItem?: Item
   slotName: string
   onSelect: (item: Item | undefined) => void
+  craftingData?: CraftingData | null
+  setsData?: SetsData | null
 }
 
 export default function ItemSelectionDialog({
@@ -36,22 +45,61 @@ export default function ItemSelectionDialog({
   items,
   currentItem,
   slotName,
-  onSelect
+  onSelect,
+  craftingData,
+  setsData
 }: ItemSelectionDialogProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Filter items by search term (name, affixes, or quests)
+  // Get unique types from items for filtering
+  const uniqueTypes = useMemo(() => {
+    const types = new Set<string>()
+    items.forEach(item => {
+      if (item.type) types.add(item.type)
+    })
+    return Array.from(types).sort()
+  }, [items])
+
+  // Compute default type filter - use current item type or first available type
+  // This reduces the initial item list dramatically, improving performance
+  const defaultTypeFilter = useMemo(() => {
+    if (!open) return []
+    if (uniqueTypes.length === 0) return []
+
+    // If current item has a type, use that
+    if (currentItem?.type && uniqueTypes.includes(currentItem.type)) {
+      return [currentItem.type]
+    }
+
+    // Otherwise, use the first available type to limit the initial list
+    return [uniqueTypes[0]]
+  }, [open, uniqueTypes, currentItem])
+
+  const [typeFilter, setTypeFilter] = useState<string[]>(defaultTypeFilter)
+
+  // Update typeFilter when defaultTypeFilter changes (e.g., when dialog opens)
+  useEffect(() => {
+    setTypeFilter(defaultTypeFilter)
+  }, [defaultTypeFilter])
+
+  // Reset search term when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setSearchTerm('')
+    }
+  }, [open])
+
+  // Filter items by search term (name, affixes, or quests) and type
   const filteredItems = items.filter(item => {
     const searchLower = searchTerm.toLowerCase()
-    if (item.name.toLowerCase().includes(searchLower)) return true
+    const matchesSearch = !searchTerm ||
+      item.name.toLowerCase().includes(searchLower) ||
+      item.affixes.some(affix => affix.name.toLowerCase().includes(searchLower)) ||
+      item.quests?.some(quest => quest.toLowerCase().includes(searchLower))
 
-    // Search in affixes
-    if (item.affixes.some(affix => affix.name.toLowerCase().includes(searchLower))) return true
+    const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
 
-    // Search in quest names
-    if (item.quests?.some(quest => quest.toLowerCase().includes(searchLower))) return true
-
-    return false
+    return matchesSearch && matchesType
   })
 
   const handleSelect = (item: Item) => {
@@ -75,7 +123,7 @@ export default function ItemSelectionDialog({
         </Box>
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
           <TextField
             fullWidth
             size="small"
@@ -90,6 +138,32 @@ export default function ItemSelectionDialog({
               )
             }}
           />
+          {uniqueTypes.length > 0 && (
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Filter by Type</InputLabel>
+              <Select
+                multiple
+                value={typeFilter}
+                label="Filter by Type"
+                input={<OutlinedInput label="Filter by Type" />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip key={value} label={value} size="small" />
+                    ))}
+                  </Box>
+                )}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setTypeFilter(typeof value === 'string' ? value.split(',') : value)
+                }}
+              >
+                {uniqueTypes.map(type => (
+                  <MenuItem key={type} value={type}>{type}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </Box>
 
         {/* Currently Equipped Item with Effects */}
@@ -125,6 +199,8 @@ export default function ItemSelectionDialog({
           onSelect={handleSelect}
           maxHeight={500}
           sortByML={true}
+          craftingData={craftingData}
+          setsData={setsData}
         />
       </DialogContent>
       <DialogActions>

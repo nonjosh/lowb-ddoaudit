@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import BlockIcon from '@mui/icons-material/Block'
@@ -29,7 +29,7 @@ import {
   Typography
 } from '@mui/material'
 
-import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
+import { Item, ItemAffix, SetsData, CraftingData } from '@/api/ddoGearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
 import {
   GearCraftingSelections,
@@ -63,6 +63,7 @@ interface GearDisplayProps {
   onSetNameHover?: (setName: string | null) => void
   craftingSelections?: GearCraftingSelections
   setsData?: SetsData | null
+  craftingData?: CraftingData | null
   onGearChange?: (slot: string, item: Item | undefined) => void
   availableItems?: Item[]
   onPropertyAdd?: (property: string) => void
@@ -76,6 +77,8 @@ interface GearDisplayProps {
 
 const slotDisplayNames: Record<string, string> = {
   armor: 'Armor',
+  mainHand: 'Main Hand',
+  offHand: 'Off Hand',
   belt: 'Belt',
   boots: 'Boots',
   bracers: 'Bracers',
@@ -114,7 +117,7 @@ function getAugmentWikiUrl(augmentName: string): string {
 }
 
 // Crafting slot type priority for sorting
-// blue/yellow/red => green/purple/orange => colorless => moon/sun => others
+// blue/yellow/red => green/purple/orange => colorless => moon/sun => Lammodia accessory => Lammodia weapon => others
 function getCraftingSlotPriority(slotType: string): number {
   const lower = slotType.toLowerCase()
   if (lower.includes('blue augment')) return 1
@@ -126,6 +129,17 @@ function getCraftingSlotPriority(slotType: string): number {
   if (lower.includes('colorless augment')) return 7
   if (lower.includes('moon augment')) return 8
   if (lower.includes('sun augment')) return 9
+
+  // Lammodia augments (Melancholic, Dolorous, Miserable, Woeful)
+  const isLammodia = lower.includes('melancholic') || lower.includes('dolorous') ||
+    lower.includes('miserable') || lower.includes('woeful')
+  if (isLammodia) {
+    // Accessory variants come before weapon variants
+    if (lower.includes('accessory')) return 97 // Lammodia accessory
+    if (lower.includes('armor')) return 98 // Lammodia armor
+    return 99 // Lammodia weapon
+  }
+
   return 100 // others
 }
 
@@ -173,6 +187,8 @@ function GearSlotCard({
   onGearChange,
   onSetNameHover,
   availableItems,
+  craftingData,
+  setsData,
   onPropertyAdd,
   isPinned,
   onTogglePin,
@@ -191,6 +207,8 @@ function GearSlotCard({
   onGearChange?: (item: Item | undefined) => void
   onSetNameHover?: (setName: string | null) => void
   availableItems?: Item[]
+  craftingData?: CraftingData | null
+  setsData?: SetsData | null
   onPropertyAdd?: (property: string) => void
   isPinned?: boolean
   onTogglePin?: () => void
@@ -225,20 +243,21 @@ function GearSlotCard({
                 </Tooltip>
               )}
             </Box>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Not equipped
-            </Typography>
-            {onGearChange && availableItems && availableItems.length > 0 && (
-              <Tooltip title="Select item">
-                <IconButton
-                  size="small"
-                  onClick={() => setDialogOpen(true)}
-                  sx={{ mt: 0.5 }}
-                >
-                  <SwapHorizIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Not equipped
+              </Typography>
+              {onGearChange && availableItems && availableItems.length > 0 && (
+                <Tooltip title="Select item">
+                  <IconButton
+                    size="small"
+                    onClick={() => setDialogOpen(true)}
+                  >
+                    <SwapHorizIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
           </CardContent>
         </Card>
         {onGearChange && availableItems && (
@@ -248,6 +267,8 @@ function GearSlotCard({
             items={availableItems}
             slotName={slotName}
             onSelect={(item) => onGearChange(item)}
+            craftingData={craftingData}
+            setsData={setsData}
           />
         )}
       </>
@@ -381,9 +402,16 @@ function GearSlotCard({
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Typography variant="caption" color="text.secondary">
-              ML {item.ml}
-            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline' }}>
+              <Typography variant="caption" color="text.secondary">
+                ML {item.ml}
+              </Typography>
+              {item.type && (
+                <Typography variant="caption" color="text.secondary">
+                  • {item.type}
+                </Typography>
+              )}
+            </Box>
             {item.quests && item.quests.length > 0 && (
               <Link
                 href={`https://ddowiki.com/page/${item.quests[0].replace(/\s+/g, '_')}`}
@@ -530,6 +558,8 @@ function GearSlotCard({
           currentItem={item}
           slotName={slotName}
           onSelect={(newItem) => onGearChange(newItem)}
+          craftingData={craftingData}
+          setsData={setsData}
         />
       )}
     </>
@@ -549,6 +579,7 @@ export default function GearDisplay({
   onSetNameHover,
   craftingSelections,
   setsData,
+  craftingData,
   onGearChange,
   availableItems,
   onPropertyAdd,
@@ -563,7 +594,7 @@ export default function GearDisplay({
   const [craftingExpanded, setCraftingExpanded] = useState(false)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
   const [selectedSetName, setSelectedSetName] = useState<string>('')
-  const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+  const slots = ['armor', 'mainHand', 'offHand', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
   // Show all slots, not just equipped ones
   const allSlots = slots
@@ -720,6 +751,30 @@ export default function GearDisplay({
     return item?.artifact === true
   }).length
 
+  // Memoize slot-specific available items filtering to prevent lag when changing items
+  const slotAvailableItemsMap = useMemo(() => {
+    const map = new Map<string, Item[]>()
+    if (!availableItems) return map
+
+    allSlots.forEach(slot => {
+      const filtered = availableItems.filter(item => {
+        if (slot === 'ring1' || slot === 'ring2') {
+          return item.slot === 'Ring'
+        }
+        if (slot === 'mainHand') {
+          return item.slot === 'Weapon'
+        }
+        if (slot === 'offHand') {
+          return item.slot === 'Offhand' || item.slot === 'Weapon'
+        }
+        return item.slot === slotDisplayNames[slot]
+      })
+      map.set(slot, filtered)
+    })
+
+    return map
+  }, [availableItems])
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
@@ -751,13 +806,8 @@ export default function GearDisplay({
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {allSlots.map(slot => {
-          // Get available items for this slot (filtered by slot type)
-          const slotAvailableItems = availableItems?.filter(item => {
-            if (slot === 'ring1' || slot === 'ring2') {
-              return item.slot === 'Ring'
-            }
-            return item.slot === slotDisplayNames[slot]
-          })
+          // Get pre-filtered available items for this slot from memoized map
+          const slotAvailableItems = slotAvailableItemsMap.get(slot)
 
           return (
             <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={slot}>
@@ -774,6 +824,8 @@ export default function GearDisplay({
                 onGearChange={onGearChange ? (item) => onGearChange(slot, item) : undefined}
                 onSetNameHover={onSetNameHover}
                 availableItems={slotAvailableItems}
+                craftingData={craftingData}
+                setsData={setsData}
                 onPropertyAdd={onPropertyAdd}
                 isPinned={pinnedSlots?.has(slot)}
                 onTogglePin={onTogglePin ? () => onTogglePin(slot, setup) : undefined}

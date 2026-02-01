@@ -18,10 +18,11 @@ import {
   Typography
 } from '@mui/material'
 
-import { Item, ItemAffix } from '@/api/ddoGearPlanner'
+import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
-import { formatAffix } from '@/utils/affixHelpers'
+import { formatAffix, getAugmentColor } from '@/utils/affixHelpers'
 import InventoryBadge from './InventoryBadge'
+import ItemCraftingDisplay from '../items/ItemCraftingDisplay'
 
 interface ItemSelectionTableProps {
   items: Item[]
@@ -29,6 +30,8 @@ interface ItemSelectionTableProps {
   onSelect: (item: Item) => void
   maxHeight?: number
   sortByML?: boolean
+  craftingData?: CraftingData | null
+  setsData?: SetsData | null
 }
 
 /**
@@ -40,7 +43,9 @@ export function ItemSelectionTable({
   currentItem,
   onSelect,
   maxHeight = 500,
-  sortByML = true
+  sortByML = true,
+  craftingData,
+  setsData: _setsData
 }: ItemSelectionTableProps) {
   const { isWished, toggleWish } = useWishlist()
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null)
@@ -77,6 +82,30 @@ export function ItemSelectionTable({
     return newValue - currentValue
   }
 
+  // Get crafting options for tooltip
+  const getCraftingOptions = (craft: string): string[] => {
+    if (!craftingData) return []
+    const data = craftingData
+    if (data[craft] && data[craft]["*"]) {
+      const craftItems = data[craft]["*"]
+      if (craftItems.length > 0 && craftItems[0].affixes) {
+        const optionsArray: string[] = []
+        craftItems.forEach((item) => {
+          if (!item.affixes) return
+          item.affixes.forEach((affix) => {
+            // Use plain text formatting for comparison
+            const formatted = `${affix.name}${affix.value ? ` ${affix.value}` : ''}`
+            if (!optionsArray.includes(formatted)) {
+              optionsArray.push(formatted)
+            }
+          })
+        })
+        return optionsArray
+      }
+    }
+    return []
+  }
+
   // Get all unique properties from both current and hovered item
   const getComparisonProperties = (): string[] => {
     if (!hoveredItem || !currentItem) return []
@@ -96,6 +125,7 @@ export function ItemSelectionTable({
             <TableCell>Item</TableCell>
             <TableCell align="center">ML</TableCell>
             <TableCell>Effects</TableCell>
+            <TableCell>Augments/Crafting</TableCell>
             <TableCell>Quest/Source</TableCell>
             <TableCell align="center">Action</TableCell>
           </TableRow>
@@ -103,7 +133,7 @@ export function ItemSelectionTable({
         <TableBody>
           {sortedItems.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} align="center">
+              <TableCell colSpan={6} align="center">
                 <Typography color="text.secondary">No items found</Typography>
               </TableCell>
             </TableRow>
@@ -173,6 +203,15 @@ export function ItemSelectionTable({
                         </Typography>
                       )}
                     </Box>
+                  </TableCell>
+                  <TableCell>
+                    {item.crafting && (
+                      <ItemCraftingDisplay
+                        crafting={item.crafting}
+                        getAugmentColor={getAugmentColor}
+                        getCraftingOptions={getCraftingOptions}
+                      />
+                    )}
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" noWrap sx={{ maxWidth: 150, display: 'block' }}>

@@ -14,7 +14,9 @@ export const GEAR_SLOTS = [
   'Helm',
   'Necklace',
   'Ring',
-  'Trinket'
+  'Trinket',
+  'Weapon',
+  'Offhand'
 ] as const
 
 export type GearSlot = typeof GEAR_SLOTS[number]
@@ -35,6 +37,8 @@ export interface GearSetup {
   ring1?: Item
   ring2?: Item
   trinket?: Item
+  mainHand?: Item
+  offHand?: Item
 }
 
 /**
@@ -46,6 +50,12 @@ export function itemFitsSlot(item: Item, slot: GearSlot): boolean {
   }
   if (slot === 'Trinket') {
     return item.slot === 'Trinket'
+  }
+  if (slot === 'Weapon') {
+    return item.slot === 'Weapon'
+  }
+  if (slot === 'Offhand') {
+    return item.slot === 'Offhand'
   }
   return item.slot === slot
 }
@@ -77,7 +87,9 @@ export function getGearAffixes(
     setup.necklace,
     setup.ring1,
     setup.ring2,
-    setup.trinket
+    setup.trinket,
+    setup.mainHand,
+    setup.offHand
   ]
 
   // Count set items
@@ -127,6 +139,12 @@ export function getItemsBySlot(items: Item[], slot: GearSlot): Item[] {
 export function getSlotKey(slot: GearSlot, index?: number): keyof GearSetup {
   if (slot === 'Ring') {
     return index === 1 ? 'ring2' : 'ring1'
+  }
+  if (slot === 'Weapon') {
+    return 'mainHand'
+  }
+  if (slot === 'Offhand') {
+    return 'offHand'
   }
   return slot.toLowerCase() as keyof GearSetup
 }
