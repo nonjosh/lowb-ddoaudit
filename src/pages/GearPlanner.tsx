@@ -6,7 +6,6 @@ import {
   Badge,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Container,
   FormControl,
@@ -14,7 +13,6 @@ import {
   IconButton,
   InputLabel,
   MenuItem,
-  OutlinedInput,
   Paper,
   Select,
   Switch,
@@ -23,7 +21,6 @@ import {
 } from '@mui/material'
 
 import GearDisplay from '@/components/gearPlanner/GearDisplay'
-import FightingStyleSelector from '@/components/gearPlanner/FightingStyleSelector'
 import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import IgnoreListDialog from '@/components/gearPlanner/SettingsDialog'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
@@ -32,7 +29,7 @@ import TroveImportDialog from '@/components/gearPlanner/TroveImportDialog'
 
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
-import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup, FightingStyle, getValidWeaponsForStyle } from '@/domains/gearPlanner'
+import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup } from '@/domains/gearPlanner'
 import { Item } from '@/api/ddoGearPlanner'
 
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
@@ -47,9 +44,6 @@ const AUTO_OPTIMIZE_KEY = 'gearPlanner_autoOptimize'
 const EXCLUDED_PACKS_KEY = 'gearPlanner_excludedPacks'
 const EXCLUDED_AUGMENTS_KEY = 'gearPlanner_excludedAugments'
 const EXCLUDED_ITEMS_KEY = 'gearPlanner_excludedItems'
-const FIGHTING_STYLE_KEY = 'gearPlanner_fightingStyle'
-const MAIN_HAND_TYPES_KEY = 'gearPlanner_mainHandTypes'
-const OFF_HAND_TYPES_KEY = 'gearPlanner_offHandTypes'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -316,68 +310,6 @@ function saveExcludedItems(items: string[]): void {
   }
 }
 
-function loadFightingStyle(): FightingStyle {
-  try {
-    const stored = localStorage.getItem(FIGHTING_STYLE_KEY)
-    if (stored) {
-      return stored as FightingStyle
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return 'none'
-}
-
-function saveFightingStyle(style: FightingStyle): void {
-  try {
-    localStorage.setItem(FIGHTING_STYLE_KEY, style)
-  } catch {
-    // Ignore storage errors
-  }
-}
-
-function loadMainHandTypes(): string[] {
-  try {
-    const stored = localStorage.getItem(MAIN_HAND_TYPES_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return []
-}
-
-function saveMainHandTypes(types: string[]): void {
-  try {
-    localStorage.setItem(MAIN_HAND_TYPES_KEY, JSON.stringify(types))
-  } catch {
-    // Ignore storage errors
-  }
-}
-
-function loadOffHandTypes(): string[] {
-  try {
-    const stored = localStorage.getItem(OFF_HAND_TYPES_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return []
-}
-
-function saveOffHandTypes(types: string[]): void {
-  try {
-    localStorage.setItem(OFF_HAND_TYPES_KEY, JSON.stringify(types))
-  } catch {
-    // Ignore storage errors
-  }
-}
-
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
   const { inventoryMap, isItemAvailableForCharacters, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems, hiddenCharacterIds } = useTrove()
@@ -405,9 +337,6 @@ export default function GearPlanner() {
   const [excludedPacks, setExcludedPacks] = useState<string[]>(loadExcludedPacks)
   const [excludedAugments, setExcludedAugments] = useState<string[]>(loadExcludedAugments)
   const [excludedItems, setExcludedItems] = useState<string[]>(loadExcludedItems)
-  const [fightingStyle, setFightingStyle] = useState<FightingStyle>(loadFightingStyle)
-  const [mainHandTypes, setMainHandTypes] = useState<string[]>(loadMainHandTypes)
-  const [offHandTypes, setOffHandTypes] = useState<string[]>(loadOffHandTypes)
 
   // Sort characters alphabetically by name and filter out hidden
   const sortedCharacters = useMemo(() => {
@@ -434,51 +363,6 @@ export default function GearPlanner() {
     if (!setsData) return []
     return Object.keys(setsData).sort()
   }, [setsData])
-
-  // Get unique weapon types for main hand and off hand filters
-  const { mainHandWeaponTypes, availableOffHandTypes } = useMemo(() => {
-    const mainHandTypes = new Set<string>()
-    const offHandTypesSet = new Set<string>()
-
-    items.forEach(item => {
-      if (item.slot === 'Weapon' && item.type) {
-        mainHandTypes.add(item.type)
-      }
-      if (item.slot === 'Offhand' && item.type) {
-        offHandTypesSet.add(item.type)
-      }
-    })
-
-    return {
-      mainHandWeaponTypes: Array.from(mainHandTypes).sort(),
-      availableOffHandTypes: Array.from(offHandTypesSet).sort()
-    }
-  }, [items])
-
-  // Filter weapon types based on fighting style
-  const filteredMainHandTypes = useMemo(() => {
-    if (fightingStyle === 'none') return mainHandWeaponTypes
-
-    const validItems = items.filter(item => item.slot === 'Weapon')
-    const validWeapons = getValidWeaponsForStyle(validItems, fightingStyle, 'mainHand')
-    const types = new Set<string>()
-    validWeapons.forEach(item => {
-      if (item.type) types.add(item.type)
-    })
-    return Array.from(types).sort()
-  }, [items, mainHandWeaponTypes, fightingStyle])
-
-  const filteredOffHandTypes = useMemo(() => {
-    if (fightingStyle === 'none') return availableOffHandTypes
-
-    const validItems = items.filter(item => item.slot === 'Offhand')
-    const validOffHands = getValidWeaponsForStyle(validItems, fightingStyle, 'offHand')
-    const types = new Set<string>()
-    validOffHands.forEach(item => {
-      if (item.type) types.add(item.type)
-    })
-    return Array.from(types).sort()
-  }, [items, availableOffHandTypes, fightingStyle])
 
   // Handle pin/unpin slot
   const handleTogglePin = useCallback((slot: string, currentSetup: GearSetup) => {
@@ -554,38 +438,6 @@ export default function GearPlanner() {
       }
       return newList
     })
-  }, [autoOptimize])
-
-  const handleFightingStyleChange = useCallback((style: FightingStyle) => {
-    setFightingStyle(style)
-    saveFightingStyle(style)
-
-    // Clear weapon type filters that are no longer valid for the new fighting style
-    // This will be recalculated by the filteredMainHandTypes/filteredOffHandTypes useMemos
-    setMainHandTypes([])
-    setOffHandTypes([])
-    saveMainHandTypes([])
-    saveOffHandTypes([])
-
-    if (autoOptimize) {
-      setOptimizationKey(k => k + 1)
-    }
-  }, [autoOptimize])
-
-  const handleMainHandTypesChange = useCallback((types: string[]) => {
-    setMainHandTypes(types)
-    saveMainHandTypes(types)
-    if (autoOptimize) {
-      setOptimizationKey(k => k + 1)
-    }
-  }, [autoOptimize])
-
-  const handleOffHandTypesChange = useCallback((types: string[]) => {
-    setOffHandTypes(types)
-    saveOffHandTypes(types)
-    if (autoOptimize) {
-      setOptimizationKey(k => k + 1)
-    }
   }, [autoOptimize])
 
   // Handle property selection change with persistence
@@ -753,14 +605,11 @@ export default function GearPlanner() {
       mustIncludeArtifact,
       pinnedGear: pinnedGearSetup,
       excludedAugments,
-      excludedPacks,
-      fightingStyle,
-      mainHandTypes,
-      offHandTypes
+      excludedPacks
     })
     // optimizationKey is intentionally included to force re-optimization when manual refresh is clicked
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap, isItemAvailableForCharacters, maxML, armorType, excludeSetAugments, mustIncludeArtifact, pinnedSlots, pinnedItems, excludedItems, excludedPacks, excludedAugments, fightingStyle, mainHandTypes, offHandTypes, optimizationKey])
+  }, [items, setsData, craftingData, selectedProperties, availableItemsOnly, inventoryMap, isItemAvailableForCharacters, maxML, armorType, excludeSetAugments, mustIncludeArtifact, pinnedSlots, pinnedItems, excludedItems, excludedPacks, excludedAugments, optimizationKey])
 
   // Handle manual gear change
   const handleGearChange = useCallback((slot: string, item: Item | undefined) => {
@@ -1012,75 +861,6 @@ export default function GearPlanner() {
                   <MenuItem value="Heavy">Heavy</MenuItem>
                 </Select>
               </FormControl>
-            </Box>
-          </Box>
-
-          {/* Weapon Filters */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Weapon Style
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-              <Box sx={{ minWidth: 200 }}>
-                <FightingStyleSelector
-                  value={fightingStyle}
-                  onChange={handleFightingStyleChange}
-                />
-              </Box>
-
-              {fightingStyle !== 'none' && filteredMainHandTypes.length > 0 && (
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Main Hand Type</InputLabel>
-                  <Select
-                    multiple
-                    value={mainHandTypes.filter(t => filteredMainHandTypes.includes(t))}
-                    label="Main Hand Type"
-                    input={<OutlinedInput label="Main Hand Type" />}
-                    renderValue={(selected) => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value) => (
-                          <Chip key={value} label={value} size="small" />
-                        ))}
-                      </Box>
-                    )}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      handleMainHandTypesChange(typeof value === 'string' ? value.split(',') : value)
-                    }}
-                  >
-                    {filteredMainHandTypes.map(type => (
-                      <MenuItem key={type} value={type}>{type}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-
-              {fightingStyle !== 'none' && filteredOffHandTypes.length > 0 && (
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Off Hand Type</InputLabel>
-                  <Select
-                    multiple
-                    value={offHandTypes.filter(t => filteredOffHandTypes.includes(t))}
-                    label="Off Hand Type"
-                    input={<OutlinedInput label="Off Hand Type" />}
-                    renderValue={(selected) => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value) => (
-                          <Chip key={value} label={value} size="small" />
-                        ))}
-                      </Box>
-                    )}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      handleOffHandTypesChange(typeof value === 'string' ? value.split(',') : value)
-                    }}
-                  >
-                    {filteredOffHandTypes.map(type => (
-                      <MenuItem key={type} value={type}>{type}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
             </Box>
           </Box>
 

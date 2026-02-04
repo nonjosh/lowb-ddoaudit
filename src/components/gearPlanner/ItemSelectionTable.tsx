@@ -44,8 +44,7 @@ export function ItemSelectionTable({
   onSelect,
   maxHeight = 500,
   sortByML = true,
-  craftingData,
-  setsData: _setsData
+  craftingData
 }: ItemSelectionTableProps) {
   const { isWished, toggleWish } = useWishlist()
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null)

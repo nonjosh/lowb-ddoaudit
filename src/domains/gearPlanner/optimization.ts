@@ -8,7 +8,6 @@ import {
   getCraftingSetMemberships,
   GearCraftingSelections
 } from './craftingHelpers'
-import { FightingStyle, getValidWeaponsForStyle } from './fightingStyles'
 import { getGearAffixes, GearSetup, GEAR_SLOTS, getItemsBySlot, getSlotKey } from './gearSetup'
 
 /**
@@ -83,12 +82,6 @@ export interface OptimizationOptions {
   excludedAugments?: string[]
   /** Adventure pack names to exclude (filters augments by their source quests) */
   excludedPacks?: string[]
-  /** Fighting style for weapon optimization */
-  fightingStyle?: FightingStyle
-  /** Main hand weapon types to allow (empty = all types allowed) */
-  mainHandTypes?: string[]
-  /** Off hand types to allow (empty = all types allowed) */
-  offHandTypes?: string[]
 }
 
 /**
@@ -235,7 +228,7 @@ export function optimizeGear(
   setsData: SetsData | null,
   options: OptimizationOptions
 ): OptimizedGearSetup[] {
-  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false, pinnedGear, excludedAugments = [], excludedPacks = [], fightingStyle = 'none', mainHandTypes = [], offHandTypes = [] } = options
+  const { properties, maxResults = 10, minML = 1, maxML = 34, craftingData, itemFilter, armorType = 'Any', excludeSetAugments = false, mustIncludeArtifact = false, pinnedGear, excludedAugments = [], excludedPacks = [] } = options
 
   // Filter items by ML range and optional custom filter
   let filteredItems = items.filter(item => item.ml >= minML && item.ml <= maxML)
@@ -259,6 +252,12 @@ export function optimizeGear(
   const slotItems = new Map<string, Item[]>()
 
   for (const slot of GEAR_SLOTS) {
+    // Skip weapon slots to avoid lag during optimization
+    // Weapons can still be manually selected and their effects will be calculated
+    if (slot === 'Weapon' || slot === 'Offhand') {
+      continue
+    }
+
     // Skip pinned slots - they won't be optimized
     const slotKey = getSlotKey(slot)
     if (slot === 'Ring') {
@@ -272,21 +271,6 @@ export function optimizeGear(
     }
 
     let itemsForSlot = getItemsBySlot(filteredItems, slot)
-
-    // Apply weapon filtering based on fighting style
-    if (slot === 'Weapon') {
-      itemsForSlot = getValidWeaponsForStyle(itemsForSlot, fightingStyle, 'mainHand')
-      // Apply main hand type filter if specified
-      if (mainHandTypes.length > 0) {
-        itemsForSlot = itemsForSlot.filter(item => item.type && mainHandTypes.includes(item.type))
-      }
-    } else if (slot === 'Offhand') {
-      itemsForSlot = getValidWeaponsForStyle(itemsForSlot, fightingStyle, 'offHand')
-      // Apply off hand type filter if specified
-      if (offHandTypes.length > 0) {
-        itemsForSlot = itemsForSlot.filter(item => item.type && offHandTypes.includes(item.type))
-      }
-    }
 
     // Apply armor type filter for Armor slot
     if (slot === 'Armor' && armorType !== 'Any') {
@@ -390,22 +374,6 @@ export function optimizeGear(
           const validRing2 = items.find(item => item !== baseSetup.ring1 && !wouldViolateArtifactLimit(baseSetup, item, 'ring2'))
           if (validRing2) {
             baseSetup.ring2 = validRing2
-          }
-        }
-      } else if (slot === 'Weapon') {
-        // Handle main hand weapon
-        if (!pinnedSlots.has('mainHand')) {
-          const validWeapon = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, 'mainHand'))
-          if (validWeapon) {
-            baseSetup.mainHand = validWeapon
-          }
-        }
-      } else if (slot === 'Offhand') {
-        // Handle off-hand
-        if (!pinnedSlots.has('offHand')) {
-          const validOffhand = items.find(item => !wouldViolateArtifactLimit(baseSetup, item, 'offHand'))
-          if (validOffhand) {
-            baseSetup.offHand = validOffhand
           }
         }
       } else {
@@ -530,6 +498,11 @@ export function optimizeGear(
       let foundSetItems = false
 
       for (const slot of GEAR_SLOTS) {
+        // Skip weapon slots - they're not optimized
+        if (slot === 'Weapon' || slot === 'Offhand') {
+          continue
+        }
+
         const key = getSlotKey(slot)
         // Skip pinned slots
         if (slot === 'Ring') {
@@ -546,24 +519,6 @@ export function optimizeGear(
             const setItem = items.find(item => item.sets?.includes(setName) && item !== setSetup.ring1)
             if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, 'ring2')) {
               setSetup.ring2 = setItem
-              foundSetItems = true
-            }
-          }
-        } else if (slot === 'Weapon') {
-          if (!pinnedSlots.has('mainHand')) {
-            const items = slotItems.get(slot) || []
-            const setItem = items.find(item => item.sets?.includes(setName))
-            if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, 'mainHand')) {
-              setSetup.mainHand = setItem
-              foundSetItems = true
-            }
-          }
-        } else if (slot === 'Offhand') {
-          if (!pinnedSlots.has('offHand')) {
-            const items = slotItems.get(slot) || []
-            const setItem = items.find(item => item.sets?.includes(setName))
-            if (setItem && !wouldViolateArtifactLimit(setSetup, setItem, 'offHand')) {
-              setSetup.offHand = setItem
               foundSetItems = true
             }
           }
