@@ -222,9 +222,32 @@ export default function GearSuggestions({
                     </TableCell>
                     {selectedProperties.map(property => {
                       const value = suggestion.propertyValues.get(property) || 0
+                      const breakdown = suggestion.propertyBreakdowns?.get(property)
+
+                      // Build tooltip content showing bonus breakdown
+                      const tooltipContent = breakdown && breakdown.size > 0 ? (
+                        <Box>
+                          {Array.from(breakdown.entries())
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([bonusType, bonusValue]) => (
+                              <Typography key={bonusType} variant="caption" display="block">
+                                +{bonusValue} {bonusType}
+                              </Typography>
+                            ))}
+                        </Box>
+                      ) : null
+
                       return (
                         <TableCell key={property} align="right">
-                          +{value}
+                          {tooltipContent ? (
+                            <Tooltip title={tooltipContent} placement="top" arrow>
+                              <span style={{ cursor: 'help', borderBottom: '1px dotted' }}>
+                                +{value}
+                              </span>
+                            </Tooltip>
+                          ) : (
+                            <span>+{value}</span>
+                          )}
                         </TableCell>
                       )
                     })}

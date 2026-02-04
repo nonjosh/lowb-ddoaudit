@@ -40,13 +40,16 @@ DDO gear has **affixes** (properties like "+10 Strength") with **bonus types** (
 
 Some properties are **complex** - they represent multiple underlying properties:
 
-| Complex Property | Expands To                                                                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Well Rounded     | Strength + Constitution + Dexterity + Intelligence + Wisdom + Charisma                                                          |
-| Sheltering       | Physical Sheltering + Magical Sheltering                                                                                        |
-| Parrying         | Fortitude Save + Reflex Save + Will Save + Armor Class                                                                          |
-| Spell DC         | Abjuration DC + Conjuration DC + Divination DC + Enchantment DC + Evocation DC + Illusion DC + Necromancy DC + Transmutation DC |
-| Tactic DC        | Stunning DC + Sunder DC + Trip DC                                                                                               |
+| Complex Property    | Expands To                                                                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Well Rounded        | Strength + Constitution + Dexterity + Intelligence + Wisdom + Charisma                                                                                  |
+| Sheltering          | Physical Sheltering + Magical Sheltering                                                                                                                |
+| Parrying            | Fortitude Save + Reflex Save + Will Save + Armor Class                                                                                                  |
+| Spell DC            | Abjuration DC + Conjuration DC + Divination DC + Enchantment DC + Evocation DC + Illusion DC + Necromancy DC + Transmutation DC                         |
+| Tactic DC           | Stunning DC + Sunder DC + Trip DC                                                                                                                       |
+| Spell Focus Mastery | Abjuration Focus + Conjuration Focus + Divination Focus + Enchantment Focus + Evocation Focus + Illusion Focus + Necromancy Focus + Transmutation Focus |
+
+**Note**: "Spell Focus" in items is automatically normalized to "Spell Focus Mastery"
 
 **Game Rules**:
 
@@ -55,6 +58,8 @@ Some properties are **complex** - they represent multiple underlying properties:
 - "Parrying +5" means all three saves AND armor class gain +5 of the given bonus type
 - "Spell DC +2" means all eight spell school DCs gain +2 of the given bonus type
 - "Tactic DC +3" means all three tactical DCs gain +3 of the given bonus type
+- "Spell Focus Mastery +2" means all eight spell school Focus values gain +2 of the given bonus type
+- "Spell Focus +2" is normalized to "Spell Focus Mastery +2" (treated identically)
 
 **Note**: "Luck" for all skills and saves would be too broad (50+ properties) and is not currently implemented as a complex property.
 
@@ -370,7 +375,16 @@ The optimization algorithm checks artifact limits at three points:
 
 ## Changelog
 
-| Date    | Change                 | Reason                                    |
-| ------- | ---------------------- | ----------------------------------------- |
-| 2024-01 | Initial gear planner   | Support gear optimization                 |
-| 2024-03 | Added crafting scoring | Include augment potential in optimization |
+| Date       | Change                                               | Reason                                           |
+| ---------- | ---------------------------------------------------- | ------------------------------------------------ |
+| 2024-01    | Initial gear planner                                 | Support gear optimization                        |
+| 2024-03    | Added crafting scoring                               | Include augment potential in optimization        |
+| 2026-02-04 | Added Spell Focus complex properties                 | Fix optimization for Spell Focus/Mastery         |
+| 2026-02-04 | Normalize "Spell Focus" to "Spell Focus Mastery"     | Handle inconsistent naming in item data          |
+| 2026-02-04 | Fix complex property scoring in getPropertyTotal     | Allow optimizing for complex properties directly |
+| 2026-02-04 | Change forDisplay to use minimum instead of average  | Show baseline universal bonus, not average       |
+| 2026-02-04 | Add propertyBreakdowns to OptimizedGearSetup         | Enable bonus breakdown tooltips in UI            |
+| 2026-02-04 | Add getPropertyBreakdown function                    | Calculate minimum bonus breakdown for tooltips   |
+| 2026-02-04 | Export COMPLEX_PROPERTIES from affixStacking         | Allow other components to access definitions     |
+| 2026-02-04 | Show complex property bonuses in child columns       | Display universal bonuses in school columns      |
+| 2026-02-04 | Remove slot numbers from Property Breakdown tooltips | Cleaner tooltip formatting                       |

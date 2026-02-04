@@ -14,7 +14,7 @@ export interface PropertyValue {
 /**
  * Complex properties that expand to multiple underlying properties
  */
-const COMPLEX_PROPERTIES: Record<string, string[]> = {
+export const COMPLEX_PROPERTIES: Record<string, string[]> = {
   'Well Rounded': ['Strength', 'Constitution', 'Dexterity', 'Intelligence', 'Wisdom', 'Charisma'],
   'Sheltering': ['Physical Sheltering', 'Magical Sheltering'],
   'Parrying': ['Fortitude Save', 'Reflex Save', 'Will Save', 'Armor Class'],
@@ -28,7 +28,18 @@ const COMPLEX_PROPERTIES: Record<string, string[]> = {
     'Necromancy DC',
     'Transmutation DC'
   ],
-  'Tactic DC': ['Stunning DC', 'Sunder DC', 'Trip DC']
+  'Tactic DC': ['Stunning DC', 'Sunder DC', 'Trip DC'],
+  'Spell Focus Mastery': [
+    'Abjuration Focus',
+    'Conjuration Focus',
+    'Divination Focus',
+    'Enchantment Focus',
+    'Evocation Focus',
+    'Illusion Focus',
+    'Necromancy Focus',
+    'Transmutation Focus'
+  ]
+  // Note: 'Spell Focus' is normalized to 'Spell Focus Mastery' before expansion
   // Note: 'Luck' for all skills and saves would be too broad and is not included
 }
 
@@ -40,12 +51,27 @@ export function isComplexProperty(propertyName: string): boolean {
 }
 
 /**
+ * Normalize property names (handle aliases)
+ */
+function normalizePropertyName(name: string): string {
+  // Normalize "Spell Focus" to "Spell Focus Mastery"
+  if (name === 'Spell Focus') {
+    return 'Spell Focus Mastery'
+  }
+  return name
+}
+
+/**
  * Expand a complex property affix into its component properties
  */
 function expandComplexAffix(affix: ItemAffix): ItemAffix[] {
-  const expanded = COMPLEX_PROPERTIES[affix.name]
+  // Normalize the property name first
+  const normalizedName = normalizePropertyName(affix.name)
+  const expanded = COMPLEX_PROPERTIES[normalizedName]
+
   if (!expanded) {
-    return [affix]
+    // Return with normalized name
+    return [{ ...affix, name: normalizedName }]
   }
 
   // Create an affix for each component property with the same type and value
@@ -115,9 +141,89 @@ export function combineAffixes(affixes: ItemAffix[]): Map<string, PropertyValue>
 
 /**
  * Gets the total value for a specific property from combined affixes
+ *
+ * @param combinedAffixes - The combined affixes map
+ * @param propertyName - The property to query
+ * @param forDisplay - If true and property is complex, returns minimum instead of sum
+ *
+ * For complex properties:
+ * - When forDisplay=false (default): Returns sum of all components (for optimization scoring)
+ * - When forDisplay=true: Returns minimum of components (baseline universal bonus)
  */
-export function getPropertyTotal(combinedAffixes: Map<string, PropertyValue>, propertyName: string): number {
-  return combinedAffixes.get(propertyName)?.total || 0
+export function getPropertyTotal(
+  combinedAffixes: Map<string, PropertyValue>,
+  propertyName: string,
+  forDisplay = false
+): number {
+  // Normalize the property name first
+  const normalizedName = normalizePropertyName(propertyName)
+
+  // Check if this is a complex property
+  const components = COMPLEX_PROPERTIES[normalizedName]
+  if (components) {
+    if (forDisplay) {
+      // For display, return the minimum across all components
+      // This represents the guaranteed universal bonus to all schools
+      return Math.min(...components.map(componentName =>
+        combinedAffixes.get(componentName)?.total || 0
+      ))
+    } else {
+      // For scoring, return the sum (total optimization value)
+      return components.reduce((sum, componentName) => {
+        return sum + (combinedAffixes.get(componentName)?.total || 0)
+      }, 0)
+    }
+  }
+
+  // Regular property - just return its total
+  return combinedAffixes.get(normalizedName)?.total || 0
+}
+
+/**
+ * Gets the bonus breakdown for a specific property
+ * Returns a map of bonus type to value (e.g., "Enhancement" -> 14)
+ * For complex properties, returns the minimum bonuses across all components
+ */
+export function getPropertyBreakdown(
+  combinedAffixes: Map<string, PropertyValue>,
+  propertyName: string
+): Map<string, number> {
+  const normalizedName = normalizePropertyName(propertyName)
+
+  // Check if this is a complex property
+  const components = COMPLEX_PROPERTIES[normalizedName]
+  if (components) {
+    // For complex properties, find the minimum bonus for each bonus type
+    const bonusMap = new Map<string, number>()
+    const allBonusTypes = new Set<string>()
+
+    // Collect all bonus types across all components
+    for (const componentName of components) {
+      const prop = combinedAffixes.get(componentName)
+      if (prop) {
+        for (const bonusType of prop.bonuses.keys()) {
+          allBonusTypes.add(bonusType)
+        }
+      }
+    }
+
+    // For each bonus type, find the minimum value across all components
+    for (const bonusType of allBonusTypes) {
+      const values = components.map(componentName => {
+        const prop = combinedAffixes.get(componentName)
+        return prop?.bonuses.get(bonusType) || 0
+      })
+      const minValue = Math.min(...values)
+      if (minValue > 0) {
+        bonusMap.set(bonusType, minValue)
+      }
+    }
+
+    return bonusMap
+  }
+
+  // Regular property - return its bonus map
+  return combinedAffixes.get(normalizedName)?.bonuses || new Map()
 }
 
 /**

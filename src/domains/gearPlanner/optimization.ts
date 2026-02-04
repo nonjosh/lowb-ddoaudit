@@ -1,5 +1,5 @@
 import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
-import { combineAffixes, getPropertyTotal, isComplexProperty } from './affixStacking'
+import { combineAffixes, getPropertyBreakdown, getPropertyTotal, isComplexProperty } from './affixStacking'
 import {
   autoSelectCraftingOptions,
   autoSelectCraftingOptionsForGearSetup,
@@ -44,6 +44,8 @@ export interface OptimizedGearSetup {
   setup: GearSetup
   score: number
   propertyValues: Map<string, number>
+  /** Breakdown of bonuses by type for each property (for tooltips) */
+  propertyBreakdowns?: Map<string, Map<string, number>>
   unusedAugments?: number
   totalAugments?: number
   extraProperties?: number
@@ -99,6 +101,7 @@ export function calculateScore(
 ): {
   score: number
   propertyValues: Map<string, number>
+  propertyBreakdowns: Map<string, Map<string, number>>
   unusedAugments: number
   totalAugments: number
   extraProperties: number
@@ -149,12 +152,19 @@ export function calculateScore(
 
   let score = 0
   const propertyValues = new Map<string, number>()
+  const propertyBreakdowns = new Map<string, Map<string, number>>()
 
   // Calculate score based on property order (first property is most important)
   for (let i = 0; i < properties.length; i++) {
     const property = properties[i]
-    const value = getPropertyTotal(combined, property)
-    propertyValues.set(property, value)
+    // Use full sum for scoring (optimization)
+    const value = getPropertyTotal(combined, property, false)
+    // Store display value (minimum for complex properties)
+    const displayValue = getPropertyTotal(combined, property, true)
+    propertyValues.set(property, displayValue)
+    // Store breakdown for tooltips
+    const breakdown = getPropertyBreakdown(combined, property)
+    propertyBreakdowns.set(property, breakdown)
     // Weight by position: first property gets full weight, decreasing for later properties
     const weight = properties.length - i
     score += value * weight
@@ -210,6 +220,7 @@ export function calculateScore(
   return {
     score,
     propertyValues,
+    propertyBreakdowns,
     unusedAugments,
     totalAugments: totalAugmentSlots,
     extraProperties,
@@ -394,6 +405,7 @@ export function optimizeGear(
     setup: baseSetup,
     score: baseResult.score,
     propertyValues: baseResult.propertyValues,
+    propertyBreakdowns: baseResult.propertyBreakdowns,
     unusedAugments: baseResult.unusedAugments,
     totalAugments: baseResult.totalAugments,
     extraProperties: baseResult.extraProperties,
@@ -422,6 +434,7 @@ export function optimizeGear(
               setup: altSetup,
               score: result.score,
               propertyValues: result.propertyValues,
+              propertyBreakdowns: result.propertyBreakdowns,
               unusedAugments: result.unusedAugments,
               totalAugments: result.totalAugments,
               extraProperties: result.extraProperties,
@@ -442,6 +455,7 @@ export function optimizeGear(
               setup: altSetup,
               score: result.score,
               propertyValues: result.propertyValues,
+              propertyBreakdowns: result.propertyBreakdowns,
               unusedAugments: result.unusedAugments,
               totalAugments: result.totalAugments,
               extraProperties: result.extraProperties,
@@ -462,6 +476,7 @@ export function optimizeGear(
             setup: altSetup,
             score: result.score,
             propertyValues: result.propertyValues,
+            propertyBreakdowns: result.propertyBreakdowns,
             unusedAugments: result.unusedAugments,
             totalAugments: result.totalAugments,
             extraProperties: result.extraProperties,
@@ -538,6 +553,7 @@ export function optimizeGear(
           setup: setSetup,
           score: result.score,
           propertyValues: result.propertyValues,
+          propertyBreakdowns: result.propertyBreakdowns,
           unusedAugments: result.unusedAugments,
           totalAugments: result.totalAugments,
           extraProperties: result.extraProperties,

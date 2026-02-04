@@ -12,7 +12,7 @@ import {
 } from '@mui/material'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
-import { GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships } from '@/domains/gearPlanner'
+import { COMPLEX_PROPERTIES, GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships } from '@/domains/gearPlanner'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -91,6 +91,7 @@ export default function SummaryTable({
     isFromSet?: boolean
     isFromAugment?: boolean
     sourceValue: number
+    originalComplexProperty?: string // Track if this came from a complex property expansion
   }
 
   interface BonusTypeData {
@@ -99,12 +100,6 @@ export default function SummaryTable({
   }
 
   const propertyBonuses = new Map<string, Map<string, BonusTypeData>>()
-
-  // Complex property expansion mapping
-  const COMPLEX_PROPERTIES: Record<string, string[]> = {
-    'Well Rounded': ['Strength', 'Constitution', 'Dexterity', 'Intelligence', 'Wisdom', 'Charisma'],
-    'Sheltering': ['Physical Sheltering', 'Magical Sheltering']
-  }
 
   // Expand a complex property affix into its component properties
   const expandComplexAffix = (affix: ItemAffix): ItemAffix[] => {
@@ -129,6 +124,10 @@ export default function SummaryTable({
     isFromSet?: boolean,
     setName?: string
   ) => {
+    // Check if this is a complex property before expansion
+    const isComplexProperty = affix.name in COMPLEX_PROPERTIES
+    const originalComplexProperty = isComplexProperty ? affix.name : undefined
+
     // Expand complex properties first
     const expandedAffixes = expandComplexAffix(affix)
 
@@ -165,7 +164,8 @@ export default function SummaryTable({
         setName,
         isFromAugment,
         isFromSet,
-        sourceValue: value
+        sourceValue: value,
+        originalComplexProperty
       })
     }
   }
@@ -235,11 +235,49 @@ export default function SummaryTable({
   const propertyTotals = new Map<string, number>()
   selectedProperties.forEach(property => {
     let total = 0
-    const bonusMap = propertyBonuses.get(property)
-    if (bonusMap) {
-      bonusMap.forEach(data => {
-        total += data.value
+    const childProperties = COMPLEX_PROPERTIES[property]
+    const isComplexProperty = !!childProperties
+
+    if (isComplexProperty) {
+      // For complex properties, sum the minimum values across all child properties for each bonus type
+      const bonusTypes = new Set<string>()
+      childProperties.forEach(childProp => {
+        const childMap = propertyBonuses.get(childProp)
+        if (childMap) {
+          childMap.forEach((_, bonusType) => bonusTypes.add(bonusType))
+        }
       })
+
+      bonusTypes.forEach(bonusType => {
+        const childValues: number[] = []
+        childProperties.forEach(childProp => {
+          const childBonus = propertyBonuses.get(childProp)?.get(bonusType)
+          if (childBonus) {
+            // Only count sources that came from this complex property
+            const relevantSources = childBonus.sources.filter(
+              source => source.originalComplexProperty === property
+            )
+            if (relevantSources.length > 0) {
+              // Use the maximum source value for this child (since same bonus type doesn't stack)
+              const maxSourceValue = Math.max(...relevantSources.map(s => s.sourceValue))
+              childValues.push(maxSourceValue)
+            }
+          }
+        })
+
+        if (childValues.length > 0) {
+          // The minimum across children is the universal bonus
+          total += Math.min(...childValues)
+        }
+      })
+    } else {
+      // For regular properties, sum all bonus type values
+      const bonusMap = propertyBonuses.get(property)
+      if (bonusMap) {
+        bonusMap.forEach(data => {
+          total += data.value
+        })
+      }
     }
     propertyTotals.set(property, total)
   })
@@ -286,48 +324,110 @@ export default function SummaryTable({
                 {selectedProperties.map(property => {
                   const bonusData = propertyBonuses.get(property)?.get(bonusType)
 
-                  if (!bonusData || bonusData.value === 0) {
-                    return <TableCell key={property} align="right">-</TableCell>
+                  // Check if THIS property is a complex property
+                  const childProperties = COMPLEX_PROPERTIES[property]
+                  const isComplexProperty = !!childProperties
+
+                  let displayValue = 0
+                  let allSources: Array<{ source: BonusSource, isFromComplex: boolean, complexProp?: string }> = []
+
+                  if (isComplexProperty) {
+                    // For complex property columns, show bonuses that originally came from this complex property
+                    // Collect all sources from child properties that have originalComplexProperty === this property
+                    const childSourceValues: number[] = []
+                    const collectedSources: BonusSource[] = []
+
+                    childProperties.forEach(childProp => {
+                      const childBonus = propertyBonuses.get(childProp)?.get(bonusType)
+                      if (childBonus) {
+                        // Filter to only sources that originally came from this complex property
+                        const relevantSources = childBonus.sources.filter(
+                          source => source.originalComplexProperty === property
+                        )
+                        if (relevantSources.length > 0) {
+                          // Get the maximum source value for this child (since same bonus type doesn't stack)
+                          const maxSourceValue = Math.max(...relevantSources.map(s => s.sourceValue))
+                          childSourceValues.push(maxSourceValue)
+
+                          // Collect sources from first child only (they should all be identical)
+                          if (collectedSources.length === 0) {
+                            collectedSources.push(...relevantSources)
+                          }
+                        }
+                      }
+                    })
+
+                    if (childSourceValues.length === 0) {
+                      return <TableCell key={property} align="right">-</TableCell>
+                    }
+
+                    // Find minimum value across all children (universal bonus)
+                    displayValue = Math.min(...childSourceValues)
+
+                    // Add collected sources
+                    collectedSources.forEach(source => {
+                      allSources.push({ source, isFromComplex: false })
+                    })
+                  } else {
+                    // For child property columns, show both:
+                    // 1. Direct bonuses for this property (no originalComplexProperty)
+                    // 2. Bonuses from parent complex property that expanded to this property
+
+                    if (!bonusData || bonusData.value === 0) {
+                      return <TableCell key={property} align="right">-</TableCell>
+                    }
+
+                    displayValue = bonusData.value
+
+                    // Add sources - both direct and from complex property expansion
+                    bonusData.sources.forEach(source => {
+                      const isFromComplex = !!source.originalComplexProperty
+                      allSources.push({
+                        source,
+                        isFromComplex,
+                        complexProp: source.originalComplexProperty
+                      })
+                    })
                   }
 
-                  // Create tooltip content showing all sources with values
                   // Find the highest value source to highlight it
-                  const maxValue = Math.max(...bonusData.sources.map(s => s.sourceValue))
-                  // Sort sources by slot order for consistent numbering
-                  const sortedSources = [...bonusData.sources].sort((a, b) =>
-                    slots.indexOf(a.slot) - slots.indexOf(b.slot)
+                  const maxValue = allSources.length > 0 ? Math.max(...allSources.map(s => s.source.sourceValue)) : 0
+                  // Sort sources by slot order for consistent display
+                  const sortedSources = allSources.sort((a, b) =>
+                    slots.indexOf(a.source.slot) - slots.indexOf(b.source.slot)
                   )
 
                   // Get all augment names that contribute to this cell
                   const augmentNamesInCell = sortedSources
-                    .filter(s => s.isFromAugment && s.augmentName)
-                    .map(s => s.augmentName!)
+                    .filter(s => s.source.isFromAugment && s.source.augmentName)
+                    .map(s => s.source.augmentName!)
 
                   // Get all set names that contribute to this cell
                   const setNamesInCell = sortedSources
-                    .filter(s => s.isFromSet && s.setName)
-                    .map(s => s.setName!)
+                    .filter(s => s.source.isFromSet && s.source.setName)
+                    .map(s => s.source.setName!)
 
-                  // Check if this cell should be highlighted because a contributing augment is hovered
+                  // Check if this cell should be highlighted
                   const isHighlightedByAugment = hoveredAugment && augmentNamesInCell.includes(hoveredAugment)
-
-                  // Check if this cell should be highlighted because a contributing set is hovered
                   const isHighlightedBySet = hoveredSetName && setNamesInCell.includes(hoveredSetName)
 
                   const tooltipContent = (
                     <Box>
-                      {sortedSources.map((source, idx) => {
+                      {sortedSources.map((item, idx) => {
+                        const source = item.source
                         const isStacking = source.sourceValue === maxValue
                         // For set bonuses, show set name; for augments, show augment name; for items, show slot + item
-                        const slotNumber = slots.indexOf(source.slot) + 1
                         let displayName: string
                         if (source.isFromSet && source.setName) {
                           displayName = `${source.setName} Set`
                         } else if (source.isFromAugment && source.augmentName) {
                           displayName = source.augmentName
                         } else {
-                          displayName = `${slotNumber}. ${source.slotName}: ${source.itemName}`
+                          displayName = `${source.slotName}: ${source.itemName}`
                         }
+
+                        // Add complex property note if applicable
+                        const complexNote = item.isFromComplex ? ` (from ${item.complexProp})` : ''
 
                         return (
                           <Typography
@@ -336,11 +436,13 @@ export default function SummaryTable({
                             display="block"
                             sx={{
                               fontWeight: isStacking ? 'bold' : 'normal',
-                              color: isStacking ? 'primary.light' : 'inherit'
+                              color: isStacking ? 'primary.light' : 'inherit',
+                              fontStyle: item.isFromComplex ? 'italic' : 'normal'
                             }}
                           >
                             {displayName} (+{source.sourceValue})
                             {source.isFromAugment && ' (Augment)'}
+                            {complexNote}
                           </Typography>
                         )
                       })}
@@ -370,7 +472,7 @@ export default function SummaryTable({
                     >
                       <Tooltip title={tooltipContent} arrow>
                         <span>
-                          +{bonusData.value}
+                          +{displayValue}
                         </span>
                       </Tooltip>
                     </TableCell>
