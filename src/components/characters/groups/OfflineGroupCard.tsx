@@ -12,6 +12,7 @@ interface OfflineGroupCardProps {
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, LfmDisplayData>
+  getLocationDuration?: (characterId: string) => number | null
   showHeader: boolean
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: LfmDisplayData) => void
@@ -25,6 +26,7 @@ export default function OfflineGroupCard({
   quests,
   areas,
   lfmByCharacterName,
+  getLocationDuration,
   showHeader,
   onPlayerClick,
   onLfmClick,
@@ -52,6 +54,7 @@ export default function OfflineGroupCard({
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
+            getLocationDuration={getLocationDuration}
             onPlayerClick={onPlayerClick}
             onLfmClick={onLfmClick}
           />

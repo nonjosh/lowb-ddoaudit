@@ -8,8 +8,8 @@ import { PlayerGroup, useCharacter } from '@/contexts/useCharacter'
 import { useLfm } from '@/contexts/useLfm'
 import { groupCharactersByLocation } from '@/domains/characters/characterGrouping'
 import { createLfmByCharacterNameMap, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
-import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
-import { RaidGroup, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
+import { getPlayerDisplayName, groupEntriesByPlayer, RaidGroup } from '@/domains/raids/raidLogic'
+import { useLocationTracking } from '@/hooks/useLocationTracking'
 
 import PlayerCharactersDialog from './dialogs/PlayerCharactersDialog'
 import LocationGroupCard from './groups/LocationGroupCard'
@@ -27,6 +27,7 @@ interface CharactersSectionProps {
 export default function CharactersSection({ loading, hasFetched, characterCount, raidGroups }: CharactersSectionProps) {
   const { charactersById, charactersByPlayer } = useCharacter()
   const { lfms } = useLfm()
+  const { getLocationDuration } = useLocationTracking(charactersById)
   const [quests, setQuests] = useState<Record<string, Quest>>({})
   const [areas, setAreas] = useState<Record<string, { id: string, name: string, is_public: boolean, is_wilderness: boolean }>>({})
   const [selectedPlayerGroup, setSelectedPlayerGroup] = useState<PlayerGroup | null>(null)
@@ -117,6 +118,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
+            getLocationDuration={getLocationDuration}
             onPlayerClick={handlePlayerClick}
             onLfmClick={handleLfmClick}
           />
@@ -129,6 +131,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
+            getLocationDuration={getLocationDuration}
             packsByAreaName={wildernessAreaPacks}
             onPlayerClick={handlePlayerClick}
             onLfmClick={handleLfmClick}
@@ -140,6 +143,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
+            getLocationDuration={getLocationDuration}
             onPlayerClick={handlePlayerClick}
             onLfmClick={handleLfmClick}
           />
@@ -155,6 +159,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
               quests={quests}
               areas={areas}
               lfmByCharacterName={lfmByCharacterName}
+              getLocationDuration={getLocationDuration}
               onPlayerClick={handlePlayerClick}
               onLfmClick={handleLfmClick}
             />
@@ -166,6 +171,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
+            getLocationDuration={getLocationDuration}
             showHeader={hasOnlineGroups}
             onPlayerClick={handlePlayerClick}
             onLfmClick={handleLfmClick}

@@ -1,3 +1,4 @@
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import GroupsIcon from '@mui/icons-material/Groups'
 import ListAltIcon from '@mui/icons-material/ListAlt'
@@ -6,10 +7,11 @@ import { ReactNode } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
-import { LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 import { PlayerGroup } from '@/contexts/useCharacter'
 import { useConfig } from '@/contexts/useConfig'
+import { LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
+import { formatDuration } from '@/hooks/useLocationTracking'
 
 interface PlayerRowProps {
   group: PlayerGroup
@@ -17,6 +19,7 @@ interface PlayerRowProps {
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, LfmDisplayData>
+  getLocationDuration?: (characterId: string) => number | null
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: LfmDisplayData) => void
 }
@@ -31,6 +34,7 @@ export default function PlayerRow({
   quests,
   areas,
   lfmByCharacterName,
+  getLocationDuration,
   onPlayerClick,
   onLfmClick,
 }: PlayerRowProps) {
@@ -43,6 +47,7 @@ export default function PlayerRow({
   let isInParty = false
   let isInLfm = false
   let lfmForCharacter: LfmDisplayData | undefined = undefined
+  let durationDisplay: ReactNode = null
 
   if (isOnline) {
     const firstChar = onlineChars[0]
@@ -51,6 +56,24 @@ export default function PlayerRow({
     // Quest name is already shown in the group header.
     if (!questName && showLocation) {
       locationSuffix = ` @ ${areaName || 'Unknown Area'}`
+    }
+
+    // Calculate duration for the first online character
+    if (getLocationDuration && firstChar.id) {
+      const durationMs = getLocationDuration(firstChar.id)
+      const formatted = formatDuration(durationMs)
+      if (formatted) {
+        durationDisplay = (
+          <Tooltip title="Time in current area">
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, ml: 1, color: 'text.secondary' }}>
+              <AccessTimeIcon sx={{ fontSize: 14 }} />
+              <Typography variant="caption" component="span">
+                {formatted}
+              </Typography>
+            </Box>
+          </Tooltip>
+        )
+      }
     }
 
     isInParty = onlineChars.some((c) => c.group_id || c.is_in_party)
@@ -101,6 +124,7 @@ export default function PlayerRow({
                     />
                   </Tooltip>
                 )}
+                {durationDisplay}
               </Box>
               {onlineInfo && (
                 <Box sx={{ ml: 2.5 }}>

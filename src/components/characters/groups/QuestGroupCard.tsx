@@ -17,6 +17,7 @@ interface QuestGroupCardProps {
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, LfmDisplayData>
+  getLocationDuration?: (characterId: string) => number | null
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: LfmDisplayData) => void
 }
@@ -32,6 +33,7 @@ export default function QuestGroupCard({
   quests,
   areas,
   lfmByCharacterName,
+  getLocationDuration,
   onPlayerClick,
   onLfmClick,
 }: QuestGroupCardProps) {
@@ -71,6 +73,7 @@ export default function QuestGroupCard({
             quests={quests}
             areas={areas}
             lfmByCharacterName={lfmByCharacterName}
+            getLocationDuration={getLocationDuration}
             onPlayerClick={onPlayerClick}
             onLfmClick={onLfmClick}
           />

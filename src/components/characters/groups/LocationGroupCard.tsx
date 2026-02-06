@@ -14,6 +14,7 @@ interface LocationGroupCardProps {
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, LfmDisplayData>
+  getLocationDuration?: (characterId: string) => number | null
   packsByAreaName?: Record<string, string | null>
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: LfmDisplayData) => void
@@ -30,6 +31,7 @@ export default function LocationGroupCard({
   quests,
   areas,
   lfmByCharacterName,
+  getLocationDuration,
   packsByAreaName,
   onPlayerClick,
   onLfmClick,
@@ -78,6 +80,7 @@ export default function LocationGroupCard({
                   quests={quests}
                   areas={areas}
                   lfmByCharacterName={lfmByCharacterName}
+                  getLocationDuration={getLocationDuration}
                   onPlayerClick={onPlayerClick}
                   onLfmClick={onLfmClick}
                 />
