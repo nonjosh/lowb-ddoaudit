@@ -42,12 +42,6 @@ export default function Dashboard() {
 
   const { autoRefreshEnabled } = useConfig()
   const { refresh: refreshLfm, serverInfo, loading: lfmLoading } = useLfm()
-  const {
-    showIdleWarning,
-    handleToggleAutoRefresh,
-    handleIdleWarningReEnable,
-    handleIdleWarningClose,
-  } = useIdleTimer()
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
 
@@ -102,6 +96,13 @@ export default function Dashboard() {
       setLoading(false)
     }
   }, [characterIdsInput, refreshLfm])
+
+  const {
+    showIdleWarning,
+    handleToggleAutoRefresh,
+    handleIdleWarningReEnable,
+    handleIdleWarningClose,
+  } = useIdleTimer({ onReEnable: load })
 
   useEffect(() => {
     load()

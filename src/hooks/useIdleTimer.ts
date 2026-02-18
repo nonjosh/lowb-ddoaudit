@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useConfig } from '../contexts/useConfig'
 
-export function useIdleTimer() {
+interface UseIdleTimerOptions {
+  onReEnable?: () => void
+}
+
+export function useIdleTimer(options: UseIdleTimerOptions = {}) {
+  const { onReEnable } = options
   const [showIdleWarning, setShowIdleWarning] = useState(false)
   const { setAutoRefreshEnabled } = useConfig()
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -21,7 +26,8 @@ export function useIdleTimer() {
     setAutoRefreshEnabled(true)
     setShowIdleWarning(false)
     resetIdleTimer()
-  }, [resetIdleTimer, setAutoRefreshEnabled])
+    onReEnable?.()
+  }, [onReEnable, resetIdleTimer, setAutoRefreshEnabled])
 
   const handleIdleWarningClose = useCallback(() => {
     setShowIdleWarning(false)
