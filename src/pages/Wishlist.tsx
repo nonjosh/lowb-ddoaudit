@@ -42,19 +42,33 @@ interface GroupedItems {
   items: Item[]
 }
 
+function normalizeKeyPart(value: string | undefined): string {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function buildWishlistItemKey(name: string, ml: number, slot?: string, type?: string): string {
+  return `${normalizeKeyPart(name)}__${ml}__${normalizeKeyPart(slot)}__${normalizeKeyPart(type)}`
+}
+
+function buildWishlistAugmentKey(name: string, ml: number): string {
+  return `augment__${normalizeKeyPart(name)}__${ml}`
+}
+
 // Convert WishlistEntry to Item for display
-function entryToItem(entry: WishlistEntry): Item {
+function entryToItem(entry: WishlistEntry, matchedItem?: Item): Item {
+  const slot = entry.slot ?? matchedItem?.slot ?? 'Augment'
+
   return {
     name: entry.name,
     ml: entry.ml,
-    slot: entry.slot ?? 'Augment', // Default to 'Augment' for augment entries
-    type: entry.type,
-    quests: entry.quests,
-    url: entry.url,
-    affixes: entry.affixes || [],
-    crafting: entry.crafting,
-    sets: entry.sets,
-    artifact: entry.artifact,
+    slot,
+    type: entry.type ?? matchedItem?.type,
+    quests: entry.quests ?? matchedItem?.quests,
+    url: entry.url ?? matchedItem?.url,
+    affixes: entry.affixes ?? matchedItem?.affixes ?? [],
+    crafting: entry.crafting ?? matchedItem?.crafting,
+    sets: entry.sets ?? matchedItem?.sets,
+    artifact: entry.artifact ?? matchedItem?.artifact,
   }
 }
 
@@ -233,7 +247,7 @@ function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defau
 
 export default function Wishlist() {
   const { entriesByKey, keys, removeWish, clearAll } = useWishlist()
-  const { craftingData, setsData, loading, refresh, error } = useGearPlanner()
+  const { items: gearItems, augmentItems, craftingData, setsData, loading, refresh, error } = useGearPlanner()
 
   const [groupingMode, setGroupingMode] = useState<GroupingMode>('none')
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
@@ -296,7 +310,30 @@ export default function Wishlist() {
     return keys.map((k) => entriesByKey[k]).filter(Boolean)
   }, [entriesByKey, keys])
 
-  const items = useMemo(() => entries.map(entryToItem), [entries])
+  const itemLookup = useMemo(() => {
+    const lookup = new Map<string, Item>()
+
+      ;[...gearItems, ...augmentItems].forEach((item) => {
+        const standardKey = buildWishlistItemKey(item.name, item.ml, item.slot, item.type)
+        lookup.set(standardKey, item)
+
+        if (item.slot === 'Augment') {
+          const augmentKey = buildWishlistAugmentKey(item.name, item.ml)
+          lookup.set(augmentKey, item)
+        }
+      })
+
+    return lookup
+  }, [gearItems, augmentItems])
+
+  const items = useMemo(() => {
+    return entries.map((entry) => {
+      const matched = itemLookup.get(entry.key)
+        ?? itemLookup.get(buildWishlistItemKey(entry.name, entry.ml, entry.slot, entry.type))
+        ?? itemLookup.get(buildWishlistAugmentKey(entry.name, entry.ml))
+      return entryToItem(entry, matched)
+    })
+  }, [entries, itemLookup])
 
   const getCraftingOptions = useCallback((craft: string) => {
     if (!craftingData) return []
