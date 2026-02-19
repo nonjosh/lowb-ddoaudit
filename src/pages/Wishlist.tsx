@@ -42,6 +42,25 @@ interface GroupedItems {
   items: Item[]
 }
 
+const WISHLIST_COLUMN_WIDTHS = {
+  ml: '60px',
+  name: '250px',
+  type: '150px',
+  augments: '200px',
+}
+
+function WishlistTableColGroup() {
+  return (
+    <colgroup>
+      <col style={{ width: WISHLIST_COLUMN_WIDTHS.ml }} />
+      <col style={{ width: WISHLIST_COLUMN_WIDTHS.name }} />
+      <col style={{ width: WISHLIST_COLUMN_WIDTHS.type }} />
+      <col />
+      <col style={{ width: WISHLIST_COLUMN_WIDTHS.augments }} />
+    </colgroup>
+  )
+}
+
 function normalizeKeyPart(value: string | undefined): string {
   return String(value ?? '').trim().toLowerCase()
 }
@@ -218,7 +237,8 @@ function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defau
       <TableRow>
         <TableCell colSpan={5} sx={{ p: 0 }}>
           <Collapse in={expanded} timeout="auto" unmountOnExit>
-            <Table size="small">
+            <Table size="small" sx={{ tableLayout: 'fixed' }}>
+              <WishlistTableColGroup />
               <TableBody>
                 {group.items.map((item) => {
                   const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
@@ -484,14 +504,15 @@ export default function Wishlist() {
         </Paper>
       ) : (
         <TableContainer component={Paper} variant="outlined">
-          <Table size="small" aria-label="wish list table">
+          <Table size="small" aria-label="wish list table" sx={{ tableLayout: 'fixed' }}>
+            <WishlistTableColGroup />
             <TableHead>
               <TableRow>
-                <TableCell width={60}>ML</TableCell>
-                <TableCell width={250}>Name</TableCell>
-                <TableCell width={150}>Type</TableCell>
+                <TableCell>ML</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Type</TableCell>
                 <TableCell>Properties</TableCell>
-                <TableCell width={200}>Augments/Crafting</TableCell>
+                <TableCell>Augments/Crafting</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
