@@ -26,9 +26,18 @@ export default function ItemLootButton({ questName }: ItemLootButtonProps) {
         <IconButton
           size="small"
           onClick={handleClick}
-          sx={{ ml: 0.5 }}
+          sx={{
+            ml: 0.25,
+            width: 28,
+            height: 28,
+            p: 0,
+            color: 'action.active',
+            '& svg': {
+              display: 'block',
+            },
+          }}
         >
-          <GiChest fontSize={18} />
+          <GiChest size={18} />
         </IconButton>
       </Tooltip>
 

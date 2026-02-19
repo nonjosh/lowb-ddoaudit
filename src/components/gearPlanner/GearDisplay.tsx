@@ -217,6 +217,14 @@ function GearSlotCard({
 }) {
   const { isWished, toggleWish } = useWishlist()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const actionButtonSx = {
+    width: 28,
+    height: 28,
+    p: 0,
+    '& svg': {
+      fontSize: 18
+    }
+  }
 
   if (!item) {
     return (
@@ -232,7 +240,7 @@ function GearSlotCard({
                   <IconButton
                     size="small"
                     onClick={onTogglePin}
-                    sx={{ mt: -0.5, mr: -0.5 }}
+                    sx={{ ...actionButtonSx, mt: -0.5, mr: -0.5 }}
                   >
                     {isPinned ? (
                       <PushPinIcon fontSize="small" color="primary" />
@@ -252,6 +260,7 @@ function GearSlotCard({
                   <IconButton
                     size="small"
                     onClick={() => setDialogOpen(true)}
+                    sx={actionButtonSx}
                   >
                     <SwapHorizIcon fontSize="small" />
                   </IconButton>
@@ -330,6 +339,7 @@ function GearSlotCard({
                     size="small"
                     onClick={onTogglePin}
                     color={isPinned ? "primary" : "default"}
+                    sx={actionButtonSx}
                   >
                     {isPinned ? (
                       <PushPinIcon fontSize="small" />
@@ -343,6 +353,7 @@ function GearSlotCard({
                 <IconButton
                   size="small"
                   onClick={() => toggleWish(item)}
+                  sx={actionButtonSx}
                 >
                   {wished ? (
                     <FavoriteIcon fontSize="small" color="error" />
@@ -357,6 +368,7 @@ function GearSlotCard({
                     size="small"
                     onClick={onToggleIgnore}
                     color={isIgnored ? "warning" : "default"}
+                    sx={actionButtonSx}
                   >
                     <BlockIcon fontSize="small" />
                   </IconButton>
@@ -393,9 +405,9 @@ function GearSlotCard({
                 <IconButton
                   size="small"
                   onClick={() => setDialogOpen(true)}
-                  sx={{ p: 0.25, ml: 0.5 }}
+                  sx={{ ...actionButtonSx, ml: 0.5 }}
                 >
-                  <SwapHorizIcon sx={{ fontSize: 16 }} />
+                  <SwapHorizIcon />
                 </IconButton>
               </Tooltip>
             )}

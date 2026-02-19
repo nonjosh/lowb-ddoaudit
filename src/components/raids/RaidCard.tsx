@@ -170,20 +170,26 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                 </Typography>
                 {hasWishForQuestName(g.raidName) ? (
                   <Tooltip title="Contains an item in your wish list">
-                    <FavoriteIcon sx={{ width: 18, height: 18, color: 'error.main' }} />
+                    <Box sx={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FavoriteIcon sx={{ width: 18, height: 18, color: 'error.main' }} />
+                    </Box>
                   </Tooltip>
                 ) : null}
                 <ItemLootButton questName={g.raidName} />
               </Box>
               {hasLfm && onLfmClick ? (
-                <ListAltIcon
-                  color="action"
-                  sx={{ width: 18, height: 18, cursor: 'pointer' }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onLfmClick(g.questId)
-                  }}
-                />
+                <Tooltip title="View LFM details">
+                  <IconButton
+                    size="small"
+                    sx={{ ml: 0.25, width: 28, height: 28, p: 0, color: 'action.active' }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onLfmClick(g.questId)
+                    }}
+                  >
+                    <ListAltIcon sx={{ width: 18, height: 18 }} />
+                  </IconButton>
+                </Tooltip>
               ) : null}
               <Typography variant="caption" color="text.secondary">
                 Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}

@@ -142,28 +142,35 @@ export default function InventoryBadge({
   }
 
   // Default: icon variant
+  const iconSize = size === 'small' ? 18 : 20
+  const iconFrameSize = size === 'small' ? 28 : 32
+
   return (
-    <Box sx={{ display: 'inline-flex', gap: 0.25, alignItems: 'center' }}>
+    <Box sx={{ display: 'inline-flex', gap: 0.25, alignItems: 'center', lineHeight: 0 }}>
       {isAvailable && (
         <Tooltip title={tooltipContent} arrow>
-          <InventoryIcon
-            color="success"
-            sx={{
-              fontSize: size === 'small' ? 16 : 20,
-              verticalAlign: 'middle'
-            }}
-          />
+          <Box sx={{ width: iconFrameSize, height: iconFrameSize, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <InventoryIcon
+              color="success"
+              sx={{
+                fontSize: iconSize,
+                verticalAlign: 'middle'
+              }}
+            />
+          </Box>
         </Tooltip>
       )}
       {isBTC && (
         <Tooltip title="Bound to Character" arrow>
-          <LockIcon
-            color="warning"
-            sx={{
-              fontSize: size === 'small' ? 14 : 18,
-              verticalAlign: 'middle'
-            }}
-          />
+          <Box sx={{ width: iconFrameSize, height: iconFrameSize, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LockIcon
+              color="warning"
+              sx={{
+                fontSize: iconSize,
+                verticalAlign: 'middle'
+              }}
+            />
+          </Box>
         </Tooltip>
       )}
     </Box>
