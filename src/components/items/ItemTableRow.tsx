@@ -13,6 +13,7 @@ import React from 'react'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
+import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useWishlist } from '@/contexts/useWishlist'
 import { RaidNotes } from '@/domains/raids/raidNotes'
@@ -53,10 +54,10 @@ export default function ItemTableRow({
   const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
 
   return (
-    <TableRow key={itemKey} hover>
+    <TableRow key={itemKey} hover sx={item.artifact ? artifactTableRowSx : undefined}>
       <TableCell>{item.ml}</TableCell>
       <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.5 }}>
           <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
             {highlightText(item.name, searchText)}
           </Typography>
@@ -85,7 +86,6 @@ export default function ItemTableRow({
             {item.slot}
           </Typography>
         )}
-        {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
         {(() => {
           const augmentMatch = raidNotes?.augments.find(augment => augment.includes(item.name))
           return augmentMatch ? (

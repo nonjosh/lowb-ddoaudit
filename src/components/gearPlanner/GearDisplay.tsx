@@ -30,6 +30,7 @@ import {
 } from '@mui/material'
 
 import { Item, ItemAffix, SetsData, CraftingData } from '@/api/ddoGearPlanner'
+import { artifactBorderLabelSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import {
   GearCraftingSelections,
@@ -322,6 +323,7 @@ function GearSlotCard({
           borderWidth: item.artifact || isHighlighted ? 2 : 1,
           transition: 'all 0.2s',
           ...(item.artifact && {
+            ...artifactBorderLabelSx,
             boxShadow: '0 0 8px rgba(255, 152, 0, 0.3)'
           })
         }}

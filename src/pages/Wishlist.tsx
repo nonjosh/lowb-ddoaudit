@@ -29,6 +29,7 @@ import { fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item, SetsData } from '@/api/ddoGearPlanner'
 import ItemCraftingDisplay from '@/components/items/ItemCraftingDisplay'
 import ItemSetTooltip from '@/components/items/ItemSetTooltip'
+import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useWishlist, WishlistEntry } from '@/contexts/useWishlist'
 import { formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, AffixLike } from '@/utils/affixHelpers'
@@ -72,10 +73,10 @@ function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: Wishl
   const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
 
   return (
-    <TableRow hover>
+    <TableRow hover sx={item.artifact ? artifactTableRowSx : undefined}>
       <TableCell>{item.ml}</TableCell>
       <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.5 }}>
           {wikiUrl ? (
             <Link
               href={wikiUrl}
@@ -113,7 +114,6 @@ function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: Wishl
             {item.slot}
           </Typography>
         )}
-        {item.artifact && <Chip label="Artifact" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5 }} />}
       </TableCell>
       <TableCell>
         {(item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand')

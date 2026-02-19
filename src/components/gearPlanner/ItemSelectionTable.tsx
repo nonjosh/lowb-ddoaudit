@@ -19,10 +19,11 @@ import {
 } from '@mui/material'
 
 import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
+import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import { formatAffix, getAugmentColor } from '@/utils/affixHelpers'
-import InventoryBadge from './InventoryBadge'
 import ItemCraftingDisplay from '../items/ItemCraftingDisplay'
+import InventoryBadge from './InventoryBadge'
 
 interface ItemSelectionTableProps {
   items: Item[]
@@ -155,7 +156,8 @@ export function ItemSelectionTable({
                   sx={{
                     cursor: 'pointer',
                     bgcolor: isCurrent ? 'action.selected' : 'inherit',
-                    '&:hover': { bgcolor: isHovered ? 'action.hover' : undefined }
+                    '&:hover': { bgcolor: isHovered ? 'action.hover' : undefined },
+                    ...(item.artifact ? artifactTableRowSx : {})
                   }}
                   onClick={() => !isCurrent && onSelect(item)}
                 >
