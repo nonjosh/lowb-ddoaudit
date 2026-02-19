@@ -10,6 +10,7 @@ import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useLfm } from '@/contexts/useLfm'
 import { normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/raidLogic'
+import { getRaidUpdateNumber } from '@/domains/raids/raidUpdates'
 
 import RaidCard from './RaidCard'
 
@@ -134,6 +135,11 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
       const aLevel = typeof a.g.questLevel === 'number' ? a.g.questLevel : -1
       const bLevel = typeof b.g.questLevel === 'number' ? b.g.questLevel : -1
       if (aLevel !== bLevel) return bLevel - aLevel // higher level first
+
+      // For same level, sort by update patch (newer updates first)
+      const aUpdate = getRaidUpdateNumber(a.g.raidName)
+      const bUpdate = getRaidUpdateNumber(b.g.raidName)
+      if (aUpdate !== bUpdate) return bUpdate - aUpdate // higher update first
 
       if (a.hasTimer !== b.hasTimer) return a.hasTimer ? -1 : 1
 

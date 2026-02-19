@@ -75,3 +75,18 @@ export function getRaidUpdate(raidName: string | null | undefined): string | nul
   // Return only the major version (e.g., "U72.1" -> "U72")
   return fullVersion.split('.')[0]
 }
+
+/**
+ * Gets the numeric update version for sorting purposes.
+ * @param raidName The display name of the raid
+ * @returns The numeric update number (e.g., 75 for "U75.7") or -1 if not found
+ */
+export function getRaidUpdateNumber(raidName: string | null | undefined): number {
+  const key = normalizeRaidName(raidName)
+  const fullVersion = RAID_UPDATE_MAP[key]
+  if (!fullVersion) return -1
+
+  // Extract numeric part (e.g., "U75.7" -> 75.7, "U72" -> 72)
+  const match = fullVersion.match(/U?(\d+\.?\d*)/i)
+  return match ? parseFloat(match[1]) : -1
+}
