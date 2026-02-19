@@ -2,6 +2,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import ListAltIcon from '@mui/icons-material/ListAlt'
+import TimerIcon from '@mui/icons-material/Timer'
 import {
   Box,
   Card,
@@ -15,9 +16,12 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
+import { addMs, formatTimeRemaining, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
+import ClassDisplay from '@/components/shared/ClassDisplay'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
+import { useConfig } from '@/contexts/useConfig'
 import { useWishlist } from '@/contexts/useWishlist'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
@@ -38,6 +42,7 @@ interface RaidCardProps {
 
 export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
   const { hasWishForQuestName } = useWishlist()
+  const { showClassIcons } = useConfig()
 
   const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
@@ -72,10 +77,38 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
       .filter((pg) => (pg.entries ?? []).length > 0)
   }, [perPlayer])
 
-  const availablePlayers = useMemo(() => EXPECTED_PLAYERS.filter((playerName) => {
-    const pg = perPlayerEligible.find((p) => p.player === playerName)
-    return pg ? (pg.entries ?? []).some((e) => isEntryAvailable(e, now)) : false
-  }).length, [perPlayerEligible, now])
+  // Calculate unavailable players with their soonest available character and time
+  const unavailablePlayersInfo = useMemo(() => {
+    return EXPECTED_PLAYERS
+      .map((playerName) => {
+        const pg = perPlayerEligible.find((p) => p.player === playerName)
+        if (!pg) return null // Player not in raid data
+
+        const hasAvailable = (pg.entries ?? []).some((e) => isEntryAvailable(e, now))
+        if (hasAvailable) return null // Player has an available character
+
+        // Find the soonest available entry
+        const soonestEntry = (pg.entries ?? [])
+          .map((e) => {
+            const readyAt = addMs(e.lastTimestamp, RAID_LOCKOUT_MS)
+            return { entry: e, readyAt }
+          })
+          .filter((x) => x.readyAt !== null)
+          .sort((a, b) => (a.readyAt!.getTime() - b.readyAt!.getTime()))[0]
+
+        if (!soonestEntry) return null
+
+        return {
+          playerName,
+          displayName: getPlayerDisplayName(playerName),
+          soonestCharacter: soonestEntry.entry.characterName,
+          soonestClasses: soonestEntry.entry.classes,
+          soonestIsOnline: soonestEntry.entry.isOnline,
+          readyAt: soonestEntry.readyAt!,
+        }
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+  }, [perPlayerEligible, now])
 
   const hasPlayersInRaid = useMemo(() => {
     return g.entries.some((e) => e.isInRaid)
@@ -175,10 +208,42 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                 />
               ))}
             </Box>
-          ) : availablePlayers > 0 && availablePlayers < EXPECTED_PLAYERS.length ? (
-            <Typography variant="body2" color="text.secondary">
-              Available players: {availablePlayers}/{EXPECTED_PLAYERS.length}
-            </Typography>
+          ) : unavailablePlayersInfo.length > 0 ? (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mr: 0.5 }}>
+                <TimerIcon sx={{ width: 16, height: 16, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary">
+                  On timer:
+                </Typography>
+              </Box>
+              {unavailablePlayersInfo.map((info) => (
+                <Tooltip
+                  key={info.playerName}
+                  title={
+                    <Box sx={{ textAlign: 'left' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Soonest available:
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                        <Typography variant="body2">{info.soonestCharacter}</Typography>
+                        <ClassDisplay classes={info.soonestClasses} showIcons={showClassIcons} iconSize={18} />
+                        <Typography variant="caption" color="text.secondary">
+                          · {formatTimeRemaining(info.readyAt.getTime() - now.getTime())}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                  arrow
+                >
+                  <Chip
+                    size="small"
+                    label={info.displayName}
+                    icon={<FiberManualRecordIcon color={info.soonestIsOnline ? 'success' : 'disabled'} sx={{ width: 12, height: 12 }} />}
+                    variant="outlined"
+                  />
+                </Tooltip>
+              ))}
+            </Box>
           ) : null
         }
       />
