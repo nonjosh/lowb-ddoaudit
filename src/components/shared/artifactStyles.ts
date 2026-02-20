@@ -37,9 +37,9 @@ export const artifactTableRowSx: SxProps<Theme> = {
     '&::before': {
       content: '"artifact"',
       position: 'absolute',
-      top: 0,
+      top: 2,
       left: 12,
-      transform: 'translateY(-50%)',
+      transform: 'none',
       px: 0.75,
       py: 0.125,
       bgcolor: 'background.paper',
