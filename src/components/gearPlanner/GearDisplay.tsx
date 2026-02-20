@@ -93,7 +93,8 @@ const slotDisplayNames: Record<string, string> = {
   trinket: 'Trinket'
 }
 
-const gearSlots = ['armor', 'mainHand', 'offHand', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+const gearSlots = ['armor', 'mainHand', 'offHand', 'helm', 'goggles', 'necklace', 'cloak', 'bracers', 'gloves', 'belt', 'ring1', 'ring2', 'trinket', 'boots']
+const firstRowSlots = ['armor', 'mainHand', 'offHand']
 
 function getItemForSlot(setup: GearSetup, slot: string): Item | undefined {
   return setup[slot as keyof GearSetup]
@@ -820,9 +821,40 @@ export default function GearDisplay({
         </Box>
       )}
 
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {firstRowSlots.map(slot => {
+          const slotAvailableItems = slotAvailableItemsMap.get(slot)
+
+          return (
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={slot}>
+              <GearSlotCard
+                slotName={slotDisplayNames[slot]}
+                item={getItemForSlot(setup, slot)}
+                selectedProperties={selectedProperties}
+                setup={setup}
+                slots={slots}
+                hoveredProperty={hoveredProperty}
+                hoveredBonusSource={hoveredBonusSource}
+                hoveredSetName={hoveredSetName}
+                slottedAugmentNames={slotToAugmentNames.get(slot)}
+                onGearChange={onGearChange ? (item) => onGearChange(slot, item) : undefined}
+                onSetNameHover={onSetNameHover}
+                availableItems={slotAvailableItems}
+                craftingData={craftingData}
+                setsData={setsData}
+                onPropertyAdd={onPropertyAdd}
+                isPinned={pinnedSlots?.has(slot)}
+                onTogglePin={onTogglePin ? () => onTogglePin(slot, setup) : undefined}
+                isIgnored={getItemForSlot(setup, slot) ? excludedItems.includes(getItemForSlot(setup, slot)!.name) : false}
+                onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
+              />
+            </Grid>
+          )
+        })}
+      </Grid>
+
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {allSlots.map(slot => {
-          // Get pre-filtered available items for this slot from memoized map
+        {allSlots.filter(slot => !firstRowSlots.includes(slot)).map(slot => {
           const slotAvailableItems = slotAvailableItemsMap.get(slot)
 
           return (
