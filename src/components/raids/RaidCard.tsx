@@ -98,12 +98,14 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
 
         if (!soonestEntry) return null
 
+        const isPlayerOnline = (pg.entries ?? []).some((e) => Boolean(e?.isOnline))
+
         return {
           playerName,
           displayName: getPlayerDisplayName(playerName),
           soonestCharacter: soonestEntry.entry.characterName,
           soonestClasses: soonestEntry.entry.classes,
-          soonestIsOnline: soonestEntry.entry.isOnline,
+          isPlayerOnline,
           readyAt: soonestEntry.readyAt!,
         }
       })
@@ -244,7 +246,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                   <Chip
                     size="small"
                     label={info.displayName}
-                    icon={<FiberManualRecordIcon color={info.soonestIsOnline ? 'success' : 'disabled'} sx={{ width: 12, height: 12 }} />}
+                    icon={<FiberManualRecordIcon color={info.isPlayerOnline ? 'success' : 'disabled'} sx={{ width: 12, height: 12 }} />}
                     variant="outlined"
                   />
                 </Tooltip>
