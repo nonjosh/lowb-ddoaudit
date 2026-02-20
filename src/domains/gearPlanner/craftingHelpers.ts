@@ -40,11 +40,10 @@ const SET_BONUS_SLOT_PATTERNS = [
   'Random set 2'
 ]
 
-// Random/choice slots (7 total) - items have random properties at drop
+// Random/choice slots - items have random properties at drop
 const RANDOM_SLOT_PATTERNS = [
   'One of the following',
-  'Random effect',
-  'Random set'
+  'Random effect'
 ]
 
 /**
@@ -56,14 +55,14 @@ export function getCraftingSlotCategory(slotType: string): CraftingSlotCategory 
     return CraftingSlotCategory.AugmentSlot
   }
 
-  // Check for random/choice slots first (before set bonus since some overlap)
-  if (RANDOM_SLOT_PATTERNS.some(pattern => slotType.startsWith(pattern))) {
-    return CraftingSlotCategory.RandomSlot
-  }
-
-  // Check for set bonus slots
+  // Check for set bonus slots first (before random since "Random set 1/2" are set bonus slots)
   if (SET_BONUS_SLOT_PATTERNS.some(pattern => slotType.includes(pattern))) {
     return CraftingSlotCategory.SetBonusSlot
+  }
+
+  // Check for random/choice slots
+  if (RANDOM_SLOT_PATTERNS.some(pattern => slotType.startsWith(pattern))) {
+    return CraftingSlotCategory.RandomSlot
   }
 
   // Everything else is an affix selection slot
@@ -256,6 +255,37 @@ export function filterCraftingOptionsByML(
 }
 
 /**
+ * Filter crafting options by ML, excluded augments, excluded packs, and optionally set augments.
+ * Consolidates the common filtering logic used across multiple crafting selection paths.
+ */
+function filterValidCraftingOptions(
+  options: CraftingOption[],
+  itemML: number,
+  excludeSetAugments: boolean,
+  excludedAugments: string[],
+  excludedPacks: string[]
+): CraftingOption[] {
+  let validOptions = filterCraftingOptionsByML(options, itemML)
+
+  if (excludeSetAugments) {
+    validOptions = validOptions.filter(option => !option.set)
+  }
+
+  if (excludedAugments.length > 0) {
+    validOptions = validOptions.filter(option => !option.name || !excludedAugments.includes(option.name))
+  }
+
+  if (excludedPacks.length > 0) {
+    validOptions = validOptions.filter(option => {
+      if (!option.quests) return true
+      return !option.quests.some(quest => excludedPacks.includes(quest))
+    })
+  }
+
+  return validOptions
+}
+
+/**
  * Score a crafting option based on how well it matches selected properties
  *
  * @param option The crafting option to score
@@ -319,25 +349,7 @@ export function findBestCraftingOption(
   }
 
   const options = getAvailableCraftingOptions(craftingData, slotType, itemName)
-  let validOptions = filterCraftingOptionsByML(options, itemML)
-
-  // Filter out set augments if requested
-  if (excludeSetAugments) {
-    validOptions = validOptions.filter(option => !option.set)
-  }
-
-  // Filter out excluded augments by name
-  if (excludedAugments.length > 0) {
-    validOptions = validOptions.filter(option => !option.name || !excludedAugments.includes(option.name))
-  }
-
-  // Filter out augments from excluded adventure packs
-  if (excludedPacks.length > 0) {
-    validOptions = validOptions.filter(option => {
-      if (!option.quests) return true // If no quest source, don't filter
-      return !option.quests.some(quest => excludedPacks.includes(quest))
-    })
-  }
+  const validOptions = filterValidCraftingOptions(options, itemML, excludeSetAugments, excludedAugments, excludedPacks)
 
   if (validOptions.length === 0) {
     return null
@@ -528,6 +540,88 @@ function getSetMinThreshold(setName: string, setsData: SetsData | null): number 
 }
 
 /**
+ * Score a set bonus option based on how much value its set bonuses provide for selected properties.
+ * Considers existing set item counts to evaluate which sets are closest to activation.
+ *
+ * @param setName The set name this option provides membership to
+ * @param setsData Set bonus data
+ * @param selectedProperties Properties to optimize for
+ * @param existingSetCounts Current count of items contributing to each set
+ * @param additionalMembership How many additional memberships this would add (typically 1)
+ * @returns Score value (higher is better)
+ */
+function scoreSetBonusOption(
+  setName: string,
+  setsData: SetsData | null,
+  selectedProperties: string[],
+  existingSetCounts: Map<string, number>,
+  additionalMembership = 1
+): number {
+  if (!setsData) return 0
+  const setBonuses = setsData[setName]
+  if (!setBonuses) return 0
+
+  const currentCount = existingSetCounts.get(setName) || 0
+  const newCount = currentCount + additionalMembership
+
+  let score = 0
+
+  for (const bonus of setBonuses) {
+    // Bonus is newly activated: we've reached the threshold with this membership
+    // but hadn't reached it before (currentCount was below threshold)
+    if (newCount >= bonus.threshold && currentCount < bonus.threshold) {
+      for (const affix of bonus.affixes) {
+        if (affix.type === 'bool') continue
+        const propertyIndex = selectedProperties.indexOf(affix.name)
+        if (propertyIndex === -1) continue
+
+        const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
+        if (isNaN(value)) continue
+
+        // Weight by property priority (first property = highest weight)
+        const priorityWeight = selectedProperties.length - propertyIndex
+        score += value * priorityWeight
+      }
+    }
+  }
+
+  // Also give a small bonus for sets that are close to reaching a threshold
+  // This helps prioritize sets that the gear already partially contributes to
+  if (score === 0) {
+    for (const bonus of setBonuses) {
+      if (newCount < bonus.threshold) {
+        // Check if this set provides selected properties at any threshold
+        const hasSelectedProperties = bonus.affixes.some(affix =>
+          affix.type !== 'bool' && selectedProperties.includes(affix.name)
+        )
+        if (hasSelectedProperties) {
+          // Small score based on how close we are to threshold (closer = better)
+          const progress = newCount / bonus.threshold
+          score += progress * 0.1
+        }
+      }
+    }
+  }
+
+  return score
+}
+
+/**
+ * Get the current set item counts from a gear setup
+ */
+function getSetItemCounts(gearSetup: Record<string, Item | undefined>): Map<string, number> {
+  const setItemCounts = new Map<string, number>()
+  for (const item of Object.values(gearSetup)) {
+    if (item?.sets) {
+      for (const setName of item.sets) {
+        setItemCounts.set(setName, (setItemCounts.get(setName) || 0) + 1)
+      }
+    }
+  }
+  return setItemCounts
+}
+
+/**
  * Auto-select crafting options for an entire gear setup, respecting affix stacking rules.
  * This ensures we don't slot redundant augments that provide the same bonus type for the same property.
  * For Set Augments, it slots enough to reach set bonus thresholds if the bonus provides selected properties.
@@ -560,6 +654,9 @@ export function autoSelectCraftingOptionsForGearSetup(
   // Track what bonuses are already covered by base item affixes
   const coveredBonuses: CoveredBonuses = new Map()
   markAffixesCovered(baseAffixes, selectedProperties, coveredBonuses)
+
+  // Track set item counts (from equipped items + crafting selections) for set bonus scoring
+  const runningSetCounts = getSetItemCounts(gearSetup)
 
   // Collect all crafting slot candidates (both augments and affix selection slots)
   // We'll process them all together to respect stacking rules
@@ -597,22 +694,43 @@ export function autoSelectCraftingOptionsForGearSetup(
         continue
       }
 
-      // For set bonus slots, just pick the best option directly (they don't have stacking issues)
+      // For set bonus slots, pick the best option considering both direct affix value
+      // and set bonus value (for pure-set options like Random set 1/2 on Gem of Many Facets)
       if (isSetBonusSlot(slotType)) {
-        const bestOption = findBestCraftingOption(
-          craftingData,
-          slotType,
-          item.name,
-          item.ml,
-          selectedProperties,
-          excludeSetAugments,
-          excludedAugments,
-          excludedPacks
-        )
+        const options = getAvailableCraftingOptions(craftingData, slotType, item.name)
+        const validOptions = filterValidCraftingOptions(options, item.ml, excludeSetAugments, excludedAugments, excludedPacks)
+
+        // Score options using both affix scoring and set bonus scoring
+        let bestOption: CraftingOption | null = null
+        let bestScore = -1
+
+        for (const option of validOptions) {
+          let score = scoreCraftingOption(option, selectedProperties)
+
+          // For options with a set property, also score by set bonus value
+          if (option.set) {
+            score += scoreSetBonusOption(
+              option.set,
+              setsData,
+              selectedProperties,
+              runningSetCounts
+            )
+          }
+
+          if (score > bestScore) {
+            bestScore = score
+            bestOption = option
+          }
+        }
+
         result[slotKey][i].option = bestOption
         // Mark these affixes as covered
         if (bestOption?.affixes) {
           markAffixesCovered(bestOption.affixes, selectedProperties, coveredBonuses)
+        }
+        // Update running set counts for subsequent set bonus slot evaluations
+        if (bestOption?.set) {
+          runningSetCounts.set(bestOption.set, (runningSetCounts.get(bestOption.set) || 0) + 1)
         }
         continue
       }
@@ -620,20 +738,7 @@ export function autoSelectCraftingOptionsForGearSetup(
       // For augment slots AND affix selection slots, collect as candidates
       // This ensures we don't slot multiple Dolorous/Melancholic with same bonus type
       const options = getAvailableCraftingOptions(craftingData, slotType, item.name)
-      let validOptions = filterCraftingOptionsByML(options, item.ml)
-
-      // Filter out excluded augments by name
-      if (excludedAugments.length > 0) {
-        validOptions = validOptions.filter(option => !option.name || !excludedAugments.includes(option.name))
-      }
-
-      // Filter out augments from excluded adventure packs
-      if (excludedPacks.length > 0) {
-        validOptions = validOptions.filter(option => {
-          if (!option.quests) return true // If no quest source, don't filter
-          return !option.quests.some(quest => excludedPacks.includes(quest))
-        })
-      }
+      const validOptions = filterValidCraftingOptions(options, item.ml, false, excludedAugments, excludedPacks)
 
       for (const option of validOptions) {
         // Check if this is a Set Augment (has a set property)
