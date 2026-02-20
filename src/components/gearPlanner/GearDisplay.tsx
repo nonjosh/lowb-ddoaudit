@@ -93,6 +93,8 @@ const slotDisplayNames: Record<string, string> = {
   trinket: 'Trinket'
 }
 
+const gearSlots = ['armor', 'mainHand', 'offHand', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+
 function getItemForSlot(setup: GearSetup, slot: string): Item | undefined {
   return setup[slot as keyof GearSetup]
 }
@@ -608,7 +610,7 @@ export default function GearDisplay({
   const [craftingExpanded, setCraftingExpanded] = useState(false)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
   const [selectedSetName, setSelectedSetName] = useState<string>('')
-  const slots = ['armor', 'mainHand', 'offHand', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+  const slots = gearSlots
 
   // Show all slots, not just equipped ones
   const allSlots = slots
@@ -770,7 +772,7 @@ export default function GearDisplay({
     const map = new Map<string, Item[]>()
     if (!availableItems) return map
 
-    allSlots.forEach(slot => {
+    gearSlots.forEach(slot => {
       const filtered = availableItems.filter(item => {
         if (slot === 'ring1' || slot === 'ring2') {
           return item.slot === 'Ring'
