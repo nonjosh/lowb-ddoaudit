@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 
 import CloseIcon from '@mui/icons-material/Close'
+import Inventory2Icon from '@mui/icons-material/Inventory2'
 import SearchIcon from '@mui/icons-material/Search'
 import {
   Box,
@@ -19,11 +20,14 @@ import {
   Paper,
   Select,
   TextField,
+  ToggleButton,
+  Tooltip,
   Typography
 } from '@mui/material'
 
 import { Item } from '@/api/ddoGearPlanner'
 import type { CraftingData, SetsData } from '@/api/ddoGearPlanner'
+import { useTrove } from '@/contexts/useTrove'
 import { formatAffix } from '@/utils/affixHelpers'
 import InventoryBadge from './InventoryBadge'
 import { ItemSelectionTable } from './ItemSelectionTable'
@@ -50,6 +54,11 @@ export default function ItemSelectionDialog({
   setsData
 }: ItemSelectionDialogProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [showOwnedOnly, setShowOwnedOnly] = useState(false)
+  const { isItemAvailableForCharacters, inventoryMap } = useTrove()
+
+  // Only show the owned filter when Trove data is imported
+  const hasTroveData = inventoryMap.size > 0
 
   // Get unique types from items for filtering
   const uniqueTypes = useMemo(() => {
@@ -82,10 +91,11 @@ export default function ItemSelectionDialog({
     setTypeFilter(defaultTypeFilter)
   }, [defaultTypeFilter])
 
-  // Reset search term when dialog closes
+  // Reset search term and owned filter when dialog closes
   useEffect(() => {
     if (!open) {
       setSearchTerm('')
+      setShowOwnedOnly(false)
     }
   }, [open])
 
@@ -99,7 +109,9 @@ export default function ItemSelectionDialog({
 
     const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
 
-    return matchesSearch && matchesType
+    const matchesOwned = !showOwnedOnly || isItemAvailableForCharacters(item.name)
+
+    return matchesSearch && matchesType && matchesOwned
   })
 
   const handleSelect = (item: Item) => {
@@ -138,6 +150,21 @@ export default function ItemSelectionDialog({
               )
             }}
           />
+          {hasTroveData && (
+            <Tooltip title="Show only items in your inventory">
+              <ToggleButton
+                value="owned"
+                selected={showOwnedOnly}
+                onChange={() => setShowOwnedOnly(prev => !prev)}
+                size="small"
+                color="primary"
+                sx={{ whiteSpace: 'nowrap', px: 1.5 }}
+              >
+                <Inventory2Icon sx={{ mr: 0.5, fontSize: '1.1rem' }} />
+                Owned
+              </ToggleButton>
+            </Tooltip>
+          )}
           {uniqueTypes.length > 0 && (
             <FormControl size="small" sx={{ minWidth: 200 }}>
               <InputLabel>Filter by Type</InputLabel>
