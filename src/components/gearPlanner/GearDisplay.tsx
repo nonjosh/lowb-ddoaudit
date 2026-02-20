@@ -93,7 +93,7 @@ const slotDisplayNames: Record<string, string> = {
   trinket: 'Trinket'
 }
 
-const gearSlots = ['armor', 'mainHand', 'offHand', 'helm', 'goggles', 'necklace', 'cloak', 'bracers', 'gloves', 'belt', 'ring1', 'ring2', 'trinket', 'boots']
+const gearSlots = ['armor', 'mainHand', 'offHand', 'goggles', 'helm', 'necklace', 'cloak', 'bracers', 'gloves', 'belt', 'boots', 'ring1', 'ring2', 'trinket']
 const firstRowSlots = ['armor', 'mainHand', 'offHand']
 
 function getItemForSlot(setup: GearSetup, slot: string): Item | undefined {
