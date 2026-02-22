@@ -155,7 +155,8 @@ function addItemsToMap(
       container: item.Container,
       tab: item.Tab,
       tabName: item.TabName,
-      binding: item.Binding
+      binding: item.Binding,
+      minimumLevel: item.MinimumLevel
     }
 
     const existing = map.get(item.Name)
