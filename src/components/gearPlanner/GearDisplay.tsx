@@ -659,9 +659,18 @@ export default function GearDisplay({
   onCraftingChange
 }: GearDisplayProps) {
   const { isWished, toggleWish } = useWishlist()
-  const [craftingExpanded, setCraftingExpanded] = useState(false)
+  // Default expanded when editing is available so users can see the augment slots
+  const [craftingExpanded, setCraftingExpanded] = useState(() => !!onCraftingChange)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
   const [selectedSetName, setSelectedSetName] = useState<string>('')
+  const [summaryAugmentDialog, setSummaryAugmentDialog] = useState<{
+    slotType: string
+    gearSlot: string
+    slotIndex: number
+    itemName: string
+    itemML: number
+    currentOption: CraftingOption | null
+  } | null>(null)
   const slots = gearSlots
 
   // Show all slots, not just equipped ones
@@ -681,7 +690,11 @@ export default function GearDisplay({
 
   // Collect all crafting selections grouped by slot type (including non-augments)
   // Track both total slots per type and slotted options
-  const craftingSlotsByType = new Map<string, { total: number; slotted: { name: string; affixes: ItemAffix[]; set?: string; slot: string }[] }>()
+  const craftingSlotsByType = new Map<string, {
+    total: number
+    slotted: { name: string; affixes: ItemAffix[]; set?: string; slot: string; slotIndex: number; itemName: string; itemML: number }[]
+    emptySlots: { gearSlot: string; slotIndex: number; itemName: string; itemML: number }[]
+  }>()
   let totalCraftingSlots = 0
   let usedCraftingSlots = 0
 
@@ -695,7 +708,7 @@ export default function GearDisplay({
 
         // Initialize slot type tracking if needed
         if (!craftingSlotsByType.has(craftingSlotType)) {
-          craftingSlotsByType.set(craftingSlotType, { total: 0, slotted: [] })
+          craftingSlotsByType.set(craftingSlotType, { total: 0, slotted: [], emptySlots: [] })
         }
         const slotTypeData = craftingSlotsByType.get(craftingSlotType)!
         slotTypeData.total++
@@ -715,15 +728,26 @@ export default function GearDisplay({
             name: generateCraftingOptionName(selection.option),
             affixes: selection.option.affixes || [],
             set: selection.option.set,
-            slot
+            slot,
+            slotIndex: idx,
+            itemName: item.name,
+            itemML: item.ml
+          })
+        } else {
+          // Track empty slots so they can be edited from the summary table
+          slotTypeData.emptySlots.push({
+            gearSlot: slot,
+            slotIndex: idx,
+            itemName: item.name,
+            itemML: item.ml
           })
         }
       })
     }
   })
 
-  // Group slotted items by name and count occurrences
-  const groupSlottedByName = (slotted: { name: string; affixes: ItemAffix[]; set?: string; slot: string }[]) => {
+  // Group slotted items by name and count occurrences (for read-only summary display)
+  const groupSlottedByName = (slotted: { name: string; affixes: ItemAffix[]; set?: string; slot: string; slotIndex: number; itemName: string; itemML: number }[]) => {
     const grouped = new Map<string, { count: number; affixes: ItemAffix[]; set?: string; slots: string[] }>()
     for (const item of slotted) {
       if (grouped.has(item.name)) {
@@ -1086,6 +1110,10 @@ export default function GearDisplay({
                     {sortedCraftingTypes.map(([slotType, data]) => {
                       const groupedSlotted = groupSlottedByName(data.slotted)
                       const bgColor = getAugmentColor(slotType)
+                      const canEditAugments = !!onCraftingChange && !!craftingData
+                      const getHighlight = (name: string, set?: string) => {
+                        return !!(hoveredAugment === name || (set && hoveredSetAugment === set) || hoveredBonusSource?.augmentNames?.includes(name))
+                      }
 
                       return (
                         <TableRow key={slotType}>
@@ -1112,14 +1140,98 @@ export default function GearDisplay({
                             </Box>
                           </TableCell>
                           <TableCell>
-                            {groupedSlotted.length > 0 ? (
+                            {canEditAugments ? (
+                              /* Editable mode: show all slots individually (filled + empty) */
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                {/* Filled slots */}
+                                {data.slotted.map((s, idx) => {
+                                  const shouldHighlight = getHighlight(s.name, s.set)
+
+                                  return (
+                                    <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
+                                        {slotDisplayNames[s.slot] ?? s.slot}:
+                                      </Typography>
+                                      <Tooltip title="Click to change augment / crafting option">
+                                        <Box
+                                          component="span"
+                                          onClick={() => {
+                                            const currentOption = craftingSelections?.[s.slot]?.[s.slotIndex]?.option ?? null
+                                            setSummaryAugmentDialog({
+                                              slotType,
+                                              gearSlot: s.slot,
+                                              slotIndex: s.slotIndex,
+                                              itemName: s.itemName,
+                                              itemML: s.itemML,
+                                              currentOption
+                                            })
+                                          }}
+                                          onMouseEnter={() => {
+                                            onAugmentHover?.(s.name)
+                                            if (s.set) onSetAugmentHover?.(s.set)
+                                          }}
+                                          onMouseLeave={() => {
+                                            onAugmentHover?.(null)
+                                            onSetAugmentHover?.(null)
+                                          }}
+                                          sx={{
+                                            fontSize: '0.75rem',
+                                            color: 'text.primary',
+                                            cursor: 'pointer',
+                                            borderBottom: '1px dashed',
+                                            borderColor: 'text.secondary',
+                                            lineHeight: 1.4,
+                                            backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                            px: shouldHighlight ? 0.25 : 0,
+                                            borderRadius: shouldHighlight ? 0.5 : 0,
+                                            transition: 'all 0.2s',
+                                            '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                                          }}
+                                        >
+                                          {s.name}
+                                        </Box>
+                                      </Tooltip>
+                                    </Box>
+                                  )
+                                })}
+                                {/* Empty slots */}
+                                {data.emptySlots.map((e, idx) => (
+                                  <Box key={`empty-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
+                                      {slotDisplayNames[e.gearSlot] ?? e.gearSlot}:
+                                    </Typography>
+                                    <Tooltip title="Click to add augment / crafting option">
+                                      <Box
+                                        component="span"
+                                        onClick={() => setSummaryAugmentDialog({
+                                          slotType,
+                                          gearSlot: e.gearSlot,
+                                          slotIndex: e.slotIndex,
+                                          itemName: e.itemName,
+                                          itemML: e.itemML,
+                                          currentOption: null
+                                        })}
+                                        sx={{
+                                          fontSize: '0.75rem',
+                                          color: 'text.disabled',
+                                          cursor: 'pointer',
+                                          borderBottom: '1px dashed',
+                                          borderColor: 'text.disabled',
+                                          lineHeight: 1.4,
+                                          '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                                        }}
+                                      >
+                                        (empty)
+                                      </Box>
+                                    </Tooltip>
+                                  </Box>
+                                ))}
+                              </Box>
+                            ) : (
+                              /* Read-only mode: grouped display */
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                 {groupedSlotted.map((aug, idx) => {
-                                  // Check if this augment should be highlighted
-                                  const isAugmentHovered = hoveredAugment === aug.name
-                                  const isSetAugmentHovered = aug.set && hoveredSetAugment === aug.set
-                                  const isHighlightedFromBonusSource = hoveredBonusSource?.augmentNames?.includes(aug.name)
-                                  const shouldHighlight = isAugmentHovered || isSetAugmentHovered || isHighlightedFromBonusSource
+                                  const shouldHighlight = getHighlight(aug.name, aug.set)
 
                                   return (
                                     <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1215,11 +1327,12 @@ export default function GearDisplay({
                                     </Box>
                                   )
                                 })}
+                                {groupedSlotted.length === 0 && (
+                                  <Typography variant="body2" color="text.secondary">
+                                    —
+                                  </Typography>
+                                )}
                               </Box>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">
-                                —
-                              </Typography>
                             )}
                           </TableCell>
                         </TableRow>
@@ -1242,6 +1355,23 @@ export default function GearDisplay({
           allItems={availableItems}
           currentSetup={setup}
           setsData={setsData}
+        />
+      )}
+
+      {/* Augment Selection Dialog (from Slotted Crafting Options summary) */}
+      {summaryAugmentDialog && onCraftingChange && craftingData && (
+        <AugmentSelectionDialog
+          open={true}
+          onClose={() => setSummaryAugmentDialog(null)}
+          slotType={summaryAugmentDialog.slotType}
+          itemName={summaryAugmentDialog.itemName}
+          itemML={summaryAugmentDialog.itemML}
+          currentOption={summaryAugmentDialog.currentOption}
+          craftingData={craftingData}
+          onSelect={(option) => {
+            onCraftingChange(summaryAugmentDialog.gearSlot, summaryAugmentDialog.slotIndex, option)
+            setSummaryAugmentDialog(null)
+          }}
         />
       )}
     </Box>
