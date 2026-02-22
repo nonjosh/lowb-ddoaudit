@@ -144,6 +144,7 @@ export interface TroveItemLocation {
   tab?: number
   tabName?: string
   binding?: TroveBinding
+  minimumLevel?: number
 }
 
 export interface TroveCharacter {
