@@ -29,17 +29,19 @@ import {
   Typography
 } from '@mui/material'
 
-import { Item, ItemAffix, SetsData, CraftingData } from '@/api/ddoGearPlanner'
+import { Item, ItemAffix, SetsData, CraftingData, CraftingOption } from '@/api/ddoGearPlanner'
 import { artifactBorderLabelSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import {
   GearCraftingSelections,
   GearSetup,
-  getCraftingSetMemberships
+  getCraftingSetMemberships,
+  SelectedCraftingOption
 } from '@/domains/gearPlanner'
 import { generateCraftingOptionName } from '@/domains/gearPlanner/augmentHelpers'
 import { formatAffix, getWikiUrl } from '@/utils/affixHelpers'
 
+import AugmentSelectionDialog from './AugmentSelectionDialog'
 import InventoryBadge from './InventoryBadge'
 import ItemSelectionDialog from './ItemSelectionDialog'
 import { SetItemsDialog } from './SetItemsDialog'
@@ -74,6 +76,7 @@ interface GearDisplayProps {
   onToggleItemIgnore?: (itemName: string) => void
   excludedAugments?: string[]
   onExcludedAugmentsChange?: (augments: string[]) => void
+  onCraftingChange?: (gearSlot: string, slotIndex: number, option: CraftingOption | null) => void
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -197,7 +200,9 @@ function GearSlotCard({
   isPinned,
   onTogglePin,
   isIgnored,
-  onToggleIgnore
+  onToggleIgnore,
+  slotCraftingSelections,
+  onCraftingChange
 }: {
   slotName: string
   item: Item | undefined
@@ -218,9 +223,12 @@ function GearSlotCard({
   onTogglePin?: () => void
   isIgnored?: boolean
   onToggleIgnore?: () => void
+  slotCraftingSelections?: SelectedCraftingOption[]
+  onCraftingChange?: (slotIndex: number, option: CraftingOption | null) => void
 }) {
   const { isWished, toggleWish } = useWishlist()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [augmentDialogIndex, setAugmentDialogIndex] = useState<number | null>(null)
   const actionButtonSx = {
     width: 28,
     height: 28,
@@ -542,8 +550,13 @@ function GearSlotCard({
             <Box sx={{ mt: 1 }}>
               {craftingSlots.map((craftingSlot, idx) => {
                 const bgColor = getAugmentColor(craftingSlot)
+                const selection = slotCraftingSelections?.[idx]
+                const selectedOptionName = selection?.option
+                  ? generateCraftingOptionName(selection.option)
+                  : null
+                const canEdit = !!onCraftingChange && !!craftingData
                 return (
-                  <Box key={idx} sx={{ mb: 0.25 }}>
+                  <Box key={idx} sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, flexWrap: 'wrap' }}>
                     <Box
                       component="span"
                       sx={{
@@ -552,13 +565,37 @@ function GearSlotCard({
                         px: 0.5,
                         py: 0.25,
                         borderRadius: 0.5,
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         display: 'inline-block',
-                        lineHeight: 1.2
+                        lineHeight: 1.2,
+                        flexShrink: 0
                       }}
                     >
                       {craftingSlot}
                     </Box>
+                    {canEdit ? (
+                      <Tooltip title="Click to change augment / crafting option">
+                        <Box
+                          component="span"
+                          onClick={() => setAugmentDialogIndex(idx)}
+                          sx={{
+                            fontSize: '0.7rem',
+                            color: selectedOptionName ? 'text.primary' : 'text.disabled',
+                            cursor: 'pointer',
+                            borderBottom: '1px dashed',
+                            borderColor: selectedOptionName ? 'text.secondary' : 'text.disabled',
+                            lineHeight: 1.4,
+                            '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                          }}
+                        >
+                          {selectedOptionName ?? '(empty)'}
+                        </Box>
+                      </Tooltip>
+                    ) : selectedOptionName ? (
+                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                        {selectedOptionName}
+                      </Typography>
+                    ) : null}
                   </Box>
                 )
               })}
@@ -577,6 +614,19 @@ function GearSlotCard({
           onSelect={(newItem) => onGearChange(newItem)}
           craftingData={craftingData}
           setsData={setsData}
+        />
+      )}
+      {/* Augment Selection Dialog */}
+      {onCraftingChange && craftingData && augmentDialogIndex !== null && item && (
+        <AugmentSelectionDialog
+          open={augmentDialogIndex !== null}
+          onClose={() => setAugmentDialogIndex(null)}
+          slotType={craftingSlots[augmentDialogIndex] ?? ''}
+          itemName={item.name}
+          itemML={item.ml}
+          currentOption={slotCraftingSelections?.[augmentDialogIndex]?.option ?? null}
+          craftingData={craftingData}
+          onSelect={(option) => onCraftingChange(augmentDialogIndex, option)}
         />
       )}
     </>
@@ -605,7 +655,8 @@ export default function GearDisplay({
   excludedItems = [],
   onToggleItemIgnore,
   excludedAugments = [],
-  onExcludedAugmentsChange
+  onExcludedAugmentsChange,
+  onCraftingChange
 }: GearDisplayProps) {
   const { isWished, toggleWish } = useWishlist()
   const [craftingExpanded, setCraftingExpanded] = useState(false)
@@ -847,6 +898,8 @@ export default function GearDisplay({
                 onTogglePin={onTogglePin ? () => onTogglePin(slot, setup) : undefined}
                 isIgnored={getItemForSlot(setup, slot) ? excludedItems.includes(getItemForSlot(setup, slot)!.name) : false}
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
+                slotCraftingSelections={craftingSelections?.[slot]}
+                onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
               />
             </Grid>
           )
@@ -879,6 +932,8 @@ export default function GearDisplay({
                 onTogglePin={onTogglePin ? () => onTogglePin(slot, setup) : undefined}
                 isIgnored={getItemForSlot(setup, slot) ? excludedItems.includes(getItemForSlot(setup, slot)!.name) : false}
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
+                slotCraftingSelections={craftingSelections?.[slot]}
+                onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
               />
             </Grid>
           )

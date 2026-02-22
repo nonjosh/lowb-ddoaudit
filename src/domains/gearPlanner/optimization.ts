@@ -97,7 +97,8 @@ export function calculateScore(
   craftingData?: CraftingData | null,
   excludeSetAugments = false,
   excludedAugments: string[] = [],
-  excludedPacks: string[] = []
+  excludedPacks: string[] = [],
+  existingCraftingSelections?: GearCraftingSelections
 ): {
   score: number
   propertyValues: Map<string, number>
@@ -120,7 +121,7 @@ export function calculateScore(
     gearSetupRecord[slotKey] = setup[slotKey]
   }
 
-  const craftingSelections = autoSelectCraftingOptionsForGearSetup(
+  const craftingSelections = existingCraftingSelections ?? autoSelectCraftingOptionsForGearSetup(
     gearSetupRecord,
     craftingData ?? null,
     properties,
