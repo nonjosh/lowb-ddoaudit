@@ -646,7 +646,7 @@ export function autoSelectCraftingOptionsForGearSetup(
   excludedAugments: string[] = [],
   excludedPacks: string[] = []
 ): GearCraftingSelections {
-  const slotKeys = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+  const slotKeys = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket', 'mainHand', 'offHand']
 
   // Initialize result with empty arrays for each slot
   const result: GearCraftingSelections = {}
