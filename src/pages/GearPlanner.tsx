@@ -29,7 +29,7 @@ import TroveImportDialog from '@/components/gearPlanner/TroveImportDialog'
 
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
-import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup, GearCraftingSelections } from '@/domains/gearPlanner'
+import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup, buildUpdatedCraftingSelections } from '@/domains/gearPlanner'
 import { Item, CraftingOption } from '@/api/ddoGearPlanner'
 
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
@@ -641,19 +641,14 @@ export default function GearPlanner() {
     const currentSetup = manualSetup || optimizedSetups[Math.min(selectedSuggestionIndex, optimizedSetups.length - 1)]
     if (!currentSetup) return
 
-    // Build updated crafting selections, replacing the one slot
-    const currentSelections: GearCraftingSelections = currentSetup.craftingSelections ?? {}
-    // Initialize slot selections from item crafting if not already set
     const item = currentSetup.setup[gearSlot as keyof GearSetup]
-    const baseSelections = currentSelections[gearSlot]
-      ?? (item?.crafting?.map(slotType => ({ slotType, option: null })) ?? [])
-    const slotSelections = baseSelections.map((sel, idx) =>
-      idx === slotIndex ? { ...sel, option } : sel
+    const newCraftingSelections = buildUpdatedCraftingSelections(
+      currentSetup.craftingSelections ?? {},
+      gearSlot,
+      slotIndex,
+      option,
+      item?.crafting
     )
-    const newCraftingSelections: GearCraftingSelections = {
-      ...currentSelections,
-      [gearSlot]: slotSelections
-    }
 
     // Recalculate score using the manually overridden crafting selections
     const result = calculateScore(

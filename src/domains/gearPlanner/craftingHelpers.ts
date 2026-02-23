@@ -385,6 +385,35 @@ export interface SelectedCraftingOption {
 export type GearCraftingSelections = Record<string, SelectedCraftingOption[]>
 
 /**
+ * Build updated crafting selections after a user changes a single augment/crafting slot.
+ * Shared helper used by GearPlanner.tsx and GearPlannerDemo.tsx to avoid duplication.
+ *
+ * @param currentSelections The current crafting selections for the entire gear setup
+ * @param gearSlot The gear slot being modified (e.g. 'ring1', 'armor')
+ * @param slotIndex The crafting slot index within that gear slot
+ * @param option The new crafting option (or null to clear)
+ * @param itemCraftingSlots The item's crafting slot types (used to initialise if no prior selections)
+ * @returns A new GearCraftingSelections with the specified slot updated
+ */
+export function buildUpdatedCraftingSelections(
+  currentSelections: GearCraftingSelections,
+  gearSlot: string,
+  slotIndex: number,
+  option: CraftingOption | null,
+  itemCraftingSlots: string[] | undefined
+): GearCraftingSelections {
+  const baseSelections = currentSelections[gearSlot]
+    ?? (itemCraftingSlots?.map(slotType => ({ slotType, option: null as CraftingOption | null })) ?? [])
+  const slotSelections = baseSelections.map((sel, idx) =>
+    idx === slotIndex ? { ...sel, option } : sel
+  )
+  return {
+    ...currentSelections,
+    [gearSlot]: slotSelections
+  }
+}
+
+/**
  * Auto-select the best crafting options for all slots on an item
  * NOTE: This is a basic version that selects independently per item.
  * Use autoSelectCraftingOptionsForGearSetup for smarter stacking-aware selection.

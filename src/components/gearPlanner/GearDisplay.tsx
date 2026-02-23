@@ -619,7 +619,7 @@ function GearSlotCard({
       {/* Augment Selection Dialog */}
       {onCraftingChange && craftingData && augmentDialogIndex !== null && item && (
         <AugmentSelectionDialog
-          open={augmentDialogIndex !== null}
+          open
           onClose={() => setAugmentDialogIndex(null)}
           slotType={craftingSlots[augmentDialogIndex] ?? ''}
           itemName={item.name}
@@ -1419,7 +1419,6 @@ export default function GearDisplay({
           craftingData={craftingData}
           onSelect={(option) => {
             onCraftingChange(summaryAugmentDialog.gearSlot, summaryAugmentDialog.slotIndex, option)
-            setSummaryAugmentDialog(null)
           }}
         />
       )}

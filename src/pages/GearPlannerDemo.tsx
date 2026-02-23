@@ -10,7 +10,7 @@ import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
-import { GearCraftingSelections, getAllAvailableProperties, optimizeGear, OptimizedGearSetup } from '@/domains/gearPlanner'
+import { buildUpdatedCraftingSelections, calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup } from '@/domains/gearPlanner'
 import { mockCraftingData, mockItems, mockSetsData } from '@/domains/gearPlanner/mockData'
 import { CraftingOption } from '@/api/ddoGearPlanner'
 
@@ -59,19 +59,36 @@ export default function GearPlannerDemo() {
     const currentSetup = manualSetup || optimizedSetups[effectiveIndex]
     if (!currentSetup) return
 
-    const currentSelections: GearCraftingSelections = currentSetup.craftingSelections ?? {}
     const item = currentSetup.setup[gearSlot as keyof typeof currentSetup.setup]
-    const baseSelections = currentSelections[gearSlot]
-      ?? (item?.crafting?.map(slotType => ({ slotType, option: null as CraftingOption | null })) ?? [])
-    const slotSelections = baseSelections.map((sel, idx) =>
-      idx === slotIndex ? { ...sel, option } : sel
+    const newCraftingSelections = buildUpdatedCraftingSelections(
+      currentSetup.craftingSelections ?? {},
+      gearSlot,
+      slotIndex,
+      option,
+      item?.crafting
     )
-    const newCraftingSelections: GearCraftingSelections = {
-      ...currentSelections,
-      [gearSlot]: slotSelections
-    }
+
+    // Recalculate score so summary table and UI stay in sync
+    const result = calculateScore(
+      currentSetup.setup,
+      selectedProperties,
+      mockSetsData,
+      mockCraftingData,
+      false,
+      [],
+      [],
+      newCraftingSelections
+    )
+
     setManualSetup({
-      ...currentSetup,
+      setup: currentSetup.setup,
+      score: result.score,
+      propertyValues: result.propertyValues,
+      unusedAugments: result.unusedAugments,
+      totalAugments: result.totalAugments,
+      extraProperties: result.extraProperties,
+      otherEffects: result.otherEffects,
+      activeSets: result.activeSets,
       craftingSelections: newCraftingSelections
     })
   }
