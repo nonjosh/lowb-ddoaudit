@@ -1191,6 +1191,55 @@ export default function GearDisplay({
                                           {s.name}
                                         </Box>
                                       </Tooltip>
+                                      <Tooltip title="View on DDO Wiki">
+                                        <IconButton
+                                          size="small"
+                                          component="a"
+                                          href={getAugmentWikiUrl(s.name)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{ p: 0.25 }}
+                                        >
+                                          <LaunchIcon sx={{ fontSize: 14 }} />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <InventoryBadge itemName={s.name} variant="icon" size="small" />
+                                      {(() => {
+                                        const augmentItem = { name: s.name, ml: 0, isAugment: true as const, affixes: s.affixes }
+                                        const wished = isWished(augmentItem)
+                                        return (
+                                          <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => toggleWish(augmentItem)}
+                                              sx={{ p: 0.25 }}
+                                            >
+                                              {wished ? (
+                                                <FavoriteIcon sx={{ fontSize: 14 }} color="error" />
+                                              ) : (
+                                                <FavoriteBorderIcon sx={{ fontSize: 14 }} />
+                                              )}
+                                            </IconButton>
+                                          </Tooltip>
+                                        )
+                                      })()}
+                                      {onExcludedAugmentsChange && (
+                                        <Tooltip title={excludedAugments.includes(s.name) ? "Remove from ignore list" : "Ignore this augment"}>
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                              const newList = excludedAugments.includes(s.name)
+                                                ? excludedAugments.filter(name => name !== s.name)
+                                                : [...excludedAugments, s.name]
+                                              onExcludedAugmentsChange(newList)
+                                            }}
+                                            sx={{ p: 0.25 }}
+                                            color={excludedAugments.includes(s.name) ? "warning" : "default"}
+                                          >
+                                            <BlockIcon sx={{ fontSize: 14 }} />
+                                          </IconButton>
+                                        </Tooltip>
+                                      )}
                                     </Box>
                                   )
                                 })}
