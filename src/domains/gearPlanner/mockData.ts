@@ -1,4 +1,4 @@
-import { Item, SetsData } from '@/api/ddoGearPlanner'
+import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
 
 // Sample items for testing
 export const mockItems: Item[] = [
@@ -156,4 +156,76 @@ export const mockSetsData: SetsData = {
       ]
     }
   ]
+}
+
+/**
+ * Mock crafting data matching the crafting slots on mockItems.
+ * Used by the Gear Planner Demo page to demonstrate augment selection.
+ */
+export const mockCraftingData: CraftingData = {
+  'Yellow Augment Slot': {
+    '*': [
+      {
+        name: 'Topaz of Strength +14',
+        affixes: [{ name: 'Strength', type: 'Enhancement', value: 14 }],
+        ml: 15
+      },
+      {
+        name: 'Topaz of Strength +10',
+        affixes: [{ name: 'Strength', type: 'Enhancement', value: 10 }],
+        ml: 10
+      },
+      {
+        name: 'Topaz of Constitution +14',
+        affixes: [{ name: 'Constitution', type: 'Enhancement', value: 14 }],
+        ml: 15
+      }
+    ]
+  },
+  'Blue Augment Slot': {
+    '*': [
+      {
+        name: 'Sapphire of Constitution +14',
+        affixes: [{ name: 'Constitution', type: 'Enhancement', value: 14 }],
+        ml: 15
+      },
+      {
+        name: 'Sapphire of Strength +10',
+        affixes: [{ name: 'Strength', type: 'Enhancement', value: 10 }],
+        ml: 10
+      }
+    ]
+  },
+  'Green Augment Slot': {
+    '*': [
+      {
+        name: 'Emerald of Doublestrike +8',
+        affixes: [{ name: 'Doublestrike', type: 'Enhancement', value: 8 }],
+        ml: 15
+      },
+      {
+        name: 'Emerald of Doublestrike +5',
+        affixes: [{ name: 'Doublestrike', type: 'Enhancement', value: 5 }],
+        ml: 10
+      }
+    ]
+  },
+  'Red Augment Slot': {
+    '*': [
+      {
+        name: 'Ruby of Melee Power +12',
+        affixes: [{ name: 'Melee Power', type: 'Enhancement', value: 12 }],
+        ml: 15
+      }
+    ]
+  },
+  'Colorless Augment Slot': {
+    '*': [
+      {
+        name: 'Diamond of Constitution +5',
+        affixes: [{ name: 'Constitution', type: 'Insight', value: 5 }],
+        ml: 12
+      }
+    ]
+  }
 }

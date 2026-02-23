@@ -10,8 +10,9 @@ import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
-import { getAllAvailableProperties, optimizeGear } from '@/domains/gearPlanner'
-import { mockItems, mockSetsData } from '@/domains/gearPlanner/mockData'
+import { buildUpdatedCraftingSelections, calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup } from '@/domains/gearPlanner'
+import { mockCraftingData, mockItems, mockSetsData } from '@/domains/gearPlanner/mockData'
+import { CraftingOption } from '@/api/ddoGearPlanner'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -23,10 +24,12 @@ interface HoveredBonusSource {
 export default function GearPlannerDemo() {
   const [selectedProperties, setSelectedProperties] = useState<string[]>(['Strength', 'Constitution', 'Doublestrike'])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [manualSetup, setManualSetup] = useState<OptimizedGearSetup | null>(null)
   const [hoveredProperty, setHoveredProperty] = useState<string | null>(null)
   const [hoveredAugment, setHoveredAugment] = useState<string | null>(null)
   const [hoveredSetAugment, setHoveredSetAugment] = useState<string | null>(null)
   const [hoveredBonusSource, setHoveredBonusSource] = useState<HoveredBonusSource | null>(null)
+  const [hoveredSetName, setHoveredSetName] = useState<string | null>(null)
 
   // Get available properties from mock items
   const availableProperties = useMemo(() => {
@@ -39,11 +42,56 @@ export default function GearPlannerDemo() {
 
     return optimizeGear(mockItems, mockSetsData, {
       properties: selectedProperties,
-      maxResults: 20
+      maxResults: 20,
+      craftingData: mockCraftingData
     })
   }, [selectedProperties])
 
-  const selectedSetup = optimizedSetups[selectedSuggestionIndex]
+  const effectiveIndex = Math.min(selectedSuggestionIndex, Math.max(0, optimizedSetups.length - 1))
+  const selectedSetup = manualSetup || optimizedSetups[effectiveIndex]
+
+  const handleSuggestionSelect = (index: number) => {
+    setSelectedSuggestionIndex(index)
+    setManualSetup(null)
+  }
+
+  const handleCraftingChange = (gearSlot: string, slotIndex: number, option: CraftingOption | null) => {
+    const currentSetup = manualSetup || optimizedSetups[effectiveIndex]
+    if (!currentSetup) return
+
+    const item = currentSetup.setup[gearSlot as keyof typeof currentSetup.setup]
+    const newCraftingSelections = buildUpdatedCraftingSelections(
+      currentSetup.craftingSelections ?? {},
+      gearSlot,
+      slotIndex,
+      option,
+      item?.crafting
+    )
+
+    // Recalculate score so summary table and UI stay in sync
+    const result = calculateScore(
+      currentSetup.setup,
+      selectedProperties,
+      mockSetsData,
+      mockCraftingData,
+      false,
+      [],
+      [],
+      newCraftingSelections
+    )
+
+    setManualSetup({
+      setup: currentSetup.setup,
+      score: result.score,
+      propertyValues: result.propertyValues,
+      unusedAugments: result.unusedAugments,
+      totalAugments: result.totalAugments,
+      extraProperties: result.extraProperties,
+      otherEffects: result.otherEffects,
+      activeSets: result.activeSets,
+      craftingSelections: newCraftingSelections
+    })
+  }
 
   return (
     <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
@@ -79,8 +127,8 @@ export default function GearPlannerDemo() {
           <Paper elevation={2} sx={{ mb: 3 }}>
             <GearSuggestions
               suggestions={optimizedSetups}
-              selectedIndex={selectedSuggestionIndex}
-              onSelect={setSelectedSuggestionIndex}
+              selectedIndex={effectiveIndex}
+              onSelect={handleSuggestionSelect}
               selectedProperties={selectedProperties}
             />
           </Paper>
@@ -94,10 +142,14 @@ export default function GearPlannerDemo() {
               hoveredAugment={hoveredAugment}
               hoveredSetAugment={hoveredSetAugment}
               hoveredBonusSource={hoveredBonusSource}
+              hoveredSetName={hoveredSetName}
               onAugmentHover={setHoveredAugment}
               onSetAugmentHover={setHoveredSetAugment}
+              onSetNameHover={setHoveredSetName}
               craftingSelections={selectedSetup.craftingSelections}
+              craftingData={mockCraftingData}
               setsData={mockSetsData}
+              onCraftingChange={handleCraftingChange}
             />
           </Paper>
 
@@ -110,6 +162,8 @@ export default function GearPlannerDemo() {
               onPropertyHover={setHoveredProperty}
               onBonusSourceHover={setHoveredBonusSource}
               hoveredAugment={hoveredAugment}
+              hoveredSetName={hoveredSetName}
+              craftingSelections={selectedSetup.craftingSelections}
             />
           </Paper>
         </>

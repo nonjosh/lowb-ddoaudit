@@ -29,8 +29,8 @@ import TroveImportDialog from '@/components/gearPlanner/TroveImportDialog'
 
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
-import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup } from '@/domains/gearPlanner'
-import { Item } from '@/api/ddoGearPlanner'
+import { calculateScore, getAllAvailableProperties, optimizeGear, OptimizedGearSetup, GearSetup, buildUpdatedCraftingSelections } from '@/domains/gearPlanner'
+import { Item, CraftingOption } from '@/api/ddoGearPlanner'
 
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
 const SELECTED_SETS_KEY = 'gearPlanner_selectedSets'
@@ -620,7 +620,7 @@ export default function GearPlanner() {
     const newSetup: GearSetup = { ...currentSetup.setup }
     newSetup[slot as keyof GearSetup] = item
 
-    // Recalculate score
+    // Recalculate score (auto-select crafting for new setup)
     const result = calculateScore(newSetup, selectedProperties, setsData, craftingData, excludeSetAugments)
 
     setManualSetup({
@@ -633,6 +633,45 @@ export default function GearPlanner() {
       otherEffects: result.otherEffects,
       activeSets: result.activeSets,
       craftingSelections: result.craftingSelections
+    })
+  }, [manualSetup, optimizedSetups, selectedSuggestionIndex, selectedProperties, setsData, craftingData, excludeSetAugments])
+
+  // Handle manual crafting/augment change for a specific slot
+  const handleCraftingChange = useCallback((gearSlot: string, slotIndex: number, option: CraftingOption | null) => {
+    const currentSetup = manualSetup || optimizedSetups[Math.min(selectedSuggestionIndex, optimizedSetups.length - 1)]
+    if (!currentSetup) return
+
+    const item = currentSetup.setup[gearSlot as keyof GearSetup]
+    const newCraftingSelections = buildUpdatedCraftingSelections(
+      currentSetup.craftingSelections ?? {},
+      gearSlot,
+      slotIndex,
+      option,
+      item?.crafting
+    )
+
+    // Recalculate score using the manually overridden crafting selections
+    const result = calculateScore(
+      currentSetup.setup,
+      selectedProperties,
+      setsData,
+      craftingData,
+      excludeSetAugments,
+      [],
+      [],
+      newCraftingSelections
+    )
+
+    setManualSetup({
+      setup: currentSetup.setup,
+      score: result.score,
+      propertyValues: result.propertyValues,
+      unusedAugments: result.unusedAugments,
+      totalAugments: result.totalAugments,
+      extraProperties: result.extraProperties,
+      otherEffects: result.otherEffects,
+      activeSets: result.activeSets,
+      craftingSelections: newCraftingSelections
     })
   }, [manualSetup, optimizedSetups, selectedSuggestionIndex, selectedProperties, setsData, craftingData, excludeSetAugments])
 
@@ -951,6 +990,7 @@ export default function GearPlanner() {
               onToggleItemIgnore={handleToggleItemIgnore}
               excludedAugments={excludedAugments}
               onExcludedAugmentsChange={handleExcludedAugmentsChange}
+              onCraftingChange={handleCraftingChange}
             />
           </Paper>
 
