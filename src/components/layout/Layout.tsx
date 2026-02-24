@@ -33,9 +33,9 @@ export default function Layout({ children }: LayoutProps) {
     {
       label: 'Gear',
       items: [
-        { label: 'Wiki', path: '/gear/wiki' },
-        { label: 'Wishlist', path: '/gear/wishlist' },
-        { label: 'Planner', path: '/gear/planner' },
+        { label: 'Gear Wiki', path: '/gear/wiki' },
+        { label: 'Gear Wishlist', path: '/gear/wishlist' },
+        { label: 'Gear Planner', path: '/gear/planner' },
       ],
     },
     { label: 'TR Planner', path: '/tr-planner' },
@@ -53,6 +53,11 @@ export default function Layout({ children }: LayoutProps) {
 
   const isGroupActive = (group: NavGroup) => {
     return group.items.some((item) => location.pathname === item.path)
+  }
+
+  const getActiveGroupLabel = (group: NavGroup) => {
+    const active = group.items.find((item) => location.pathname === item.path)
+    return active ? active.label : group.label
   }
 
   return (
@@ -91,7 +96,7 @@ export default function Layout({ children }: LayoutProps) {
                         endIcon={<ArrowDropDownIcon />}
                         sx={{ my: 2 }}
                       >
-                        {entry.label}
+                        {getActiveGroupLabel(entry)}
                       </Button>
                       <Menu
                         anchorEl={anchorEl}
