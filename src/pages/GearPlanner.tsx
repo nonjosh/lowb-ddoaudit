@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import BlockIcon from '@mui/icons-material/Block'
 import InventoryIcon from '@mui/icons-material/Inventory2'
+import ShareIcon from '@mui/icons-material/Share'
 import {
   Badge,
   Box,
@@ -20,6 +21,7 @@ import {
   Typography
 } from '@mui/material'
 
+import ExternalUrlDialog from '@/components/gearPlanner/ExternalUrlDialog'
 import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import IgnoreListDialog from '@/components/gearPlanner/SettingsDialog'
@@ -337,6 +339,7 @@ export default function GearPlanner() {
   const [excludedPacks, setExcludedPacks] = useState<string[]>(loadExcludedPacks)
   const [excludedAugments, setExcludedAugments] = useState<string[]>(loadExcludedAugments)
   const [excludedItems, setExcludedItems] = useState<string[]>(loadExcludedItems)
+  const [externalUrlDialogOpen, setExternalUrlDialogOpen] = useState(false)
 
   // Sort characters alphabetically by name and filter out hidden
   const sortedCharacters = useMemo(() => {
@@ -565,6 +568,24 @@ export default function GearPlanner() {
     setSelectedSuggestionIndex(0)
   }, [getEquippedItems, items, selectedProperties, setsData, craftingData, excludeSetAugments, pinnedSlots, pinnedItems])
 
+  // Handle importing a gear setup from an external ddo-gear-planner URL
+  const handleExternalUrlImport = useCallback((importedSetup: OptimizedGearSetup, trackedProperties?: string[]) => {
+    // If tracked properties are provided and we have none selected, adopt them
+    if (trackedProperties && trackedProperties.length > 0 && selectedProperties.length === 0) {
+      setSelectedProperties(trackedProperties)
+      saveSelectedProperties(trackedProperties)
+    }
+
+    // Clear pins when importing
+    setPinnedSlots(new Set())
+    setPinnedItems({})
+    savePinnedSlots(new Set())
+
+    setManualSetup(importedSetup)
+    setSelectedSuggestionIndex(0)
+    saveSelectedIndex(0)
+  }, [selectedProperties.length])
+
   // Optimize gear when properties change
   const optimizedSetups = useMemo(() => {
     if (selectedProperties.length < 3 || items.length === 0) return []
@@ -722,6 +743,16 @@ export default function GearPlanner() {
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
           <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Import / Export gear setup from ddo-gear-planner">
+              <Button
+                variant="outlined"
+                startIcon={<ShareIcon />}
+                onClick={() => setExternalUrlDialogOpen(true)}
+                size="small"
+              >
+                Import / Export
+              </Button>
+            </Tooltip>
             <Tooltip title="Ignore List - Exclude items, augments, and adventure packs">
               <IconButton
                 onClick={() => setSettingsDialogOpen(true)}
@@ -817,6 +848,21 @@ export default function GearPlanner() {
       <TroveImportDialog
         open={troveDialogOpen}
         onClose={() => setTroveDialogOpen(false)}
+      />
+
+      {/* External URL Import/Export Dialog */}
+      <ExternalUrlDialog
+        open={externalUrlDialogOpen}
+        onClose={() => setExternalUrlDialogOpen(false)}
+        items={items}
+        craftingData={craftingData}
+        setsData={setsData}
+        currentSetup={selectedSetup?.setup}
+        currentCraftingSelections={selectedSetup?.craftingSelections}
+        selectedProperties={selectedProperties}
+        maxML={maxML}
+        excludeSetAugments={excludeSetAugments}
+        onImport={handleExternalUrlImport}
       />
 
       {/* Ignore List Dialog */}

@@ -1,6 +1,7 @@
 export * from './affixStacking'
 export * from './augmentHelpers'
 export * from './craftingHelpers'
+export * from './externalUrl'
 export * from './fightingStyles'
 export * from './gearSetup'
 export * from './optimization'
