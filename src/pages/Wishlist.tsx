@@ -25,7 +25,7 @@ import {
 } from '@mui/material'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { fetchQuestsById, Quest } from '@/api/ddoAudit'
+import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item, SetsData } from '@/api/ddoGearPlanner'
 import ItemCraftingDisplay from '@/components/items/ItemCraftingDisplay'
 import ItemSetTooltip from '@/components/items/ItemSetTooltip'
@@ -34,13 +34,22 @@ import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useWishlist, WishlistEntry } from '@/contexts/useWishlist'
 import { formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, AffixLike } from '@/utils/affixHelpers'
 
-type GroupingMode = 'none' | 'quest' | 'pack'
+type GroupingMode = 'none' | 'quest' | 'pack' | 'slot'
 
 interface GroupedItems {
   key: string
   label: string
+  sublabel?: string
+  questLevel?: string
+  isWilderness?: boolean
   items: Item[]
 }
+
+const SLOT_ORDER: string[] = [
+  'Head', 'Eyes', 'Neck', 'Trinket', 'Cloak', 'Belt',
+  'Ring', 'Gloves', 'Bracers', 'Boots', 'Armor',
+  'Offhand', 'Weapon', 'Quiver', 'Augment',
+]
 
 const WISHLIST_COLUMN_WIDTHS = {
   ml: '60px',
@@ -208,23 +217,38 @@ function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defau
           <Stack direction="row" alignItems="center" spacing={1}>
             {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             {isQuestGroup ? (
-              <Link
-                href={`https://ddowiki.com/page/${group.label.replace(/\s+/g, '_')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                sx={{
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                    color: 'primary.main'
-                  }
-                }}
-              >
-                {group.label}
-              </Link>
+              <>
+                <Link
+                  href={`https://ddowiki.com/page/${group.label.replace(/\s+/g, '_')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      color: 'primary.main'
+                    }
+                  }}
+                >
+                  {group.label}
+                </Link>
+                {group.questLevel && (
+                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                    ({group.questLevel})
+                  </Typography>
+                )}
+                {group.isWilderness && (
+                  <Chip size="small" label="Wilderness" variant="outlined" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />
+                )}
+                {group.sublabel && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    — {group.sublabel}
+                  </Typography>
+                )}
+              </>
             ) : (
               <Typography variant="subtitle2" fontWeight="bold">
                 {group.label}
@@ -271,9 +295,17 @@ export default function Wishlist() {
 
   const [groupingMode, setGroupingMode] = useState<GroupingMode>('none')
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
+  const [wildernessAreaIds, setWildernessAreaIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchQuestsById().then(setQuestsById).catch(console.error)
+    fetchAreasById().then(areas => {
+      const ids = new Set<string>()
+      for (const area of Object.values(areas)) {
+        if (area.is_wilderness) ids.add(area.id)
+      }
+      setWildernessAreaIds(ids)
+    }).catch(console.error)
   }, [])
 
   useEffect(() => {
@@ -281,6 +313,20 @@ export default function Wishlist() {
       void refresh(false)
     }
   }, [craftingData, loading, error, refresh])
+
+  const questByName = useMemo(() => {
+    const map = new Map<string, Quest>()
+    Object.values(questsById).forEach(q => {
+      if (q.name) {
+        map.set(q.name, q)
+        const normalized = q.name.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim()
+        if (!map.has(normalized)) {
+          map.set(normalized, q)
+        }
+      }
+    })
+    return map
+  }, [questsById])
 
   const questNameToPack = useMemo(() => {
     // Extended Map interface with fuzzy lookup
@@ -401,6 +447,32 @@ export default function Wishlist() {
       return [{ key: 'all', label: 'All Items', items }]
     }
 
+    if (groupingMode === 'slot') {
+      const groups = new Map<string, Item[]>()
+      items.forEach(item => {
+        const slotKey = item.slot || 'Unknown'
+        const existing = groups.get(slotKey) || []
+        existing.push(item)
+        groups.set(slotKey, existing)
+      })
+
+      // Sort by predefined slot order, unknown slots at the end
+      const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+        const idxA = SLOT_ORDER.indexOf(a)
+        const idxB = SLOT_ORDER.indexOf(b)
+        if (idxA === -1 && idxB === -1) return a.localeCompare(b)
+        if (idxA === -1) return 1
+        if (idxB === -1) return -1
+        return idxA - idxB
+      })
+
+      return sortedKeys.map(key => ({
+        key,
+        label: key,
+        items: groups.get(key) || []
+      }))
+    }
+
     const groups = new Map<string, Item[]>()
     const noGroupKey = groupingMode === 'quest' ? 'No Quest' : 'No Pack'
 
@@ -415,7 +487,7 @@ export default function Wishlist() {
       if (groupingMode === 'quest') {
         // Group by each quest the item drops from
         item.quests.forEach(questName => {
-          const existing = groups.get(questName) || []
+          const existing = groups.get(questName) ?? []
           existing.push(item)
           groups.set(questName, existing)
         })
@@ -450,12 +522,36 @@ export default function Wishlist() {
       return a.localeCompare(b)
     })
 
-    return sortedKeys.map(key => ({
-      key,
-      label: key,
-      items: groups.get(key) || []
-    }))
-  }, [items, groupingMode, questNameToPack])
+    return sortedKeys.map(key => {
+      const group: GroupedItems = {
+        key,
+        label: key,
+        items: groups.get(key) || []
+      }
+
+      // Enrich quest groups with pack name and level
+      if (groupingMode === 'quest' && key !== noGroupKey) {
+        const quest = questByName.get(key)
+          ?? questByName.get(key.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim())
+        if (quest) {
+          if (quest.required_adventure_pack) {
+            group.sublabel = quest.required_adventure_pack
+          }
+          const parts: string[] = []
+          if (quest.heroicLevel != null && quest.heroicLevel > 0) parts.push(`H ${quest.heroicLevel}`)
+          if (quest.epicLevel != null && quest.epicLevel > 0) parts.push(`E ${quest.epicLevel}`)
+          if (parts.length > 0) {
+            group.questLevel = parts.join(' / ')
+          }
+          if (quest.areaId && wildernessAreaIds.has(quest.areaId)) {
+            group.isWilderness = true
+          }
+        }
+      }
+
+      return group
+    })
+  }, [items, groupingMode, questNameToPack, questByName, wildernessAreaIds])
 
   return (
     <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
@@ -473,6 +569,7 @@ export default function Wishlist() {
             onChange={(e) => setGroupingMode(e.target.value as GroupingMode)}
           >
             <MenuItem value="none">None</MenuItem>
+            <MenuItem value="slot">Gear Slot</MenuItem>
             <MenuItem value="quest">Quest</MenuItem>
             <MenuItem value="pack">Adventure Pack</MenuItem>
           </Select>
@@ -534,7 +631,7 @@ export default function Wishlist() {
                   )
                 })
               ) : (
-                // Grouped list
+                // Grouped list (by slot, quest, or pack)
                 groupedItems.map((group) => (
                   <CollapsibleGroup
                     key={group.key}
