@@ -115,12 +115,15 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
           }}
         />
 
-        {/* Row 2 (wiki): Pack + Quest */}
+        {/* Wiki filters: Pack, Quest, Type, Crafting in responsive grid */}
         {mode === 'wiki' && setPackFilter && setQuestFilter && (
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+            gap: 1.5,
+          }}>
             <Autocomplete
               multiple
-              fullWidth
               size="small"
               limitTags={1}
               options={uniquePacks}
@@ -151,7 +154,6 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
             />
             <Autocomplete
               multiple
-              fullWidth
               size="small"
               limitTags={1}
               options={uniqueQuests}
@@ -182,13 +184,8 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
                 })
               }
             />
-          </Stack>
-        )}
 
-        {/* Row 3 (wiki): Type + Crafting on own row for better width */}
-        {mode === 'wiki' && (
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small">
               <InputLabel>Filter by Type</InputLabel>
               <Select
                 multiple
@@ -221,7 +218,6 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
             {setCraftingFilter && (
               <Autocomplete
                 multiple
-                fullWidth
                 size="small"
                 limitTags={2}
                 options={uniqueCraftingSlots}
@@ -246,12 +242,12 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
                 }
               />
             )}
-          </Stack>
+          </Box>
         )}
 
-        {/* Row 4: Effect + ML + toggles */}
+        {/* Effect + ML + toggles row */}
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
-          {/* Type filter (default mode only - wiki mode renders it in Row 3) */}
+          {/* Type filter (default mode only - wiki mode renders it in the grid above) */}
           {mode === 'default' && (
             <FormControl size="small" fullWidth>
               <InputLabel>Filter by Type</InputLabel>
@@ -286,11 +282,11 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
 
           <Autocomplete
             multiple
-            fullWidth
             size="small"
             limitTags={2}
             options={uniqueEffects}
             getOptionLabel={(option) => option.effect}
+            sx={{ flex: 1, minWidth: 200 }}
             value={uniqueEffects.filter(e => effectFilter.includes(e.effect))}
             onChange={(_, newValue) => {
               setEffectFilter(newValue.map(v => v.effect))
@@ -329,7 +325,7 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
           )}
 
           {mode === 'wiki' && setMinMl && setMaxMl && (
-            <Box sx={{ width: '100%', px: 2, minWidth: 250, display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ px: 2, minWidth: 250, maxWidth: 350, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>Level Range:</Typography>
                 <FormControl size="small">
