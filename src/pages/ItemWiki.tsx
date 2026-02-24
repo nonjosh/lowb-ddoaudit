@@ -64,28 +64,73 @@ export default function ItemWiki() {
     return map
   }, [questsById])
 
-  // Build a map of item MLs per quest name (excluding augments)
-  const questItemMlMap = useMemo(() => {
-    const map = new Map<string, Set<number>>()
-    items.forEach(item => {
-      if (item.quests) {
-        item.quests.forEach(qName => {
-          if (!map.has(qName)) map.set(qName, new Set())
-          map.get(qName)!.add(item.ml)
-        })
-      }
+  // ---- Shared cross-filter helper ----
+  // Filters allItems by every active filter EXCEPT the one named in `exclude`.
+  // This lets each filter's option list reflect all other filters.
+  const crossFilterItems = useMemo(() => {
+    type Exclude = 'pack' | 'quest' | 'type' | 'effect' | 'crafting' | 'ml' | 'search'
+
+    const matchSearch = (item: Item) => {
+      if (searchText === '') return true
+      const s = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
+      return s.includes(searchText.toLowerCase())
+    }
+    const matchPack = (item: Item) => {
+      if (packFilter.length === 0) return true
+      if (!item.quests) return false
+      return item.quests.some(qName => {
+        const pack = questNameToPack.get(qName)
+        return pack && packFilter.includes(pack)
+      })
+    }
+    const matchQuest = (item: Item) => {
+      if (questFilter.length === 0) return true
+      if (!item.quests) return false
+      return item.quests.some(qName => questFilter.includes(qName))
+    }
+    const matchType = (item: Item) => {
+      if (typeFilter.length === 0) return true
+      if (item.slot === 'Augment') return typeFilter.includes('Augments')
+      return !!(item.type && typeFilter.includes(item.type))
+    }
+    const matchEffect = (item: Item) => {
+      if (effectFilter.length === 0) return true
+      return item.affixes.some(a => effectFilter.includes(a.name))
+    }
+    const matchCrafting = (item: Item) => {
+      if (craftingFilter.length === 0) return true
+      return !!(item.crafting && item.crafting.some(c => craftingFilter.includes(c)))
+    }
+    const matchML = (item: Item) => item.ml >= minMl && item.ml <= maxMl
+
+    return (exclude: Exclude) => allItems.filter(item => {
+      if (exclude !== 'search' && !matchSearch(item)) return false
+      if (exclude !== 'pack' && !matchPack(item)) return false
+      if (exclude !== 'quest' && !matchQuest(item)) return false
+      if (exclude !== 'type' && !matchType(item)) return false
+      if (exclude !== 'effect' && !matchEffect(item)) return false
+      if (exclude !== 'crafting' && !matchCrafting(item)) return false
+      if (exclude !== 'ml' && !matchML(item)) return false
+      return true
     })
-    return map
-  }, [items])
+  }, [allItems, searchText, packFilter, questFilter, typeFilter, effectFilter, craftingFilter, minMl, maxMl, questNameToPack])
+
+  // ---- Derived option lists (each excludes its own filter) ----
 
   const uniquePacks = useMemo(() => {
+    // Items matching all filters except pack
+    const relevant = crossFilterItems('pack')
     const packMls = new Map<string, Set<number>>()
-    Object.values(questsById).forEach(q => {
-      if (q.required_adventure_pack && q.name) {
-        const pack = q.required_adventure_pack
-        if (!packMls.has(pack)) packMls.set(pack, new Set())
-        const mls = questItemMlMap.get(q.name)
-        if (mls) mls.forEach(ml => packMls.get(pack)!.add(ml))
+    relevant.forEach(item => {
+      if (item.quests) {
+        item.quests.forEach(qName => {
+          const pack = questNameToPack.get(qName)
+          if (pack) {
+            if (!packMls.has(pack)) packMls.set(pack, new Set())
+            // Only track ML for non-augment items
+            if (item.slot !== 'Augment') packMls.get(pack)!.add(item.ml)
+          }
+        })
       }
     })
     return Array.from(packMls.entries()).map(([pack, mls]) => {
@@ -93,32 +138,34 @@ export default function ItemWiki() {
       const mlDisplay = mlArr.length > 0 ? `ML ${mlArr.join(', ')}` : ''
       return { pack, mlRange: mlDisplay }
     }).sort((a, b) => a.pack.localeCompare(b.pack))
-  }, [questsById, questItemMlMap])
+  }, [crossFilterItems, questNameToPack])
 
   const uniqueQuests = useMemo(() => {
-    const questMap = new Map<string, { name: string, pack: string, mlRange: string }>()
-    Object.values(questsById).forEach(q => {
-      if (q.name && q.name !== 'null' && !questMap.has(q.name)) {
-        const mls = questItemMlMap.get(q.name)
-        const mlArr = mls ? Array.from(mls).sort((a, b) => a - b) : []
-        const mlDisplay = mlArr.length > 0 ? `ML ${mlArr.join(', ')}` : ''
-        questMap.set(q.name, { name: q.name, pack: q.required_adventure_pack || 'Unknown', mlRange: mlDisplay })
+    // Items matching all filters except quest (but still respect pack filter)
+    const relevant = crossFilterItems('quest')
+    const questMls = new Map<string, { pack: string, mls: Set<number> }>()
+    relevant.forEach(item => {
+      if (item.quests) {
+        item.quests.forEach(qName => {
+          const pack = questNameToPack.get(qName) || 'Unknown'
+          // Respect pack filter even though we exclude quest filter
+          if (packFilter.length > 0 && !packFilter.includes(pack)) return
+          if (!questMls.has(qName)) questMls.set(qName, { pack, mls: new Set() })
+          if (item.slot !== 'Augment') questMls.get(qName)!.mls.add(item.ml)
+        })
       }
     })
-    const quests = Array.from(questMap.values())
-
-    // Filter by selected packs if any
-    if (packFilter.length > 0) {
-      return quests.filter(q => packFilter.includes(q.pack))
-        .sort((a, b) => a.name.localeCompare(b.name))
-    }
-
-    return quests.sort((a, b) => a.name.localeCompare(b.name))
-  }, [questsById, packFilter, questItemMlMap])
+    return Array.from(questMls.entries()).map(([name, { pack, mls }]) => {
+      const mlArr = Array.from(mls).sort((a, b) => a - b)
+      const mlDisplay = mlArr.length > 0 ? `ML ${mlArr.join(', ')}` : ''
+      return { name, pack, mlRange: mlDisplay }
+    }).sort((a, b) => a.name.localeCompare(b.name))
+  }, [crossFilterItems, questNameToPack, packFilter])
 
   const uniqueCraftingSlots = useMemo(() => {
+    const relevant = crossFilterItems('crafting')
     const slotCount = new Map<string, number>()
-    allItems.forEach(item => {
+    relevant.forEach(item => {
       if (item.crafting) {
         item.crafting.forEach(slot => {
           slotCount.set(slot, (slotCount.get(slot) || 0) + 1)
@@ -128,32 +175,10 @@ export default function ItemWiki() {
     return Array.from(slotCount.entries())
       .map(([slot, count]) => ({ slot, count }))
       .sort((a, b) => a.slot.localeCompare(b.slot))
-  }, [allItems])
+  }, [crossFilterItems])
 
   const uniqueTypes = useMemo(() => {
-    // Filter items based on everything BUT type filter
-    const relevantItems = allItems.filter(item => {
-      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
-      const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
-
-      const matchesPack = packFilter.length === 0 || (() => {
-        if (!item.quests) return false
-        return item.quests.some(qName => {
-          const pack = questNameToPack.get(qName)
-          return pack && packFilter.includes(pack)
-        })
-      })()
-
-      const matchesQuest = questFilter.length === 0 || (() => {
-        if (!item.quests) return false
-        return item.quests.some(qName => questFilter.includes(qName))
-      })()
-
-      const matchesCrafting = craftingFilter.length === 0 || (item.crafting && item.crafting.some(c => craftingFilter.includes(c)))
-      const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
-      const matchesML = item.ml >= minMl && item.ml <= maxMl
-      return matchesSearch && matchesEffect && matchesML && matchesPack && matchesQuest && matchesCrafting
-    })
+    const relevantItems = crossFilterItems('type')
 
     const typeMap = new Map<string, { count: number, slot: string }>()
     relevantItems.forEach(item => {
@@ -183,38 +208,10 @@ export default function ItemWiki() {
       }
       return a.display.localeCompare(b.display)
     })
-  }, [allItems, searchText, effectFilter, craftingFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
+  }, [crossFilterItems])
 
   const uniqueEffects = useMemo(() => {
-    // Filter items based on everything BUT effect filter
-    const relevantItems = allItems.filter(item => {
-      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
-      const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
-
-      const matchesPack = packFilter.length === 0 || (() => {
-        if (!item.quests) return false
-        return item.quests.some(qName => {
-          const pack = questNameToPack.get(qName)
-          return pack && packFilter.includes(pack)
-        })
-      })()
-
-      const matchesQuest = questFilter.length === 0 || (() => {
-        if (!item.quests) return false
-        return item.quests.some(qName => questFilter.includes(qName))
-      })()
-
-      const matchesType = typeFilter.length === 0 || (() => {
-        if (item.slot === 'Augment') {
-          return typeFilter.includes('Augments')
-        }
-        return item.type && typeFilter.includes(item.type)
-      })()
-      const matchesCrafting = craftingFilter.length === 0 || (item.crafting && item.crafting.some(c => craftingFilter.includes(c)))
-      const matchesML = item.ml >= minMl && item.ml <= maxMl
-      return matchesSearch && matchesType && matchesML && matchesPack && matchesQuest && matchesCrafting
-    })
-
+    const relevantItems = crossFilterItems('effect')
     const effectCount = new Map<string, number>()
     relevantItems.forEach(item => {
       item.affixes.forEach(affix => {
@@ -222,7 +219,7 @@ export default function ItemWiki() {
       })
     })
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
-  }, [allItems, searchText, typeFilter, craftingFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
+  }, [crossFilterItems])
 
   const filteredItems = useMemo(() => {
     // If no data or still loading initial data (and no stale data), return empty
