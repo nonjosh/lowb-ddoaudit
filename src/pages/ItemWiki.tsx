@@ -18,20 +18,25 @@ import { Item } from '@/api/ddoGearPlanner'
 import ItemTableFilters from '@/components/items/ItemTableFilters'
 import ItemTableRow from '@/components/items/ItemTableRow'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
+import { useTrove } from '@/contexts/useTrove'
 import { useWishlist } from '@/contexts/useWishlist'
 import { AffixLike, formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, highlightText } from '@/utils/affixHelpers'
 
 export default function ItemWiki() {
   const { items, augmentItems, craftingData, setsData, loading, refresh, error } = useGearPlanner()
   const { isWished } = useWishlist()
+  const { hasItem, importedAt } = useTrove()
 
   const [searchText, setSearchText] = useState('')
   const [packFilter, setPackFilter] = useState<string[]>([])
   const [questFilter, setQuestFilter] = useState<string[]>([])
   const [typeFilter, setTypeFilter] = useState<string[]>([])
   const [effectFilter, setEffectFilter] = useState<string[]>([])
+  const [craftingFilter, setCraftingFilter] = useState<string[]>([])
   const [minMl, setMinMl] = useState(1)
   const [maxMl, setMaxMl] = useState(34)
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false)
+  const [showWishlistOnly, setShowWishlistOnly] = useState(false)
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
 
   const boxRef = useRef<HTMLDivElement>(null)
@@ -59,21 +64,45 @@ export default function ItemWiki() {
     return map
   }, [questsById])
 
-  const uniquePacks = useMemo(() => {
-    const packs = new Set<string>()
-    Object.values(questsById).forEach(q => {
-      if (q.required_adventure_pack) {
-        packs.add(q.required_adventure_pack)
+  // Build a map of item MLs per quest name (excluding augments)
+  const questItemMlMap = useMemo(() => {
+    const map = new Map<string, Set<number>>()
+    items.forEach(item => {
+      if (item.quests) {
+        item.quests.forEach(qName => {
+          if (!map.has(qName)) map.set(qName, new Set())
+          map.get(qName)!.add(item.ml)
+        })
       }
     })
-    return Array.from(packs).sort()
-  }, [questsById])
+    return map
+  }, [items])
+
+  const uniquePacks = useMemo(() => {
+    const packMls = new Map<string, Set<number>>()
+    Object.values(questsById).forEach(q => {
+      if (q.required_adventure_pack && q.name) {
+        const pack = q.required_adventure_pack
+        if (!packMls.has(pack)) packMls.set(pack, new Set())
+        const mls = questItemMlMap.get(q.name)
+        if (mls) mls.forEach(ml => packMls.get(pack)!.add(ml))
+      }
+    })
+    return Array.from(packMls.entries()).map(([pack, mls]) => {
+      const mlArr = Array.from(mls).sort((a, b) => a - b)
+      const mlDisplay = mlArr.length > 0 ? `ML ${mlArr.join(', ')}` : ''
+      return { pack, mlRange: mlDisplay }
+    }).sort((a, b) => a.pack.localeCompare(b.pack))
+  }, [questsById, questItemMlMap])
 
   const uniqueQuests = useMemo(() => {
-    const questMap = new Map<string, { name: string, pack: string }>()
+    const questMap = new Map<string, { name: string, pack: string, mlRange: string }>()
     Object.values(questsById).forEach(q => {
       if (q.name && q.name !== 'null' && !questMap.has(q.name)) {
-        questMap.set(q.name, { name: q.name, pack: q.required_adventure_pack || 'Unknown' })
+        const mls = questItemMlMap.get(q.name)
+        const mlArr = mls ? Array.from(mls).sort((a, b) => a - b) : []
+        const mlDisplay = mlArr.length > 0 ? `ML ${mlArr.join(', ')}` : ''
+        questMap.set(q.name, { name: q.name, pack: q.required_adventure_pack || 'Unknown', mlRange: mlDisplay })
       }
     })
     const quests = Array.from(questMap.values())
@@ -85,7 +114,21 @@ export default function ItemWiki() {
     }
 
     return quests.sort((a, b) => a.name.localeCompare(b.name))
-  }, [questsById, packFilter])
+  }, [questsById, packFilter, questItemMlMap])
+
+  const uniqueCraftingSlots = useMemo(() => {
+    const slotCount = new Map<string, number>()
+    allItems.forEach(item => {
+      if (item.crafting) {
+        item.crafting.forEach(slot => {
+          slotCount.set(slot, (slotCount.get(slot) || 0) + 1)
+        })
+      }
+    })
+    return Array.from(slotCount.entries())
+      .map(([slot, count]) => ({ slot, count }))
+      .sort((a, b) => a.slot.localeCompare(b.slot))
+  }, [allItems])
 
   const uniqueTypes = useMemo(() => {
     // Filter items based on everything BUT type filter
@@ -106,9 +149,10 @@ export default function ItemWiki() {
         return item.quests.some(qName => questFilter.includes(qName))
       })()
 
+      const matchesCrafting = craftingFilter.length === 0 || (item.crafting && item.crafting.some(c => craftingFilter.includes(c)))
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
       const matchesML = item.ml >= minMl && item.ml <= maxMl
-      return matchesSearch && matchesEffect && matchesML && matchesPack && matchesQuest
+      return matchesSearch && matchesEffect && matchesML && matchesPack && matchesQuest && matchesCrafting
     })
 
     const typeMap = new Map<string, { count: number, slot: string }>()
@@ -139,7 +183,7 @@ export default function ItemWiki() {
       }
       return a.display.localeCompare(b.display)
     })
-  }, [allItems, searchText, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
+  }, [allItems, searchText, effectFilter, craftingFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
 
   const uniqueEffects = useMemo(() => {
     // Filter items based on everything BUT effect filter
@@ -166,8 +210,9 @@ export default function ItemWiki() {
         }
         return item.type && typeFilter.includes(item.type)
       })()
+      const matchesCrafting = craftingFilter.length === 0 || (item.crafting && item.crafting.some(c => craftingFilter.includes(c)))
       const matchesML = item.ml >= minMl && item.ml <= maxMl
-      return matchesSearch && matchesType && matchesML && matchesPack && matchesQuest
+      return matchesSearch && matchesType && matchesML && matchesPack && matchesQuest && matchesCrafting
     })
 
     const effectCount = new Map<string, number>()
@@ -177,14 +222,15 @@ export default function ItemWiki() {
       })
     })
     return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
-  }, [allItems, searchText, typeFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
+  }, [allItems, searchText, typeFilter, craftingFilter, minMl, maxMl, packFilter, questFilter, questNameToPack])
 
   const filteredItems = useMemo(() => {
     // If no data or still loading initial data (and no stale data), return empty
     if (!allItems.length) return []
 
     // If no search and no filters, prevent rendering thousands of items
-    if (searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && minMl === 1 && maxMl === 34) {
+    const hasFilters = searchText !== '' || packFilter.length > 0 || questFilter.length > 0 || typeFilter.length > 0 || effectFilter.length > 0 || craftingFilter.length > 0 || minMl !== 1 || maxMl !== 34 || showAvailableOnly || showWishlistOnly
+    if (!hasFilters) {
       return []
     }
 
@@ -212,8 +258,11 @@ export default function ItemWiki() {
         return item.type && typeFilter.includes(item.type)
       })()
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
+      const matchesCrafting = craftingFilter.length === 0 || (item.crafting && item.crafting.some(c => craftingFilter.includes(c)))
       const matchesML = item.ml >= minMl && item.ml <= maxMl
-      return matchesSearch && matchesType && matchesEffect && matchesML && matchesPack && matchesQuest
+      const matchesAvailable = !showAvailableOnly || hasItem(item.name)
+      const matchesWishlist = !showWishlistOnly || isWished(item)
+      return matchesSearch && matchesType && matchesEffect && matchesCrafting && matchesML && matchesPack && matchesQuest && matchesAvailable && matchesWishlist
     }).sort((a, b) => {
       const aWished = isWished(a)
       const bWished = isWished(b)
@@ -239,7 +288,7 @@ export default function ItemWiki() {
       // Then by name
       return a.name.localeCompare(b.name)
     })
-  }, [allItems, searchText, typeFilter, effectFilter, minMl, maxMl, packFilter, questFilter, questNameToPack, isWished])
+  }, [allItems, searchText, typeFilter, effectFilter, craftingFilter, minMl, maxMl, packFilter, questFilter, questNameToPack, isWished, showAvailableOnly, showWishlistOnly, hasItem])
 
   const getCraftingOptions = (craft: string) => {
     if (!craftingData) return []
@@ -281,7 +330,7 @@ export default function ItemWiki() {
     return []
   }
 
-  const showInitialState = searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && minMl === 1 && maxMl === 34
+  const showInitialState = searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && craftingFilter.length === 0 && minMl === 1 && maxMl === 34 && !showAvailableOnly && !showWishlistOnly
   const maxDisplayed = 100
   const isTruncated = filteredItems.length > maxDisplayed
   const displayedItems = isTruncated ? filteredItems.slice(0, maxDisplayed) : filteredItems
@@ -319,6 +368,14 @@ export default function ItemWiki() {
               setQuestFilter={setQuestFilter}
               uniquePacks={uniquePacks}
               uniqueQuests={uniqueQuests}
+              craftingFilter={craftingFilter}
+              setCraftingFilter={setCraftingFilter}
+              uniqueCraftingSlots={uniqueCraftingSlots}
+              showAvailableOnly={showAvailableOnly}
+              setShowAvailableOnly={setShowAvailableOnly}
+              showWishlistOnly={showWishlistOnly}
+              setShowWishlistOnly={setShowWishlistOnly}
+              hasTroveData={importedAt !== null}
             />
           </Box>
           <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
