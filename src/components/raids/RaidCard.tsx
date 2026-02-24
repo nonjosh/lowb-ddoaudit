@@ -2,7 +2,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import ListAltIcon from '@mui/icons-material/ListAlt'
-import TimerIcon from '@mui/icons-material/Timer'
 import {
   Box,
   Card,
@@ -205,52 +204,59 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
           </Box>
         }
         subheader={
-          isRaidCollapsed && friendsInRaid.length > 0 ? (
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-              {friendsInRaid.map((f) => (
-                <Chip
-                  key={f}
-                  size="small"
-                  label={f}
-                  icon={<FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />}
-                />
-              ))}
-            </Box>
-          ) : unavailablePlayersInfo.length > 0 ? (
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mr: 0.5 }}>
-                <TimerIcon sx={{ width: 16, height: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
-                  On timer:
-                </Typography>
-              </Box>
-              {unavailablePlayersInfo.map((info) => (
-                <Tooltip
-                  key={info.playerName}
-                  title={
-                    <Box sx={{ textAlign: 'left' }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Soonest available:
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                        <Typography variant="body2">{info.soonestCharacter}</Typography>
-                        <ClassDisplay classes={info.soonestClasses} showIcons={showClassIcons} iconSize={18} />
-                        <Typography variant="caption" color="text.secondary">
-                          · {formatTimeRemaining(info.readyAt.getTime() - now.getTime())}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  }
-                  arrow
-                >
+          isRaidCollapsed && (friendsInRaid.length > 0 || unavailablePlayersInfo.length > 0) ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                {friendsInRaid.length > 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+                    In raid:
+                  </Typography>
+                ) : null}
+                {friendsInRaid.map((f) => (
                   <Chip
+                    key={f}
                     size="small"
-                    label={info.displayName}
-                    icon={<FiberManualRecordIcon color={info.isPlayerOnline ? 'success' : 'disabled'} sx={{ width: 12, height: 12 }} />}
+                    label={f}
+                    icon={<FiberManualRecordIcon color="success" sx={{ width: 12, height: 12 }} />}
                     variant="outlined"
                   />
-                </Tooltip>
-              ))}
+                ))}
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', ml: 'auto' }}>
+                {unavailablePlayersInfo.length > 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+                    On timer:
+                  </Typography>
+                ) : null}
+                {unavailablePlayersInfo.map((info) => (
+                  <Tooltip
+                    key={info.playerName}
+                    title={
+                      <Box sx={{ textAlign: 'left' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Soonest available:
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                          <Typography variant="body2">{info.soonestCharacter}</Typography>
+                          <ClassDisplay classes={info.soonestClasses} showIcons={showClassIcons} iconSize={18} />
+                          <Typography variant="caption" color="text.secondary">
+                            · {formatTimeRemaining(info.readyAt.getTime() - now.getTime())}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    }
+                    arrow
+                  >
+                    <Chip
+                      size="small"
+                      label={info.displayName}
+                      icon={<FiberManualRecordIcon color={info.isPlayerOnline ? 'success' : 'disabled'} sx={{ width: 12, height: 12 }} />}
+                      variant="outlined"
+                    />
+                  </Tooltip>
+                ))}
+              </Box>
             </Box>
           ) : null
         }
