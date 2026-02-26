@@ -1,7 +1,11 @@
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
-import { AppBar, Box, Button, Container, Menu, MenuItem, Toolbar, Typography } from '@mui/material'
+import InventoryIcon from '@mui/icons-material/Inventory2'
+import { AppBar, Badge, Box, Button, Container, Menu, MenuItem, Toolbar, Tooltip, Typography } from '@mui/material'
 import { MouseEvent, ReactNode, useState } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
+
+import TroveImportDialog from '@/components/shared/TroveImportDialog'
+import { useTrove } from '@/contexts/useTrove'
 
 interface LayoutProps {
   children: ReactNode
@@ -25,8 +29,10 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const { inventoryMap } = useTrove()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [troveDialogOpen, setTroveDialogOpen] = useState(false)
 
   const navEntries: NavEntry[] = [
     { label: 'Raids', path: '/' },
@@ -139,9 +145,34 @@ export default function Layout({ children }: LayoutProps) {
                 )
               })}
             </Box>
+
+            {/* Trove Import Button — right side of toolbar */}
+            <Tooltip title="Import inventory data from DDO Helper Trove plugin">
+              <Badge
+                badgeContent={inventoryMap.size > 0 ? '✓' : undefined}
+                color="success"
+                overlap="circular"
+              >
+                <Button
+                  onClick={() => setTroveDialogOpen(true)}
+                  color="inherit"
+                  size="small"
+                  startIcon={<InventoryIcon />}
+                  sx={{ ml: 1, textTransform: 'none' }}
+                >
+                  Trove
+                </Button>
+              </Badge>
+            </Tooltip>
           </Toolbar>
         </Container>
       </AppBar>
+
+      <TroveImportDialog
+        open={troveDialogOpen}
+        onClose={() => setTroveDialogOpen(false)}
+      />
+
       <Box component="main" sx={{ flexGrow: 1 }}>
         {children}
       </Box>
