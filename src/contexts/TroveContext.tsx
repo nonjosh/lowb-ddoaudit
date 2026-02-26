@@ -138,6 +138,13 @@ export function TroveProvider({ children }: TroveProviderProps) {
     })
   }, [])
 
+  // Hide or show all characters at once
+  const setAllCharactersHidden = useCallback(async (hidden: boolean) => {
+    const newHidden = hidden ? characters.map(c => c.id) : []
+    setHiddenCharacterIds(newHidden)
+    await saveTroveHiddenCharacters(newHidden)
+  }, [characters])
+
   // Set selected character
   const setSelectedCharacterAction = useCallback(
     async (characterId: number | null) => {
@@ -277,6 +284,7 @@ export function TroveProvider({ children }: TroveProviderProps) {
     clearData,
     setSelectedCharacter: setSelectedCharacterAction,
     toggleCharacterVisibility,
+    setAllCharactersHidden,
     hasItem,
     getItemLocations,
     isItemAvailableForCharacters,

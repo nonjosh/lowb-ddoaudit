@@ -21,6 +21,7 @@ export interface TroveContextValue {
   clearData: () => Promise<void>
   setSelectedCharacter: (characterId: number | null) => Promise<void>
   toggleCharacterVisibility: (characterId: number) => Promise<void>
+  setAllCharactersHidden: (hidden: boolean) => Promise<void>
 
   // Helpers
   hasItem: (itemName: string) => boolean
@@ -42,6 +43,7 @@ const defaultContext: TroveContextValue = {
   clearData: async () => { },
   setSelectedCharacter: async () => { },
   toggleCharacterVisibility: async () => { },
+  setAllCharactersHidden: async () => { },
   hasItem: () => false,
   getItemLocations: () => [],
   isItemAvailableForCharacters: () => false,

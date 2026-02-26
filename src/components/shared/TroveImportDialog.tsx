@@ -61,7 +61,8 @@ export default function TroveImportDialog({
     inventoryMap,
     getStats,
     hiddenCharacterIds,
-    toggleCharacterVisibility
+    toggleCharacterVisibility,
+    setAllCharactersHidden
   } = useTrove()
 
   const [step, setStep] = useState<ImportStep>(
@@ -166,6 +167,9 @@ export default function TroveImportDialog({
   // Get stats (only count BTC equipment, not consumables)
   const equipmentNames = new Set(items.map((item) => item.name))
   const stats = getStats(equipmentNames)
+
+  // Check if all characters are hidden
+  const allHidden = characters.length > 0 && characters.every(c => hiddenCharacterIds.includes(c.id))
 
   return (
     <Dialog
@@ -306,16 +310,25 @@ export default function TroveImportDialog({
 
             <Divider sx={{ my: 2 }} />
 
-            <Typography variant="subtitle2" gutterBottom>
-              BTC Equipment per Character
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="subtitle2">
+                BTC Equipment per Character
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => { void setAllCharactersHidden(allHidden ? false : true) }}
+                sx={{ textTransform: 'none', fontSize: '0.75rem', minWidth: 'auto' }}
+              >
+                {allHidden ? 'Show All' : 'Hide All'}
+              </Button>
+            </Box>
             {characters.map((char) => {
               const count = stats.btcPerCharacter.get(char.id) || 0
               const isHidden = hiddenCharacterIds.includes(char.id)
               return (
                 <Box key={char.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ opacity: isHidden ? 0.5 : 1 }}>
-                    {char.name}: {count} items
+                    {char.name}: {count} BTC items
                   </Typography>
                   <Tooltip title={isHidden ? "Show in character dropdown" : "Hide from character dropdown"}>
                     <IconButton
