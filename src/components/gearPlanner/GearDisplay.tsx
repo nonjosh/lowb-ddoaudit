@@ -14,6 +14,7 @@ import {
   Box,
   Card,
   CardContent,
+  Chip,
   Collapse,
   Grid,
   IconButton,
@@ -32,6 +33,8 @@ import {
 import { Item, ItemAffix, SetsData, CraftingData, CraftingOption } from '@/api/ddoGearPlanner'
 import { artifactBorderLabelSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
+import { isRaidItem } from '@/domains/quests/questHelpers'
+import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
 import {
   GearCraftingSelections,
   GearSetup,
@@ -227,6 +230,7 @@ function GearSlotCard({
   onCraftingChange?: (slotIndex: number, option: CraftingOption | null) => void
 }) {
   const { isWished, toggleWish } = useWishlist()
+  const raidQuestNames = useRaidQuestNames()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [augmentDialogIndex, setAugmentDialogIndex] = useState<number | null>(null)
   const actionButtonSx = {
@@ -427,7 +431,7 @@ function GearSlotCard({
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Typography variant="caption" color="text.secondary">
                 ML {item.ml}
               </Typography>
@@ -435,6 +439,9 @@ function GearSlotCard({
                 <Typography variant="caption" color="text.secondary">
                   • {item.type}
                 </Typography>
+              )}
+              {isRaidItem(item, raidQuestNames) && (
+                <Chip label="Raid" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
               )}
             </Box>
             {item.quests && item.quests.length > 0 && (

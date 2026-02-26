@@ -32,6 +32,8 @@ import ItemSetTooltip from '@/components/items/ItemSetTooltip'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useWishlist, WishlistEntry } from '@/contexts/useWishlist'
+import { isRaidItem } from '@/domains/quests/questHelpers'
+import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
 import { formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, AffixLike } from '@/utils/affixHelpers'
 
 type GroupingMode = 'none' | 'quest' | 'pack' | 'slot'
@@ -108,6 +110,7 @@ interface WishlistItemRowProps {
 }
 
 function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: WishlistItemRowProps) {
+  const raidQuestNames = useRaidQuestNames()
   // Get wiki URL for both regular items and augments
   // For augments without a URL field, generate one from the name
   const wikiUrl = getWikiUrl(item.url) ||
@@ -155,6 +158,11 @@ function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: Wishl
           <Typography variant="caption" color="text.secondary" display="block">
             {item.slot}
           </Typography>
+        )}
+        {isRaidItem(item, raidQuestNames) && (
+          <Box>
+            <Chip label="Raid" size="small" color="error" variant="outlined" sx={{ mt: 0.5 }} />
+          </Box>
         )}
       </TableCell>
       <TableCell>

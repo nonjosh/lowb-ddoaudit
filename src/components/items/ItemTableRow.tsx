@@ -9,14 +9,16 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import React from 'react'
+import type React from 'react'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useWishlist } from '@/contexts/useWishlist'
+import { isRaidItem } from '@/domains/quests/questHelpers'
 import { RaidNotes } from '@/domains/raids/raidNotes'
+import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
 
 import ItemCraftingDisplay from './ItemCraftingDisplay'
 import ItemSetTooltip from './ItemSetTooltip'
@@ -45,6 +47,7 @@ export default function ItemTableRow({
   getCraftingOptions
 }: ItemTableRowProps) {
   const { isWished, toggleWish } = useWishlist()
+  const raidQuestNames = useRaidQuestNames()
 
   const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
   const wikiUrl = getWikiUrl(item.url)
@@ -85,6 +88,11 @@ export default function ItemTableRow({
           <Typography variant="caption" color="text.secondary" display="block">
             {item.slot}
           </Typography>
+        )}
+        {isRaidItem(item, raidQuestNames) && (
+          <Box>
+            <Chip label="Raid" size="small" color="error" variant="outlined" sx={{ mt: 0.5 }} />
+          </Box>
         )}
         {(() => {
           const augmentMatch = raidNotes?.augments.find(augment => augment.includes(item.name))

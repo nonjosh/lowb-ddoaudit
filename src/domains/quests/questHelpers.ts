@@ -28,6 +28,29 @@ export function isRaidQuest(quest: Quest | null): boolean {
 }
 
 /**
+ * Builds a Set of quest names that are raids from a questsById record.
+ */
+export function buildRaidQuestNames(questsById: Record<string, Quest>): Set<string> {
+  const names = new Set<string>()
+  for (const q of Object.values(questsById)) {
+    if (isRaidQuest(q)) names.add(q.name)
+  }
+  return names
+}
+
+/**
+ * Returns true if the item can only be obtained from raid quests.
+ * Requires item.quests to be non-empty and every quest to be in the raidQuestNames set.
+ */
+export function isRaidItem(
+  item: { quests?: string[] },
+  raidQuestNames: Set<string>,
+): boolean {
+  if (!item.quests || item.quests.length === 0) return false
+  return item.quests.every((qName) => raidQuestNames.has(qName))
+}
+
+/**
  * Gets the effective level for an LFM/quest combination.
  * Takes into account heroic vs epic versions and leader level.
  */

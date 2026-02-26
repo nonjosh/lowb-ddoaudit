@@ -6,6 +6,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import {
   Box,
   Button,
+  Chip,
   IconButton,
   Paper,
   Table,
@@ -21,6 +22,8 @@ import {
 import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
+import { isRaidItem } from '@/domains/quests/questHelpers'
+import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
 import { formatAffix, getAugmentColor } from '@/utils/affixHelpers'
 import ItemCraftingDisplay from '../items/ItemCraftingDisplay'
 import InventoryBadge from './InventoryBadge'
@@ -48,6 +51,7 @@ export function ItemSelectionTable({
   craftingData
 }: ItemSelectionTableProps) {
   const { isWished, toggleWish } = useWishlist()
+  const raidQuestNames = useRaidQuestNames()
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null)
 
   // Sort items by ML descending if requested
@@ -189,6 +193,11 @@ export function ItemSelectionTable({
                         </IconButton>
                       </Tooltip>
                     </Box>
+                    {isRaidItem(item, raidQuestNames) && (
+                      <Box>
+                        <Chip label="Raid" size="small" color="error" variant="outlined" sx={{ mt: 0.5 }} />
+                      </Box>
+                    )}
                   </TableCell>
                   <TableCell align="center">{item.ml}</TableCell>
                   <TableCell>
