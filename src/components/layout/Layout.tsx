@@ -49,6 +49,7 @@ export default function Layout({ children }: LayoutProps) {
       items: [
         { label: 'Viktranium Experiment', path: '/crafting/viktranium' },
         { label: 'Green Steel', path: '/crafting/greensteel' },
+        { label: 'Legendary Green Steel', path: '/crafting/lgs' },
       ],
     },
     { label: 'TR Planner', path: '/tr-planner' },

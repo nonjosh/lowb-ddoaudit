@@ -1,14 +1,17 @@
 import AddIcon from '@mui/icons-material/Add'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import DeleteIcon from '@mui/icons-material/Delete'
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+import SearchIcon from '@mui/icons-material/Search'
 import {
   Alert,
-  Autocomplete,
   Box,
+  Button,
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   FormControl,
   IconButton,
   InputLabel,
@@ -22,13 +25,13 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
 import { CraftingOption } from '@/api/ddoGearPlanner'
 import type { TroveItemLocation } from '@/api/trove/types'
+import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import {
@@ -58,45 +61,26 @@ interface PlannedItem {
 }
 
 // ============================================================================
-// Helpers
-// ============================================================================
-
-function isHeroic(opt: CraftingOption | null): boolean {
-  if (!opt) return true
-  return (opt.ml ?? 0) <= LEGENDARY_ML_THRESHOLD
-}
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
 export default function ViktraniumCrafting() {
   const { items, craftingData, loading, refresh, error } = useGearPlanner()
   const { inventoryMap, importedAt } = useTrove()
-  const [searchText, setSearchText] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [plannedItems, setPlannedItems] = useState<PlannedItem[]>([])
 
-  // Load data on first render
   useEffect(() => {
     if (items.length === 0 && !loading && !error) {
       void refresh()
     }
   }, [items.length, loading, error, refresh])
 
-  // All Viktranium items from gear planner data
   const viktraniumItems = useMemo(
     () => items.filter(hasViktraniumSlots).sort((a, b) => a.ml - b.ml || a.name.localeCompare(b.name)),
     [items],
   )
 
-  // Items filtered by search for autocomplete
-  const filteredItems = useMemo(() => {
-    if (!searchText) return viktraniumItems
-    const lower = searchText.toLowerCase()
-    return viktraniumItems.filter((i) => i.name.toLowerCase().includes(lower))
-  }, [viktraniumItems, searchText])
-
-  // Add an item to the plan
   const addItem = (itemName: string) => {
     const item = viktraniumItems.find((i) => i.name === itemName)
     if (!item) return
@@ -108,12 +92,10 @@ export default function ViktraniumCrafting() {
     setPlannedItems((prev) => [...prev, { id, itemName, slots }])
   }
 
-  // Remove a planned item
   const removeItem = (id: string) => {
     setPlannedItems((prev) => prev.filter((p) => p.id !== id))
   }
 
-  // Update a slot selection
   const updateSlot = (itemId: string, slotType: ViktraniumSlotType, option: CraftingOption | null) => {
     setPlannedItems((prev) =>
       prev.map((p) => {
@@ -128,7 +110,6 @@ export default function ViktraniumCrafting() {
     )
   }
 
-  // All selected augments (only filled slots)
   const allSelectedAugments = useMemo(
     () =>
       plannedItems
@@ -138,18 +119,12 @@ export default function ViktraniumCrafting() {
     [plannedItems],
   )
 
-  // Ingredient summary
   const ingredientSummary = useMemo(
     () => calculateViktraniumIngredients(allSelectedAugments),
     [allSelectedAugments],
   )
 
-  // Check if any ingredient is non-zero
   const hasIngredients = Object.values(ingredientSummary).some((v) => v > 0)
-
-  // ============================================================================
-  // Render
-  // ============================================================================
 
   if (loading && items.length === 0) {
     return (
@@ -167,9 +142,7 @@ export default function ViktraniumCrafting() {
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="h5">Viktranium Experiment Crafting</Typography>
-          <Tooltip title="Based on: ddowiki.com/page/Viktranium_Experiment_crafting">
-            <HelpOutlineIcon fontSize="small" color="action" />
-          </Tooltip>
+          <DdoWikiLink wikiUrl="https://ddowiki.com/page/Viktranium_Experiment_crafting" />
           {importedAt && (
             <Chip
               icon={<CheckCircleIcon />}
@@ -182,6 +155,7 @@ export default function ViktraniumCrafting() {
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           Plan your Viktranium augment slots and calculate required ingredients (5× each per augment).
+          Items with ML ≤ {LEGENDARY_ML_THRESHOLD} use Heroic ingredients; higher ML uses Legendary.
         </Typography>
       </Paper>
 
@@ -196,37 +170,28 @@ export default function ViktraniumCrafting() {
         <Typography variant="subtitle1" gutterBottom fontWeight="bold">
           Add Item to Plan
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <Autocomplete
-            options={filteredItems}
-            getOptionLabel={(opt) => `${opt.name} (ML ${opt.ml}, ${opt.slot})`}
-            onInputChange={(_, value) => setSearchText(value)}
-            onChange={(_, value) => {
-              if (value) {
-                addItem(value.name)
-                setSearchText('')
-              }
-            }}
-            inputValue={searchText}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Search Viktranium items"
-                size="small"
-                placeholder="Type item name..."
-              />
-            )}
-            sx={{ minWidth: 320 }}
-            size="small"
-            clearOnBlur
-            blurOnSelect
-            noOptionsText={items.length === 0 ? 'Loading...' : 'No matching items'}
-          />
-          <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Button
+            variant="outlined"
+            startIcon={<SearchIcon />}
+            onClick={() => setDialogOpen(true)}
+            disabled={items.length === 0}
+          >
+            Browse Viktranium Items
+          </Button>
+          <Typography variant="body2" color="text.secondary">
             {viktraniumItems.length} items available
           </Typography>
         </Box>
       </Paper>
+
+      {/* Item Browse Dialog */}
+      <ViktraniumItemDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        items={viktraniumItems}
+        onAdd={(name) => addItem(name)}
+      />
 
       {/* Planned Items */}
       {plannedItems.length > 0 && (
@@ -237,6 +202,7 @@ export default function ViktraniumCrafting() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {plannedItems.map((planned) => {
               const item = viktraniumItems.find((i) => i.name === planned.itemName)
+              const isLegendary = item ? item.ml > LEGENDARY_ML_THRESHOLD : false
               return (
                 <Paper key={planned.id} variant="outlined" sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
@@ -249,6 +215,12 @@ export default function ViktraniumCrafting() {
                     {item && (
                       <Chip label={item.slot} size="small" variant="outlined" color="primary" />
                     )}
+                    <Chip
+                      label={isLegendary ? 'Legendary' : 'Heroic'}
+                      size="small"
+                      color={isLegendary ? 'warning' : 'default'}
+                      variant="filled"
+                    />
                     <Box sx={{ flex: 1 }} />
                     <IconButton size="small" onClick={() => removeItem(planned.id)} title="Remove item">
                       <DeleteIcon fontSize="small" />
@@ -268,6 +240,7 @@ export default function ViktraniumCrafting() {
                         slotType={slot.slotType}
                         selectedOption={slot.selectedOption}
                         craftingData={craftingData}
+                        isLegendary={isLegendary}
                         onChange={(opt) => updateSlot(planned.id, slot.slotType, opt)}
                       />
                     ))}
@@ -283,7 +256,7 @@ export default function ViktraniumCrafting() {
         <Paper sx={{ p: 4, mb: 2, textAlign: 'center' }}>
           <AddIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
           <Typography variant="body1" color="text.secondary">
-            Search for a Viktranium item above to start planning your augments.
+            Browse and add a Viktranium item above to start planning your augments.
           </Typography>
         </Paper>
       )}
@@ -308,6 +281,113 @@ export default function ViktraniumCrafting() {
 }
 
 // ============================================================================
+// ViktraniumItemDialog Component
+// ============================================================================
+
+interface ViktraniumItemDialogProps {
+  open: boolean
+  onClose: () => void
+  items: import('@/api/ddoGearPlanner').Item[]
+  onAdd: (itemName: string) => void
+}
+
+function ViktraniumItemDialog({ open, onClose, items, onAdd }: ViktraniumItemDialogProps) {
+  const [search, setSearch] = useState('')
+  const [slotFilter, setSlotFilter] = useState('')
+
+  const slots = useMemo(() => {
+    const s = new Set<string>()
+    items.forEach((i) => s.add(i.slot))
+    return [...s].sort()
+  }, [items])
+
+  const filtered = useMemo(() => {
+    const lower = search.toLowerCase()
+    return items.filter((i) => {
+      const matchName = !search || i.name.toLowerCase().includes(lower)
+      const matchSlot = !slotFilter || i.slot === slotFilter
+      return matchName && matchSlot
+    })
+  }, [items, search, slotFilter])
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">Browse Viktranium Items</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {filtered.length} items
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          <TextField
+            size="small"
+            label="Search by name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{ flex: 1, minWidth: 200 }}
+          />
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel>Slot</InputLabel>
+            <Select
+              value={slotFilter}
+              label="Slot"
+              onChange={(e) => setSlotFilter(e.target.value)}
+            >
+              <MenuItem value="">All slots</MenuItem>
+              {slots.map((s) => (
+                <MenuItem key={s} value={s}>{s}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+        <TableContainer sx={{ maxHeight: 420 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell>ML</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Slot</TableCell>
+                <TableCell>Crafting Slots</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filtered.map((item) => (
+                <TableRow key={item.name} hover>
+                  <TableCell>{item.ml}</TableCell>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.slot}</TableCell>
+                  <TableCell>
+                    <Typography variant="caption" color="text.secondary">
+                      {(item.crafting ?? []).join(', ')}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        onAdd(item.name)
+                        onClose()
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ============================================================================
 // SlotSelector Component
 // ============================================================================
 
@@ -315,19 +395,17 @@ interface SlotSelectorProps {
   slotType: ViktraniumSlotType
   selectedOption: CraftingOption | null
   craftingData: import('@/api/ddoGearPlanner').CraftingData | null
+  isLegendary: boolean
   onChange: (option: CraftingOption | null) => void
 }
 
-function SlotSelector({ slotType, selectedOption, craftingData, onChange }: SlotSelectorProps) {
-  const [tier, setTier] = useState<'heroic' | 'legendary'>('heroic')
-
+function SlotSelector({ slotType, selectedOption, craftingData, isLegendary, onChange }: SlotSelectorProps) {
   const options = useMemo(() => {
     if (!craftingData) return []
-    return getAugmentOptions(slotType, craftingData, tier === 'heroic')
-  }, [slotType, craftingData, tier])
+    return getAugmentOptions(slotType, craftingData, !isLegendary)
+  }, [slotType, craftingData, isLegendary])
 
   const selectedName = selectedOption?.name ?? ''
-  // If tier changes and current selection is invalid, clear it
   const isSelectionValid = options.some((o) => o.name === selectedName)
 
   return (
@@ -336,40 +414,24 @@ function SlotSelector({ slotType, selectedOption, craftingData, onChange }: Slot
         <Chip
           label={slotType}
           size="small"
-          color={isHeroic(selectedOption) ? 'default' : 'warning'}
+          color={isLegendary ? 'warning' : 'default'}
           variant="outlined"
           sx={{ fontSize: '0.7rem' }}
         />
       </Box>
 
-      {/* Tier selector */}
-      <FormControl size="small" fullWidth>
-        <InputLabel>Tier</InputLabel>
-        <Select
-          value={tier}
-          label="Tier"
-          onChange={(e) => {
-            setTier(e.target.value as 'heroic' | 'legendary')
-            if (!isSelectionValid) onChange(null)
-          }}
-          sx={{ fontSize: '0.8rem' }}
-        >
-          <MenuItem value="heroic">Heroic (ML 8)</MenuItem>
-          <MenuItem value="legendary">Legendary (ML 34)</MenuItem>
-        </Select>
-      </FormControl>
-
       {/* Augment selector */}
       <FormControl size="small" fullWidth>
-        <InputLabel>Augment</InputLabel>
+        <InputLabel shrink>Augment</InputLabel>
         <Select
           value={isSelectionValid ? selectedName : ''}
           label="Augment"
+          displayEmpty
+          notched
           onChange={(e) => {
             const found = options.find((o) => o.name === e.target.value)
             onChange(found ?? null)
           }}
-          displayEmpty
           sx={{ fontSize: '0.8rem' }}
         >
           <MenuItem value="">

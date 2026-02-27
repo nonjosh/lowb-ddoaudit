@@ -26,7 +26,6 @@ import type { TroveItemLocation } from '@/api/trove/types'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useTrove } from '@/contexts/useTrove'
 import {
-  calculateGreenSteelIngredients,
   getEffectByName,
   GREEN_STEEL_ACCESSORY_TYPES,
   GREEN_STEEL_EFFECTS,
@@ -35,12 +34,13 @@ import {
   GreenSteelTier,
   GreenSteelTierSelection,
 } from '@/domains/crafting/greenSteelLogic'
+import { calculateLgsIngredients } from '@/domains/crafting/lgsLogic'
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface PlannedGreenSteelItem {
+interface PlannedLgsItem {
   id: string
   itemType: GreenSteelItemType
   itemSubType: string
@@ -57,9 +57,9 @@ const EMPTY_TIER_SELECTIONS: GreenSteelTierSelection[] = [
 // Main Component
 // ============================================================================
 
-export default function GreenSteelCrafting() {
+export default function LegendaryGreenSteelCrafting() {
   const { inventoryMap, importedAt } = useTrove()
-  const [plannedItems, setPlannedItems] = useState<PlannedGreenSteelItem[]>([])
+  const [plannedItems, setPlannedItems] = useState<PlannedLgsItem[]>([])
   const [newItemType, setNewItemType] = useState<GreenSteelItemType>('Weapon')
   const [newItemSubType, setNewItemSubType] = useState<string>('Long Sword')
 
@@ -100,7 +100,7 @@ export default function GreenSteelCrafting() {
 
   const ingredientSummary = useMemo(() => {
     const allSelections = plannedItems.flatMap((p) => p.tierSelections)
-    return calculateGreenSteelIngredients(allSelections)
+    return calculateLgsIngredients(allSelections)
   }, [plannedItems])
 
   const hasIngredients = Object.values(ingredientSummary).some((v) => v > 0)
@@ -112,8 +112,8 @@ export default function GreenSteelCrafting() {
       {/* Header */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="h5">Green Steel Crafting</Typography>
-          <DdoWikiLink wikiUrl="https://ddowiki.com/page/Green_Steel_item_crafting_steps" />
+          <Typography variant="h5">Legendary Green Steel Crafting</Typography>
+          <DdoWikiLink wikiUrl="https://ddowiki.com/page/Legendary_Green_Steel_items" />
           {importedAt && (
             <Chip
               icon={<CheckCircleIcon />}
@@ -125,14 +125,13 @@ export default function GreenSteelCrafting() {
           )}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Plan your Green Steel item upgrades across Tier 1, 2, and 3. Each tier requires 3 essences
-          + 3 gems + 1 energy cell.
+          Plan your Legendary Green Steel item upgrades across Tier 1, 2, and 3. Each tier requires
+          3 legendary ingredients + 1 energy cell.
         </Typography>
         <Alert severity="info" sx={{ mt: 1 }} icon={false}>
           <Typography variant="caption">
-            Crafted at The Shroud raid altars (Altar of Invasion T1, Altar of Subjugation T2,
-            Altar of Devastation T3). Tier 1 uses Diluted/Cloudy, Tier 2 Distilled/Pristine,
-            Tier 3 Pure/Flawless ingredients.
+            Crafted with Legendary ingredients from Legendary The Shroud. Each tier uses
+            Small/Medium/Large ingredient sizes with Low/Medium/High Energy Cells.
           </Typography>
         </Alert>
       </Paper>
@@ -209,7 +208,7 @@ export default function GreenSteelCrafting() {
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {plannedItems.map((planned) => (
-              <PlannedItemCard
+              <LgsItemCard
                 key={planned.id}
                 planned={planned}
                 onRemove={() => removeItem(planned.id)}
@@ -224,7 +223,7 @@ export default function GreenSteelCrafting() {
         <Paper sx={{ p: 4, mb: 2, textAlign: 'center' }}>
           <AddIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
           <Typography variant="body1" color="text.secondary">
-            Add a Green Steel item above to start planning your tier upgrades.
+            Add a Legendary Green Steel item above to start planning your tier upgrades.
           </Typography>
         </Paper>
       )}
@@ -235,7 +234,7 @@ export default function GreenSteelCrafting() {
           <Typography variant="subtitle1" gutterBottom fontWeight="bold">
             Ingredient Summary
           </Typography>
-          <GreenSteelIngredientTable
+          <LgsIngredientTable
             summary={ingredientSummary}
             inventoryMap={inventoryMap}
           />
@@ -246,11 +245,11 @@ export default function GreenSteelCrafting() {
 }
 
 // ============================================================================
-// PlannedItemCard Component
+// LgsItemCard Component
 // ============================================================================
 
-interface PlannedItemCardProps {
-  planned: PlannedGreenSteelItem
+interface LgsItemCardProps {
+  planned: PlannedLgsItem
   onRemove: () => void
   onUpdateTier: (
     tier: GreenSteelTier,
@@ -258,7 +257,7 @@ interface PlannedItemCardProps {
   ) => void
 }
 
-function PlannedItemCard({ planned, onRemove, onUpdateTier }: PlannedItemCardProps) {
+function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
   const effects = planned.tierSelections
     .map((ts) => (ts.effectName ? getEffectByName(ts.effectName) : null))
     .filter(Boolean)
@@ -284,7 +283,7 @@ function PlannedItemCard({ planned, onRemove, onUpdateTier }: PlannedItemCardPro
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
         <Chip label={planned.itemType} size="small" variant="outlined" />
         <Typography variant="subtitle2" fontWeight="bold">
-          Green Steel {planned.itemSubType}
+          Legendary Green Steel {planned.itemSubType}
         </Typography>
         {comboInfo && (
           <Chip label={comboInfo} size="small" color="info" variant="outlined" />
@@ -303,7 +302,7 @@ function PlannedItemCard({ planned, onRemove, onUpdateTier }: PlannedItemCardPro
         }}
       >
         {planned.tierSelections.map((ts) => (
-          <TierSelectionPanel
+          <LgsTierSelectionPanel
             key={ts.tier}
             selection={ts}
             onUpdate={(updates) => onUpdateTier(ts.tier, updates)}
@@ -315,10 +314,10 @@ function PlannedItemCard({ planned, onRemove, onUpdateTier }: PlannedItemCardPro
 }
 
 // ============================================================================
-// TierSelectionPanel Component
+// LgsTierSelectionPanel Component
 // ============================================================================
 
-interface TierSelectionPanelProps {
+interface LgsTierSelectionPanelProps {
   selection: GreenSteelTierSelection
   onUpdate: (updates: Partial<Omit<GreenSteelTierSelection, 'tier'>>) => void
 }
@@ -330,14 +329,14 @@ const TIER_COLORS: Record<GreenSteelTier, string> = {
 }
 
 const TIER_LABELS: Record<GreenSteelTier, string> = {
-  1: 'Tier 1 — Altar of Invasion (Diluted/Cloudy)',
-  2: 'Tier 2 — Altar of Subjugation (Distilled/Pristine)',
-  3: 'Tier 3 — Altar of Devastation (Pure/Flawless)',
+  1: 'Tier 1 — Small / Low Energy Cell',
+  2: 'Tier 2 — Medium / Medium Energy Cell',
+  3: 'Tier 3 — Large / High Energy Cell',
 }
 
 const EFFECT_CATEGORIES = ['Spell Power', 'Lore', 'Resistance', 'Stat', 'Weapon Bonus'] as const
 
-function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
+function LgsTierSelectionPanel({ selection, onUpdate }: LgsTierSelectionPanelProps) {
   const color = TIER_COLORS[selection.tier]
   const selectedEffect = selection.effectName ? getEffectByName(selection.effectName) : null
 
@@ -356,7 +355,6 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
         {TIER_LABELS[selection.tier]}
       </Typography>
 
-      {/* Effect selector */}
       <FormControl size="small" fullWidth>
         <InputLabel shrink>Effect</InputLabel>
         <Select
@@ -388,10 +386,9 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
         </Select>
       </FormControl>
 
-      {/* Summary of selected effect */}
       {selectedEffect && (
         <Typography variant="caption" color="text.secondary">
-          {selectedEffect.element} / {selectedEffect.essenceType} / {selectedEffect.gemType}
+          {selectedEffect.element} element
         </Typography>
       )}
     </Box>
@@ -399,15 +396,15 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
 }
 
 // ============================================================================
-// GreenSteelIngredientTable Component
+// LgsIngredientTable Component
 // ============================================================================
 
-interface GreenSteelIngredientTableProps {
+interface LgsIngredientTableProps {
   summary: Record<string, number>
   inventoryMap: Map<string, TroveItemLocation[]>
 }
 
-function GreenSteelIngredientTable({ summary, inventoryMap }: GreenSteelIngredientTableProps) {
+function LgsIngredientTable({ summary, inventoryMap }: LgsIngredientTableProps) {
   const hasTrove = inventoryMap.size > 0
 
   const rows = Object.entries(summary)
