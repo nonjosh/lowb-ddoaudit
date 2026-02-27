@@ -35,9 +35,7 @@ import {
   GreenSteelTier,
   GreenSteelTierSelection,
 } from '@/domains/crafting/greenSteelLogic'
-
-// ============================================================================
-// Types
+import { getIngredientImagePath } from '@/utils/craftingHelpers'
 // ============================================================================
 
 interface PlannedGreenSteelItem {
@@ -441,7 +439,19 @@ function GreenSteelIngredientTable({ summary, inventoryMap }: GreenSteelIngredie
             const sufficient = !hasTrove || available >= required
             return (
               <TableRow key={ingredient}>
-                <TableCell>{ingredient}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <img
+                      src={getIngredientImagePath(ingredient)}
+                      alt=""
+                      width={20}
+                      height={20}
+                      style={{ imageRendering: 'pixelated', flexShrink: 0 }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                    {ingredient}
+                  </Box>
+                </TableCell>
                 <TableCell align="right">
                   <Typography fontWeight="bold">{required}</Typography>
                 </TableCell>

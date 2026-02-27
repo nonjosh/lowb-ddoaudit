@@ -45,7 +45,6 @@ export const GREEN_STEEL_EFFECTS: GreenSteelEffect[] = [
   { name: 'Corrosion', description: 'Acid Spell Power +72/+90/+108', category: 'Spell Power', element: 'Earth', essenceType: 'Ethereal', gemType: 'Dominion' },
   { name: 'Magnetism', description: 'Electric Spell Power +72/+90/+108', category: 'Spell Power', element: 'Air', essenceType: 'Ethereal', gemType: 'Dominion' },
   { name: 'Radiance', description: 'Light Spell Power +72/+90/+108', category: 'Spell Power', element: 'Positive', essenceType: 'Ethereal', gemType: 'Dominion' },
-  { name: 'Impulse', description: 'Force/Universal Spell Power +72/+90/+108', category: 'Spell Power', element: 'Positive', essenceType: 'Ethereal', gemType: 'Escalation' },
   { name: 'Devotion', description: 'Positive/Repair Spell Power +72/+90/+108', category: 'Spell Power', element: 'Positive', essenceType: 'Material', gemType: 'Dominion' },
   { name: 'Nihil', description: 'Negative Energy Spell Power +72/+90/+108', category: 'Spell Power', element: 'Negative', essenceType: 'Ethereal', gemType: 'Dominion' },
   { name: 'Cold Lore', description: 'Cold Spell Critical Chance', category: 'Lore', element: 'Water', essenceType: 'Ethereal', gemType: 'Escalation' },

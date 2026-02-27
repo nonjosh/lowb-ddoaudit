@@ -25,6 +25,7 @@ export const HEROIC_INGREDIENTS = [
   'Bleak Conductor',
   'Bleak Insulator',
   'Bleak Resistor',
+  'Bleak Transformer',
 ] as const
 
 /** Legendary ingredients (ML 34 augments) */
@@ -33,6 +34,7 @@ export const LEGENDARY_INGREDIENTS = [
   'Legendary Bleak Conductor',
   'Legendary Bleak Insulator',
   'Legendary Bleak Resistor',
+  'Legendary Bleak Transformer',
 ] as const
 
 export const ALL_VIKTRANIUM_INGREDIENTS = [
@@ -42,8 +44,11 @@ export const ALL_VIKTRANIUM_INGREDIENTS = [
 
 export type ViktraniumIngredient = (typeof ALL_VIKTRANIUM_INGREDIENTS)[number]
 
-/** Number of each ingredient required per augment */
-export const INGREDIENTS_PER_AUGMENT = 5
+/** Number of each ingredient required per heroic augment */
+export const HEROIC_INGREDIENTS_PER_AUGMENT = 10
+
+/** Number of each ingredient required per legendary augment */
+export const LEGENDARY_INGREDIENTS_PER_AUGMENT = 50
 
 /** ML threshold separating heroic from legendary augments */
 export const LEGENDARY_ML_THRESHOLD = 20
@@ -118,8 +123,9 @@ export function calculateViktraniumIngredients(
     const ingredients = isLegendaryAugment(augment.ml)
       ? LEGENDARY_INGREDIENTS
       : HEROIC_INGREDIENTS
+    const cost = isLegendaryAugment(augment.ml) ? LEGENDARY_INGREDIENTS_PER_AUGMENT : HEROIC_INGREDIENTS_PER_AUGMENT
     for (const ingredient of ingredients) {
-      summary[ingredient] = (summary[ingredient] ?? 0) + INGREDIENTS_PER_AUGMENT
+      summary[ingredient] = (summary[ingredient] ?? 0) + cost
     }
   }
 

@@ -44,6 +44,7 @@ import {
   ViktraniumSlotType,
 } from '@/domains/crafting/viktraniumLogic'
 import { formatAffixPlain } from '@/utils/affixHelpers'
+import { getIngredientImagePath } from '@/utils/craftingHelpers'
 
 // ============================================================================
 // Types
@@ -154,7 +155,8 @@ export default function ViktraniumCrafting() {
           )}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Plan your Viktranium augment slots and calculate required ingredients (5× each per augment).
+          Plan your Viktranium augment slots and calculate required ingredients.
+          Each heroic augment costs 10× of each ingredient; each legendary augment costs 50× of each ingredient.
           Items with ML ≤ {LEGENDARY_ML_THRESHOLD} use Heroic ingredients; higher ML uses Legendary.
         </Typography>
       </Paper>
@@ -268,7 +270,7 @@ export default function ViktraniumCrafting() {
             Ingredient Summary
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Each augment slot costs 5× of each ingredient (heroic or legendary).
+          Each heroic augment costs 10× of each ingredient; each legendary augment costs 50× of each ingredient.
           </Typography>
           <IngredientTable
             summary={ingredientSummary}
@@ -547,7 +549,19 @@ function IngredientRow({ ingredient, required, available, hasTrove }: Ingredient
 
   return (
     <TableRow>
-      <TableCell>{ingredient}</TableCell>
+      <TableCell>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <img
+            src={getIngredientImagePath(ingredient)}
+            alt=""
+            width={20}
+            height={20}
+            style={{ imageRendering: 'pixelated', flexShrink: 0 }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+          {ingredient}
+        </Box>
+      </TableCell>
       <TableCell align="right">
         <Typography fontWeight="bold">{required}</Typography>
       </TableCell>
