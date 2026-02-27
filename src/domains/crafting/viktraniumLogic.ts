@@ -46,7 +46,7 @@ export type ViktraniumIngredient = (typeof ALL_VIKTRANIUM_INGREDIENTS)[number]
 export const INGREDIENTS_PER_AUGMENT = 5
 
 /** ML threshold separating heroic from legendary augments */
-const LEGENDARY_ML_THRESHOLD = 20
+export const LEGENDARY_ML_THRESHOLD = 20
 
 // ============================================================================
 // Helpers

@@ -145,6 +145,8 @@ export interface TroveItemLocation {
   tabName?: string
   binding?: TroveBinding
   minimumLevel?: number
+  /** Stack size for stackable items (e.g., crafting ingredients) */
+  quantity?: number
 }
 
 export interface TroveCharacter {

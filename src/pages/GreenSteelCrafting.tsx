@@ -24,6 +24,7 @@ import {
 } from '@mui/material'
 import { useMemo, useState } from 'react'
 
+import type { TroveItemLocation } from '@/api/trove/types'
 import { useTrove } from '@/contexts/useTrove'
 import {
   calculateGreenSteelIngredients,
@@ -407,7 +408,7 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
 
 interface GreenSteelIngredientTableProps {
   summary: Record<string, number>
-  inventoryMap: Map<string, import('@/api/trove/types').TroveItemLocation[]>
+  inventoryMap: Map<string, TroveItemLocation[]>
 }
 
 function GreenSteelIngredientTable({ summary, inventoryMap }: GreenSteelIngredientTableProps) {
@@ -419,7 +420,7 @@ function GreenSteelIngredientTable({ summary, inventoryMap }: GreenSteelIngredie
     .map(([ingredient, required]) => {
       const locations = inventoryMap.get(ingredient) ?? []
       const available = locations.reduce(
-        (sum, loc) => sum + ((loc as { quantity?: number }).quantity ?? 0),
+        (sum, loc) => sum + (loc.quantity ?? 0),
         0,
       )
       return { ingredient, required, available }

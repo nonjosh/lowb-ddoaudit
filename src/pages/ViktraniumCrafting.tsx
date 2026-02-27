@@ -28,6 +28,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import { CraftingOption } from '@/api/ddoGearPlanner'
+import type { TroveItemLocation } from '@/api/trove/types'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import {
@@ -36,6 +37,7 @@ import {
   getAugmentOptions,
   getViktraniumSlots,
   hasViktraniumSlots,
+  LEGENDARY_ML_THRESHOLD,
   ViktraniumSlotType,
 } from '@/domains/crafting/viktraniumLogic'
 import { formatAffixPlain } from '@/utils/affixHelpers'
@@ -61,7 +63,7 @@ interface PlannedItem {
 
 function isHeroic(opt: CraftingOption | null): boolean {
   if (!opt) return true
-  return (opt.ml ?? 0) <= 20
+  return (opt.ml ?? 0) <= LEGENDARY_ML_THRESHOLD
 }
 
 // ============================================================================
@@ -399,7 +401,7 @@ function SlotSelector({ slotType, selectedOption, craftingData, onChange }: Slot
 
 interface IngredientTableProps {
   summary: Record<string, number>
-  inventoryMap: Map<string, import('@/api/trove/types').TroveItemLocation[]>
+  inventoryMap: Map<string, TroveItemLocation[]>
 }
 
 function IngredientTable({ summary, inventoryMap }: IngredientTableProps) {
@@ -407,7 +409,7 @@ function IngredientTable({ summary, inventoryMap }: IngredientTableProps) {
     return ALL_VIKTRANIUM_INGREDIENTS.filter((ingredient) => summary[ingredient] > 0).map((ingredient) => {
       const required = summary[ingredient]
       const locations = inventoryMap.get(ingredient) ?? []
-      const available = locations.reduce((sum, loc) => sum + ((loc as { quantity?: number }).quantity ?? 0), 0)
+      const available = locations.reduce((sum, loc) => sum + (loc.quantity ?? 0), 0)
       const hasTrove = inventoryMap.size > 0
       return { ingredient, required, available, hasTrove }
     })
