@@ -427,7 +427,6 @@ function SlotSelector({ slotType, selectedOption, craftingData, isLegendary, onC
           value={isSelectionValid ? selectedName : ''}
           label="Augment"
           displayEmpty
-          notched
           onChange={(e) => {
             const found = options.find((o) => o.name === e.target.value)
             onChange(found ?? null)

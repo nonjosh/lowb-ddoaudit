@@ -363,7 +363,6 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
           value={selection.effectName ?? ''}
           label="Effect"
           displayEmpty
-          notched
           onChange={(e) => onUpdate({ effectName: e.target.value || null })}
         >
           <MenuItem value="">
@@ -372,7 +371,7 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
           {EFFECT_CATEGORIES.flatMap((cat) => {
             const catEffects = GREEN_STEEL_EFFECTS.filter((e) => e.category === cat)
             return [
-              <MenuItem key={`cat-${cat}`} disabled sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}>
+              <MenuItem key={`__category__${cat}`} disabled sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}>
                 — {cat} —
               </MenuItem>,
               ...catEffects.map((eff) => (
