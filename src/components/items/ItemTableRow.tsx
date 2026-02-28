@@ -10,8 +10,9 @@ import {
   Typography
 } from '@mui/material'
 import type React from 'react'
+import { useCallback } from 'react'
 
-import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
+import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
 import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
@@ -19,35 +20,36 @@ import { useWishlist } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
 import { RaidNotes } from '@/domains/raids/raidNotes'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
+import { formatAffix, getAugmentColor, getCraftingOptionsForSlot, getWikiUrl, highlightText } from '@/utils/affixHelpers'
 
 import ItemCraftingDisplay from './ItemCraftingDisplay'
 import ItemSetTooltip from './ItemSetTooltip'
 
 interface ItemTableRowProps {
   item: Item
-  searchText: string
-  setsData: SetsData | null
-  raidNotes: RaidNotes | null
-  highlightText: (text: string, query: string) => string | React.ReactElement
-  formatAffix: (affix: ItemAffix, query?: string) => string | React.ReactElement
-  getWikiUrl: (url: string | undefined) => string | null
-  getAugmentColor: (text: string) => string | undefined
-  getCraftingOptions: (craft: string) => string[]
+  searchText?: string
+  setsData?: SetsData | null
+  raidNotes?: RaidNotes | null
+  craftingData?: CraftingData | null
+  /** Optional action column rendered at the end of the row */
+  renderAction?: (item: Item) => React.ReactNode
 }
 
 export default function ItemTableRow({
   item,
-  searchText,
-  setsData,
-  raidNotes,
-  highlightText,
-  formatAffix,
-  getWikiUrl,
-  getAugmentColor,
-  getCraftingOptions
+  searchText = '',
+  setsData = null,
+  raidNotes = null,
+  craftingData = null,
+  renderAction,
 }: ItemTableRowProps) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
+
+  const getCraftingOptions = useCallback(
+    (craft: string) => getCraftingOptionsForSlot(craft, craftingData),
+    [craftingData],
+  )
 
   const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
   const wikiUrl = getWikiUrl(item.url)
@@ -137,6 +139,11 @@ export default function ItemTableRow({
           />
         )}
       </TableCell>
+      {renderAction && (
+        <TableCell align="center">
+          {renderAction(item)}
+        </TableCell>
+      )}
     </TableRow>
   )
 }

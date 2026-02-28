@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Item, CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { useWishlist } from '@/contexts/useWishlist'
 import { RaidNotes } from '@/domains/raids/raidNotes'
-import { AffixLike, formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, highlightText } from '@/utils/affixHelpers'
+import { formatAffixPlain } from '@/utils/affixHelpers'
 
 import ItemTableFilters from './ItemTableFilters'
 import ItemTableRow from './ItemTableRow'
@@ -139,46 +139,6 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     })
   }, [questItems, searchText, typeFilter, effectFilter, mlFilter, isWished])
 
-  const getCraftingOptions = (craft: string) => {
-    if (!craftingData) return []
-    const data = craftingData
-    if (data[craft] && data[craft]["*"]) {
-      const items = data[craft]["*"]
-      if (items.length > 0 && items[0].affixes) {
-        const affixMap = new Map<string, AffixLike>()
-        items.forEach((item) => {
-          if (item.affixes) {
-            item.affixes.forEach(affix => {
-              const key = `${affix.name}-${affix.type}`
-              const existing = affixMap.get(key)
-              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : (affix.value ?? 0)
-              const existingValue = existing?.value != null
-                ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value)
-                : 0
-              if (!existing || currentValue > existingValue) {
-                affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
-              }
-            })
-          }
-        })
-        return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
-      } else {
-        return items.map((item) => item.name ?? '')
-      }
-    } else if (data[craft]) {
-      const options: string[] = []
-      for (const [itemName, sets] of Object.entries(data[craft])) {
-        if (!Array.isArray(sets)) continue
-        options.push(`${itemName}:`)
-        sets.forEach((set) => {
-          options.push(`- ${set.name ?? ''}`)
-        })
-      }
-      return options
-    }
-    return []
-  }
-
   return (
     <>
       <Typography variant="h6" sx={{ mb: 1, px: 1 }}>
@@ -226,11 +186,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
                   searchText={searchText}
                   setsData={setsData}
                   raidNotes={raidNotes}
-                  highlightText={highlightText}
-                  formatAffix={formatAffix}
-                  getWikiUrl={getWikiUrl}
-                  getAugmentColor={getAugmentColor}
-                  getCraftingOptions={getCraftingOptions}
+                  craftingData={craftingData}
                 />
               ))
             )}

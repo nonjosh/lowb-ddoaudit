@@ -1,6 +1,9 @@
 import AddIcon from '@mui/icons-material/Add'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import ClearIcon from '@mui/icons-material/Clear'
+import CloseIcon from '@mui/icons-material/Close'
 import DeleteIcon from '@mui/icons-material/Delete'
+import InventoryIcon from '@mui/icons-material/Inventory2'
 import SearchIcon from '@mui/icons-material/Search'
 import {
   Alert,
@@ -10,14 +13,19 @@ import {
   CircularProgress,
   Container,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
+  OutlinedInput,
   Paper,
   Select,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -25,11 +33,14 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
 import { CraftingOption } from '@/api/ddoGearPlanner'
+import ItemTableRow from '@/components/items/ItemTableRow'
 import IngredientProgressList from '@/components/shared/IngredientProgressList'
 import type { IngredientGroup } from '@/components/shared/IngredientProgressList'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
@@ -200,6 +211,7 @@ export default function ViktraniumCrafting() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         items={viktraniumItems}
+        craftingData={craftingData}
         onAdd={(name) => addItem(name)}
       />
 
@@ -314,13 +326,14 @@ interface ViktraniumItemDialogProps {
   open: boolean
   onClose: () => void
   items: import('@/api/ddoGearPlanner').Item[]
+  craftingData: import('@/api/ddoGearPlanner').CraftingData | null
   onAdd: (itemName: string) => void
 }
 
 /** Separator prefix for weapon-type filter values (e.g. "weapon:Bastard Swords") */
 const WEAPON_TYPE_PREFIX = 'weapon:'
 
-function ViktraniumItemDialog({ open, onClose, items, onAdd }: ViktraniumItemDialogProps) {
+function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCraftingData, onAdd }: ViktraniumItemDialogProps) {
   const { hasItem } = useTrove()
   const [search, setSearch] = useState('')
   const [slotFilter, setSlotFilter] = useState('')
@@ -367,122 +380,138 @@ function ViktraniumItemDialog({ open, onClose, items, onAdd }: ViktraniumItemDia
   }, [items, search, slotFilter, showOnlyAvailable, hasItem])
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">Browse Viktranium Items</Typography>
-          <Typography variant="body2" color="text.secondary">
-            {filtered.length} items
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {filtered.length} items
+            </Typography>
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </Box>
       </DialogTitle>
-      <DialogContent>
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField
-            size="small"
-            label="Search by name"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ flex: 1, minWidth: 200 }}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel shrink>Slot</InputLabel>
-            <Select
-              value={slotFilter}
-              label="Slot"
-              displayEmpty
-              onChange={(e) => setSlotFilter(e.target.value)}
-            >
-              <MenuItem value="">All slots</MenuItem>
-              {/* Non-weapon equipment slots */}
-              {slots.map((s) => (
-                <MenuItem key={s} value={s}>{s}</MenuItem>
-              ))}
-              {/* Weapon (all types) */}
-              <MenuItem value="Weapon" sx={{ fontWeight: 'bold' }}>
-                Weapon (all types)
-              </MenuItem>
-              {/* Weapon sub-types indented */}
-              {weaponTypes.map((wt) => (
-                <MenuItem key={wt} value={`${WEAPON_TYPE_PREFIX}${wt}`} sx={{ pl: 4 }}>
-                  {wt}
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', p: 0, overflow: 'hidden' }}>
+        {/* Sticky filter bar - matching ItemTableFilters styling */}
+        <Box sx={{ flexShrink: 0, bgcolor: 'background.paper', px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+            <TextField
+              size="small"
+              label="Search Item Name/Properties"
+              variant="outlined"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ flex: 1, minWidth: 200 }}
+              placeholder="Search..."
+              InputProps={{
+                endAdornment: search ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearch('')}>
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Filter by Slot</InputLabel>
+              <Select
+                value={slotFilter}
+                label="Filter by Slot"
+                displayEmpty
+                onChange={(e) => setSlotFilter(e.target.value)}
+                input={<OutlinedInput label="Filter by Slot" />}
+                endAdornment={slotFilter ? (
+                  <InputAdornment position="end" sx={{ mr: 2 }}>
+                    <IconButton size="small" onMouseDown={(e) => e.stopPropagation()} onClick={() => setSlotFilter('')}>
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null}
+              >
+                <MenuItem value="">All slots</MenuItem>
+                {slots.map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+                <Divider />
+                <MenuItem value="Weapon" sx={{ fontWeight: 'bold' }}>
+                  Weapon (all types)
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button
-            size="small"
-            variant={showOnlyAvailable ? 'contained' : 'outlined'}
-            color={showOnlyAvailable ? 'success' : 'inherit'}
-            onClick={() => setShowOnlyAvailable((v) => !v)}
-            startIcon={<CheckCircleIcon />}
-            sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
-          >
-            Available
-          </Button>
+                {weaponTypes.map((wt) => (
+                  <MenuItem key={wt} value={`${WEAPON_TYPE_PREFIX}${wt}`} sx={{ pl: 4 }}>
+                    {wt}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <ToggleButtonGroup size="small" sx={{ flexShrink: 0 }}>
+              <ToggleButton
+                value="available"
+                selected={showOnlyAvailable}
+                onChange={() => setShowOnlyAvailable((v) => !v)}
+                sx={{ textTransform: 'none', px: 1.5 }}
+              >
+                <InventoryIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                In Trove
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
         </Box>
-        <TableContainer sx={{ maxHeight: 420 }}>
+
+        {/* Scrollable table */}
+        <TableContainer sx={{ flexGrow: 1, overflow: 'auto' }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: 32, px: 0.5 }} />
-                <TableCell>ML</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Slot / Type</TableCell>
-                <TableCell>Crafting Slots</TableCell>
-                <TableCell />
+                <TableCell width="60">ML</TableCell>
+                <TableCell width="250">Name</TableCell>
+                <TableCell width="150">Type</TableCell>
+                <TableCell>Properties</TableCell>
+                <TableCell width="200">Augments/Crafting</TableCell>
+                <TableCell width="80" align="center" />
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map((item) => {
-                const available = hasItem(item.name)
-                return (
-                  <TableRow key={item.name} hover>
-                    <TableCell sx={{ px: 0.5, textAlign: 'center' }}>
-                      {available && (
-                        <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                      )}
-                    </TableCell>
-                    <TableCell>{item.ml}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        <Chip label={item.slot} size="small" variant="outlined" />
-                        {item.slot === 'Weapon' && item.type && (
-                          <Chip
-                            label={item.type}
-                            size="small"
-                            variant="outlined"
-                            color="secondary"
-                          />
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" color="text.secondary">
-                        {(item.crafting ?? []).join(', ')}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      No items found matching criteria.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((item) => (
+                  <ItemTableRow
+                    key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
+                    item={item}
+                    searchText={search}
+                    craftingData={dialogCraftingData}
+                    renderAction={(actionItem) => (
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => {
-                          onAdd(item.name)
+                          onAdd(actionItem.name)
                           onClose()
                         }}
                       >
                         Add
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                    )}
+                  />
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
       </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
     </Dialog>
   )
 }

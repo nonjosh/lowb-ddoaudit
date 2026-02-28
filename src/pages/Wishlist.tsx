@@ -34,7 +34,7 @@ import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useWishlist, WishlistEntry } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
-import { formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, AffixLike } from '@/utils/affixHelpers'
+import { formatAffix, getAugmentColor, getCraftingOptionsForSlot, getWikiUrl } from '@/utils/affixHelpers'
 
 type GroupingMode = 'none' | 'quest' | 'pack' | 'slot'
 
@@ -409,45 +409,10 @@ export default function Wishlist() {
     })
   }, [entries, itemLookup])
 
-  const getCraftingOptions = useCallback((craft: string) => {
-    if (!craftingData) return []
-    const data = craftingData
-    if (data[craft] && data[craft]["*"]) {
-      const craftItems = data[craft]["*"]
-      if (craftItems.length > 0 && craftItems[0].affixes) {
-        const affixMap = new Map<string, AffixLike>()
-        craftItems.forEach((item) => {
-          if (item.affixes) {
-            item.affixes.forEach(affix => {
-              const key = `${affix.name}-${affix.type}`
-              const existing = affixMap.get(key)
-              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : (affix.value ?? 0)
-              const existingValue = existing && existing.value
-                ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value)
-                : 0
-              if (!existing || currentValue > existingValue) {
-                affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
-              }
-            })
-          }
-        })
-        return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
-      } else {
-        return craftItems.map((item) => item.name ?? '')
-      }
-    } else if (data[craft]) {
-      const options: string[] = []
-      for (const [itemName, sets] of Object.entries(data[craft])) {
-        if (!Array.isArray(sets)) continue
-        options.push(`${itemName}:`)
-        sets.forEach((set) => {
-          options.push(`- ${set.name ?? ''}`)
-        })
-      }
-      return options
-    }
-    return []
-  }, [craftingData])
+  const getCraftingOptions = useCallback(
+    (craft: string) => getCraftingOptionsForSlot(craft, craftingData ?? null),
+    [craftingData],
+  )
 
   // Group items based on grouping mode
   const groupedItems = useMemo((): GroupedItems[] => {

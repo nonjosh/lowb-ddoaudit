@@ -1,6 +1,6 @@
 import { ReactElement } from 'react'
 
-import type { ItemAffix } from '@/api/ddoGearPlanner'
+import type { CraftingData, ItemAffix } from '@/api/ddoGearPlanner'
 
 export interface AffixLike {
   name: string
@@ -80,4 +80,50 @@ export function getWikiUrl(url: string | undefined): string | null {
     return `https://ddowiki.com${urlStr}`
   }
   return null
+}
+
+/**
+ * Get crafting options for a given crafting slot, resolving affix descriptions.
+ *
+ * Shared utility extracted from the duplicated logic in ItemLootTable, ItemWiki,
+ * and ItemSelectionTable. Returns display-ready strings for tooltip content.
+ */
+export function getCraftingOptionsForSlot(craft: string, craftingData: CraftingData | null): string[] {
+  if (!craftingData) return []
+  const data = craftingData
+  if (data[craft]?.["*"]) {
+    const items = data[craft]["*"]
+    if (items.length > 0 && items[0].affixes) {
+      const affixMap = new Map<string, AffixLike>()
+      items.forEach((item) => {
+        if (item.affixes) {
+          item.affixes.forEach(affix => {
+            const key = `${affix.name}-${affix.type}`
+            const existing = affixMap.get(key)
+            const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : (affix.value ?? 0)
+            const existingValue = existing?.value != null
+              ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value)
+              : 0
+            if (!existing || currentValue > existingValue) {
+              affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
+            }
+          })
+        }
+      })
+      return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
+    } else {
+      return items.map((item) => item.name ?? '')
+    }
+  } else if (data[craft]) {
+    const options: string[] = []
+    for (const [itemName, sets] of Object.entries(data[craft])) {
+      if (!Array.isArray(sets)) continue
+      options.push(`${itemName}:`)
+      sets.forEach((set) => {
+        options.push(`- ${set.name ?? ''}`)
+      })
+    }
+    return options
+  }
+  return []
 }
