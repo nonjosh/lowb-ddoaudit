@@ -215,7 +215,16 @@ export default function ViktraniumCrafting() {
               const isLegendary = item ? item.ml > LEGENDARY_ML_THRESHOLD : false
               return (
                 <Paper key={planned.id} variant="outlined" sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+                  {/* Header row */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      mb: 1.5,
+                      flexWrap: 'wrap',
+                    }}
+                  >
                     <Typography variant="subtitle2" fontWeight="bold">
                       {planned.itemName}
                     </Typography>
@@ -225,6 +234,9 @@ export default function ViktraniumCrafting() {
                     {item && (
                       <Chip label={item.slot} size="small" variant="outlined" color="primary" />
                     )}
+                    {item?.type && item.slot === 'Weapon' && (
+                      <Chip label={item.type} size="small" variant="outlined" color="secondary" />
+                    )}
                     <Chip
                       label={isLegendary ? 'Legendary' : 'Heroic'}
                       size="small"
@@ -232,15 +244,20 @@ export default function ViktraniumCrafting() {
                       variant="filled"
                     />
                     <Box sx={{ flex: 1 }} />
-                    <IconButton size="small" onClick={() => removeItem(planned.id)} title="Remove item">
+                    <IconButton
+                      size="small"
+                      onClick={() => removeItem(planned.id)}
+                      title="Remove item"
+                    >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Box>
 
+                  {/* Augment slots — responsive grid */}
                   <Box
                     sx={{
                       display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                       gap: 1.5,
                     }}
                   >
@@ -300,13 +317,30 @@ interface ViktraniumItemDialogProps {
   onAdd: (itemName: string) => void
 }
 
+/** Separator prefix for weapon-type filter values (e.g. "weapon:Bastard Swords") */
+const WEAPON_TYPE_PREFIX = 'weapon:'
+
 function ViktraniumItemDialog({ open, onClose, items, onAdd }: ViktraniumItemDialogProps) {
+  const { hasItem } = useTrove()
   const [search, setSearch] = useState('')
   const [slotFilter, setSlotFilter] = useState('')
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false)
 
+  /** Unique equipment slots (non-weapon) */
   const slots = useMemo(() => {
     const s = new Set<string>()
-    items.forEach((i) => s.add(i.slot))
+    items.forEach((i) => {
+      if (i.slot !== 'Weapon') s.add(i.slot)
+    })
+    return [...s].sort()
+  }, [items])
+
+  /** Unique weapon types */
+  const weaponTypes = useMemo(() => {
+    const s = new Set<string>()
+    items.forEach((i) => {
+      if (i.slot === 'Weapon' && i.type) s.add(i.type)
+    })
     return [...s].sort()
   }, [items])
 
@@ -314,10 +348,23 @@ function ViktraniumItemDialog({ open, onClose, items, onAdd }: ViktraniumItemDia
     const lower = search.toLowerCase()
     return items.filter((i) => {
       const matchName = !search || i.name.toLowerCase().includes(lower)
-      const matchSlot = !slotFilter || i.slot === slotFilter
-      return matchName && matchSlot
+
+      let matchSlot = true
+      if (slotFilter) {
+        if (slotFilter === 'Weapon') {
+          matchSlot = i.slot === 'Weapon'
+        } else if (slotFilter.startsWith(WEAPON_TYPE_PREFIX)) {
+          matchSlot = i.slot === 'Weapon' && i.type === slotFilter.slice(WEAPON_TYPE_PREFIX.length)
+        } else {
+          matchSlot = i.slot === slotFilter
+        }
+      }
+
+      const matchAvailable = !showOnlyAvailable || hasItem(i.name)
+
+      return matchName && matchSlot && matchAvailable
     })
-  }, [items, search, slotFilter])
+  }, [items, search, slotFilter, showOnlyAvailable, hasItem])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -330,64 +377,108 @@ function ViktraniumItemDialog({ open, onClose, items, onAdd }: ViktraniumItemDia
         </Box>
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
           <TextField
             size="small"
             label="Search by name"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             sx={{ flex: 1, minWidth: 200 }}
+            slotProps={{ inputLabel: { shrink: true } }}
           />
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Slot</InputLabel>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel shrink>Slot</InputLabel>
             <Select
               value={slotFilter}
               label="Slot"
+              displayEmpty
               onChange={(e) => setSlotFilter(e.target.value)}
             >
               <MenuItem value="">All slots</MenuItem>
+              {/* Non-weapon equipment slots */}
               {slots.map((s) => (
                 <MenuItem key={s} value={s}>{s}</MenuItem>
               ))}
+              {/* Weapon (all types) */}
+              <MenuItem value="Weapon" sx={{ fontWeight: 'bold' }}>
+                Weapon (all types)
+              </MenuItem>
+              {/* Weapon sub-types indented */}
+              {weaponTypes.map((wt) => (
+                <MenuItem key={wt} value={`${WEAPON_TYPE_PREFIX}${wt}`} sx={{ pl: 4 }}>
+                  {wt}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
+          <Button
+            size="small"
+            variant={showOnlyAvailable ? 'contained' : 'outlined'}
+            color={showOnlyAvailable ? 'success' : 'inherit'}
+            onClick={() => setShowOnlyAvailable((v) => !v)}
+            startIcon={<CheckCircleIcon />}
+            sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+          >
+            Available
+          </Button>
         </Box>
         <TableContainer sx={{ maxHeight: 420 }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
+                <TableCell sx={{ width: 32, px: 0.5 }} />
                 <TableCell>ML</TableCell>
                 <TableCell>Name</TableCell>
-                <TableCell>Slot</TableCell>
+                <TableCell>Slot / Type</TableCell>
                 <TableCell>Crafting Slots</TableCell>
                 <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map((item) => (
-                <TableRow key={item.name} hover>
-                  <TableCell>{item.ml}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.slot}</TableCell>
-                  <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                      {(item.crafting ?? []).join(', ')}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        onAdd(item.name)
-                        onClose()
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filtered.map((item) => {
+                const available = hasItem(item.name)
+                return (
+                  <TableRow key={item.name} hover>
+                    <TableCell sx={{ px: 0.5, textAlign: 'center' }}>
+                      {available && (
+                        <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                      )}
+                    </TableCell>
+                    <TableCell>{item.ml}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                        <Chip label={item.slot} size="small" variant="outlined" />
+                        {item.slot === 'Weapon' && item.type && (
+                          <Chip
+                            label={item.type}
+                            size="small"
+                            variant="outlined"
+                            color="secondary"
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption" color="text.secondary">
+                        {(item.crafting ?? []).join(', ')}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          onAdd(item.name)
+                          onClose()
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -408,6 +499,21 @@ interface SlotSelectorProps {
   onChange: (option: CraftingOption | null) => void
 }
 
+/** Slot type color palette */
+const SLOT_COLORS: Record<string, string> = {
+  Melancholic: '#ff9800',
+  Dolorous: '#f44336',
+  Miserable: '#ab47bc',
+  Woeful: '#78909c',
+}
+
+function getSlotColor(slotType: string): string {
+  for (const [key, color] of Object.entries(SLOT_COLORS)) {
+    if (slotType.startsWith(key)) return color
+  }
+  return '#78909c'
+}
+
 function SlotSelector({ slotType, selectedOption, craftingData, isLegendary, onChange }: SlotSelectorProps) {
   const options = useMemo(() => {
     if (!craftingData) return []
@@ -416,18 +522,32 @@ function SlotSelector({ slotType, selectedOption, craftingData, isLegendary, onC
 
   const selectedName = selectedOption?.name ?? ''
   const isSelectionValid = options.some((o) => o.name === selectedName)
+  const color = getSlotColor(slotType)
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-        <Chip
-          label={slotType}
-          size="small"
-          color={isLegendary ? 'warning' : 'default'}
-          variant="outlined"
-          sx={{ fontSize: '0.7rem' }}
-        />
-      </Box>
+    <Box
+      sx={{
+        border: `1px solid`,
+        borderColor: selectedOption ? color : 'divider',
+        borderRadius: 1,
+        p: 1.5,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0.75,
+        transition: 'border-color 0.2s',
+      }}
+    >
+      <Chip
+        label={slotType}
+        size="small"
+        sx={{
+          alignSelf: 'flex-start',
+          bgcolor: color,
+          color: '#fff',
+          fontWeight: 'bold',
+          fontSize: '0.7rem',
+        }}
+      />
 
       {/* Augment selector */}
       <FormControl size="small" fullWidth>
@@ -461,6 +581,7 @@ function SlotSelector({ slotType, selectedOption, craftingData, isLegendary, onC
           ))}
         </Select>
       </FormControl>
+
     </Box>
   )
 }

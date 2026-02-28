@@ -75,6 +75,14 @@ export default function IngredientProgressList({
 // Progress Bar View (when Trove data is loaded)
 // ============================================================================
 
+/** Grid container: 3 columns – name | bar | counts, all rows share widths */
+const PROGRESS_GRID_SX = {
+  display: 'grid',
+  gridTemplateColumns: 'auto 1fr auto',
+  gap: '6px 8px',
+  alignItems: 'center',
+} as const
+
 function ProgressBarView({
   rows,
   groups,
@@ -84,34 +92,31 @@ function ProgressBarView({
 }) {
   if (groups) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={PROGRESS_GRID_SX}>
         {groups.map((group) => {
           const groupRows = rows.filter((r) => group.filter(r.ingredient))
           if (groupRows.length === 0) return null
-          return (
-            <Box key={group.label}>
-              <Typography
-                variant="caption"
-                fontWeight="bold"
-                color="text.secondary"
-                sx={{ mb: 0.5, display: 'block' }}
-              >
-                {group.label}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                {groupRows.map((row) => (
-                  <IngredientProgressRow key={row.ingredient} {...row} />
-                ))}
-              </Box>
-            </Box>
-          )
+          return [
+            <Typography
+              key={`__label__${group.label}`}
+              variant="caption"
+              fontWeight="bold"
+              color="text.secondary"
+              sx={{ gridColumn: '1 / -1', mt: 0.5 }}
+            >
+              {group.label}
+            </Typography>,
+            ...groupRows.map((row) => (
+              <IngredientProgressRow key={row.ingredient} {...row} />
+            )),
+          ]
         })}
       </Box>
     )
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+    <Box sx={PROGRESS_GRID_SX}>
       {rows.map((row) => (
         <IngredientProgressRow key={row.ingredient} {...row} />
       ))}
@@ -157,27 +162,43 @@ function IngredientProgressRow({ ingredient, required, available, locations }: I
       arrow
       placement="top"
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <img
-          src={getIngredientImagePath(ingredient)}
-          alt=""
-          width={24}
-          height={24}
-          style={{ imageRendering: 'pixelated', flexShrink: 0 }}
-          onError={(e) => {
-            ; (e.target as HTMLImageElement).src = getIngredientFallbackPath()
-          }}
-        />
-        <Typography variant="body2" noWrap sx={{ fontSize: '0.8rem', flexShrink: 0 }}>
-          {ingredient}
-        </Typography>
+      {/* Fragment renders 3 direct grid children (columns) */}
+      <Box sx={{ display: 'contents' }}>
+        {/* Col 1: Icon + Name */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+          <img
+            src={getIngredientImagePath(ingredient)}
+            alt=""
+            width={24}
+            height={24}
+            style={{ imageRendering: 'pixelated', flexShrink: 0 }}
+            onError={(e) => {
+              ; (e.target as HTMLImageElement).src = getIngredientFallbackPath()
+            }}
+          />
+          <Typography variant="body2" noWrap sx={{ fontSize: '0.8rem' }}>
+            {ingredient}
+          </Typography>
+        </Box>
+
+        {/* Col 2: Progress bar */}
         <LinearProgress
           variant="determinate"
           value={percentage}
           color={sufficient ? 'success' : 'warning'}
-          sx={{ flex: 1, height: 6, borderRadius: 1, minWidth: 40 }}
+          sx={{ height: 6, borderRadius: 1, minWidth: 40, width: '100%' }}
         />
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 0.5 }}>
+
+        {/* Col 3: Count + badge */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            justifyContent: 'flex-end',
+            whiteSpace: 'nowrap',
+          }}
+        >
           <Typography
             variant="caption"
             color={sufficient ? 'success.main' : 'warning.main'}
