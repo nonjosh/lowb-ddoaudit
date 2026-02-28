@@ -116,7 +116,7 @@ export default function ViktraniumCrafting() {
       plannedItems
         .flatMap((p) => p.slots)
         .filter((s) => s.selectedOption !== null)
-        .map((s) => s.selectedOption as CraftingOption),
+        .map((s) => ({ slotType: s.slotType, ml: s.selectedOption?.ml })),
     [plannedItems],
   )
 
@@ -155,9 +155,9 @@ export default function ViktraniumCrafting() {
           )}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Plan your Viktranium augment slots and calculate required ingredients.
-          Each heroic augment costs 10× of each ingredient; each legendary augment costs 50× of each ingredient.
-          Items with ML ≤ {LEGENDARY_ML_THRESHOLD} use Heroic ingredients; higher ML uses Legendary.
+          Plan your Viktranium augment slots and calculate required ingredients. Costs vary by slot
+          type (Melancholic: 5/25×, Dolorous: 10/50×, Miserable/Woeful: varies). Items with ML ≤{' '}
+          {LEGENDARY_ML_THRESHOLD} use Heroic ingredients; higher ML uses Legendary.
         </Typography>
       </Paper>
 
@@ -269,9 +269,7 @@ export default function ViktraniumCrafting() {
           <Typography variant="subtitle1" gutterBottom fontWeight="bold">
             Ingredient Summary
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Each heroic augment costs 10× of each ingredient; each legendary augment costs 50× of each ingredient.
-          </Typography>
+
           <IngredientTable
             summary={ingredientSummary}
             inventoryMap={inventoryMap}

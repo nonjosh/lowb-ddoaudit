@@ -37,6 +37,8 @@ export interface GreenSteelEffect {
   element: GreenSteelElement
   essenceType: EssenceType
   gemType: GemType
+  lgsOnly?: boolean
+  gsOnly?: boolean
 }
 
 export const GREEN_STEEL_EFFECTS: GreenSteelEffect[] = [
@@ -70,10 +72,13 @@ export const GREEN_STEEL_EFFECTS: GreenSteelEffect[] = [
   { name: 'Flaming Burst', description: 'Flaming Burst on-hit + Fire damage', category: 'Weapon Bonus', element: 'Fire', essenceType: 'Ethereal', gemType: 'Opposition' },
   { name: 'Shocking Burst', description: 'Shocking Burst on-hit + Electric damage', category: 'Weapon Bonus', element: 'Air', essenceType: 'Ethereal', gemType: 'Opposition' },
   { name: 'Corrosive', description: 'Corroding on-hit + Acid damage', category: 'Weapon Bonus', element: 'Earth', essenceType: 'Ethereal', gemType: 'Opposition' },
-  { name: 'Disruption', description: 'Disruption (vs undead)', category: 'Weapon Bonus', element: 'Positive', essenceType: 'Ethereal', gemType: 'Opposition' },
+  { name: 'Disruption', description: 'Disruption (vs undead)', category: 'Weapon Bonus', element: 'Positive', essenceType: 'Ethereal', gemType: 'Opposition', gsOnly: true },
   { name: 'Smiting', description: 'Smiting (vs constructs)', category: 'Weapon Bonus', element: 'Earth', essenceType: 'Material', gemType: 'Opposition' },
   { name: 'Banishing', description: 'Banishing (vs outsiders)', category: 'Weapon Bonus', element: 'Positive', essenceType: 'Material', gemType: 'Opposition' },
   { name: 'Vorpal', description: 'Vorpal (instant kill on 20)', category: 'Weapon Bonus', element: 'Negative', essenceType: 'Material', gemType: 'Opposition' },
+  // LGS-specific weapon effects
+  { name: 'Righteousness', description: 'Good damage on hit (12d6 good, Good-aligned)', category: 'Weapon Bonus', element: 'Positive', essenceType: 'Ethereal', gemType: 'Opposition', lgsOnly: true },
+  { name: 'Enervating', description: 'Evil/Negative damage on hit (12d6 evil, Evil-aligned)', category: 'Weapon Bonus', element: 'Negative', essenceType: 'Ethereal', gemType: 'Opposition', lgsOnly: true },
 ]
 
 export function getEffectByName(name: string): GreenSteelEffect | undefined {

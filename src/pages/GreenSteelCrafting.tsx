@@ -335,6 +335,8 @@ const TIER_LABELS: Record<GreenSteelTier, string> = {
 
 const EFFECT_CATEGORIES = ['Spell Power', 'Lore', 'Resistance', 'Stat', 'Weapon Bonus'] as const
 
+const gsEffects = GREEN_STEEL_EFFECTS.filter((e) => !e.lgsOnly)
+
 function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
   const color = TIER_COLORS[selection.tier]
   const selectedEffect = selection.effectName ? getEffectByName(selection.effectName) : null
@@ -367,7 +369,7 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
             <em>None (skip this tier)</em>
           </MenuItem>
           {EFFECT_CATEGORIES.flatMap((cat) => {
-            const catEffects = GREEN_STEEL_EFFECTS.filter((e) => e.category === cat)
+            const catEffects = gsEffects.filter((e) => e.category === cat)
             return [
               <MenuItem key={`__category__${cat}`} disabled sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}>
                 — {cat} —
