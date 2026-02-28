@@ -24,7 +24,7 @@ import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
-import { formatAffix, getAugmentColor } from '@/utils/affixHelpers'
+import { formatAffix, getAugmentColor, getCraftingOptionsForSlot } from '@/utils/affixHelpers'
 import ItemCraftingDisplay from '../items/ItemCraftingDisplay'
 import InventoryBadge from './InventoryBadge'
 
@@ -87,28 +87,7 @@ export function ItemSelectionTable({
   }
 
   // Get crafting options for tooltip
-  const getCraftingOptions = (craft: string): string[] => {
-    if (!craftingData) return []
-    const data = craftingData
-    if (data[craft] && data[craft]["*"]) {
-      const craftItems = data[craft]["*"]
-      if (craftItems.length > 0 && craftItems[0].affixes) {
-        const optionsArray: string[] = []
-        craftItems.forEach((item) => {
-          if (!item.affixes) return
-          item.affixes.forEach((affix) => {
-            // Use plain text formatting for comparison
-            const formatted = `${affix.name}${affix.value ? ` ${affix.value}` : ''}`
-            if (!optionsArray.includes(formatted)) {
-              optionsArray.push(formatted)
-            }
-          })
-        })
-        return optionsArray
-      }
-    }
-    return []
-  }
+  const getCraftingOptions = (craft: string) => getCraftingOptionsForSlot(craft, craftingData ?? null)
 
   // Get all unique properties from both current and hovered item
   const getComparisonProperties = (): string[] => {

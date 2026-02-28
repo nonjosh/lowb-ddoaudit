@@ -10,8 +10,11 @@ import { WishlistProvider } from '@/contexts/WishlistContext'
 import Dashboard from '@/pages/Dashboard'
 import GearPlanner from '@/pages/GearPlanner'
 import GearPlannerDemo from '@/pages/GearPlannerDemo'
+import GreenSteelCrafting from '@/pages/GreenSteelCrafting'
+import LegendaryGreenSteelCrafting from '@/pages/LegendaryGreenSteelCrafting'
 import ItemWiki from '@/pages/ItemWiki'
 import TRPlanner from '@/pages/TRPlanner'
+import ViktraniumCrafting from '@/pages/ViktraniumCrafting'
 import Wishlist from '@/pages/Wishlist'
 
 function App() {
@@ -31,6 +34,10 @@ function App() {
                       <Route path="/gear/wishlist" element={<Wishlist />} />
                       <Route path="/gear/planner" element={<GearPlanner />} />
                       <Route path="/gear/planner-demo" element={<GearPlannerDemo />} />
+                      {/* Crafting */}
+                      <Route path="/crafting/viktranium" element={<ViktraniumCrafting />} />
+                      <Route path="/crafting/greensteel" element={<GreenSteelCrafting />} />
+                      <Route path="/crafting/lgs" element={<LegendaryGreenSteelCrafting />} />
                       {/* Other tools */}
                       <Route path="/tr-planner" element={<TRPlanner />} />
                       {/* Redirects for backward compatibility */}

@@ -13,6 +13,9 @@ This directory contains comprehensive documentation of Dungeons & Dragons Online
 | [Set Bonuses](./set-bonuses.md)               | Set item thresholds and bonuses         | `src/api/ddoGearPlanner/`  |
 | [Weapon Styles](./weapon-styles.md)           | Fighting styles, weapon combinations    | `src/domains/gearPlanner/` |
 | [Ransack Timers](./ransack.md)                | Chest ransack tracking                  | `src/storage/ransackDb.ts` |
+| [Green Steel Crafting](./green-steel-crafting.md) | GS crafting effects, tiers, ingredients | `src/domains/crafting/`    |
+| [Legendary Green Steel Crafting](./legendary-green-steel-crafting.md) | LGS crafting, element ingredients | `src/domains/crafting/` |
+| [Viktranium Crafting](./viktranium-crafting.md) | Viktranium slot costs, ingredients    | `src/domains/crafting/`    |
 
 ## Maintenance Requirements
 

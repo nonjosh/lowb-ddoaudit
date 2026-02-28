@@ -44,6 +44,14 @@ export default function Layout({ children }: LayoutProps) {
         { label: 'Gear Planner', path: '/gear/planner' },
       ],
     },
+    {
+      label: 'Crafting',
+      items: [
+        { label: 'Viktranium Experiment', path: '/crafting/viktranium' },
+        { label: 'Green Steel', path: '/crafting/greensteel' },
+        { label: 'Legendary Green Steel', path: '/crafting/lgs' },
+      ],
+    },
     { label: 'TR Planner', path: '/tr-planner' },
   ]
 

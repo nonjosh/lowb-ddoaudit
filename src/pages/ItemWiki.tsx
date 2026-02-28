@@ -20,7 +20,7 @@ import ItemTableRow from '@/components/items/ItemTableRow'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import { useWishlist } from '@/contexts/useWishlist'
-import { AffixLike, formatAffix, formatAffixPlain, getAugmentColor, getWikiUrl, highlightText } from '@/utils/affixHelpers'
+import { formatAffixPlain } from '@/utils/affixHelpers'
 
 export default function ItemWiki() {
   const { items, augmentItems, craftingData, setsData, loading, refresh, error } = useGearPlanner()
@@ -287,46 +287,6 @@ export default function ItemWiki() {
     })
   }, [allItems, searchText, typeFilter, effectFilter, craftingFilter, minMl, maxMl, packFilter, questFilter, questNameToPack, isWished, showAvailableOnly, showWishlistOnly, hasItem])
 
-  const getCraftingOptions = (craft: string) => {
-    if (!craftingData) return []
-    const data = craftingData
-    if (data[craft] && data[craft]["*"]) {
-      const craftItems = data[craft]["*"]
-      if (craftItems.length > 0 && craftItems[0].affixes) {
-        const affixMap = new Map<string, AffixLike>()
-        craftItems.forEach((item) => {
-          if (item.affixes) {
-            item.affixes.forEach(affix => {
-              const key = `${affix.name}-${affix.type}`
-              const existing = affixMap.get(key)
-              const currentValue = typeof affix.value === 'string' ? parseFloat(affix.value) : (affix.value ?? 0)
-              const existingValue = existing && existing.value
-                ? (typeof existing.value === 'string' ? parseFloat(existing.value) : existing.value)
-                : 0
-              if (!existing || currentValue > existingValue) {
-                affixMap.set(key, { name: affix.name, type: affix.type, value: affix.value })
-              }
-            })
-          }
-        })
-        return Array.from(affixMap.values()).map(affix => formatAffixPlain(affix))
-      } else {
-        return craftItems.map((item) => item.name ?? '')
-      }
-    } else if (data[craft]) {
-      const options: string[] = []
-      for (const [itemName, sets] of Object.entries(data[craft])) {
-        if (!Array.isArray(sets)) continue
-        options.push(`${itemName}:`)
-        sets.forEach((set) => {
-          options.push(`- ${set.name ?? ''}`)
-        })
-      }
-      return options
-    }
-    return []
-  }
-
   const showInitialState = searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && craftingFilter.length === 0 && minMl === 1 && maxMl === 34 && !showAvailableOnly && !showWishlistOnly
   const maxDisplayed = 100
   const isTruncated = filteredItems.length > maxDisplayed
@@ -411,12 +371,7 @@ export default function ItemWiki() {
                         item={item}
                         searchText={searchText}
                         setsData={setsData}
-                        raidNotes={null}
-                        highlightText={highlightText}
-                        formatAffix={formatAffix}
-                        getWikiUrl={getWikiUrl}
-                        getAugmentColor={getAugmentColor}
-                        getCraftingOptions={getCraftingOptions}
+                        craftingData={craftingData}
                       />
                     ))}
                     {isTruncated && (

@@ -156,7 +156,8 @@ function addItemsToMap(
       tab: item.Tab,
       tabName: item.TabName,
       binding: item.Binding,
-      minimumLevel: item.MinimumLevel
+      minimumLevel: item.MinimumLevel,
+      quantity: item.Quantity,
     }
 
     const existing = map.get(item.Name)
@@ -258,6 +259,12 @@ export function buildTroveData(parsedFiles: ParsedTroveFile[]): TroveData {
         const sharedItems = extractItemsFromBank(account.SharedBank)
         // Use a special "Shared Bank" character entry
         addItemsToMap(inventoryMap, sharedItems, 'Shared Bank', 0)
+
+        // Extract items from crafting storage (if present)
+        if (account.CraftingBank) {
+          const craftingItems = extractItemsFromBank(account.CraftingBank)
+          addItemsToMap(inventoryMap, craftingItems, 'Crafting Storage', 0)
+        }
         break
       }
     }
@@ -345,6 +352,8 @@ export function getItemLocationStrings(
       result += ` - Bank${loc.tabName ? ` (${loc.tabName})` : ''}`
     } else if (loc.container === 'SharedBank') {
       result = `Shared Bank${loc.tabName ? ` (${loc.tabName})` : ''}`
+    } else if (loc.container === 'CraftingStorage') {
+      result = 'Crafting Storage'
     }
 
     return result
