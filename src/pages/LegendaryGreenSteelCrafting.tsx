@@ -27,7 +27,6 @@ import {
   GreenSteelItemType,
   GreenSteelTier,
   GreenSteelTierSelection,
-  INGREDIENTS_PER_TIER,
 } from '@/domains/crafting/greenSteelLogic'
 import {
   calculateLgsIngredients,
@@ -133,8 +132,8 @@ export default function LegendaryGreenSteelCrafting() {
           )}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Plan your Legendary Green Steel item upgrades across Tier 1, 2, and 3. Each tier requires{' '}
-          {INGREDIENTS_PER_TIER} legendary ingredients + 1 energy cell.
+          Plan your Legendary Green Steel item upgrades across Tier 1, 2, and 3. Each tier requires
+          crafting a Focus, Essence, and Gem from raw Legendary Shroud ingredients, plus 1 Energy Cell.
         </Typography>
         <Alert severity="info" sx={{ mt: 1 }} icon={false}>
           <Typography variant="caption">

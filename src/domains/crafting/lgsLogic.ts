@@ -2,23 +2,63 @@
 // Legendary Green Steel (LGS) Crafting Logic
 // ============================================================================
 // Based on: https://ddowiki.com/page/Legendary_Green_Steel_items
+//           https://ddowiki.com/page/Legendary_Green_Steel_items/Tier_1
+//           https://ddowiki.com/page/Legendary_Green_Steel_items/Tier_2
+//           https://ddowiki.com/page/Legendary_Green_Steel_items/Tier_3
 // ============================================================================
 
-import type { GreenSteelElement, GreenSteelIngredientSummary, GreenSteelTierSelection, WeaponBonusEffect } from './greenSteelLogic'
-import { getEffectByName, getFocusName, INGREDIENTS_PER_TIER, TIER_ESSENCE_PREFIX, TIER_GEM_PREFIX } from './greenSteelLogic'
+import type { EssenceType, GemType, GreenSteelElement, GreenSteelIngredientSummary, GreenSteelTierSelection, WeaponBonusEffect } from './greenSteelLogic'
+import { getEffectByName, getFocusName } from './greenSteelLogic'
 
 // ============================================================================
-// LGS Ingredient Mapping
+// LGS Raw Ingredient Names (6 base ingredients from Legendary Shroud)
 // ============================================================================
 
-export const LGS_INGREDIENT_BY_ELEMENT: Record<GreenSteelElement, string> = {
-  Water: 'Twisted Shrapnel',
-  Fire: 'Devil Scales',
-  Earth: 'Sulfurous Stone',
-  Air: 'Arrowhead',
-  Positive: 'Bones',
-  Negative: 'Stone of Change',
+/** The 6 raw ingredient base names that drop from Legendary Shroud */
+export const LGS_RAW_INGREDIENTS = [
+  'Glowing Arrowhead',
+  'Gnawed Bone',
+  'Twisted Shrapnel',
+  'Length of Infernal Chain',
+  'Sulfurous Stone',
+  'Devil Scales',
+] as const
+
+export type LgsRawIngredient = typeof LGS_RAW_INGREDIENTS[number]
+
+// ============================================================================
+// Raw Ingredient Recipe Tables
+// ============================================================================
+// Each manufactured ingredient (Focus, Essence, Gem) requires 4 of the 6
+// raw ingredients. The same recipe pattern is used across all tiers;
+// only the size prefix (Small/Medium/Large) changes.
+
+/** Which raw ingredients are needed for each Focus element */
+export const LGS_FOCUS_RECIPES: Record<GreenSteelElement, LgsRawIngredient[]> = {
+  Air: ['Glowing Arrowhead', 'Gnawed Bone', 'Twisted Shrapnel', 'Sulfurous Stone'],
+  Earth: ['Glowing Arrowhead', 'Gnawed Bone', 'Twisted Shrapnel', 'Length of Infernal Chain'],
+  Fire: ['Glowing Arrowhead', 'Gnawed Bone', 'Twisted Shrapnel', 'Devil Scales'],
+  Water: ['Glowing Arrowhead', 'Gnawed Bone', 'Length of Infernal Chain', 'Devil Scales'],
+  Negative: ['Glowing Arrowhead', 'Twisted Shrapnel', 'Length of Infernal Chain', 'Sulfurous Stone'],
+  Positive: ['Glowing Arrowhead', 'Gnawed Bone', 'Sulfurous Stone', 'Devil Scales'],
 }
+
+/** Which raw ingredients are needed for each Essence type */
+export const LGS_ESSENCE_RECIPES: Record<EssenceType, LgsRawIngredient[]> = {
+  Ethereal: ['Glowing Arrowhead', 'Length of Infernal Chain', 'Sulfurous Stone', 'Devil Scales'],
+  Material: ['Glowing Arrowhead', 'Twisted Shrapnel', 'Sulfurous Stone', 'Devil Scales'],
+}
+
+/** Which raw ingredients are needed for each Gem type */
+export const LGS_GEM_RECIPES: Record<GemType, LgsRawIngredient[]> = {
+  Dominion: ['Gnawed Bone', 'Twisted Shrapnel', 'Length of Infernal Chain', 'Devil Scales'],
+  Escalation: ['Twisted Shrapnel', 'Length of Infernal Chain', 'Sulfurous Stone', 'Devil Scales'],
+  Opposition: ['Gnawed Bone', 'Length of Infernal Chain', 'Sulfurous Stone', 'Devil Scales'],
+}
+
+// ============================================================================
+// LGS Size, Energy Cell, and CoV Constants
+// ============================================================================
 
 export const LGS_SIZE_PREFIX: Record<1 | 2 | 3, string> = {
   1: 'Small',
@@ -32,8 +72,38 @@ export const LGS_ENERGY_CELL: Record<1 | 2 | 3, string> = {
   3: 'Legendary High Energy Cell',
 }
 
-export function getLgsIngredientName(tier: 1 | 2 | 3, element: GreenSteelElement): string {
-  return `Legendary ${LGS_SIZE_PREFIX[tier]} ${LGS_INGREDIENT_BY_ELEMENT[element]}`
+/** Commendation of Valor cost per Focus, by tier */
+export const LGS_COV_PER_TIER: Record<1 | 2 | 3, number> = {
+  1: 25,
+  2: 50,
+  3: 100,
+}
+
+// ============================================================================
+// LGS Tier-specific Manufactured Ingredient Prefixes
+// ============================================================================
+// LGS Tier 2 uses NO prefix (unlike GS which uses Distilled/Pristine).
+// Tier 1 and 3 share the same prefixes as GS.
+
+export const LGS_TIER_ESSENCE_PREFIX: Record<1 | 2 | 3, string> = {
+  1: 'Diluted',
+  2: '',
+  3: 'Pure',
+}
+
+export const LGS_TIER_GEM_PREFIX: Record<1 | 2 | 3, string> = {
+  1: 'Cloudy',
+  2: '',
+  3: 'Flawless',
+}
+
+// ============================================================================
+// Ingredient Name Helpers
+// ============================================================================
+
+/** Get the full name of a raw ingredient with tier size prefix */
+export function getLgsRawIngredientName(tier: 1 | 2 | 3, ingredient: LgsRawIngredient): string {
+  return `Legendary ${LGS_SIZE_PREFIX[tier]} ${ingredient}`
 }
 
 // ============================================================================
@@ -41,8 +111,11 @@ export function getLgsIngredientName(tier: 1 | 2 | 3, element: GreenSteelElement
 // ============================================================================
 
 /**
- * Calculate total LGS ingredient requirements for a set of tier selections.
- * Each filled tier requires INGREDIENTS_PER_TIER ingredients + 1 energy cell.
+ * Calculate total LGS raw ingredient requirements for a set of tier selections.
+ *
+ * Each tier slot requires crafting 3 manufactured ingredients (Focus + Essence + Gem),
+ * each of which requires 4 of the 6 raw ingredients (1 each). Focuses also require
+ * Commendation of Valor. An Energy Cell is consumed when applying the tier.
  */
 export function calculateLgsIngredients(
   selections: GreenSteelTierSelection[],
@@ -54,10 +127,31 @@ export function calculateLgsIngredients(
     const effect = getEffectByName(sel.effectName)
     if (!effect) continue
 
-    const ingredientName = getLgsIngredientName(sel.tier, effect.element)
-    summary[ingredientName] = (summary[ingredientName] ?? 0) + INGREDIENTS_PER_TIER
+    const tier = sel.tier as 1 | 2 | 3
 
-    const cell = LGS_ENERGY_CELL[sel.tier]
+    // Focus raw ingredients (4 per focus)
+    for (const ingredient of LGS_FOCUS_RECIPES[effect.element]) {
+      const name = getLgsRawIngredientName(tier, ingredient)
+      summary[name] = (summary[name] ?? 0) + 1
+    }
+
+    // Commendation of Valor for the Focus
+    summary['Commendation of Valor'] = (summary['Commendation of Valor'] ?? 0) + LGS_COV_PER_TIER[tier]
+
+    // Essence raw ingredients (4 per essence)
+    for (const ingredient of LGS_ESSENCE_RECIPES[effect.essenceType]) {
+      const name = getLgsRawIngredientName(tier, ingredient)
+      summary[name] = (summary[name] ?? 0) + 1
+    }
+
+    // Gem raw ingredients (4 per gem)
+    for (const ingredient of LGS_GEM_RECIPES[effect.gemType]) {
+      const name = getLgsRawIngredientName(tier, ingredient)
+      summary[name] = (summary[name] ?? 0) + 1
+    }
+
+    // Energy cell
+    const cell = LGS_ENERGY_CELL[tier]
     summary[cell] = (summary[cell] ?? 0) + 1
   }
 
@@ -81,26 +175,30 @@ export interface LgsCraftingStep {
   focus: string
   essence: string
   gem: string
-  ingredient: string
-  ingredientQty: number
   cell: string
 }
 
+/**
+ * Get the LGS manufactured ingredient names for the crafting steps display.
+ * Uses LGS-specific tier prefixes (Tier 2 has no prefix, unlike GS).
+ */
 export function getLgsCraftingSteps(selections: GreenSteelTierSelection[]): LgsCraftingStep[] {
   return selections
     .filter((sel) => sel.effectName)
     .map((sel) => {
       const effect = getEffectByName(sel.effectName!)!
       const tier = sel.tier as 1 | 2 | 3
-      const essencePrefix = TIER_ESSENCE_PREFIX[tier]
-      const gemPrefix = TIER_GEM_PREFIX[tier]
+      const essencePrefix = LGS_TIER_ESSENCE_PREFIX[tier]
+      const gemPrefix = LGS_TIER_GEM_PREFIX[tier]
       return {
         tier,
         focus: getLgsFocusName(tier, effect.element),
-        essence: `Legendary ${essencePrefix} ${effect.essenceType} Essence`,
-        gem: `Legendary ${gemPrefix} Gem of ${effect.gemType}`,
-        ingredient: getLgsIngredientName(tier, effect.element),
-        ingredientQty: INGREDIENTS_PER_TIER,
+        essence: essencePrefix
+          ? `Legendary ${essencePrefix} ${effect.essenceType} Essence`
+          : `Legendary ${effect.essenceType} Essence`,
+        gem: gemPrefix
+          ? `Legendary ${gemPrefix} Gem of ${effect.gemType}`
+          : `Legendary Gem of ${effect.gemType}`,
         cell: LGS_ENERGY_CELL[tier],
       }
     })
