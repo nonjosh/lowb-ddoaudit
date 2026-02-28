@@ -8,6 +8,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useMemo } from 'react'
@@ -37,6 +38,7 @@ interface IngredientRowData {
   ingredient: string
   required: number
   available: number
+  locations: TroveItemLocation[]
 }
 
 // ============================================================================
@@ -59,7 +61,7 @@ export default function IngredientProgressList({
       const required = summary[ingredient]
       const locations = inventoryMap.get(ingredient) ?? []
       const available = locations.reduce((sum, loc) => sum + (loc.quantity ?? 0), 0)
-      return { ingredient, required, available }
+      return { ingredient, required, available, locations }
     })
   }, [summary, inventoryMap, sortAlphabetically])
 
@@ -117,73 +119,96 @@ function ProgressBarView({
   )
 }
 
-function IngredientProgressRow({ ingredient, required, available }: IngredientRowData) {
+function IngredientProgressRow({ ingredient, required, available, locations }: IngredientRowData) {
   const percentage = Math.min(100, (available / required) * 100)
   const sufficient = available >= required
 
+  // Build tooltip content showing per-location breakdown
+  const tooltipContent = useMemo(() => {
+    if (locations.length === 0) return 'No items found in Trove data'
+
+    // Group quantities by location label
+    const grouped = new Map<string, number>()
+    for (const loc of locations) {
+      let label: string
+      if (loc.container === 'CraftingStorage') {
+        label = 'Crafting Storage'
+      } else if (loc.container === 'SharedBank') {
+        label = `Shared Bank${loc.tabName ? ` (${loc.tabName})` : ''}`
+      } else if (loc.container === 'Bank') {
+        label = `${loc.characterName} - Bank${loc.tabName ? ` (${loc.tabName})` : ''}`
+      } else if (loc.container === 'Equipped') {
+        label = `${loc.characterName} (Equipped)`
+      } else {
+        label = `${loc.characterName} - ${loc.container}`
+      }
+      grouped.set(label, (grouped.get(label) ?? 0) + (loc.quantity ?? 0))
+    }
+
+    return Array.from(grouped.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, qty]) => `${qty}× ${label}`)
+      .join('\n')
+  }, [locations])
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <img
-        src={getIngredientImagePath(ingredient)}
-        alt=""
-        width={20}
-        height={20}
-        style={{ imageRendering: 'pixelated', flexShrink: 0 }}
-        onError={(e) => {
-          ; (e.target as HTMLImageElement).src = getIngredientFallbackPath()
-        }}
-      />
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 0.25,
+    <Tooltip
+      title={<span style={{ whiteSpace: 'pre-line' }}>{tooltipContent}</span>}
+      arrow
+      placement="top"
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <img
+          src={getIngredientImagePath(ingredient)}
+          alt=""
+          width={24}
+          height={24}
+          style={{ imageRendering: 'pixelated', flexShrink: 0 }}
+          onError={(e) => {
+            ; (e.target as HTMLImageElement).src = getIngredientFallbackPath()
           }}
-        >
-          <Typography variant="body2" noWrap sx={{ fontSize: '0.8rem' }}>
-            {ingredient}
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 1 }}>
-            <Typography
-              variant="caption"
-              color={sufficient ? 'success.main' : 'warning.main'}
-              fontWeight="bold"
-            >
-              {available} / {required}
-            </Typography>
-            {sufficient ? (
-              <Chip
-                label="OK"
-                size="small"
-                color="success"
-                sx={{
-                  height: 18,
-                  '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
-                }}
-              />
-            ) : (
-              <Chip
-                label={`-${required - available}`}
-                size="small"
-                color="warning"
-                sx={{
-                  height: 18,
-                  '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
-                }}
-              />
-            )}
-          </Box>
-        </Box>
+        />
+        <Typography variant="body2" noWrap sx={{ fontSize: '0.8rem', flexShrink: 0 }}>
+          {ingredient}
+        </Typography>
         <LinearProgress
           variant="determinate"
           value={percentage}
           color={sufficient ? 'success' : 'warning'}
-          sx={{ height: 6, borderRadius: 1 }}
+          sx={{ flex: 1, height: 6, borderRadius: 1, minWidth: 40 }}
         />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 0.5 }}>
+          <Typography
+            variant="caption"
+            color={sufficient ? 'success.main' : 'warning.main'}
+            fontWeight="bold"
+          >
+            {available} / {required}
+          </Typography>
+          {sufficient ? (
+            <Chip
+              label="OK"
+              size="small"
+              color="success"
+              sx={{
+                height: 18,
+                '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
+              }}
+            />
+          ) : (
+            <Chip
+              label={`-${required - available}`}
+              size="small"
+              color="warning"
+              sx={{
+                height: 18,
+                '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
+              }}
+            />
+          )}
+        </Box>
       </Box>
-    </Box>
+    </Tooltip>
   )
 }
 

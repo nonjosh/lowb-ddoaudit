@@ -25,7 +25,7 @@ export interface TroveAugmentSlot {
 // Item Types
 // ============================================================================
 
-export type TroveContainer = 'Equipped' | 'Inventory' | 'Bank' | 'SharedBank'
+export type TroveContainer = 'Equipped' | 'Inventory' | 'Bank' | 'SharedBank' | 'CraftingStorage'
 export type TroveTreasureType = 'Named' | 'Random' | 'Vendor' | 'Undef'
 export type TroveBinding = 'BoundToAccount' | 'BoundToCharacter'
 
@@ -131,6 +131,7 @@ export interface TroveCharacterBank {
 
 export interface TroveAccountData {
   SharedBank: TroveBank
+  CraftingBank?: TroveBank
 }
 
 // ============================================================================
