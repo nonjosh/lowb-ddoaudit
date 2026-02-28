@@ -44,7 +44,7 @@ import {
   ViktraniumSlotType,
 } from '@/domains/crafting/viktraniumLogic'
 import { formatAffixPlain } from '@/utils/affixHelpers'
-import { getIngredientImagePath } from '@/utils/craftingHelpers'
+import { getIngredientFallbackPath, getIngredientImagePath } from '@/utils/craftingHelpers'
 
 // ============================================================================
 // Types
@@ -555,7 +555,7 @@ function IngredientRow({ ingredient, required, available, hasTrove }: Ingredient
             width={20}
             height={20}
             style={{ imageRendering: 'pixelated', flexShrink: 0 }}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            onError={(e) => { (e.target as HTMLImageElement).src = getIngredientFallbackPath() }}
           />
           {ingredient}
         </Box>

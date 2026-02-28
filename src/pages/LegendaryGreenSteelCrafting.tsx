@@ -35,7 +35,7 @@ import {
   GreenSteelTierSelection,
 } from '@/domains/crafting/greenSteelLogic'
 import { calculateLgsIngredients } from '@/domains/crafting/lgsLogic'
-import { getIngredientImagePath } from '@/utils/craftingHelpers'
+import { getIngredientFallbackPath, getIngredientImagePath } from '@/utils/craftingHelpers'
 // ============================================================================
 
 interface PlannedLgsItem {
@@ -446,7 +446,7 @@ function LgsIngredientTable({ summary, inventoryMap }: LgsIngredientTableProps) 
                       width={20}
                       height={20}
                       style={{ imageRendering: 'pixelated', flexShrink: 0 }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = getIngredientFallbackPath() }}
                     />
                     {ingredient}
                   </Box>
