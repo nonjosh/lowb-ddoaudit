@@ -228,3 +228,124 @@ export function getTierLabel(sel: GreenSteelTierSelection): string {
   if (!effect) return sel.effectName
   return `${effect.name} — ${effect.element} / ${effect.essenceType} / ${effect.gemType}`
 }
+
+// ============================================================================
+// Focus Names
+// ============================================================================
+
+const FOCUS_ELEMENT_NAME: Record<GreenSteelElement, string> = {
+  Water: 'Water',
+  Fire: 'Fire',
+  Earth: 'Earth',
+  Air: 'Air',
+  Positive: 'Positive Energy',
+  Negative: 'Negative Energy',
+}
+
+export const TIER_FOCUS_PREFIX: Record<GreenSteelTier, string> = {
+  1: 'Inferior',
+  2: '',
+  3: 'Superior',
+}
+
+export function getFocusName(tier: GreenSteelTier, element: GreenSteelElement): string {
+  const prefix = TIER_FOCUS_PREFIX[tier]
+  const elementName = FOCUS_ELEMENT_NAME[element]
+  return prefix ? `${prefix} Focus of ${elementName}` : `Focus of ${elementName}`
+}
+
+// ============================================================================
+// Crafting Steps Summary (manufactured ingredients per tier)
+// ============================================================================
+
+export interface CraftingStep {
+  tier: GreenSteelTier
+  focus: string
+  essence: string
+  gem: string
+  cell: string
+}
+
+export function getGsCraftingSteps(selections: GreenSteelTierSelection[]): CraftingStep[] {
+  return selections
+    .filter((sel) => sel.effectName)
+    .map((sel) => {
+      const effect = getEffectByName(sel.effectName!)!
+      const { essence, gem, cell } = getTierIngredients(sel.tier, effect.essenceType, effect.gemType)
+      return {
+        tier: sel.tier,
+        focus: getFocusName(sel.tier, effect.element),
+        essence,
+        gem,
+        cell,
+      }
+    })
+}
+
+// ============================================================================
+// Weapon Bonus Effects (for weapons with all 3 tiers filled)
+// ============================================================================
+
+export interface WeaponBonusEffect {
+  name: string
+  description: string
+}
+
+function elementPairKey(a: GreenSteelElement, b: GreenSteelElement): string {
+  return [a, b].sort().join('+')
+}
+
+const GS_PURE_WEAPON_BONUS: Record<GreenSteelElement, WeaponBonusEffect> = {
+  Air: { name: 'Air Strike', description: 'Chance to deal massive electrical damage' },
+  Earth: { name: 'Earthgrab', description: 'Chance to root enemies' },
+  Fire: { name: 'Incineration', description: 'Chance to deal massive fire damage' },
+  Water: { name: 'Crushing Wave', description: 'Cold damage effects' },
+  Positive: { name: 'Affirmation', description: 'Chance to grant temporary HP' },
+  Negative: { name: 'Negation', description: 'Chance to deal negative levels' },
+}
+
+const GS_DUAL_WEAPON_BONUS: Record<string, WeaponBonusEffect> = {
+  [elementPairKey('Air', 'Earth')]: { name: 'Tempered', description: 'Extra acid and electric damage' },
+  [elementPairKey('Air', 'Fire')]: { name: 'Smoke', description: 'Enhancement bonus to Concealment' },
+  [elementPairKey('Air', 'Negative')]: { name: 'Vacuum', description: 'Inflicts Vulnerable stacks' },
+  [elementPairKey('Air', 'Positive')]: { name: 'Lightning', description: 'Creates lightning traps + electric damage' },
+  [elementPairKey('Air', 'Water')]: { name: 'Ice', description: 'Chance to freeze targets' },
+  [elementPairKey('Earth', 'Fire')]: { name: 'Magma', description: 'Fire damage over time, slows enemies' },
+  [elementPairKey('Earth', 'Negative')]: { name: 'Dust', description: 'Reduces enemy PRR and healing amp' },
+  [elementPairKey('Earth', 'Positive')]: { name: 'Mineral II', description: 'Bypasses various DR, increased durability' },
+  [elementPairKey('Earth', 'Water')]: { name: 'Ooze', description: 'Reduces PRR/MRR, chance to summon Ooze' },
+  [elementPairKey('Fire', 'Negative')]: { name: 'Ash', description: 'Reduces MRR and Universal Spell Power' },
+  [elementPairKey('Fire', 'Positive')]: { name: 'Radiance', description: 'Chance to blind enemies with Light damage' },
+  [elementPairKey('Fire', 'Water')]: { name: 'Balance of Land & Sky', description: 'Extra acid and electric damage' },
+  [elementPairKey('Negative', 'Positive')]: { name: 'Concordant Opposition', description: 'Chance to gain HP and SP when hit' },
+  [elementPairKey('Negative', 'Water')]: { name: 'Salt', description: 'Greatly reduces enemy speed' },
+  [elementPairKey('Positive', 'Water')]: { name: 'Steam', description: 'Chance to deal untyped damage' },
+}
+
+/**
+ * Get the weapon bonus effect for a GS weapon when all 3 tiers are filled.
+ * Only applies to weapons. Returns null if fewer than 3 tiers filled or 3+ distinct elements.
+ */
+export function getGsWeaponBonusEffect(
+  tierSelections: GreenSteelTierSelection[],
+): WeaponBonusEffect | null {
+  const elements = tierSelections
+    .filter((ts) => ts.effectName)
+    .map((ts) => getEffectByName(ts.effectName!)?.element)
+    .filter(Boolean) as GreenSteelElement[]
+
+  if (elements.length !== 3) return null
+
+  const uniqueElements = [...new Set(elements)]
+
+  if (uniqueElements.length === 1) {
+    return GS_PURE_WEAPON_BONUS[uniqueElements[0]] ?? null
+  }
+
+  if (uniqueElements.length === 2) {
+    const key = elementPairKey(uniqueElements[0], uniqueElements[1])
+    return GS_DUAL_WEAPON_BONUS[key] ?? null
+  }
+
+  return null
+}

@@ -30,12 +30,12 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import { CraftingOption } from '@/api/ddoGearPlanner'
-import type { TroveItemLocation } from '@/api/trove/types'
+import IngredientProgressList from '@/components/shared/IngredientProgressList'
+import type { IngredientGroup } from '@/components/shared/IngredientProgressList'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import {
-  ALL_VIKTRANIUM_INGREDIENTS,
   calculateViktraniumIngredients,
   getAugmentOptions,
   getViktraniumSlots,
@@ -43,8 +43,8 @@ import {
   LEGENDARY_ML_THRESHOLD,
   ViktraniumSlotType,
 } from '@/domains/crafting/viktraniumLogic'
+import { useCraftingStorage } from '@/hooks/useCraftingStorage'
 import { formatAffixPlain } from '@/utils/affixHelpers'
-import { getIngredientFallbackPath, getIngredientImagePath } from '@/utils/craftingHelpers'
 
 // ============================================================================
 // Types
@@ -61,6 +61,11 @@ interface PlannedItem {
   slots: PlannedSlot[]
 }
 
+const VIKTRANIUM_INGREDIENT_GROUPS: IngredientGroup[] = [
+  { label: 'Heroic Ingredients (ML 8)', filter: (name) => !name.startsWith('Legendary') },
+  { label: 'Legendary Ingredients (ML 34)', filter: (name) => name.startsWith('Legendary') },
+]
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -69,7 +74,10 @@ export default function ViktraniumCrafting() {
   const { items, craftingData, loading, refresh, error } = useGearPlanner()
   const { inventoryMap, importedAt } = useTrove()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [plannedItems, setPlannedItems] = useState<PlannedItem[]>([])
+  const [plannedItems, setPlannedItems] = useCraftingStorage<PlannedItem[]>(
+    'crafting-viktranium-planned-items',
+    [],
+  )
 
   useEffect(() => {
     if (items.length === 0 && !loading && !error) {
@@ -270,9 +278,10 @@ export default function ViktraniumCrafting() {
             Ingredient Summary
           </Typography>
 
-          <IngredientTable
+          <IngredientProgressList
             summary={ingredientSummary}
             inventoryMap={inventoryMap}
+            groups={VIKTRANIUM_INGREDIENT_GROUPS}
           />
         </Paper>
       )}
@@ -453,128 +462,5 @@ function SlotSelector({ slotType, selectedOption, craftingData, isLegendary, onC
         </Select>
       </FormControl>
     </Box>
-  )
-}
-
-// ============================================================================
-// IngredientTable Component
-// ============================================================================
-
-interface IngredientTableProps {
-  summary: Record<string, number>
-  inventoryMap: Map<string, TroveItemLocation[]>
-}
-
-function IngredientTable({ summary, inventoryMap }: IngredientTableProps) {
-  const rows = useMemo(() => {
-    return ALL_VIKTRANIUM_INGREDIENTS.filter((ingredient) => summary[ingredient] > 0).map((ingredient) => {
-      const required = summary[ingredient]
-      const locations = inventoryMap.get(ingredient) ?? []
-      const available = locations.reduce((sum, loc) => sum + (loc.quantity ?? 0), 0)
-      const hasTrove = inventoryMap.size > 0
-      return { ingredient, required, available, hasTrove }
-    })
-  }, [summary, inventoryMap])
-
-  const heroicRows = rows.filter((r) => !r.ingredient.startsWith('Legendary'))
-  const legendaryRows = rows.filter((r) => r.ingredient.startsWith('Legendary'))
-
-  return (
-    <TableContainer>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Ingredient</TableCell>
-            <TableCell align="right">Required</TableCell>
-            {rows.some((r) => r.hasTrove) && (
-              <>
-                <TableCell align="right">In Inventory</TableCell>
-                <TableCell align="right">Status</TableCell>
-              </>
-            )}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {heroicRows.length > 0 && (
-            <>
-              <TableRow>
-                <TableCell
-                  colSpan={rows.some((r) => r.hasTrove) ? 4 : 2}
-                  sx={{ bgcolor: 'action.hover', fontWeight: 'bold' }}
-                >
-                  Heroic Ingredients (ML 8)
-                </TableCell>
-              </TableRow>
-              {heroicRows.map((row) => (
-                <IngredientRow key={row.ingredient} {...row} />
-              ))}
-            </>
-          )}
-          {legendaryRows.length > 0 && (
-            <>
-              <TableRow>
-                <TableCell
-                  colSpan={rows.some((r) => r.hasTrove) ? 4 : 2}
-                  sx={{ bgcolor: 'action.hover', fontWeight: 'bold' }}
-                >
-                  Legendary Ingredients (ML 34)
-                </TableCell>
-              </TableRow>
-              {legendaryRows.map((row) => (
-                <IngredientRow key={row.ingredient} {...row} />
-              ))}
-            </>
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-// ============================================================================
-// IngredientRow Component
-// ============================================================================
-
-interface IngredientRowProps {
-  ingredient: string
-  required: number
-  available: number
-  hasTrove: boolean
-}
-
-function IngredientRow({ ingredient, required, available, hasTrove }: IngredientRowProps) {
-  const sufficient = available >= required
-
-  return (
-    <TableRow>
-      <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <img
-            src={getIngredientImagePath(ingredient)}
-            alt=""
-            width={20}
-            height={20}
-            style={{ imageRendering: 'pixelated', flexShrink: 0 }}
-            onError={(e) => { (e.target as HTMLImageElement).src = getIngredientFallbackPath() }}
-          />
-          {ingredient}
-        </Box>
-      </TableCell>
-      <TableCell align="right">
-        <Typography fontWeight="bold">{required}</Typography>
-      </TableCell>
-      {hasTrove && (
-        <>
-          <TableCell align="right">{available}</TableCell>
-          <TableCell align="right">
-            {sufficient ? (
-              <Chip label="OK" color="success" size="small" />
-            ) : (
-              <Chip label={`Need ${required - available} more`} color="warning" size="small" />
-            )}
-          </TableCell>
-        </>
-      )}
-    </TableRow>
   )
 }

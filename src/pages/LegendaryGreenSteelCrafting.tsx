@@ -12,17 +12,11 @@ import {
   MenuItem,
   Paper,
   Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
-import type { TroveItemLocation } from '@/api/trove/types'
+import IngredientProgressList from '@/components/shared/IngredientProgressList'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useTrove } from '@/contexts/useTrove'
 import {
@@ -33,9 +27,14 @@ import {
   GreenSteelItemType,
   GreenSteelTier,
   GreenSteelTierSelection,
+  INGREDIENTS_PER_TIER,
 } from '@/domains/crafting/greenSteelLogic'
-import { calculateLgsIngredients } from '@/domains/crafting/lgsLogic'
-import { getIngredientFallbackPath, getIngredientImagePath } from '@/utils/craftingHelpers'
+import {
+  calculateLgsIngredients,
+  getLgsCraftingSteps,
+  getLgsWeaponBonusEffect,
+} from '@/domains/crafting/lgsLogic'
+import { useCraftingStorage } from '@/hooks/useCraftingStorage'
 // ============================================================================
 
 interface PlannedLgsItem {
@@ -51,15 +50,26 @@ const EMPTY_TIER_SELECTIONS: GreenSteelTierSelection[] = [
   { tier: 3, effectName: null },
 ]
 
+const STORAGE_KEY = 'crafting-lgs-planned-items'
+
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export default function LegendaryGreenSteelCrafting() {
   const { inventoryMap, importedAt } = useTrove()
-  const [plannedItems, setPlannedItems] = useState<PlannedLgsItem[]>([])
-  const [newItemType, setNewItemType] = useState<GreenSteelItemType>('Weapon')
-  const [newItemSubType, setNewItemSubType] = useState<string>('Long Sword')
+  const [plannedItems, setPlannedItems] = useCraftingStorage<PlannedLgsItem[]>(
+    STORAGE_KEY,
+    [],
+  )
+  const [newItemType, setNewItemType] = useCraftingStorage<GreenSteelItemType>(
+    'crafting-lgs-new-item-type',
+    'Weapon',
+  )
+  const [newItemSubType, setNewItemSubType] = useCraftingStorage<string>(
+    'crafting-lgs-new-item-subtype',
+    'Long Sword',
+  )
 
   const addItem = () => {
     const id = `${newItemSubType}-${Date.now()}`
@@ -123,8 +133,8 @@ export default function LegendaryGreenSteelCrafting() {
           )}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Plan your Legendary Green Steel item upgrades across Tier 1, 2, and 3. Each tier requires
-          3 legendary ingredients + 1 energy cell.
+          Plan your Legendary Green Steel item upgrades across Tier 1, 2, and 3. Each tier requires{' '}
+          {INGREDIENTS_PER_TIER} legendary ingredients + 1 energy cell.
         </Typography>
         <Alert severity="info" sx={{ mt: 1 }} icon={false}>
           <Typography variant="caption">
@@ -232,9 +242,10 @@ export default function LegendaryGreenSteelCrafting() {
           <Typography variant="subtitle1" gutterBottom fontWeight="bold">
             Ingredient Summary
           </Typography>
-          <LgsIngredientTable
+          <IngredientProgressList
             summary={ingredientSummary}
             inventoryMap={inventoryMap}
+            sortAlphabetically
           />
         </Paper>
       )}
@@ -276,6 +287,18 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
     }
   }
 
+  // Weapon bonus effect (only for weapons with all 3 tiers filled)
+  const weaponBonus = useMemo(() => {
+    if (planned.itemType !== 'Weapon') return null
+    return getLgsWeaponBonusEffect(planned.tierSelections)
+  }, [planned.itemType, planned.tierSelections])
+
+  // Crafting steps (Focus/Essence/Gem per tier)
+  const craftingSteps = useMemo(
+    () => getLgsCraftingSteps(planned.tierSelections),
+    [planned.tierSelections],
+  )
+
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -295,8 +318,8 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-          gap: 2,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: 1.5,
         }}
       >
         {planned.tierSelections.map((ts) => (
@@ -307,6 +330,56 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
           />
         ))}
       </Box>
+
+      {/* Weapon Bonus Effect */}
+      {planned.itemType === 'Weapon' && weaponBonus && (
+        <Alert severity="info" icon={false} sx={{ mt: 1.5, py: 0.5 }}>
+          <Typography variant="body2" fontWeight="bold">
+            ⚔️ Weapon Bonus: {weaponBonus.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {weaponBonus.description}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Crafting Recipe Summary */}
+      {craftingSteps.length > 0 && (
+        <Box sx={{ mt: 1.5 }}>
+          <Typography variant="caption" fontWeight="bold" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+            Crafting Recipe (Focus / Essence / Gem)
+          </Typography>
+          {craftingSteps.map((step) => (
+            <Box
+              key={step.tier}
+              sx={{
+                display: 'flex',
+                gap: 0.5,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                py: 0.25,
+              }}
+            >
+              <Chip
+                label={`T${step.tier}`}
+                size="small"
+                sx={{
+                  bgcolor: TIER_COLORS[step.tier],
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  height: 20,
+                  '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' },
+                }}
+              />
+              <Typography variant="caption">{step.focus}</Typography>
+              <Typography variant="caption" color="text.secondary">+</Typography>
+              <Typography variant="caption">{step.essence}</Typography>
+              <Typography variant="caption" color="text.secondary">+</Typography>
+              <Typography variant="caption">{step.gem}</Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
     </Paper>
   )
 }
@@ -391,86 +464,5 @@ function LgsTierSelectionPanel({ selection, onUpdate }: LgsTierSelectionPanelPro
         </Typography>
       )}
     </Box>
-  )
-}
-
-// ============================================================================
-// LgsIngredientTable Component
-// ============================================================================
-
-interface LgsIngredientTableProps {
-  summary: Record<string, number>
-  inventoryMap: Map<string, TroveItemLocation[]>
-}
-
-function LgsIngredientTable({ summary, inventoryMap }: LgsIngredientTableProps) {
-  const hasTrove = inventoryMap.size > 0
-
-  const rows = Object.entries(summary)
-    .filter(([, qty]) => qty > 0)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([ingredient, required]) => {
-      const locations = inventoryMap.get(ingredient) ?? []
-      const available = locations.reduce(
-        (sum, loc) => sum + (loc.quantity ?? 0),
-        0,
-      )
-      return { ingredient, required, available }
-    })
-
-  return (
-    <TableContainer>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Ingredient</TableCell>
-            <TableCell align="right">Required</TableCell>
-            {hasTrove && (
-              <>
-                <TableCell align="right">In Inventory</TableCell>
-                <TableCell align="right">Status</TableCell>
-              </>
-            )}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map(({ ingredient, required, available }) => {
-            const sufficient = !hasTrove || available >= required
-            return (
-              <TableRow key={ingredient}>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <img
-                      src={getIngredientImagePath(ingredient)}
-                      alt=""
-                      width={20}
-                      height={20}
-                      style={{ imageRendering: 'pixelated', flexShrink: 0 }}
-                      onError={(e) => { (e.target as HTMLImageElement).src = getIngredientFallbackPath() }}
-                    />
-                    {ingredient}
-                  </Box>
-                </TableCell>
-                <TableCell align="right">
-                  <Typography fontWeight="bold">{required}</Typography>
-                </TableCell>
-                {hasTrove && (
-                  <>
-                    <TableCell align="right">{available}</TableCell>
-                    <TableCell align="right">
-                      {sufficient ? (
-                        <Chip label="OK" color="success" size="small" />
-                      ) : (
-                        <Chip label={`Need ${required - available} more`} color="warning" size="small" />
-                      )}
-                    </TableCell>
-                  </>
-                )}
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
   )
 }
