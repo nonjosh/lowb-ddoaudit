@@ -116,7 +116,7 @@ export default function ViktraniumCrafting() {
       plannedItems
         .flatMap((p) => p.slots)
         .filter((s) => s.selectedOption !== null)
-        .map((s) => ({ slotType: s.slotType, ml: s.selectedOption?.ml })),
+        .map((s) => ({ slotType: s.slotType, ml: s.selectedOption!.ml })),
     [plannedItems],
   )
 
