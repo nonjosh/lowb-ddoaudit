@@ -130,7 +130,7 @@ function IngredientProgressRow({ ingredient, required, available }: IngredientRo
         height={20}
         style={{ imageRendering: 'pixelated', flexShrink: 0 }}
         onError={(e) => {
-          ;(e.target as HTMLImageElement).src = getIngredientFallbackPath()
+          ; (e.target as HTMLImageElement).src = getIngredientFallbackPath()
         }}
       />
       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -263,7 +263,7 @@ function IngredientTableRow({ ingredient, required }: IngredientRowData) {
             height={20}
             style={{ imageRendering: 'pixelated', flexShrink: 0 }}
             onError={(e) => {
-              ;(e.target as HTMLImageElement).src = getIngredientFallbackPath()
+              ; (e.target as HTMLImageElement).src = getIngredientFallbackPath()
             }}
           />
           {ingredient}
