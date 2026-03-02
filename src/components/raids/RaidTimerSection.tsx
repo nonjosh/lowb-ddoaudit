@@ -1,5 +1,6 @@
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import TimerIcon from '@mui/icons-material/Timer'
-import { Box, Chip, CircularProgress, Skeleton, Stack, Typography } from '@mui/material'
+import { Box, Chip, CircularProgress, IconButton, Skeleton, Stack, Tooltip, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
 import { fetchQuestsById, Quest } from '@/api/ddoAudit'
@@ -196,6 +197,18 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
         </Box>
         <Chip label={sortedRaidGroups.length} size="small" variant="outlined" />
         {loading && <CircularProgress size={20} />}
+        <Tooltip title="DDO Audit Timers">
+          <IconButton
+            size="small"
+            component="a"
+            href="https://www.ddoaudit.com/timers"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'text.secondary' }}
+          >
+            <OpenInNewIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Box sx={{ ml: 'auto' }}>
           <QuestTierFilter value={tierFilter} onChange={setTierFilter} />
         </Box>

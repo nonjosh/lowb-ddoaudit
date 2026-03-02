@@ -8,9 +8,10 @@ import { LfmParticipant } from '@/domains/lfm/lfmHelpers'
 interface LfmParticipantRowProps {
   participant: LfmParticipant
   areas: Record<string, { name: string }>
+  onGuildClick?: (guildName: string) => void
 }
 
-export default function LfmParticipantRow({ participant, areas }: LfmParticipantRowProps) {
+export default function LfmParticipantRow({ participant, areas, onGuildClick }: LfmParticipantRowProps) {
   const { showClassIcons } = useConfig()
   return (
     <TableRow>
@@ -26,7 +27,21 @@ export default function LfmParticipantRow({ participant, areas }: LfmParticipant
             {participant.isLeader ? <Chip size="small" variant="outlined" label="Leader" /> : null}
           </Stack>
           {participant.guildName ? (
-            <Typography variant="caption" color="text.secondary" noWrap>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              sx={{
+                cursor: onGuildClick ? 'pointer' : 'default',
+                '&:hover': onGuildClick ? { textDecoration: 'underline' } : undefined,
+              }}
+              onClick={(e) => {
+                if (onGuildClick && participant.guildName) {
+                  e.stopPropagation()
+                  onGuildClick(participant.guildName)
+                }
+              }}
+            >
               {participant.guildName}
             </Typography>
           ) : null}

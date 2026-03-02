@@ -18,7 +18,11 @@ import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
 
-export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData }: LfmParticipantsDialogProps) {
+interface ExtendedLfmParticipantsDialogProps extends LfmParticipantsDialogProps {
+  onGuildClick?: (guildName: string) => void
+}
+
+export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData, onGuildClick }: ExtendedLfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [now, setNow] = useState(() => new Date())
 
@@ -147,7 +151,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
         </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} />
+        <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} onGuildClick={onGuildClick} />
         {selectedLfm?.isRaid && selectedRaidData ? (
           <>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>

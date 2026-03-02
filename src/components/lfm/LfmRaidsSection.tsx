@@ -1,10 +1,12 @@
-import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import FavoriteIcon from '@mui/icons-material/Favorite'
+import GroupAddIcon from '@mui/icons-material/GroupAdd'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
   Alert,
   Box,
   Chip,
   CircularProgress,
+  IconButton,
   Paper,
   Skeleton,
   Stack,
@@ -30,6 +32,7 @@ import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/l
 import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
 
+import GuildCharactersDialog from './GuildCharactersDialog'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
 
 interface LfmRaidsSectionProps {
@@ -49,6 +52,7 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
   const [questFilter, setQuestFilter] = useState('raid')
   const [tierFilter, setTierFilter] = useState('legendary')
   const [selectedLfmId, setSelectedLfmId] = useState<string | null>(null)
+  const [selectedGuildName, setSelectedGuildName] = useState<string | null>(null)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   useEffect(() => {
@@ -117,6 +121,18 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
         <Chip size="small" variant="outlined" label={`Showing ${shownCount} out of ${totalCount}`} />
         <Chip size="small" variant="outlined" label={`Players: ${serverPlayers ?? '—'}`} sx={{ ml: 1 }} />
         {loading && <CircularProgress size={20} />}
+        <Tooltip title="DDO Audit Grouping (Shadowdale)">
+          <IconButton
+            size="small"
+            component="a"
+            href="https://www.ddoaudit.com/grouping/shadowdale"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'text.secondary' }}
+          >
+            <OpenInNewIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
 
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
           <QuestTierFilter value={tierFilter} onChange={setTierFilter} />
@@ -216,8 +232,16 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
                         <Typography
                           variant="caption"
                           color={l.leaderGuildIsMajority ? 'primary' : 'text.secondary'}
-                          sx={l.leaderGuildIsMajority ? { fontWeight: 600 } : undefined}
+                          sx={{
+                            ...(l.leaderGuildIsMajority ? { fontWeight: 600 } : undefined),
+                            cursor: 'pointer',
+                            '&:hover': { textDecoration: 'underline' },
+                          }}
                           noWrap
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedGuildName(l.leaderGuildName)
+                          }}
                         >
                           {l.leaderGuildName}
                         </Typography>
@@ -276,7 +300,8 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
         </TableContainer>
       )}
 
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfmId(null)} selectedRaidData={selectedRaidData} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfmId(null)} selectedRaidData={selectedRaidData} onGuildClick={setSelectedGuildName} />
+      <GuildCharactersDialog guildName={selectedGuildName} serverName="shadowdale" onClose={() => setSelectedGuildName(null)} />
     </Paper>
   )
 }

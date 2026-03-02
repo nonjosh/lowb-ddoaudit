@@ -6,9 +6,10 @@ import { LfmParticipant } from '@/domains/lfm/lfmHelpers'
 interface LfmParticipantsTableProps {
   participants: LfmParticipant[]
   areas: Record<string, { name: string }>
+  onGuildClick?: (guildName: string) => void
 }
 
-export default function LfmParticipantsTable({ participants, areas }: LfmParticipantsTableProps) {
+export default function LfmParticipantsTable({ participants, areas, onGuildClick }: LfmParticipantsTableProps) {
   return (
     <Table size="small" aria-label="lfm members">
       <TableHead>
@@ -24,7 +25,7 @@ export default function LfmParticipantsTable({ participants, areas }: LfmPartici
       </TableHead>
       <TableBody>
         {participants.map((p) => (
-          <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} />
+          <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} onGuildClick={onGuildClick} />
         ))}
       </TableBody>
     </Table>
