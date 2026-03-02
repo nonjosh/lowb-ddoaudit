@@ -1,6 +1,7 @@
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
+import GraphicEqIcon from '@mui/icons-material/GraphicEq'
 import InventoryIcon from '@mui/icons-material/Inventory2'
-import { AppBar, Badge, Box, Button, Container, Menu, MenuItem, Toolbar, Tooltip, Typography } from '@mui/material'
+import { AppBar, Badge, Box, Button, Container, Dialog, DialogContent, DialogTitle, Divider, IconButton, ListItemIcon, Menu, MenuItem, Toolbar, Tooltip, Typography } from '@mui/material'
 import { MouseEvent, ReactNode, useState } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 
@@ -33,6 +34,7 @@ export default function Layout({ children }: LayoutProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [troveDialogOpen, setTroveDialogOpen] = useState(false)
+  const [jewelsDialogOpen, setJewelsDialogOpen] = useState(false)
 
   const navEntries: NavEntry[] = [
     { label: 'Raids', path: '/' },
@@ -133,6 +135,22 @@ export default function Layout({ children }: LayoutProps) {
                             </MenuItem>
                           )
                         })}
+                        {entry.label === 'Gear' && (
+                          <Box>
+                            <Divider />
+                            <MenuItem
+                              onClick={() => {
+                                handleMenuClose()
+                                setJewelsDialogOpen(true)
+                              }}
+                            >
+                              <ListItemIcon>
+                                <GraphicEqIcon fontSize="small" />
+                              </ListItemIcon>
+                              Sentient Jewel Voices
+                            </MenuItem>
+                          </Box>
+                        )}
                       </Menu>
                     </Box>
                   )
@@ -180,6 +198,28 @@ export default function Layout({ children }: LayoutProps) {
         open={troveDialogOpen}
         onClose={() => setTroveDialogOpen(false)}
       />
+
+      <Dialog
+        open={jewelsDialogOpen}
+        onClose={() => setJewelsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Sentient Jewel Voices
+          <IconButton onClick={() => setJewelsDialogOpen(false)} size="small">
+            ✕
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <Box
+            component="iframe"
+            src="https://s3.amazonaws.com/downloads.dungeonhelper.com/public/voices.html"
+            sx={{ width: '100%', height: '70vh', border: 'none' }}
+            title="Sentient Jewel Voices"
+          />
+        </DialogContent>
+      </Dialog>
 
       <Box component="main" sx={{ flexGrow: 1 }}>
         {children}
