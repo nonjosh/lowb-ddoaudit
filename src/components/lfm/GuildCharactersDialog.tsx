@@ -37,6 +37,7 @@ interface GuildCharactersDialogProps {
   guildName: string | null
   serverName: string
   onClose: () => void
+  onLfmClick?: (lfm: LfmDisplayData) => void
 }
 
 interface AreaInfo {
@@ -144,6 +145,7 @@ interface CollapsibleLocationGroupProps {
   showClassIcons: boolean
   lfmByCharacterName: Map<string, LfmDisplayData>
   defaultExpanded?: boolean
+  onLfmClick?: (lfm: LfmDisplayData) => void
 }
 
 function CollapsibleLocationGroup({
@@ -151,6 +153,7 @@ function CollapsibleLocationGroup({
   showClassIcons,
   lfmByCharacterName,
   defaultExpanded = true,
+  onLfmClick,
 }: CollapsibleLocationGroupProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
 
@@ -210,8 +213,15 @@ function CollapsibleLocationGroup({
                             </Tooltip>
                           )}
                           {charLfm && (
-                            <Tooltip title={`In LFM: ${charLfm.questName || 'Unknown'}`}>
-                              <ListAltIcon color="action" sx={{ width: 16, height: 16 }} />
+                            <Tooltip title="In LFM (Click to view)">
+                              <ListAltIcon
+                                color="action"
+                                sx={{ width: 16, height: 16, cursor: 'pointer' }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (onLfmClick) onLfmClick(charLfm)
+                                }}
+                              />
                             </Tooltip>
                           )}
                         </Box>
@@ -252,7 +262,7 @@ function CategoryHeader({ label, count }: { label: string; count: number }) {
 
 const initialState: FetchState = { characters: [], areas: {}, quests: {}, loading: false, error: null }
 
-export default function GuildCharactersDialog({ guildName, serverName, onClose }: GuildCharactersDialogProps) {
+export default function GuildCharactersDialog({ guildName, serverName, onClose, onLfmClick }: GuildCharactersDialogProps) {
   const { showClassIcons } = useConfig()
   const { lfms: lfmsById } = useLfm()
   const [state, dispatch] = useReducer(fetchReducer, initialState)
@@ -360,6 +370,7 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose }
                         group={g}
                         showClassIcons={showClassIcons}
                         lfmByCharacterName={lfmByCharacterName}
+                        onLfmClick={onLfmClick}
                       />
                     ))}
                   </>
@@ -373,6 +384,7 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose }
                         group={g}
                         showClassIcons={showClassIcons}
                         lfmByCharacterName={lfmByCharacterName}
+                        onLfmClick={onLfmClick}
                       />
                     ))}
                   </>
@@ -386,6 +398,7 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose }
                         group={g}
                         showClassIcons={showClassIcons}
                         lfmByCharacterName={lfmByCharacterName}
+                        onLfmClick={onLfmClick}
                       />
                     ))}
                   </>

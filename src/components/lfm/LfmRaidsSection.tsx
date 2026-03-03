@@ -301,7 +301,15 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
       )}
 
       <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfmId(null)} selectedRaidData={selectedRaidData} onGuildClick={setSelectedGuildName} />
-      <GuildCharactersDialog guildName={selectedGuildName} serverName="shadowdale" onClose={() => setSelectedGuildName(null)} />
+      <GuildCharactersDialog
+        guildName={selectedGuildName}
+        serverName="shadowdale"
+        onClose={() => setSelectedGuildName(null)}
+        onLfmClick={(lfm) => {
+          setSelectedGuildName(null)
+          setSelectedLfmId(lfm.id)
+        }}
+      />
     </Paper>
   )
 }
