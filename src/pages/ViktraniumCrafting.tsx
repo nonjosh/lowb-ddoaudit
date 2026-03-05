@@ -55,8 +55,11 @@ import {
   LEGENDARY_ML_THRESHOLD,
   ViktraniumSlotType,
 } from '@/domains/crafting/viktraniumLogic'
+import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
+import { isRaidItem } from '@/domains/quests/questHelpers'
 import { useCraftingStorage } from '@/hooks/useCraftingStorage'
-import { formatAffixPlain } from '@/utils/affixHelpers'
+import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
+import { formatAffixPlain, getWikiUrl } from '@/utils/affixHelpers'
 
 // ============================================================================
 // Types
@@ -85,6 +88,7 @@ const VIKTRANIUM_INGREDIENT_GROUPS: IngredientGroup[] = [
 export default function ViktraniumCrafting() {
   const { items, craftingData, loading, refresh, error } = useGearPlanner()
   const { inventoryMap, importedAt } = useTrove()
+  const raidQuestNames = useRaidQuestNames()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [plannedItems, setPlannedItems] = useCraftingStorage<PlannedItem[]>(
     'crafting-viktranium-planned-items',
@@ -248,6 +252,21 @@ export default function ViktraniumCrafting() {
                     <Typography variant="subtitle2" fontWeight="bold">
                       {planned.itemName}
                     </Typography>
+                    <InventoryBadge itemName={planned.itemName} />
+                    {item?.url && getWikiUrl(item.url) && <DdoWikiLink wikiUrl={getWikiUrl(item.url) as string} />}
+                    {item && item.quests && item.quests.length > 0 && item.quests.map((quest) => {
+                      const isRaid = isRaidItem(item, raidQuestNames)
+                      const isWilderness = quest.toLowerCase().includes('wilderness')
+                      return (
+                        <Chip
+                          key={quest}
+                          label={isRaid ? `Raid: ${quest}` : quest}
+                          size="small"
+                          color={isRaid ? 'error' : isWilderness ? 'success' : 'default'}
+                          variant="outlined"
+                        />
+                      )
+                    })}
                     {item && (
                       <Chip label={`ML ${item.ml}`} size="small" variant="outlined" />
                     )}
