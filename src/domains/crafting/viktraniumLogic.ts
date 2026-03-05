@@ -37,6 +37,7 @@ export const LEGENDARY_INGREDIENTS = [
   'Legendary Bleak Resistor',
   'Legendary Bleak Wire',
   'Legendary Bleak Transformer',
+  'Bleak Memento', // Used for Wicked augments
 ] as const
 
 export const ALL_VIKTRANIUM_INGREDIENTS = [
@@ -59,6 +60,21 @@ export function isViktraniumSlot(slotType: string): slotType is ViktraniumSlotTy
 
 export function isLegendaryAugment(ml: number | undefined): boolean {
   return (ml ?? 0) > LEGENDARY_ML_THRESHOLD
+}
+
+export function isLegendaryOption(opt: CraftingOption): boolean {
+  if (opt.quests) {
+    if (
+      opt.quests.includes('Legendary Viktranium Experiment Crafting') ||
+      opt.quests.includes('Wicked Viktranium Experiment Crafting')
+    ) {
+      return true
+    }
+    if (opt.quests.includes('Heroic Viktranium Experiment Crafting')) {
+      return false
+    }
+  }
+  return isLegendaryAugment(opt.ml)
 }
 
 /**
@@ -89,9 +105,19 @@ export function getAugmentOptions(
   heroic: boolean,
 ): CraftingOption[] {
   const options = craftingData[slotType]?.['*'] ?? []
-  return options.filter((opt) =>
-    heroic ? !isLegendaryAugment(opt.ml) : isLegendaryAugment(opt.ml),
-  )
+  return options
+    .filter((opt) => {
+      // Exclude Wicked augments from standard Viktranium planner UI as they are
+      // from a separate crafting machine (Relentless raid).
+      if (opt.quests?.includes('Wicked Viktranium Experiment Crafting')) return false
+      return heroic ? !isLegendaryOption(opt) : isLegendaryOption(opt)
+    })
+    .map((opt) => ({
+      ...opt,
+      // Strip "(Heroic)" or "(Legendary)" suffix so the name remains consistent
+      // across different levels of items to preserve selected state.
+      name: opt.name?.replace(/ \((Heroic|Legendary)\)$/, ''),
+    }))
 }
 
 // ============================================================================
@@ -153,15 +179,28 @@ export const SLOT_INGREDIENT_CONFIGS: Record<ViktraniumSlotType, SlotIngredientC
  * Costs vary by slot type; ML determines heroic vs legendary ingredients.
  */
 export function calculateViktraniumIngredients(
-  selectedAugments: Array<{ slotType: ViktraniumSlotType; ml?: number }>,
+  selectedAugments: Array<{ slotType: ViktraniumSlotType; ml?: number; quests?: string[] }>,
 ): IngredientSummary {
   const summary: IngredientSummary = {}
 
   for (const augment of selectedAugments) {
     const config = SLOT_INGREDIENT_CONFIGS[augment.slotType]
-    const ingredientList = isLegendaryAugment(augment.ml) ? config.legendary : config.heroic
+    const isWicked = augment.quests?.includes('Wicked Viktranium Experiment Crafting')
+    const isLegendary = augment.quests
+      ? isLegendaryOption({ ml: augment.ml, quests: augment.quests })
+      : isLegendaryAugment(augment.ml)
+
+    const ingredientList = isLegendary ? config.legendary : config.heroic
     for (const { ingredient, count } of ingredientList) {
       summary[ingredient] = (summary[ingredient] ?? 0) + count
+    }
+
+    if (isWicked) {
+      if (augment.slotType.startsWith('Miserable')) {
+        summary['Bleak Memento'] = (summary['Bleak Memento'] ?? 0) + 2
+      } else if (augment.slotType.startsWith('Woeful')) {
+        summary['Bleak Memento'] = (summary['Bleak Memento'] ?? 0) + 5
+      }
     }
   }
 

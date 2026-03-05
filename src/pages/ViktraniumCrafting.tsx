@@ -133,10 +133,17 @@ export default function ViktraniumCrafting() {
   const allSelectedAugments = useMemo(
     () =>
       plannedItems
-        .flatMap((p) => p.slots)
+        .flatMap((p) => {
+          const item = viktraniumItems.find((i) => i.name === p.itemName)
+          return p.slots.map((s) => ({ ...s, itemMl: item?.ml ?? 0 }))
+        })
         .filter((s) => s.selectedOption !== null)
-        .map((s) => ({ slotType: s.slotType, ml: s.selectedOption!.ml })),
-    [plannedItems],
+        .map((s) => ({
+          slotType: s.slotType as ViktraniumSlotType,
+          ml: s.itemMl,
+          quests: s.selectedOption!.quests,
+        })),
+    [plannedItems, viktraniumItems],
   )
 
   const ingredientSummary = useMemo(

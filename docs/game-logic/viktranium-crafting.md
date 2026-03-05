@@ -28,6 +28,7 @@ Each slot type has Accessory, Armor, and Weapon variants (Woeful has no Armor va
 
 - **Bleak Wire** – Used in Melancholic (Armor), Miserable (Accessory/Weapon)
 - **Bleak Transformer** – Used in Woeful (all types) – rare raid drop
+- **Bleak Memento** – Used for Wicked variants of Miserable and Woeful augments
 
 ### Legendary Versions
 
@@ -35,18 +36,19 @@ All ingredients have Legendary counterparts prefixed with "Legendary ".
 
 ## Ingredient Costs Per Augment
 
-| Slot Type                    | Heroic Cost                     | Legendary Cost                    |
-| ---------------------------- | ------------------------------- | --------------------------------- |
-| Melancholic (Accessory/Weapon) | 5× each × 4 ingredients        | 25× each × 4 ingredients         |
-| Melancholic (Armor)          | 5× each × 4 + Wire×20          | 25× each × 4 + Wire×100          |
-| Dolorous (all)               | 10× each × 4 ingredients       | 50× each × 4 ingredients         |
-| Miserable (Accessory/Weapon) | 5× each × 4 + Wire×20          | 25× each × 4 + Wire×100          |
-| Woeful (all)                 | 10× each × 5 (incl. Transformer) | 50× each × 5 (incl. Transformer) |
+| Slot Type                      | Heroic Cost                      | Legendary Cost                                          |
+| ------------------------------ | -------------------------------- | ------------------------------------------------------- |
+| Melancholic (Accessory/Weapon) | 5× each × 4 ingredients          | 25× each × 4 ingredients                                |
+| Melancholic (Armor)            | 5× each × 4 + Wire×20            | 25× each × 4 + Wire×100                                 |
+| Dolorous (all)                 | 10× each × 4 ingredients         | 50× each × 4 ingredients                                |
+| Miserable (Accessory/Weapon)   | 5× each × 4 + Wire×20            | 25× each × 4 + Wire×100 (Wicked: +2x Mementos)          |
+| Woeful (all)                   | 10× each × 5 (incl. Transformer) | 50× each × 5 (incl. Transformer) (Wicked: +5x Mementos) |
 
 ## ML Threshold
 
 - Heroic augments: ML ≤ 20
 - Legendary augments: ML > 20
+- Wicked augments: ML > 20 (Uses Bleak Mementos in addition to Legendary ingredients)
 
 ## Related Files
 
