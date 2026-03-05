@@ -1,8 +1,10 @@
+import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import GroupsIcon from '@mui/icons-material/Groups'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import ViewListIcon from '@mui/icons-material/ViewList'
 import {
   Alert,
   Box,
@@ -267,6 +269,7 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose, 
   const { lfms: lfmsById } = useLfm()
   const [state, dispatch] = useReducer(fetchReducer, initialState)
   const { characters, areas, quests, loading, error } = state
+  const [grouped, setGrouped] = useState(true)
 
   const lfmByCharacterName = useMemo(() => {
     const map: Record<string, LfmDisplayData> = {}
@@ -327,6 +330,13 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose, 
           variant="outlined"
         />
         {loading && <CircularProgress size={20} />}
+        {characters.length > 0 && (
+          <Tooltip title={grouped ? 'Switch to flat list' : 'Switch to grouped view'}>
+            <IconButton size="small" onClick={() => setGrouped(g => !g)} sx={{ color: 'text.secondary' }}>
+              {grouped ? <ViewListIcon fontSize="small" /> : <AccountTreeIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        )}
         {ddoAuditUrl && (
           <Tooltip title="View on DDO Audit">
             <IconButton
@@ -349,7 +359,7 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose, 
             No online characters found.
           </Typography>
         )}
-        {characters.length > 0 && (
+        {characters.length > 0 && grouped && (
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -403,6 +413,68 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose, 
                     ))}
                   </>
                 )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+        {characters.length > 0 && !grouped && (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell align="right">Level</TableCell>
+                  <TableCell>Classes</TableCell>
+                  <TableCell>Race</TableCell>
+                  <TableCell>Location</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sortCharsInGroup(characters).map((c) => {
+                  const playerName = getPlayerName(c.name)
+                  const isKnown = EXPECTED_PLAYERS.includes(playerName)
+                  const charLfm = lfmByCharacterName.get(c.name)
+                  const locId = String(c.location_id)
+                  const area = areas[locId] as AreaInfo | undefined
+                  const locationName = quests[locId]?.name || area?.name || 'Unknown'
+                  return (
+                    <TableRow key={c.id} hover>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" noWrap>{c.name}</Typography>
+                          {isKnown && (
+                            <Chip size="small" color="success" label={playerName} />
+                          )}
+                          {c.is_in_party && (
+                            <Tooltip title="In Party">
+                              <GroupsIcon color="action" sx={{ width: 16, height: 16 }} />
+                            </Tooltip>
+                          )}
+                          {charLfm && (
+                            <Tooltip title="In LFM (Click to view)">
+                              <ListAltIcon
+                                color="action"
+                                sx={{ width: 16, height: 16, cursor: 'pointer' }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (onLfmClick) onLfmClick(charLfm)
+                                }}
+                              />
+                            </Tooltip>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">{c.total_level}</TableCell>
+                      <TableCell>
+                        <ClassDisplay classes={c.classes} showIcons={showClassIcons} />
+                      </TableCell>
+                      <TableCell>{c.race}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" noWrap>{locationName}</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </TableContainer>
