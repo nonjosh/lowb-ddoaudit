@@ -31,6 +31,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   ToggleButton,
@@ -346,6 +347,9 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
   const [slotFilter, setSlotFilter] = useState('')
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false)
 
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+
   /** Unique equipment slots (non-weapon) */
   const slots = useMemo(() => {
     const s = new Set<string>()
@@ -386,6 +390,11 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
     })
   }, [items, search, slotFilter, showOnlyAvailable, hasItem])
 
+  const paginatedItems = useMemo(() => {
+    const startIndex = page * rowsPerPage
+    return filtered.slice(startIndex, startIndex + rowsPerPage)
+  }, [filtered, page, rowsPerPage])
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
@@ -410,13 +419,19 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
               label="Search Item Name/Properties"
               variant="outlined"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(0)
+              }}
               sx={{ flex: 1, minWidth: 200 }}
               placeholder="Search..."
               InputProps={{
                 endAdornment: search ? (
                   <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearch('')}>
+                    <IconButton size="small" onClick={() => {
+                      setSearch('')
+                      setPage(0)
+                    }}>
                       <ClearIcon fontSize="small" />
                     </IconButton>
                   </InputAdornment>
@@ -424,16 +439,16 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
               }}
             />
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Filter by Slot</InputLabel>
+              <InputLabel shrink>Filter by Slot</InputLabel>
               <Select
                 value={slotFilter}
                 label="Filter by Slot"
                 displayEmpty
-                onChange={(e) => setSlotFilter(e.target.value)}
+                onChange={(e) => { setSlotFilter(e.target.value); setPage(0); }}
                 input={<OutlinedInput label="Filter by Slot" />}
                 endAdornment={slotFilter ? (
                   <InputAdornment position="end" sx={{ mr: 2 }}>
-                    <IconButton size="small" onMouseDown={(e) => e.stopPropagation()} onClick={() => setSlotFilter('')}>
+                    <IconButton size="small" onMouseDown={(e) => e.stopPropagation()} onClick={() => { setSlotFilter(''); setPage(0); }}>
                       <ClearIcon fontSize="small" />
                     </IconButton>
                   </InputAdornment>
@@ -458,7 +473,7 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
               <ToggleButton
                 value="available"
                 selected={showOnlyAvailable}
-                onChange={() => setShowOnlyAvailable((v) => !v)}
+                onChange={() => { setShowOnlyAvailable((v) => !v); setPage(0); }}
                 sx={{ textTransform: 'none', px: 1.5 }}
               >
                 <InventoryIcon sx={{ fontSize: 18, mr: 0.5 }} />
@@ -482,7 +497,7 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginatedItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6}>
                     <Typography variant="body2" color="text.secondary">
@@ -491,7 +506,7 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((item) => (
+                paginatedItems.map((item) => (
                   <ItemTableRow
                     key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
                     item={item}
@@ -515,6 +530,19 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(event) => {
+            setRowsPerPage(parseInt(event.target.value, 10))
+            setPage(0)
+          }}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          sx={{ borderTop: 1, borderColor: 'divider' }}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
