@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { addMs, formatTimeRemaining, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import ClassDisplay from '@/components/shared/ClassDisplay'
+import IconWrapper from '@/components/shared/IconWrapper'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useConfig } from '@/contexts/useConfig'
@@ -154,8 +155,8 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
           </IconButton>
         }
         title={
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Typography variant="h6">
                   {raidUpdate && (
@@ -171,27 +172,31 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                 </Typography>
                 {hasWishForQuestName(g.raidName) ? (
                   <Tooltip title="Contains an item in your wish list">
-                    <Box sx={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <FavoriteIcon sx={{ width: 18, height: 18, color: 'error.main' }} />
+                    <Box component="span">
+                      <IconWrapper color="error.main">
+                        <FavoriteIcon />
+                      </IconWrapper>
                     </Box>
                   </Tooltip>
                 ) : null}
                 <ItemLootButton questName={g.raidName} />
+                {hasLfm && onLfmClick ? (
+                  <Tooltip title="View LFM details">
+                    <IconButton
+                      size="small"
+                      sx={{ p: 0, color: 'action.active' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onLfmClick(g.questId)
+                      }}
+                    >
+                      <IconWrapper>
+                        <ListAltIcon />
+                      </IconWrapper>
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
               </Box>
-              {hasLfm && onLfmClick ? (
-                <Tooltip title="View LFM details">
-                  <IconButton
-                    size="small"
-                    sx={{ ml: 0.25, width: 28, height: 28, p: 0, color: 'action.active' }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onLfmClick(g.questId)
-                    }}
-                  >
-                    <ListAltIcon sx={{ width: 18, height: 18 }} />
-                  </IconButton>
-                </Tooltip>
-              ) : null}
               <Typography variant="caption" color="text.secondary">
                 Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}
               </Typography>

@@ -2,6 +2,7 @@ import InventoryIcon from '@mui/icons-material/Inventory2'
 import LockIcon from '@mui/icons-material/Lock'
 import { Box, Chip, Tooltip, Typography } from '@mui/material'
 
+import IconWrapper from '@/components/shared/IconWrapper'
 import { useTrove } from '@/contexts/useTrove'
 
 // ============================================================================
@@ -142,34 +143,25 @@ export default function InventoryBadge({
   }
 
   // Default: icon variant
-  const iconSize = size === 'small' ? 18 : 20
   const iconFrameSize = size === 'small' ? 28 : 32
 
   return (
     <Box sx={{ display: 'inline-flex', gap: 0.25, alignItems: 'center', lineHeight: 0 }}>
       {isAvailable && (
         <Tooltip title={tooltipContent} arrow>
-          <Box sx={{ width: iconFrameSize, height: iconFrameSize, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <InventoryIcon
-              color="success"
-              sx={{
-                fontSize: iconSize,
-                verticalAlign: 'middle'
-              }}
-            />
+          <Box component="span">
+            <IconWrapper size={iconFrameSize} color="success.main">
+              <InventoryIcon sx={{ verticalAlign: 'middle' }} />
+            </IconWrapper>
           </Box>
         </Tooltip>
       )}
       {isBTC && (
         <Tooltip title="Bound to Character" arrow>
-          <Box sx={{ width: iconFrameSize, height: iconFrameSize, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <LockIcon
-              color="warning"
-              sx={{
-                fontSize: iconSize,
-                verticalAlign: 'middle'
-              }}
-            />
+          <Box component="span">
+            <IconWrapper size={iconFrameSize} color="warning.main">
+              <LockIcon sx={{ verticalAlign: 'middle' }} />
+            </IconWrapper>
           </Box>
         </Tooltip>
       )}

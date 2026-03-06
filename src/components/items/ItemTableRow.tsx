@@ -9,6 +9,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
+import IconWrapper from "@/components/shared/IconWrapper"
 import type React from 'react'
 import { useCallback } from 'react'
 
@@ -77,11 +78,13 @@ export default function ItemTableRow({
               aria-label={wished ? 'remove from wish list' : 'add to wish list'}
               sx={{ p: 0.25 }}
             >
-              {wished ? (
-                <FavoriteIcon fontSize="small" sx={{ color: 'error.main' }} />
-              ) : (
-                <FavoriteBorderIcon fontSize="small" />
-              )}
+              <IconWrapper>
+                {wished ? (
+                  <FavoriteIcon sx={{ color: 'error.main' }} />
+                ) : (
+                  <FavoriteBorderIcon />
+                )}
+              </IconWrapper>
             </IconButton>
           </Tooltip>
           {wikiUrl && <DdoWikiLink wikiUrl={wikiUrl} />}

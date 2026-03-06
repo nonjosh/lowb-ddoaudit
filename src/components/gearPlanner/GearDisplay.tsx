@@ -1,3 +1,4 @@
+import IconWrapper from "@/components/shared/IconWrapper"
 import { useState, useMemo } from 'react'
 
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
@@ -233,14 +234,7 @@ function GearSlotCard({
   const raidQuestNames = useRaidQuestNames()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [augmentDialogIndex, setAugmentDialogIndex] = useState<number | null>(null)
-  const actionButtonSx = {
-    width: 28,
-    height: 28,
-    p: 0,
-    '& svg': {
-      fontSize: 18
-    }
-  }
+  
 
   if (!item) {
     return (
@@ -256,12 +250,12 @@ function GearSlotCard({
                   <IconButton
                     size="small"
                     onClick={onTogglePin}
-                    sx={{ ...actionButtonSx, mt: -0.5, mr: -0.5 }}
+                    sx={{ p: 0, mt: -0.5, mr: -0.5 }}
                   >
                     {isPinned ? (
-                      <PushPinIcon fontSize="small" color="primary" />
+                      <IconWrapper color="primary.main"><PushPinIcon /></IconWrapper>
                     ) : (
-                      <PushPinOutlinedIcon fontSize="small" />
+                      <IconWrapper><PushPinOutlinedIcon /></IconWrapper>
                     )}
                   </IconButton>
                 </Tooltip>
@@ -276,9 +270,9 @@ function GearSlotCard({
                   <IconButton
                     size="small"
                     onClick={() => setDialogOpen(true)}
-                    sx={actionButtonSx}
+                    sx={{ p: 0 }}
                   >
-                    <SwapHorizIcon fontSize="small" />
+                    <IconWrapper><SwapHorizIcon /></IconWrapper>
                   </IconButton>
                 </Tooltip>
               )}
@@ -356,12 +350,12 @@ function GearSlotCard({
                     size="small"
                     onClick={onTogglePin}
                     color={isPinned ? "primary" : "default"}
-                    sx={actionButtonSx}
+                    sx={{ p: 0 }}
                   >
                     {isPinned ? (
                       <PushPinIcon fontSize="small" />
                     ) : (
-                      <PushPinOutlinedIcon fontSize="small" />
+                      <IconWrapper><PushPinOutlinedIcon /></IconWrapper>
                     )}
                   </IconButton>
                 </Tooltip>
@@ -370,12 +364,12 @@ function GearSlotCard({
                 <IconButton
                   size="small"
                   onClick={() => toggleWish(item)}
-                  sx={actionButtonSx}
+                  sx={{ p: 0 }}
                 >
                   {wished ? (
                     <FavoriteIcon fontSize="small" color="error" />
                   ) : (
-                    <FavoriteBorderIcon fontSize="small" />
+                    <IconWrapper><FavoriteBorderIcon /></IconWrapper>
                   )}
                 </IconButton>
               </Tooltip>
@@ -385,7 +379,7 @@ function GearSlotCard({
                     size="small"
                     onClick={onToggleIgnore}
                     color={isIgnored ? "warning" : "default"}
-                    sx={actionButtonSx}
+                    sx={{ p: 0 }}
                   >
                     <BlockIcon fontSize="small" />
                   </IconButton>
@@ -422,7 +416,7 @@ function GearSlotCard({
                 <IconButton
                   size="small"
                   onClick={() => setDialogOpen(true)}
-                  sx={{ ...actionButtonSx, ml: 0.5 }}
+                  sx={{ p: 0, ml: 0.5 }}
                 >
                   <SwapHorizIcon />
                 </IconButton>

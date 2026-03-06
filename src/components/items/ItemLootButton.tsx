@@ -2,6 +2,8 @@ import { IconButton, Tooltip } from '@mui/material'
 import { MouseEvent, useState } from 'react'
 import { GiChest } from 'react-icons/gi'
 
+import IconWrapper from '@/components/shared/IconWrapper'
+
 import ItemLootDialog from './ItemLootDialog'
 
 interface ItemLootButtonProps {
@@ -27,17 +29,13 @@ export default function ItemLootButton({ questName }: ItemLootButtonProps) {
           size="small"
           onClick={handleClick}
           sx={{
-            ml: 0.25,
-            width: 28,
-            height: 28,
             p: 0,
             color: 'action.active',
-            '& svg': {
-              display: 'block',
-            },
           }}
         >
-          <GiChest size={18} />
+          <IconWrapper>
+            <GiChest />
+          </IconWrapper>
         </IconButton>
       </Tooltip>
 
