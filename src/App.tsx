@@ -9,7 +9,6 @@ import { TroveProvider } from '@/contexts/TroveContext'
 import { WishlistProvider } from '@/contexts/WishlistContext'
 import Dashboard from '@/pages/Dashboard'
 import GearPlanner from '@/pages/GearPlanner'
-import GearPlannerDemo from '@/pages/GearPlannerDemo'
 import GreenSteelCrafting from '@/pages/GreenSteelCrafting'
 import LegendaryGreenSteelCrafting from '@/pages/LegendaryGreenSteelCrafting'
 import ItemWiki from '@/pages/ItemWiki'
@@ -33,7 +32,6 @@ function App() {
                       <Route path="/gear/wiki" element={<ItemWiki />} />
                       <Route path="/gear/wishlist" element={<Wishlist />} />
                       <Route path="/gear/planner" element={<GearPlanner />} />
-                      <Route path="/gear/planner-demo" element={<GearPlannerDemo />} />
                       {/* Crafting */}
                       <Route path="/crafting/viktranium" element={<ViktraniumCrafting />} />
                       <Route path="/crafting/greensteel" element={<GreenSteelCrafting />} />
@@ -44,7 +42,6 @@ function App() {
                       <Route path="/wiki" element={<Navigate to="/gear/wiki" replace />} />
                       <Route path="/wishlist" element={<Navigate to="/gear/wishlist" replace />} />
                       <Route path="/planner" element={<Navigate to="/gear/planner" replace />} />
-                      <Route path="/planner-demo" element={<Navigate to="/gear/planner-demo" replace />} />
                     </Routes>
                   </Layout>
                 </LfmProvider>

@@ -259,110 +259,52 @@ export function getGearAffixes(
 }
 ```
 
-### Gear Optimization
+### Gear Evaluation
 
 **File**: `src/domains/gearPlanner/optimization.ts`
 
 ```typescript
-export interface OptimizationOptions {
-  properties: string[]; // Properties to optimize (priority order)
-  maxResults?: number; // Max results to return
-  minML?: number; // Minimum level filter
-  maxML?: number; // Maximum level filter
-  craftingData?: CraftingData; // For augment optimization
+export interface EvaluatedGearSetup {
+  setup: GearSetup;
+  propertyValues: Map<string, number>;
+  propertyBreakdowns?: Map<string, Map<string, number>>;
+  unusedAugments?: number;
+  totalAugments?: number;
+  extraProperties?: number;
+  otherEffects?: string[];
+  activeSets?: number;
+  craftingSelections?: GearCraftingSelections;
 }
 
-export function calculateScore(
+export function evaluateGearSetup(
   setup: GearSetup,
   properties: string[],
   setsData: SetsData | null,
   craftingData?: CraftingData,
+  excludeSetAugments?: boolean,
+  excludedAugments?: string[],
+  excludedPacks?: string[],
+  existingCraftingSelections?: GearCraftingSelections,
 ): {
-  score: number;
   propertyValues: Map<string, number>;
+  propertyBreakdowns: Map<string, Map<string, number>>;
   unusedAugments: number;
   totalAugments: number;
   extraProperties: number;
   otherEffects: string[];
+  activeSets: number;
   craftingSelections: GearCraftingSelections;
 };
 ```
 
-Score calculation:
+Evaluation steps:
 
 1. Get base affixes from all items
-2. Auto-select optimal crafting options
+2. Auto-select crafting options (or use provided selections)
 3. Combine all affixes with stacking rules
-4. Score based on property priority (first = highest weight)
+4. Calculate property values and breakdowns for display
 
-### Optimization Algorithm
-
-The optimizer uses a **greedy algorithm**:
-
-1. Filter items by ML range
-2. Score items per slot based on selected properties
-3. Include potential crafting contributions in scoring
-4. Select top items per slot (keep top 20)
-5. Generate base setup with best item per slot
-6. Generate alternatives by swapping slots
-7. **Validate minor artifact limit** before adding items
-8. Sort results by: unused augments > extra properties > score
-
-### Minor Artifact Validation
-
-**File**: `src/domains/gearPlanner/optimization.ts`
-
-```typescript
-/**
- * Count how many minor artifacts are in a gear setup
- * DDO rules: Only 1 minor artifact can be worn at a time
- */
-function countMinorArtifacts(setup: GearSetup): number {
-  const slots: (keyof GearSetup)[] = [
-    "armor",
-    "belt",
-    "boots",
-    "bracers",
-    "cloak",
-    "gloves",
-    "goggles",
-    "helm",
-    "necklace",
-    "ring1",
-    "ring2",
-    "trinket",
-  ];
-  return slots.filter((slot) => setup[slot]?.artifact === true).length;
-}
-
-/**
- * Check if adding an item would violate the minor artifact limit
- */
-function wouldViolateArtifactLimit(
-  setup: GearSetup,
-  newItem: Item,
-  slot: string,
-): boolean {
-  if (!newItem.artifact) return false; // Not an artifact, no problem
-
-  // Count current artifacts excluding the slot we're replacing
-  const currentCount = countMinorArtifacts(setup);
-  const slotKey = slot as keyof GearSetup;
-  const replacingArtifact = setup[slotKey]?.artifact === true;
-
-  // If we're replacing an artifact with an artifact, count stays same
-  if (replacingArtifact) return false;
-
-  // If we're adding an artifact, check if we'd exceed limit
-  return currentCount >= 1;
-}
-```
-
-The optimization algorithm checks artifact limits at three points:
-
-1. **Base setup generation**: Skip artifacts if limit reached
-2. **Alternative generation**: Skip swaps that would violate limit
-3. **Set-focused combinations**: Only add artifact set items if valid
+> **Note**: The previous optimization algorithm (`optimizeGear`) and scoring logic have been removed. See `plans/plan_gear_calculation.md` for the proposed replacement.
 
 ## Related Files
 
@@ -370,21 +312,22 @@ The optimization algorithm checks artifact limits at three points:
 | ------------------------------------------------------------------------------------------ | ----------------------- |
 | [src/domains/gearPlanner/affixStacking.ts](../../src/domains/gearPlanner/affixStacking.ts) | Affix combination logic |
 | [src/domains/gearPlanner/gearSetup.ts](../../src/domains/gearPlanner/gearSetup.ts)         | Gear slots and setup    |
-| [src/domains/gearPlanner/optimization.ts](../../src/domains/gearPlanner/optimization.ts)   | Gear optimization       |
+| [src/domains/gearPlanner/optimization.ts](../../src/domains/gearPlanner/optimization.ts)   | Gear evaluation         |
 | [src/api/ddoGearPlanner/items.ts](../../src/api/ddoGearPlanner/items.ts)                   | Item data types         |
 
 ## Changelog
 
-| Date       | Change                                               | Reason                                           |
-| ---------- | ---------------------------------------------------- | ------------------------------------------------ |
-| 2024-01    | Initial gear planner                                 | Support gear optimization                        |
-| 2024-03    | Added crafting scoring                               | Include augment potential in optimization        |
-| 2026-02-04 | Added Spell Focus complex properties                 | Fix optimization for Spell Focus/Mastery         |
-| 2026-02-04 | Normalize "Spell Focus" to "Spell Focus Mastery"     | Handle inconsistent naming in item data          |
-| 2026-02-04 | Fix complex property scoring in getPropertyTotal     | Allow optimizing for complex properties directly |
-| 2026-02-04 | Change forDisplay to use minimum instead of average  | Show baseline universal bonus, not average       |
-| 2026-02-04 | Add propertyBreakdowns to OptimizedGearSetup         | Enable bonus breakdown tooltips in UI            |
-| 2026-02-04 | Add getPropertyBreakdown function                    | Calculate minimum bonus breakdown for tooltips   |
-| 2026-02-04 | Export COMPLEX_PROPERTIES from affixStacking         | Allow other components to access definitions     |
-| 2026-02-04 | Show complex property bonuses in child columns       | Display universal bonuses in school columns      |
-| 2026-02-04 | Remove slot numbers from Property Breakdown tooltips | Cleaner tooltip formatting                       |
+| Date       | Change                                               | Reason                                                    |
+| ---------- | ---------------------------------------------------- | --------------------------------------------------------- |
+| 2024-01    | Initial gear planner                                 | Support gear optimization                                 |
+| 2024-03    | Added crafting scoring                               | Include augment potential in optimization                 |
+| 2026-02-04 | Added Spell Focus complex properties                 | Fix optimization for Spell Focus/Mastery                  |
+| 2026-02-04 | Normalize "Spell Focus" to "Spell Focus Mastery"     | Handle inconsistent naming in item data                   |
+| 2026-02-04 | Fix complex property scoring in getPropertyTotal     | Allow optimizing for complex properties directly          |
+| 2026-02-04 | Change forDisplay to use minimum instead of average  | Show baseline universal bonus, not average                |
+| 2026-02-04 | Add propertyBreakdowns to EvaluatedGearSetup         | Enable bonus breakdown tooltips in UI                     |
+| 2026-02-04 | Add getPropertyBreakdown function                    | Calculate minimum bonus breakdown for tooltips            |
+| 2026-02-04 | Export COMPLEX_PROPERTIES from affixStacking         | Allow other components to access definitions              |
+| 2026-02-04 | Show complex property bonuses in child columns       | Display universal bonuses in school columns               |
+| 2026-02-04 | Remove slot numbers from Property Breakdown tooltips | Cleaner tooltip formatting                                |
+| 2025-07    | Remove optimization algorithm (optimizeGear)         | Replaced by evaluation-only; see plan_gear_calculation.md |

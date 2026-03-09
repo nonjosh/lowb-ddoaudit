@@ -386,7 +386,7 @@ export type GearCraftingSelections = Record<string, SelectedCraftingOption[]>
 
 /**
  * Build updated crafting selections after a user changes a single augment/crafting slot.
- * Shared helper used by GearPlanner.tsx and GearPlannerDemo.tsx to avoid duplication.
+ * Shared helper used by GearPlanner.tsx to avoid duplication.
  *
  * @param currentSelections The current crafting selections for the entire gear setup
  * @param gearSlot The gear slot being modified (e.g. 'ring1', 'armor')

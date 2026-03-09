@@ -100,19 +100,19 @@ export default function ItemSelectionDialog({
   }, [open])
 
   // Filter items by search term (name, affixes, or quests) and type
-  const filteredItems = items.filter(item => {
-    const searchLower = searchTerm.toLowerCase()
-    const matchesSearch = !searchTerm ||
-      item.name.toLowerCase().includes(searchLower) ||
-      item.affixes.some(affix => affix.name.toLowerCase().includes(searchLower)) ||
-      item.quests?.some(quest => quest.toLowerCase().includes(searchLower))
-
+  const filteredItems = useMemo(() => items.filter(item => {
     const matchesType = typeFilter.length === 0 || (item.type && typeFilter.includes(item.type))
+    if (!matchesType) return false
 
     const matchesOwned = !showOwnedOnly || isItemAvailableForCharacters(item.name)
+    if (!matchesOwned) return false
 
-    return matchesSearch && matchesType && matchesOwned
-  })
+    if (!searchTerm) return true
+    const searchLower = searchTerm.toLowerCase()
+    return item.name.toLowerCase().includes(searchLower) ||
+      item.affixes.some(affix => affix.name.toLowerCase().includes(searchLower)) ||
+      item.quests?.some(quest => quest.toLowerCase().includes(searchLower))
+  }), [items, searchTerm, typeFilter, showOwnedOnly, isItemAvailableForCharacters])
 
   const handleSelect = (item: Item) => {
     onSelect(item)

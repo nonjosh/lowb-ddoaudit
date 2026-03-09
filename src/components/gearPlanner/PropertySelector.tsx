@@ -1,11 +1,8 @@
 import {
   Autocomplete,
   Box,
-  Button,
   Chip,
   FormControl,
-  FormControlLabel,
-  Switch,
   TextField,
   Typography
 } from '@mui/material'
@@ -36,9 +33,6 @@ interface PropertySelectorProps {
   availableSets?: string[]
   selectedSets?: string[]
   onSetsChange?: (sets: string[]) => void
-  autoOptimize?: boolean
-  onAutoOptimizeChange?: (value: boolean) => void
-  onManualRefresh?: () => void
 }
 
 // Sortable chip component for properties
@@ -146,9 +140,6 @@ export default function PropertySelector({
   availableSets,
   selectedSets,
   onSetsChange,
-  autoOptimize,
-  onAutoOptimizeChange,
-  onManualRefresh
 }: PropertySelectorProps) {
   const propertySensors = useSensors(
     useSensor(PointerSensor),
@@ -188,36 +179,11 @@ export default function PropertySelector({
     <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Typography variant="h6">
-          Select Properties to Optimize
+          Select Properties to Track
         </Typography>
-        {onAutoOptimizeChange && onManualRefresh && (
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {!autoOptimize && (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={onManualRefresh}
-              >
-                Refresh
-              </Button>
-            )}
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={autoOptimize ?? true}
-                  onChange={(e) => onAutoOptimizeChange(e.target.checked)}
-                  size="small"
-                />
-              }
-              label="Auto-refresh"
-              labelPlacement="start"
-              sx={{ m: 0 }}
-            />
-          </Box>
-        )}
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Select 3 or more properties to find the best gear combinations. Drag to reorder.
+        Select properties to track in your gear setup. Drag to reorder.
       </Typography>
       <FormControl fullWidth>
         <Autocomplete
@@ -261,8 +227,6 @@ export default function PropertySelector({
         />
         <Typography variant="caption" color="text.secondary">
           {selectedProperties.length} properties selected
-          {selectedProperties.length < 3 && selectedProperties.length > 0 &&
-            ` (minimum 3 required)`}
         </Typography>
       </FormControl>
 

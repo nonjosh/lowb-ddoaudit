@@ -92,7 +92,7 @@ export default function IgnoreListDialog({
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Items, augments, and adventure packs in this list will be excluded from optimization results.
+          Items, augments, and adventure packs in this list will be excluded from gear planning.
         </Typography>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 2 }}>
           <Tab label={`Adventure Packs (${excludedPacks.length})`} />

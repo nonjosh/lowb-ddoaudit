@@ -31,7 +31,7 @@ import {
 } from '@/domains/gearPlanner/externalUrl'
 import { GearCraftingSelections } from '@/domains/gearPlanner/craftingHelpers'
 import { GearSetup } from '@/domains/gearPlanner/gearSetup'
-import { calculateScore, OptimizedGearSetup } from '@/domains/gearPlanner/optimization'
+import { evaluateGearSetup, EvaluatedGearSetup } from '@/domains/gearPlanner/optimization'
 
 interface ExternalUrlDialogProps {
   open: boolean
@@ -46,11 +46,9 @@ interface ExternalUrlDialogProps {
   currentCraftingSelections?: GearCraftingSelections
   /** Currently selected properties */
   selectedProperties: string[]
-  /** Current maxML setting */
-  maxML: number
   excludeSetAugments: boolean
   /** Called when a gear setup is imported */
-  onImport: (result: OptimizedGearSetup, trackedProperties?: string[]) => void
+  onImport: (result: EvaluatedGearSetup, trackedProperties?: string[]) => void
 }
 
 export default function ExternalUrlDialog({
@@ -62,7 +60,6 @@ export default function ExternalUrlDialog({
   currentSetup,
   currentCraftingSelections,
   selectedProperties,
-  maxML,
   excludeSetAugments,
   onImport,
 }: ExternalUrlDialogProps) {
@@ -73,7 +70,7 @@ export default function ExternalUrlDialog({
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string }>({ open: false, message: '' })
 
   const exportUrl = currentSetup
-    ? exportToExternalUrl(currentSetup, currentCraftingSelections, selectedProperties, maxML)
+    ? exportToExternalUrl(currentSetup, currentCraftingSelections, selectedProperties)
     : ''
 
   const handleImport = useCallback(() => {
@@ -99,8 +96,8 @@ export default function ExternalUrlDialog({
     const summary = formatImportSummary(result)
     setImportSummary(summary)
 
-    // Calculate score for the imported setup
-    const scoreResult = calculateScore(
+    // Evaluate the imported setup
+    const evalResult = evaluateGearSetup(
       result.setup,
       selectedProperties.length > 0 ? selectedProperties : result.trackedProperties,
       setsData,
@@ -111,21 +108,21 @@ export default function ExternalUrlDialog({
       Object.keys(result.craftingSelections).length > 0 ? result.craftingSelections : undefined
     )
 
-    const optimizedSetup: OptimizedGearSetup = {
+    const evaluatedSetup: EvaluatedGearSetup = {
       setup: result.setup,
-      score: scoreResult.score,
-      propertyValues: scoreResult.propertyValues,
-      unusedAugments: scoreResult.unusedAugments,
-      totalAugments: scoreResult.totalAugments,
-      extraProperties: scoreResult.extraProperties,
-      otherEffects: scoreResult.otherEffects,
-      activeSets: scoreResult.activeSets,
+      propertyValues: evalResult.propertyValues,
+      propertyBreakdowns: evalResult.propertyBreakdowns,
+      unusedAugments: evalResult.unusedAugments,
+      totalAugments: evalResult.totalAugments,
+      extraProperties: evalResult.extraProperties,
+      otherEffects: evalResult.otherEffects,
+      activeSets: evalResult.activeSets,
       craftingSelections: Object.keys(result.craftingSelections).length > 0
         ? result.craftingSelections
-        : scoreResult.craftingSelections,
+        : evalResult.craftingSelections,
     }
 
-    onImport(optimizedSetup, result.trackedProperties.length > 0 ? result.trackedProperties : undefined)
+    onImport(evaluatedSetup, result.trackedProperties.length > 0 ? result.trackedProperties : undefined)
     setImportUrl('')
     onClose()
   }, [importUrl, items, craftingData, setsData, selectedProperties, excludeSetAugments, onImport, onClose])

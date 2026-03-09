@@ -126,16 +126,15 @@ docs/
 
 ## Routes
 
-| Path                 | Page              | Description                    |
-| -------------------- | ----------------- | ------------------------------ |
-| `/`                  | Dashboard         | Raid timers & loot tracking    |
-| `/gear/wiki`         | Wiki              | Browse/search all items        |
-| `/gear/wishlist`     | Wishlist          | Track desired items            |
-| `/gear/planner`      | Gear Planner      | Optimize gear sets             |
-| `/gear/planner-demo` | Gear Planner Demo | Demo version (hidden from nav) |
-| `/tr-planner`        | TR Planner        | TR progression planning        |
+| Path             | Page         | Description                 |
+| ---------------- | ------------ | --------------------------- |
+| `/`              | Dashboard    | Raid timers & loot tracking |
+| `/gear/wiki`     | Wiki         | Browse/search all items     |
+| `/gear/wishlist` | Wishlist     | Track desired items         |
+| `/gear/planner`  | Gear Planner | Optimize gear sets          |
+| `/tr-planner`    | TR Planner   | TR progression planning     |
 
-**Note**: Old routes (`/wiki`, `/wishlist`, `/planner`, `/planner-demo`) redirect to new paths for backward compatibility.
+**Note**: Old routes (`/wiki`, `/wishlist`, `/planner`) redirect to new paths for backward compatibility.
 
 ## Common Tasks
 

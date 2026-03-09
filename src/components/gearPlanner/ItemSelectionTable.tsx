@@ -53,6 +53,15 @@ export function ItemSelectionTable({
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null)
+  const [displayLimit, setDisplayLimit] = useState(50)
+
+  // Reset display limit when items list changes (e.g. new filter)
+  const itemsKey = items.length
+  const [prevItemsKey, setPrevItemsKey] = useState(itemsKey)
+  if (itemsKey !== prevItemsKey) {
+    setPrevItemsKey(itemsKey)
+    setDisplayLimit(50)
+  }
 
   // Sort items by ML descending if requested
   const sortedItems = sortByML
@@ -100,6 +109,10 @@ export function ItemSelectionTable({
     return Array.from(props).sort()
   }
 
+  // Limit displayed items
+  const displayedItems = sortedItems.slice(0, displayLimit)
+  const hasMore = sortedItems.length > displayLimit
+
   return (
     <TableContainer component={Paper} sx={{ maxHeight }}>
       <Table size="small" stickyHeader>
@@ -114,14 +127,14 @@ export function ItemSelectionTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedItems.length === 0 ? (
+          {displayedItems.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} align="center">
                 <Typography color="text.secondary">No items found</Typography>
               </TableCell>
             </TableRow>
           ) : (
-            sortedItems.map((item) => {
+            displayedItems.map((item) => {
               const isCurrent = currentItem?.name === item.name
               const wished = isWished(item)
               const isHovered = hoveredItem?.name === item.name
@@ -264,6 +277,16 @@ export function ItemSelectionTable({
             })}
           </Box>
         </Paper>
+      )}
+      {hasMore && (
+        <Box sx={{ p: 1, textAlign: 'center' }}>
+          <Button
+            size="small"
+            onClick={() => setDisplayLimit(prev => prev + 50)}
+          >
+            Show more ({sortedItems.length - displayLimit} remaining)
+          </Button>
+        </Box>
       )}
     </TableContainer>
   )
