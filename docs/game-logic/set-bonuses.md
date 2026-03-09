@@ -13,6 +13,19 @@ DDO **set bonuses** activate when a character equips multiple items from the sam
 3. **Stacking**: Set bonus affixes follow normal stacking rules
 4. **Set Augments**: Some augments provide set membership (count as +1 item toward threshold)
 
+### Set Augments
+
+Some augments provide set membership (count as +1 item toward threshold).
+
+**Critical Rule — Set Augment Suppression**: An item can only benefit from ONE set source at a time. When a Set Augment is slotted into an item:
+
+- The Set Augment's set membership **suppresses** (overrides) any existing set memberships that the item inherently belongs to.
+- The item no longer counts toward its original named set(s) — it only counts toward the Set Augment's set.
+- This means you **cannot** have a Set Augment active alongside the item's built-in set bonuses on the same item.
+- **Multiple Set Augments in the same item**: If an item has multiple augment slots in which Set Augments could be placed, only one Set Augment should be active. Slotting a second Set Augment would suppress the first Set Augment's set as well as the item's inherent sets.
+
+**Implication for the planner**: When auto-selecting Set Augments, the algorithm must check whether the item already belongs to a valuable set. If the item's inherent set bonuses (considering all equipped items) provide more value than the Set Augment's set, the Set Augment should NOT be slotted into that item.
+
 ### Common Set Patterns
 
 | Set Type     | Typical Thresholds | Example                |
@@ -225,8 +238,9 @@ export async function fetchSets(): Promise<SetsData> {
 
 ## Changelog
 
-| Date    | Change                        | Reason                               |
-| ------- | ----------------------------- | ------------------------------------ |
-| 2024-01 | Initial set bonus support     | Basic threshold-based bonuses        |
-| 2024-03 | Added Set Augment support     | Count augments toward set thresholds |
-| 2024-03 | Added set bonus slot handling | Support Slaver's/Lost Purpose slots  |
+| Date    | Change                             | Reason                                                                 |
+| ------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| 2024-01 | Initial set bonus support          | Basic threshold-based bonuses                                          |
+| 2024-03 | Added Set Augment support          | Count augments toward set thresholds                                   |
+| 2024-03 | Added set bonus slot handling      | Support Slaver's/Lost Purpose slots                                    |
+| 2025-07 | Added Set Augment suppression rule | Document that Set Augments suppress an item's inherent set memberships |

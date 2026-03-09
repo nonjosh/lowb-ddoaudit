@@ -53,6 +53,19 @@ DDO items can have **crafting slots** that allow players to add augments or sele
 | Moon          | Moon only                                |
 | Sun           | Sun only                                 |
 
+### Set Augments and Set Suppression
+
+**Set Augments** are special colorless augments that grant membership in a named item set. They are identified by the `set` property on a `CraftingOption`.
+
+**Critical Rule — Set Augment Suppression**: When a Set Augment is slotted into an item, it **suppresses** (overrides) the item's inherent set memberships:
+
+- The item stops counting toward its original named set(s).
+- The item only counts toward the Set Augment's set.
+- You cannot benefit from both a Set Augment's set AND the item's built-in sets on the same item.
+- Only one Set Augment should be active per item — a second Set Augment would suppress the first.
+
+This means the auto-selection algorithm must weigh the trade-off: slotting a Set Augment gains progress toward one set but loses the item's contribution to other sets.
+
 ### Crafting Slot Categories
 
 1. **Augment Slots** - Accept colored gem augments
@@ -328,9 +341,10 @@ export function extractAugmentsAsItems(
 
 ## Changelog
 
-| Date    | Change                         | Reason                        |
-| ------- | ------------------------------ | ----------------------------- |
-| 2024-01 | Initial crafting support       | Basic augment slot handling   |
-| 2024-02 | Added stacking-aware selection | Prevent redundant augments    |
-| 2024-03 | Added Set Augment support      | Support set bonus augments    |
-| 2024-04 | Added augment extraction       | Display augments in Item Wiki |
+| Date    | Change                             | Reason                                                                 |
+| ------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| 2024-01 | Initial crafting support           | Basic augment slot handling                                            |
+| 2024-02 | Added stacking-aware selection     | Prevent redundant augments                                             |
+| 2024-03 | Added Set Augment support          | Support set bonus augments                                             |
+| 2024-04 | Added augment extraction           | Display augments in Item Wiki                                          |
+| 2025-07 | Added Set Augment suppression rule | Document that Set Augments suppress an item's inherent set memberships |
