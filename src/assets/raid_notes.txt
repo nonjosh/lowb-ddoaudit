@@ -56,6 +56,8 @@ Set:
 Tattered Scrolls of the Broken One - Bracer: +3 Artifact Bonus to Charisma
 Citadel's Gaze - Helm: +30 Artifact bonus to MRR
 Crystalline Gauntlets - Glove: +3 Artifact bonus to Wisdom
+Sequence:
+Dark Red / Off ⇨ Green ⇨ Blue ⇨ Yellow ⇨ Red ⇨ Purple ⇨ Green
 
 ## Project Nemesis
 Augment:
@@ -65,8 +67,6 @@ The Family's Blessing - Necklace: +15% Artifact bonus to damage vs the Helpless
 Staggershockers - Glove: +3 Artifact bonus to Intelligence
 Attunement's Gaze- Goggle: +25 Artifact bonus to Universal Spell Power
 Helm of the Final Watcher - Helm: +15% Artifact bonus to Fortification Bypass
-Sequence:
-Dark Red / Off ⇨ Green ⇨ Blue ⇨ Yellow ⇨ Red ⇨ Purple ⇨ Green
 
 ## Legendary Lord of Blades
 Augment:
