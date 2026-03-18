@@ -73,10 +73,9 @@ Some properties are **complex** - they represent multiple underlying properties:
 
 **Game Rule**: A character can only wear **ONE minor artifact** at a time.
 
-- **Major artifacts** (raid loot): Unlimited
 - **Minor artifacts**: Maximum 1 equipped
 - Items have `artifact: true` field to indicate minor artifact status
-- Optimization must validate artifact count before equipping
+- UI should validate and warn if multiple minor artifacts are equipped
 
 ## Implementation
 

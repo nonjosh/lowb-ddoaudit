@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import SearchIcon from '@mui/icons-material/Search'
+import SortIcon from '@mui/icons-material/Sort'
 import {
   Box,
   Button,
@@ -41,6 +42,7 @@ interface ItemSelectionDialogProps {
   onSelect: (item: Item | undefined) => void
   craftingData?: CraftingData | null
   setsData?: SetsData | null
+  getImprovementScores?: (candidates: Item[]) => Map<string, number>
 }
 
 export default function ItemSelectionDialog({
@@ -51,10 +53,12 @@ export default function ItemSelectionDialog({
   slotName,
   onSelect,
   craftingData,
-  setsData
+  setsData,
+  getImprovementScores
 }: ItemSelectionDialogProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showOwnedOnly, setShowOwnedOnly] = useState(false)
+  const [sortByScore, setSortByScore] = useState(false)
   const { isItemAvailableForCharacters, inventoryMap } = useTrove()
 
   // Only show the owned filter when Trove data is imported
@@ -96,6 +100,7 @@ export default function ItemSelectionDialog({
     if (!open) {
       setSearchTerm('')
       setShowOwnedOnly(false)
+      setSortByScore(false)
     }
   }, [open])
 
@@ -113,7 +118,11 @@ export default function ItemSelectionDialog({
       item.affixes.some(affix => affix.name.toLowerCase().includes(searchLower)) ||
       item.quests?.some(quest => quest.toLowerCase().includes(searchLower))
   }), [items, searchTerm, typeFilter, showOwnedOnly, isItemAvailableForCharacters])
-
+  // Compute improvement scores when dialog is open
+  const improvementScores = useMemo(() => {
+    if (!open || !getImprovementScores) return undefined
+    return getImprovementScores(filteredItems)
+  }, [open, getImprovementScores, filteredItems])
   const handleSelect = (item: Item) => {
     onSelect(item)
     onClose()
@@ -191,6 +200,21 @@ export default function ItemSelectionDialog({
               </Select>
             </FormControl>
           )}
+          {improvementScores && (
+            <Tooltip title="Sort by improvement score">
+              <ToggleButton
+                value="score"
+                selected={sortByScore}
+                onChange={() => setSortByScore(prev => !prev)}
+                size="small"
+                color="primary"
+                sx={{ whiteSpace: 'nowrap', px: 1.5 }}
+              >
+                <SortIcon sx={{ mr: 0.5, fontSize: '1.1rem' }} />
+                Score
+              </ToggleButton>
+            </Tooltip>
+          )}
         </Box>
 
         {/* Currently Equipped Item with Effects */}
@@ -225,9 +249,11 @@ export default function ItemSelectionDialog({
           currentItem={currentItem}
           onSelect={handleSelect}
           maxHeight={500}
-          sortByML={true}
+          sortByML={!sortByScore}
           craftingData={craftingData}
           setsData={setsData}
+          improvementScores={improvementScores}
+          sortByScore={sortByScore}
         />
       </DialogContent>
       <DialogActions>

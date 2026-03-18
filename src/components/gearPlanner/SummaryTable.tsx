@@ -30,6 +30,7 @@ interface SummaryTableProps {
   hoveredAugment?: string | null
   hoveredSetName?: string | null
   craftingSelections?: GearCraftingSelections
+  theoreticalMaxValues?: Map<string, number>
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -77,7 +78,8 @@ export default function SummaryTable({
   onBonusSourceHover,
   hoveredAugment,
   hoveredSetName,
-  craftingSelections
+  craftingSelections,
+  theoreticalMaxValues
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
 
@@ -484,11 +486,31 @@ export default function SummaryTable({
               <TableCell>
                 <strong>Total</strong>
               </TableCell>
-              {selectedProperties.map(property => (
-                <TableCell key={property} align="right">
-                  <strong>+{propertyTotals.get(property) || 0}</strong>
-                </TableCell>
-              ))}
+              {selectedProperties.map(property => {
+                const total = propertyTotals.get(property) || 0
+                const max = theoreticalMaxValues?.get(property)
+                return (
+                  <TableCell key={property} align="right">
+                    <Tooltip
+                      title={max ? `Theoretical max: ${max} (${Math.round(total / max * 100)}% achieved)` : ''}
+                      arrow
+                    >
+                      <strong>
+                        +{total}
+                        {max ? (
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            sx={{ ml: 0.5, color: 'text.secondary' }}
+                          >
+                            /{max}
+                          </Typography>
+                        ) : null}
+                      </strong>
+                    </Tooltip>
+                  </TableCell>
+                )
+              })}
             </TableRow>
           </TableBody>
         </Table>

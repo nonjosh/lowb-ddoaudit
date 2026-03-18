@@ -238,9 +238,10 @@ export async function fetchSets(): Promise<SetsData> {
 
 ## Changelog
 
-| Date    | Change                             | Reason                                                                 |
-| ------- | ---------------------------------- | ---------------------------------------------------------------------- |
-| 2024-01 | Initial set bonus support          | Basic threshold-based bonuses                                          |
-| 2024-03 | Added Set Augment support          | Count augments toward set thresholds                                   |
-| 2024-03 | Added set bonus slot handling      | Support Slaver's/Lost Purpose slots                                    |
-| 2025-07 | Added Set Augment suppression rule | Document that Set Augments suppress an item's inherent set memberships |
+| Date    | Change                             | Reason                                                                                                                                       |
+| ------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2024-01 | Initial set bonus support          | Basic threshold-based bonuses                                                                                                                |
+| 2024-03 | Added Set Augment support          | Count augments toward set thresholds                                                                                                         |
+| 2024-03 | Added set bonus slot handling      | Support Slaver's/Lost Purpose slots                                                                                                          |
+| 2025-07 | Added Set Augment suppression rule | Document that Set Augments suppress an item's inherent set memberships                                                                       |
+| 2026-03 | Removed brute-force optimization   | `optimizeGear()` removed; evaluation via `evaluateGearSetup()` remains. Property-Bonus Index planned (see `plans/plan_gear_calculation.md`). |

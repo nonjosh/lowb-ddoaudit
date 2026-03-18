@@ -9,12 +9,10 @@ import {
   CircularProgress,
   Container,
   FormControl,
-  FormControlLabel,
   InputLabel,
   MenuItem,
   Paper,
   Select,
-  Switch,
   Tooltip,
   Typography
 } from '@mui/material'
@@ -23,13 +21,14 @@ import { CraftingOption, Item } from '@/api/ddoGearPlanner'
 import ExternalUrlDialog from '@/components/gearPlanner/ExternalUrlDialog'
 import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSetupTabs from '@/components/gearPlanner/GearSetupTabs'
+import GearSuggestions from '@/components/gearPlanner/GearSuggestions'
 import PropertyPresetSelector from '@/components/gearPlanner/PropertyPresetSelector'
 import PropertySelector from '@/components/gearPlanner/PropertySelector'
 import IgnoreListDialog from '@/components/gearPlanner/SettingsDialog'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
-import { buildUpdatedCraftingSelections, EvaluatedGearSetup, evaluateGearSetup, getAllAvailableProperties, GearSetup } from '@/domains/gearPlanner'
+import { buildPropertyBonusIndex, buildUpdatedCraftingSelections, EvaluatedGearSetup, evaluateGearSetup, getAllAvailableProperties, GearSetup, getTheoreticalMax, PropertyBonusIndex } from '@/domains/gearPlanner'
 import { useGearSetups } from '@/hooks/useGearSetups'
 import { usePropertyPresets } from '@/hooks/usePropertyPresets'
 
@@ -245,11 +244,32 @@ export default function GearPlanner() {
     return getAllAvailableProperties(items)
   }, [items])
 
+  // Build property-bonus index (one-time when data loads)
+  const propertyIndex: PropertyBonusIndex | null = useMemo(() => {
+    if (items.length === 0) return null
+    return buildPropertyBonusIndex(items, setsData, craftingData)
+  }, [items, setsData, craftingData])
+
+  // Compute theoretical max for each selected property
+  const theoreticalMaxValues = useMemo(() => {
+    const maxMap = new Map<string, number>()
+    if (!propertyIndex) return maxMap
+    for (const prop of selectedProperties) {
+      maxMap.set(prop, getTheoreticalMax(propertyIndex, prop))
+    }
+    return maxMap
+  }, [propertyIndex, selectedProperties])
+
   // Get available sets from setsData
   const availableSets = useMemo(() => {
     if (!setsData) return []
     return Object.keys(setsData).sort()
   }, [setsData])
+
+  // Set of item names available in Trove inventory
+  const ownedItemNames = useMemo(() => {
+    return new Set(inventoryMap.keys())
+  }, [inventoryMap])
 
   // Helper to evaluate a gear setup and build an EvaluatedGearSetup
   const buildEvaluatedSetup = useCallback((
@@ -259,7 +279,7 @@ export default function GearPlanner() {
   ): EvaluatedGearSetup => {
     const result = evaluateGearSetup(
       setup, properties, setsData, craftingData, excludeSetAugments,
-      [], [],
+      excludedAugments, excludedPacks,
       existingCraftingSelections
     )
     return {
@@ -273,7 +293,7 @@ export default function GearPlanner() {
       activeSets: result.activeSets,
       craftingSelections: existingCraftingSelections ?? result.craftingSelections
     }
-  }, [setsData, craftingData, excludeSetAugments])
+  }, [setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks])
 
   // Helper: load a saved gear setup by ID and apply it to the current state
   const applyLoadedSetup = useCallback(async (id: number) => {
@@ -532,6 +552,13 @@ export default function GearPlanner() {
     autoSaveSetup(newSetup, evaluated.craftingSelections)
   }, [currentSetup, selectedProperties, buildEvaluatedSetup, autoSaveSetup])
 
+  // Handle applying a full setup from GearSuggestions
+  const handleApplySetup = useCallback((setup: GearSetup) => {
+    const evaluated = buildEvaluatedSetup(setup, selectedProperties)
+    setCurrentSetup(evaluated)
+    autoSaveSetup(setup, evaluated.craftingSelections)
+  }, [selectedProperties, buildEvaluatedSetup, autoSaveSetup])
+
   // Handle manual crafting/augment change for a specific slot
   const handleCraftingChange = useCallback((gearSlot: string, slotIndex: number, option: CraftingOption | null) => {
     const setupToUse = currentSetup?.setup ?? {}
@@ -577,25 +604,13 @@ export default function GearPlanner() {
 
   return (
     <Container maxWidth={false} sx={{ py: 4, px: 2 }}>
-      {/* Header: Title + Gear Setup Tabs + Action Buttons */}
+      {/* Header: Title + Action Buttons */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h4" sx={{ flexShrink: 0 }}>
           Gear Planner
         </Typography>
 
-        {/* Gear Setup Tabs (inline with title) */}
-        {gearSetups.isLoaded && (
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <GearSetupTabs
-              setups={gearSetups.setups}
-              activeSetupId={gearSetups.activeSetupId}
-              onSelect={(id) => { void handleSetupSelect(id) }}
-              onAdd={() => { void handleSetupAdd() }}
-              onRename={(id, name) => { void gearSetups.renameSetup(id, name) }}
-              onDelete={(id) => { void gearSetups.deleteSetup(id) }}
-            />
-          </Box>
-        )}
+        <Box sx={{ flex: 1 }} />
 
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0, alignItems: 'center' }}>
@@ -653,7 +668,7 @@ export default function GearPlanner() {
         onExcludedItemsChange={handleExcludedItemsChange}
       />
 
-      {/* Properties + Presets */}
+      {/* Properties + Presets (presets inline with title) */}
       <Paper elevation={2} sx={{ mb: 3 }}>
         <PropertySelector
           availableProperties={availableProperties}
@@ -662,10 +677,7 @@ export default function GearPlanner() {
           availableSets={availableSets}
           selectedSets={selectedSets}
           onSetsChange={handleSetsChange}
-        />
-        {/* Property Presets */}
-        {propertyPresets.isLoaded && (
-          <Box sx={{ px: 2, pb: 1.5 }}>
+          presetSlot={propertyPresets.isLoaded ? (
             <PropertyPresetSelector
               presets={propertyPresets.presets}
               activePresetId={propertyPresets.activePresetId}
@@ -676,110 +688,138 @@ export default function GearPlanner() {
               onDelete={(id) => { void propertyPresets.deletePreset(id) }}
               hasProperties={selectedProperties.length > 0}
             />
-          </Box>
-        )}
-      </Paper>
-
-      {/* Inventory / Character bar */}
-      <Paper elevation={2} sx={{ p: 1.5, mb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-          {inventoryMap.size > 0 ? (
-            <>
-              <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Character</InputLabel>
-                <Select
-                  value={selectedCharacterId !== null ? String(selectedCharacterId) : ''}
-                  label="Character"
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setSelectedCharacter(val === '' ? null : Number(val))
-                  }}
-                >
-                  <MenuItem value="">All Characters</MenuItem>
-                  {sortedCharacters.map((char) => (
-                    <MenuItem key={char.id} value={String(char.id)}>
-                      {char.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              {selectedCharacterId !== null && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleLoadEquipped(selectedCharacterId)}
-                >
-                  Load {sortedCharacters.find(c => c.id === selectedCharacterId)?.name}'s Gear
-                </Button>
-              )}
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={excludeSetAugments}
-                    onChange={(e) => {
-                      const newValue = e.target.checked
-                      setExcludeSetAugments(newValue)
-                      saveExcludeSetAugments(newValue)
-                    }}
-                    size="small"
-                  />
-                }
-                label="Exclude Set Augments"
-                sx={{ ml: 0 }}
-              />
-            </>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              Import Trove data via the <strong>Trove</strong> button in the toolbar to load character gear and filter by owned items.
-            </Typography>
-          )}
-        </Box>
-      </Paper>
-
-      {/* Gear Display - always shown (empty slots when no items selected) */}
-      <Paper elevation={2} sx={{ mb: 3 }}>
-        <GearDisplay
-          setup={currentSetup?.setup ?? {}}
-          selectedProperties={selectedProperties}
-          hoveredProperty={hoveredProperty}
-          hoveredAugment={hoveredAugment}
-          hoveredSetAugment={hoveredSetAugment}
-          hoveredBonusSource={hoveredBonusSource}
-          hoveredSetName={hoveredSetName}
-          onAugmentHover={setHoveredAugment}
-          onSetAugmentHover={setHoveredSetAugment}
-          onSetNameHover={setHoveredSetName}
-          craftingSelections={currentSetup?.craftingSelections}
-          setsData={setsData}
-          craftingData={craftingData}
-          onGearChange={handleGearChange}
-          availableItems={items}
-          onPropertyAdd={handlePropertyAdd}
-          pinnedSlots={pinnedSlots}
-          onTogglePin={handleTogglePin}
-          excludedItems={excludedItems}
-          onToggleItemIgnore={handleToggleItemIgnore}
-          excludedAugments={excludedAugments}
-          onExcludedAugmentsChange={handleExcludedAugmentsChange}
-          onCraftingChange={handleCraftingChange}
+          ) : undefined}
         />
       </Paper>
 
-      {/* Summary Table */}
-      {currentSetup && selectedProperties.length > 0 && (
-        <Paper elevation={2}>
-          <SummaryTable
-            setup={currentSetup.setup}
+      {/* Gear Suggestions (right after properties) */}
+      {currentSetup && selectedProperties.length > 0 && propertyIndex && (
+        <Paper elevation={2} sx={{ mb: 3 }}>
+          <GearSuggestions
+            currentSetup={currentSetup}
             selectedProperties={selectedProperties}
+            items={items}
             setsData={setsData}
-            onPropertyHover={setHoveredProperty}
-            onBonusSourceHover={setHoveredBonusSource}
-            hoveredAugment={hoveredAugment}
-            hoveredSetName={hoveredSetName}
-            craftingSelections={currentSetup.craftingSelections}
+            craftingData={craftingData}
+            propertyIndex={propertyIndex}
+            pinnedSlots={pinnedSlots}
+            excludeSetAugments={excludeSetAugments}
+            excludedAugments={excludedAugments}
+            excludedPacks={excludedPacks}
+            onApplySetup={handleApplySetup}
+            ownedItemNames={ownedItemNames}
+            onExcludeSetAugmentsChange={(exclude) => {
+              setExcludeSetAugments(exclude)
+              saveExcludeSetAugments(exclude)
+            }}
           />
         </Paper>
       )}
+
+      {/* Main Content: responsive horizontal/vertical layout */}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 3,
+          flexDirection: { xs: 'column', xl: 'row' },
+          alignItems: 'flex-start',
+        }}
+      >
+        {/* Left: Gear Display (with Gear Setup Tabs in header) */}
+        <Paper elevation={2} sx={{ flex: { xl: '1 1 0%' }, minWidth: 0, width: { xs: '100%', xl: 'auto' } }}>
+          <GearDisplay
+            setup={currentSetup?.setup ?? {}}
+            selectedProperties={selectedProperties}
+            hoveredProperty={hoveredProperty}
+            hoveredAugment={hoveredAugment}
+            hoveredSetAugment={hoveredSetAugment}
+            hoveredBonusSource={hoveredBonusSource}
+            hoveredSetName={hoveredSetName}
+            onAugmentHover={setHoveredAugment}
+            onSetAugmentHover={setHoveredSetAugment}
+            onSetNameHover={setHoveredSetName}
+            craftingSelections={currentSetup?.craftingSelections}
+            setsData={setsData}
+            craftingData={craftingData}
+            onGearChange={handleGearChange}
+            availableItems={items}
+            onPropertyAdd={handlePropertyAdd}
+            pinnedSlots={pinnedSlots}
+            onTogglePin={handleTogglePin}
+            excludedItems={excludedItems}
+            onToggleItemIgnore={handleToggleItemIgnore}
+            excludedAugments={excludedAugments}
+            onExcludedAugmentsChange={handleExcludedAugmentsChange}
+            onCraftingChange={handleCraftingChange}
+            propertyIndex={propertyIndex}
+            excludeSetAugments={excludeSetAugments}
+            excludedPacks={excludedPacks}
+            headerSlot={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                {gearSetups.isLoaded && (
+                  <GearSetupTabs
+                    setups={gearSetups.setups}
+                    activeSetupId={gearSetups.activeSetupId}
+                    onSelect={(id) => { void handleSetupSelect(id) }}
+                    onAdd={() => { void handleSetupAdd() }}
+                    onRename={(id, name) => { void gearSetups.renameSetup(id, name) }}
+                    onDelete={(id) => { void gearSetups.deleteSetup(id) }}
+                  />
+                )}
+                {inventoryMap.size > 0 && (
+                  <>
+                    <Box sx={{ flex: 1 }} />
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                      <InputLabel>Character</InputLabel>
+                      <Select
+                        value={selectedCharacterId !== null ? String(selectedCharacterId) : ''}
+                        label="Character"
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setSelectedCharacter(val === '' ? null : Number(val))
+                        }}
+                      >
+                        <MenuItem value="">All Characters</MenuItem>
+                        {sortedCharacters.map((char) => (
+                          <MenuItem key={char.id} value={String(char.id)}>
+                            {char.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    {selectedCharacterId !== null && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleLoadEquipped(selectedCharacterId)}
+                      >
+                        Load {sortedCharacters.find(c => c.id === selectedCharacterId)?.name}'s Gear
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Box>
+            }
+          />
+        </Paper>
+
+        {/* Right: Summary Table */}
+        {currentSetup && selectedProperties.length > 0 && (
+          <Paper elevation={2} sx={{ flex: { xl: '0 0 auto' }, width: { xs: '100%', xl: 'auto' } }}>
+            <SummaryTable
+              setup={currentSetup.setup}
+              selectedProperties={selectedProperties}
+              setsData={setsData}
+              onPropertyHover={setHoveredProperty}
+              onBonusSourceHover={setHoveredBonusSource}
+              hoveredAugment={hoveredAugment}
+              hoveredSetName={hoveredSetName}
+              craftingSelections={currentSetup.craftingSelections}
+              theoreticalMaxValues={theoreticalMaxValues}
+            />
+          </Paper>
+        )}
+      </Box>
     </Container>
   )
 }

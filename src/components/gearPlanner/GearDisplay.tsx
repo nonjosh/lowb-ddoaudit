@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react'
 import IconWrapper from "@/components/shared/IconWrapper"
-import { useState, useMemo } from 'react'
+import { useCallback, useState, useMemo } from 'react'
 
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import BlockIcon from '@mui/icons-material/Block'
@@ -40,9 +41,11 @@ import {
   GearCraftingSelections,
   GearSetup,
   getCraftingSetMemberships,
+  PropertyBonusIndex,
   SelectedCraftingOption
 } from '@/domains/gearPlanner'
 import { generateCraftingOptionName } from '@/domains/gearPlanner/augmentHelpers'
+import { computeItemImprovements } from '@/domains/gearPlanner/suggestions'
 import { formatAffix, getWikiUrl } from '@/utils/affixHelpers'
 
 import AugmentSelectionDialog from './AugmentSelectionDialog'
@@ -81,6 +84,11 @@ interface GearDisplayProps {
   excludedAugments?: string[]
   onExcludedAugmentsChange?: (augments: string[]) => void
   onCraftingChange?: (gearSlot: string, slotIndex: number, option: CraftingOption | null) => void
+  propertyIndex?: PropertyBonusIndex | null
+  excludeSetAugments?: boolean
+  excludedPacks?: string[]
+  /** Optional content rendered beside the "Selected Gear Setup" title (e.g. tabs) */
+  headerSlot?: ReactNode
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -206,7 +214,8 @@ function GearSlotCard({
   isIgnored,
   onToggleIgnore,
   slotCraftingSelections,
-  onCraftingChange
+  onCraftingChange,
+  getImprovementScores
 }: {
   slotName: string
   item: Item | undefined
@@ -229,12 +238,13 @@ function GearSlotCard({
   onToggleIgnore?: () => void
   slotCraftingSelections?: SelectedCraftingOption[]
   onCraftingChange?: (slotIndex: number, option: CraftingOption | null) => void
+  getImprovementScores?: (candidates: Item[]) => Map<string, number>
 }) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [augmentDialogIndex, setAugmentDialogIndex] = useState<number | null>(null)
-  
+
 
   if (!item) {
     return (
@@ -615,6 +625,7 @@ function GearSlotCard({
           onSelect={(newItem) => onGearChange(newItem)}
           craftingData={craftingData}
           setsData={setsData}
+          getImprovementScores={getImprovementScores}
         />
       )}
       {/* Augment Selection Dialog */}
@@ -657,7 +668,11 @@ export default function GearDisplay({
   onToggleItemIgnore,
   excludedAugments = [],
   onExcludedAugmentsChange,
-  onCraftingChange
+  onCraftingChange,
+  propertyIndex,
+  excludeSetAugments = false,
+  excludedPacks = [],
+  headerSlot,
 }: GearDisplayProps) {
   const { isWished, toggleWish } = useWishlist()
   // Default expanded when editing is available so users can see the augment slots
@@ -868,11 +883,24 @@ export default function GearDisplay({
     return map
   }, [availableItems])
 
+  // Create per-slot scoring callback
+  const getSlotImprovementScores = useCallback((slotKey: string, candidates: Item[]) => {
+    if (!propertyIndex || selectedProperties.length === 0) return new Map<string, number>()
+    return computeItemImprovements(
+      setup, slotKey as keyof GearSetup, candidates,
+      selectedProperties, setsData ?? null, craftingData ?? null, propertyIndex,
+      { excludeSetAugments, excludedAugments, excludedPacks }
+    )
+  }, [setup, selectedProperties, setsData, craftingData, propertyIndex, excludeSetAugments, excludedAugments, excludedPacks])
+
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Selected Gear Setup
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <Typography variant="h6" sx={{ flexShrink: 0 }}>
+          Selected Gear Setup
+        </Typography>
+        {headerSlot && <Box sx={{ flex: 1, minWidth: 0 }}>{headerSlot}</Box>}
+      </Box>
 
       {/* Minor Artifact Warning */}
       {minorArtifactCount > 1 && (
@@ -925,6 +953,7 @@ export default function GearDisplay({
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
                 slotCraftingSelections={craftingSelections?.[slot]}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
+                getImprovementScores={propertyIndex ? (candidates) => getSlotImprovementScores(slot, candidates) : undefined}
               />
             </Grid>
           )
@@ -959,6 +988,7 @@ export default function GearDisplay({
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
                 slotCraftingSelections={craftingSelections?.[slot]}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
+                getImprovementScores={propertyIndex ? (candidates) => getSlotImprovementScores(slot, candidates) : undefined}
               />
             </Grid>
           )

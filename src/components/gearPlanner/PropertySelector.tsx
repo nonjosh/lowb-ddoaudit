@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import {
   Autocomplete,
   Box,
@@ -33,6 +35,8 @@ interface PropertySelectorProps {
   availableSets?: string[]
   selectedSets?: string[]
   onSetsChange?: (sets: string[]) => void
+  /** Optional content rendered beside the title (e.g. presets) */
+  presetSlot?: ReactNode
 }
 
 // Sortable chip component for properties
@@ -140,6 +144,7 @@ export default function PropertySelector({
   availableSets,
   selectedSets,
   onSetsChange,
+  presetSlot,
 }: PropertySelectorProps) {
   const propertySensors = useSensors(
     useSensor(PointerSensor),
@@ -177,10 +182,11 @@ export default function PropertySelector({
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6">
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
+        <Typography variant="h6" sx={{ flexShrink: 0 }}>
           Select Properties to Track
         </Typography>
+        {presetSlot && <Box sx={{ flex: 1, minWidth: 0 }}>{presetSlot}</Box>}
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Select properties to track in your gear setup. Drag to reorder.
