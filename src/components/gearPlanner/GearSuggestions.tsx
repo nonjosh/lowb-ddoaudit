@@ -52,6 +52,8 @@ interface GearSuggestionsProps {
   onApplySetup: (setup: GearSetup) => void
   /** Item names available in Trove inventory. Empty set = no Trove data. */
   ownedItemNames: Set<string>
+  /** Whether Trove inventory data is imported (controls toggle visibility) */
+  hasTroveData: boolean
   onExcludeSetAugmentsChange: (exclude: boolean) => void
 }
 
@@ -108,6 +110,7 @@ export default function GearSuggestions({
   excludedPacks,
   onApplySetup,
   ownedItemNames,
+  hasTroveData,
   onExcludeSetAugmentsChange,
 }: GearSuggestionsProps) {
   const [optimizedPlans, setOptimizedPlans] = useState<GearPlan[]>([])
@@ -334,7 +337,7 @@ export default function GearSuggestions({
               No Set Augments
             </ToggleButton>
           </Tooltip>
-          {ownedItemNames.size > 0 && (
+          {hasTroveData && (
             <Tooltip title="Only use gear items available in your Trove inventory. Augments and crafting options are not affected by this filter." arrow>
               <ToggleButton
                 value="ownedOnly"

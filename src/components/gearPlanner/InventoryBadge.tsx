@@ -27,6 +27,11 @@ interface InventoryBadgeProps {
 /**
  * Displays an indicator when the user owns an item in their Trove inventory.
  * Shows location information in a tooltip.
+ *
+ * States:
+ * - Green inventory icon: item is available to the selected character (or no character filter)
+ * - Orange lock icon: item is BTC on the selected character
+ * - Dull/transparent inventory icon: item exists in inventory but is BTC on another character (not available)
  */
 export default function InventoryBadge({
   itemName,
@@ -58,9 +63,27 @@ export default function InventoryBadge({
     loc => loc.characterId === selectedCharacterId && loc.binding === 'BoundToCharacter'
   )
 
-  if (!isAvailable && !isBTC) {
+  // Check if item is in inventory but BTC-locked on another character (unavailable)
+  const isBTCUnavailable = showBTC && selectedCharacterId !== null && !isAvailable &&
+    locations.length > 0 && locations.some(
+      loc => loc.binding === 'BoundToCharacter' && loc.characterId !== selectedCharacterId && loc.characterId !== 0
+    )
+
+  if (!isAvailable && !isBTC && !isBTCUnavailable) {
     return null
   }
+
+  // Find which characters own the BTC-locked item
+  const btcOwnerNames = isBTCUnavailable
+    ? [...new Set(
+      locations
+        .filter(loc => loc.binding === 'BoundToCharacter' && loc.characterId !== selectedCharacterId && loc.characterId !== 0)
+        .map(loc => {
+          const char = characters.find(c => c.id === loc.characterId)
+          return char?.name || 'Unknown'
+        })
+    )]
+    : []
 
   // Format location strings
   const formatLocation = (loc: { characterId: number; container: string; tabName?: string }) => {
@@ -110,6 +133,16 @@ export default function InventoryBadge({
           Bound to Character
         </Typography>
       )}
+      {isBTCUnavailable && (
+        <>
+          <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main' }}>
+            BTC — Not available
+          </Typography>
+          <Typography variant="caption" component="div">
+            Bound to: {btcOwnerNames.join(', ')}
+          </Typography>
+        </>
+      )}
     </>
   )
 
@@ -138,6 +171,17 @@ export default function InventoryBadge({
             />
           </Tooltip>
         )}
+        {isBTCUnavailable && (
+          <Tooltip title={tooltipContent} arrow>
+            <Chip
+              icon={<InventoryIcon />}
+              label={`Owned (${btcOwnerNames.join(', ')})`}
+              size={size}
+              variant="outlined"
+              sx={{ opacity: 0.4 }}
+            />
+          </Tooltip>
+        )}
       </Box>
     )
   }
@@ -161,6 +205,15 @@ export default function InventoryBadge({
           <Box component="span">
             <IconWrapper size={iconFrameSize} color="warning.main">
               <LockIcon sx={{ verticalAlign: 'middle' }} />
+            </IconWrapper>
+          </Box>
+        </Tooltip>
+      )}
+      {isBTCUnavailable && (
+        <Tooltip title={tooltipContent} arrow>
+          <Box component="span" sx={{ opacity: 0.35 }}>
+            <IconWrapper size={iconFrameSize} color="success.main">
+              <InventoryIcon sx={{ verticalAlign: 'middle' }} />
             </IconWrapper>
           </Box>
         </Tooltip>

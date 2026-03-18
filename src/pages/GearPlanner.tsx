@@ -201,7 +201,7 @@ function saveExcludedItems(items: string[]): void {
 
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
-  const { inventoryMap, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems, hiddenCharacterIds } = useTrove()
+  const { inventoryMap, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems, hiddenCharacterIds, isItemAvailableForCharacters } = useTrove()
   const gearSetups = useGearSetups()
   const propertyPresets = usePropertyPresets()
   const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
@@ -266,10 +266,19 @@ export default function GearPlanner() {
     return Object.keys(setsData).sort()
   }, [setsData])
 
-  // Set of item names available in Trove inventory
+  // Whether any Trove inventory data has been imported (used for toggle visibility)
+  const hasTroveData = inventoryMap.size > 0
+
+  // Set of item names available in Trove inventory, respecting BTC/character filter
   const ownedItemNames = useMemo(() => {
-    return new Set(inventoryMap.keys())
-  }, [inventoryMap])
+    const names = new Set<string>()
+    for (const itemName of inventoryMap.keys()) {
+      if (isItemAvailableForCharacters(itemName)) {
+        names.add(itemName)
+      }
+    }
+    return names
+  }, [inventoryMap, isItemAvailableForCharacters])
 
   // Helper to evaluate a gear setup and build an EvaluatedGearSetup
   const buildEvaluatedSetup = useCallback((
@@ -708,6 +717,7 @@ export default function GearPlanner() {
             excludedPacks={excludedPacks}
             onApplySetup={handleApplySetup}
             ownedItemNames={ownedItemNames}
+            hasTroveData={hasTroveData}
             onExcludeSetAugmentsChange={(exclude) => {
               setExcludeSetAugments(exclude)
               saveExcludeSetAugments(exclude)
