@@ -9,9 +9,10 @@ interface LfmParticipantRowProps {
   participant: LfmParticipant
   areas: Record<string, { name: string }>
   onGuildClick?: (guildName: string) => void
+  leaderGuildName?: string
 }
 
-export default function LfmParticipantRow({ participant, areas, onGuildClick }: LfmParticipantRowProps) {
+export default function LfmParticipantRow({ participant, areas, onGuildClick, leaderGuildName }: LfmParticipantRowProps) {
   const { showClassIcons } = useConfig()
   return (
     <TableRow>
@@ -29,11 +30,13 @@ export default function LfmParticipantRow({ participant, areas, onGuildClick }: 
           {participant.guildName ? (
             <Typography
               variant="caption"
-              color="text.secondary"
               noWrap
               sx={{
                 cursor: onGuildClick ? 'pointer' : 'default',
                 '&:hover': onGuildClick ? { textDecoration: 'underline' } : undefined,
+                ...(leaderGuildName && participant.guildName === leaderGuildName
+                  ? { color: 'primary.main', fontWeight: 600 }
+                  : { color: 'text.secondary' }),
               }}
               onClick={(e) => {
                 if (onGuildClick && participant.guildName) {

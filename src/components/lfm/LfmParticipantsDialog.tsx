@@ -151,7 +151,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
         </Box>
       </DialogTitle>
       <DialogContent dividers>
-        <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} onGuildClick={onGuildClick} />
+        <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} onGuildClick={onGuildClick} leaderGuildName={selectedLfm?.leaderGuildName ?? ''} />
         {selectedLfm?.isRaid && selectedRaidData ? (
           <>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>

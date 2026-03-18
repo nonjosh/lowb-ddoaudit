@@ -146,11 +146,9 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
     }
   }
 
-  // Don't highlight guild "majority" when the leader is alone.
-  const hasMajorityGuild = memberCount > 1 && majorityGuildCount >= 3
-  const leaderGuildIsMajority = Boolean(
-    hasMajorityGuild && leaderGuildName && majorityGuildName && leaderGuildName === majorityGuildName
-  )
+  const leaderGuildCount = leaderGuild ? (guildCounts.get(leaderGuild) ?? 0) : 0
+  const hasMajorityGuild = majorityGuildCount >= 2
+  const leaderGuildIsMajority = leaderGuildCount >= 2
 
   const groupNames = getGroupNames(lfm)
   const playersInGroup = new Set(groupNames.map(getPlayerName))

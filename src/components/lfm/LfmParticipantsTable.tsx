@@ -7,9 +7,17 @@ interface LfmParticipantsTableProps {
   participants: LfmParticipant[]
   areas: Record<string, { name: string }>
   onGuildClick?: (guildName: string) => void
+  leaderGuildName?: string
 }
 
-export default function LfmParticipantsTable({ participants, areas, onGuildClick }: LfmParticipantsTableProps) {
+export default function LfmParticipantsTable({ participants, areas, onGuildClick, leaderGuildName }: LfmParticipantsTableProps) {
+  // Only highlight leader's guild if multiple participants share it
+  const effectiveLeaderGuild = leaderGuildName
+    ? participants.filter((p) => p.guildName === leaderGuildName).length > 1
+      ? leaderGuildName
+      : undefined
+    : undefined
+
   return (
     <Table size="small" aria-label="lfm members">
       <TableHead>
@@ -25,7 +33,7 @@ export default function LfmParticipantsTable({ participants, areas, onGuildClick
       </TableHead>
       <TableBody>
         {participants.map((p) => (
-          <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} onGuildClick={onGuildClick} />
+          <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} onGuildClick={onGuildClick} leaderGuildName={effectiveLeaderGuild} />
         ))}
       </TableBody>
     </Table>
