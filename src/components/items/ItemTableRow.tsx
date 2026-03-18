@@ -34,6 +34,8 @@ interface ItemTableRowProps {
   craftingData?: CraftingData | null
   /** Optional action column rendered at the end of the row */
   renderAction?: (item: Item) => React.ReactNode
+  /** Hide the "Raid" tag (e.g. when all items are already known to be from a raid) */
+  hideRaidTag?: boolean
 }
 
 export default function ItemTableRow({
@@ -43,6 +45,7 @@ export default function ItemTableRow({
   raidNotes = null,
   craftingData = null,
   renderAction,
+  hideRaidTag = false,
 }: ItemTableRowProps) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
@@ -94,7 +97,7 @@ export default function ItemTableRow({
             {item.slot}
           </Typography>
         )}
-        {isRaidItem(item, raidQuestNames) && (
+        {!hideRaidTag && isRaidItem(item, raidQuestNames) && (
           <Box>
             <Chip label="Raid" size="small" color="error" variant="outlined" sx={{ mt: 0.5 }} />
           </Box>

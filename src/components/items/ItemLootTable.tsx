@@ -187,6 +187,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
                   setsData={setsData}
                   raidNotes={raidNotes}
                   craftingData={craftingData}
+                  hideRaidTag
                 />
               ))
             )}
