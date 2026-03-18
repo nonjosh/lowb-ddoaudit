@@ -16,7 +16,7 @@ This file provides instructions for AI coding agents (GitHub Copilot, OpenAI Cod
 4. **Clean formatting** - Remove trailing whitespace from all lines; ensure files end with a single newline.
 5. **ALWAYS verify build output** - After running `npm run build` or `npm run lint`, YOU MUST check the exit code and read the actual error messages. DO NOT report success if there are build errors, TypeScript errors, or ESLint warnings. If the build fails, fix ALL errors before proceeding.
 6. **Maintain Documentation** - If you add new directories, major features, or change the project structure, YOU MUST update this `AGENTS.md` file to reflect those changes immediately.
-7. **Update Game Logic Docs** - When modifying DDO game mechanics (raid timers, XP calculation, gear/affix logic, augments, sets), YOU MUST update the corresponding documentation in `docs/game-logic/`. See [Game Logic Documentation](#game-logic-documentation) below.
+7. **Update Game Logic Skills** - When modifying DDO game mechanics (raid timers, XP calculation, gear/affix logic, augments, sets, crafting, weapons), YOU MUST update the corresponding skill in `.github/skills/ddo-*/`. See [Game Logic Skills](#game-logic-skills) below.
 
 ## Tech Stack
 
@@ -62,15 +62,23 @@ src/
 ├── styles/              # Theme configuration
 └── utils/               # Utility functions
 
-docs/
-└── game-logic/          # DDO game mechanics documentation (MUST be kept updated)
-    ├── README.md        # Index of all game logic docs
-    ├── raids.md         # Raid lockout timers
-    ├── xp-leveling.md   # XP calculation and leveling
-    ├── gear-affixes.md  # Gear and affix stacking
-    ├── augments-crafting.md  # Augments and crafting slots
-    ├── set-bonuses.md   # Set item bonuses
-    └── ransack.md       # Chest ransack timers
+.github/
+├── copilot-instructions.md  # Workspace instructions for Copilot
+└── skills/                  # DDO game logic skills (MUST be kept updated)
+    ├── ddo-raids/           # Raid lockout timers
+    ├── ddo-xp-leveling/     # XP calculation and leveling
+    ├── ddo-gear-affixes/    # Gear and affix stacking
+    ├── ddo-augments-crafting/ # Augments and crafting slots
+    ├── ddo-set-bonuses/     # Set item bonuses
+    ├── ddo-ransack/         # Chest ransack timers
+    ├── ddo-green-steel/     # Green Steel crafting
+    ├── ddo-legendary-green-steel/ # Legendary Green Steel crafting
+    ├── ddo-viktranium-crafting/   # Viktranium crafting
+    ├── ddo-weapon-styles/   # Weapon fighting styles
+    ├── ddo-trove-data/      # Trove inventory data format
+    ├── ddo-audit-api/       # DDO Audit REST API integration
+    ├── ddo-gear-planner-data/ # DDO Gear Planner data source
+    └── ddo-wiki/            # DDO Wiki URL patterns and linking
 ```
 
 ## Key Patterns
@@ -184,41 +192,38 @@ Add to appropriate domain in `src/domains/` (e.g., raid logic → `raids/raidLog
 - Vite config uses rolldown-vite override for faster builds
 - The build script generates `404.html` for GitHub Pages SPA routing support
 
-## Game Logic Documentation
+## Game Logic Skills
 
-**Location**: `docs/game-logic/`
+**Location**: `.github/skills/ddo-*/`
 
-This directory contains comprehensive documentation of DDO game mechanics implemented in the codebase. **You MUST update these documents when modifying game logic.**
+DDO game mechanics are documented as Copilot agent skills that are automatically loaded on-demand when relevant. **You MUST update these skills when modifying game logic.**
 
-| Document                                                     | Covers                                                  | Key Source Files                             |
-| ------------------------------------------------------------ | ------------------------------------------------------- | -------------------------------------------- |
-| [raids.md](docs/game-logic/raids.md)                         | Raid lockouts (66h), tier filtering, character grouping | `src/domains/raids/raidLogic.ts`             |
-| [xp-leveling.md](docs/game-logic/xp-leveling.md)             | XP calculation, bonuses, penalties, TR scaling          | `src/domains/trPlanner/`                     |
-| [gear-affixes.md](docs/game-logic/gear-affixes.md)           | Affix stacking rules, gear optimization                 | `src/domains/gearPlanner/affixStacking.ts`   |
-| [augments-crafting.md](docs/game-logic/augments-crafting.md) | Augment slots, crafting options, color compatibility    | `src/domains/gearPlanner/craftingHelpers.ts` |
-| [set-bonuses.md](docs/game-logic/set-bonuses.md)             | Set thresholds, Set Augments                            | `src/api/ddoGearPlanner/sets.ts`             |
-| [ransack.md](docs/game-logic/ransack.md)                     | Chest ransack timers (168h)                             | `src/storage/ransackDb.ts`                   |
+| Skill                       | Covers                                                  | Key Source Files                             |
+| --------------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| `ddo-raids`                 | Raid lockouts (66h), tier filtering, character grouping | `src/domains/raids/raidLogic.ts`             |
+| `ddo-xp-leveling`           | XP calculation, bonuses, penalties, TR scaling          | `src/domains/trPlanner/`                     |
+| `ddo-gear-affixes`          | Affix stacking rules, gear evaluation                   | `src/domains/gearPlanner/affixStacking.ts`   |
+| `ddo-augments-crafting`     | Augment slots, crafting options, color compatibility    | `src/domains/gearPlanner/craftingHelpers.ts` |
+| `ddo-set-bonuses`           | Set thresholds, Set Augments                            | `src/api/ddoGearPlanner/sets.ts`             |
+| `ddo-ransack`               | Chest ransack timers (168h)                             | `src/storage/ransackDb.ts`                   |
+| `ddo-green-steel`           | Heroic Green Steel crafting                             | `src/domains/crafting/greenSteelLogic.ts`    |
+| `ddo-legendary-green-steel` | Legendary Green Steel crafting, raw ingredients         | `src/domains/crafting/lgsLogic.ts`           |
+| `ddo-viktranium-crafting`   | Viktranium augment crafting (U75)                       | `src/domains/crafting/viktraniumLogic.ts`    |
+| `ddo-weapon-styles`         | Fighting styles, weapon combinations                    | `src/domains/gearPlanner/gearSetup.ts`       |
+| `ddo-trove-data`            | Trove inventory data format, item matching              | `src/api/trove/`                             |
+| `ddo-audit-api`             | DDO Audit REST API endpoints, data types                | `src/api/ddoAudit/`                          |
+| `ddo-gear-planner-data`     | Gear Planner JSON data source, caching                  | `src/api/ddoGearPlanner/`                    |
+| `ddo-wiki`                  | DDO Wiki URL patterns, linking conventions              | `src/components/shared/DdoWikiLink.tsx`      |
 
-### When to Update Game Logic Docs
+### When to Update Game Logic Skills
 
-Update the corresponding document when you:
+Update the corresponding skill when you:
 
 1. **Change constants** (e.g., timer durations, XP values, level thresholds)
 2. **Modify calculation formulas** (e.g., XP bonuses, affix stacking)
 3. **Add new game mechanics** (e.g., new augment types, new set patterns)
 4. **Fix bugs** in existing game logic
 5. **Add new data sources** that affect game calculations
-
-### Document Format
-
-Each game logic document includes:
-
-- **Overview**: What the mechanic does in DDO
-- **Game Rules (DDO Official)**: The actual game rules
-- **Implementation**: How this codebase implements them
-- **Constants & Configuration**: Hardcoded values
-- **Related Files**: Links to source code
-- **Changelog**: History of changes
 
 ### Key Constants Reference
 
