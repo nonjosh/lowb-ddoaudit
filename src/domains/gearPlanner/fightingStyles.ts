@@ -1,5 +1,13 @@
 import { Item } from '@/api/ddoGearPlanner'
 
+const TWO_HANDED_TYPES = new Set([
+  'great swords', 'great axes', 'great clubs', 'mauls', 'falchions', 'quarterstaffs',
+])
+
+const THROWN_TYPES = new Set([
+  'darts', 'shurikens', 'throwing axes', 'throwing daggers', 'throwing hammers',
+])
+
 export type FightingStyle =
   | 'unarmed'      // Handwrap
   | 'swf'          // Single weapon + empty/orb/runestone
@@ -52,26 +60,26 @@ export function detectFightingStyle(
  * Check if item is a handwrap
  */
 export function isHandwrap(item: Item): boolean {
-  return item.slot === 'Weapon' &&
-    (item.type?.toLowerCase().includes('handwrap') ?? false)
+  if (item.slot !== 'Weapon') return false
+  const type = item.type?.toLowerCase() ?? ''
+  return type.includes('handwrap')
 }
 
 /**
  * Check if item is a two-handed weapon
  */
 export function isTwoHandedWeapon(item: Item): boolean {
-  return item.slot === 'Weapon' &&
-    (item.type?.toLowerCase().includes('two-handed') ?? false)
+  if (item.slot !== 'Weapon') return false
+  const type = item.type?.toLowerCase() ?? ''
+  return TWO_HANDED_TYPES.has(type)
 }
 
 /**
  * Check if item is a single-handed weapon
  */
 export function isSingleHandedWeapon(item: Item): boolean {
-  return item.slot === 'Weapon' &&
-    !isHandwrap(item) &&
-    !isTwoHandedWeapon(item) &&
-    !isRangedWeapon(item)
+  if (item.slot !== 'Weapon') return false
+  return !isHandwrap(item) && !isTwoHandedWeapon(item) && !isRangedWeapon(item)
 }
 
 /**
@@ -79,14 +87,95 @@ export function isSingleHandedWeapon(item: Item): boolean {
  */
 export function isRangedWeapon(item: Item): boolean {
   if (item.slot !== 'Weapon') return false
+  return isBow(item) || isCrossbow(item) || isThrownWeapon(item)
+}
+
+/**
+ * Check if item is a bow (not crossbow) — bows block off-hand entirely
+ */
+export function isBow(item: Item): boolean {
+  if (item.slot !== 'Weapon') return false
   const type = item.type?.toLowerCase() ?? ''
-  const name = item.name.toLowerCase()
-  return type.includes('bow') ||
-    type.includes('crossbow') ||
-    type.includes('throwing') ||
-    type.includes('thrown') ||
-    name.includes('bow') ||
-    name.includes('crossbow')
+  return type.includes('bow') && !type.includes('crossbow')
+}
+
+/**
+ * Check if item is a crossbow — can use Rune Arm in off-hand
+ */
+export function isCrossbow(item: Item): boolean {
+  if (item.slot !== 'Weapon') return false
+  const type = item.type?.toLowerCase() ?? ''
+  return type.includes('crossbow')
+}
+
+/**
+ * Check if item is a thrown weapon — can use Rune Arm in off-hand
+ */
+export function isThrownWeapon(item: Item): boolean {
+  if (item.slot !== 'Weapon') return false
+  const type = item.type?.toLowerCase() ?? ''
+  return type.includes('throwing') || THROWN_TYPES.has(type)
+}
+
+/**
+ * Check if a main hand weapon blocks the off-hand slot entirely.
+ * Two-handed weapons, handwraps, and bows cannot have any off-hand.
+ */
+export function isOffHandBlocked(mainHand: Item | undefined): boolean {
+  if (!mainHand) return false
+  return isHandwrap(mainHand) || isTwoHandedWeapon(mainHand) || isBow(mainHand)
+}
+
+/**
+ * Check if off-hand is restricted to Rune Arms only (crossbows).
+ */
+export function isOffHandRuneArmOnly(mainHand: Item | undefined): boolean {
+  if (!mainHand) return false
+  return isCrossbow(mainHand)
+}
+
+/**
+ * Get the off-hand warning message based on the current weapon combination.
+ * Returns null if the combination is valid or no warning is needed.
+ */
+export function getOffHandWarning(
+  mainHand: Item | undefined,
+  offHand: Item | undefined
+): string | null {
+  if (!mainHand) return null
+
+  // Two-handed weapons, handwraps, bows block off-hand entirely
+  if (isOffHandBlocked(mainHand)) {
+    if (offHand) {
+      return `${mainHand.type ?? 'This weapon'} cannot be used with off-hand items. Off-hand stats are ignored.`
+    }
+    return `${mainHand.type ?? 'This weapon'} cannot equip off-hand items.`
+  }
+
+  // Crossbows only allow Rune Arms
+  if (isCrossbow(mainHand)) {
+    if (offHand && !isRuneArm(offHand)) {
+      return `${mainHand.type ?? 'Crossbows'} can only use Rune Arms in the off-hand. Current off-hand stats are ignored.`
+    }
+    if (!offHand) {
+      return 'Crossbows can only equip Rune Arms in the off-hand.'
+    }
+  }
+
+  // Thrown weapons: cannot dual wield, allow one-handed melee, shields, orbs, rune arms
+  if (isThrownWeapon(mainHand)) {
+    if (offHand && offHand.slot === 'Weapon' && isThrownWeapon(offHand)) {
+      return 'Cannot dual wield throwing weapons. Off-hand stats are ignored.'
+    }
+    if (offHand && offHand.slot === 'Weapon' && !isSingleHandedWeapon(offHand)) {
+      return 'Throwing weapons can only use one-handed melee weapons, shields, orbs, or Rune Arms in the off-hand.'
+    }
+    if (!offHand) {
+      return 'Thrown weapons can equip one-handed melee weapons, shields, orbs, or Rune Arms in the off-hand.'
+    }
+  }
+
+  return null
 }
 
 /**
@@ -129,11 +218,22 @@ export function isValidWeaponCombination(
     return !offHand
   }
 
-  // Ranged weapons can have rune arm
-  if (isRangedWeapon(mainHand)) {
+  // Bows block off-hand entirely (already handled above)
+  if (isBow(mainHand)) {
+    return !offHand
+  }
+
+  // Crossbows can only have rune arm
+  if (isCrossbow(mainHand)) {
     if (!offHand) return true
-    // Only rune arms allowed with ranged weapons
     return isRuneArm(offHand)
+  }
+
+  // Thrown weapons can have one-handed weapons or offhand items
+  if (isThrownWeapon(mainHand)) {
+    if (!offHand) return true
+    return offHand.slot === 'Offhand' ||
+      (offHand.slot === 'Weapon' && isSingleHandedWeapon(offHand))
   }
 
   // Single-handed can have any valid off-hand

@@ -41,6 +41,12 @@ import {
   GearCraftingSelections,
   GearSetup,
   getCraftingSetMemberships,
+  getOffHandWarning,
+  isOffHandBlocked,
+  isOffHandRuneArmOnly,
+  isRuneArm,
+  isSingleHandedWeapon,
+  isThrownWeapon,
   PropertyBonusIndex,
   SelectedCraftingOption
 } from '@/domains/gearPlanner'
@@ -215,7 +221,8 @@ function GearSlotCard({
   onToggleIgnore,
   slotCraftingSelections,
   onCraftingChange,
-  getImprovementScores
+  getImprovementScores,
+  warningText
 }: {
   slotName: string
   item: Item | undefined
@@ -239,6 +246,7 @@ function GearSlotCard({
   slotCraftingSelections?: SelectedCraftingOption[]
   onCraftingChange?: (slotIndex: number, option: CraftingOption | null) => void
   getImprovementScores?: (candidates: Item[]) => Map<string, number>
+  warningText?: string | null
 }) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
@@ -287,6 +295,11 @@ function GearSlotCard({
                 </Tooltip>
               )}
             </Box>
+            {warningText && (
+              <Typography variant="caption" color="warning.main" sx={{ mt: 0.5, display: 'block' }}>
+                ⚠️ {warningText}
+              </Typography>
+            )}
           </CardContent>
         </Card>
         {onGearChange && availableItems && (
@@ -612,6 +625,11 @@ function GearSlotCard({
               })}
             </Box>
           )}
+          {warningText && (
+            <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>
+              ⚠️ {warningText}
+            </Typography>
+          )}
         </CardContent>
       </Card>
       {/* Item Selection Dialog */}
@@ -873,6 +891,21 @@ export default function GearDisplay({
           return item.slot === 'Weapon'
         }
         if (slot === 'offHand') {
+          // Filter off-hand options based on main hand weapon
+          if (isOffHandBlocked(setup.mainHand)) {
+            return false
+          }
+          if (isOffHandRuneArmOnly(setup.mainHand)) {
+            return isRuneArm(item)
+          }
+          // Thrown weapons are main-hand only
+          if (item.slot === 'Weapon' && isThrownWeapon(item)) {
+            return false
+          }
+          // Only one-handed weapons allowed in off-hand
+          if (item.slot === 'Weapon' && !isSingleHandedWeapon(item)) {
+            return false
+          }
           return item.slot === 'Offhand' || item.slot === 'Weapon'
         }
         return item.slot === slotDisplayNames[slot]
@@ -881,7 +914,7 @@ export default function GearDisplay({
     })
 
     return map
-  }, [availableItems])
+  }, [availableItems, setup.mainHand])
 
   // Create per-slot scoring callback
   const getSlotImprovementScores = useCallback((slotKey: string, candidates: Item[]) => {
@@ -954,6 +987,7 @@ export default function GearDisplay({
                 slotCraftingSelections={craftingSelections?.[slot]}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
                 getImprovementScores={propertyIndex ? (candidates) => getSlotImprovementScores(slot, candidates) : undefined}
+                warningText={slot === 'offHand' ? getOffHandWarning(setup.mainHand, setup.offHand) : undefined}
               />
             </Grid>
           )

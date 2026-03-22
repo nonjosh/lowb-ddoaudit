@@ -7,6 +7,7 @@ import {
   getCraftingSetMemberships,
   GearCraftingSelections
 } from './craftingHelpers'
+import { isValidWeaponCombination } from './fightingStyles'
 import { getGearAffixes, GearSetup } from './gearSetup'
 
 /**
@@ -55,13 +56,21 @@ export function evaluateGearSetup(
 } {
   const slotKeys: (keyof GearSetup)[] = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket', 'mainHand', 'offHand']
 
+  // Create effective setup: ignore off-hand if main hand blocks it
+  let effectiveSetup = setup
+  if (setup.mainHand && setup.offHand) {
+    if (!isValidWeaponCombination(setup.mainHand, setup.offHand)) {
+      effectiveSetup = { ...setup, offHand: undefined }
+    }
+  }
+
   // Get base affixes from gear first (without crafting) to know what's already covered
-  const baseAffixes = getGearAffixes(setup, setsData, [])
+  const baseAffixes = getGearAffixes(effectiveSetup, setsData, [])
 
   // Auto-select crafting options for entire gear setup, respecting stacking rules
   const gearSetupRecord: Record<string, Item | undefined> = {}
   for (const slotKey of slotKeys) {
-    gearSetupRecord[slotKey] = setup[slotKey]
+    gearSetupRecord[slotKey] = effectiveSetup[slotKey]
   }
 
   const craftingSelections = existingCraftingSelections ?? autoSelectCraftingOptionsForGearSetup(
@@ -83,7 +92,7 @@ export function evaluateGearSetup(
   }
 
   // Re-calculate base affixes with additional set memberships
-  const baseAffixesWithSets = getGearAffixes(setup, setsData, additionalSetMemberships)
+  const baseAffixesWithSets = getGearAffixes(effectiveSetup, setsData, additionalSetMemberships)
 
   // Collect crafting affixes
   const allCraftingAffixes = Object.values(craftingSelections).flatMap(selections =>
@@ -112,7 +121,7 @@ export function evaluateGearSetup(
   let usedAugmentSlots = 0
 
   for (const slotKey of slotKeys) {
-    const item = setup[slotKey]
+    const item = effectiveSetup[slotKey]
     if (item) {
       const selections = craftingSelections[slotKey] || []
       const { total, used } = countAugmentSlots(item, selections, properties)
@@ -134,7 +143,7 @@ export function evaluateGearSetup(
     const setItemCounts = new Map<string, number>()
     // Count set items from gear
     for (const slotKey of slotKeys) {
-      const item = setup[slotKey]
+      const item = effectiveSetup[slotKey]
       if (item?.sets) {
         for (const setName of item.sets) {
           setItemCounts.set(setName, (setItemCounts.get(setName) || 0) + 1)

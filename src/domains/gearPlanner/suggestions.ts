@@ -2,6 +2,16 @@ import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
 
 import { combineAffixes, COMPLEX_PROPERTIES, getPropertyTotal } from './affixStacking'
 import { autoSelectCraftingOptions, getCraftingAffixes } from './craftingHelpers'
+import {
+  isOffHandBlocked,
+  isOffHandRuneArmOnly,
+  isRuneArm,
+  isSingleHandedWeapon,
+  isThrownWeapon,
+  isTwoHandedWeapon,
+  isHandwrap,
+  isBow,
+} from './fightingStyles'
 import { GEAR_SLOTS, GearSetup, GearSlot, getItemsBySlot, getSlotKey } from './gearSetup'
 import { evaluateGearSetup } from './optimization'
 import { PropertyBonusIndex, getTheoreticalMax } from './propertyIndex'
@@ -95,6 +105,9 @@ export function getSlotSuggestions(
       const displaySlot = ringIndex !== undefined ? `Ring ${ringIndex + 1}` : slot
 
       if (pinnedSlots.has(slotKey) || pinnedSlots.has(displaySlot)) continue
+
+      // Skip off-hand suggestions when main hand blocks it
+      if (slotKey === 'offHand' && isOffHandBlocked(currentSetup.mainHand)) continue
 
       const candidates = getItemsBySlot(items, slot)
       const currentItem = currentSetup[slotKey]
@@ -327,6 +340,24 @@ export function optimizeSetup(
           // Only one minor artifact allowed
           if (item.artifact && hasArtifact) continue
 
+          // Weapon compatibility: skip invalid weapon/offhand combinations
+          if (sk === 'mainHand' && setup.offHand) {
+            // If offhand is occupied, skip weapons that block offhand
+            if (isTwoHandedWeapon(item) || isHandwrap(item) || isBow(item)) continue
+            // If offhand is not a Rune Arm, skip crossbows/thrown
+            if (isOffHandRuneArmOnly(item) && !isRuneArm(setup.offHand)) continue
+          }
+          if (sk === 'offHand') {
+            // If main hand blocks offhand entirely, skip
+            if (isOffHandBlocked(setup.mainHand)) continue
+            // If main hand restricts to Rune Arms only (crossbows), skip non-Rune Arms
+            if (isOffHandRuneArmOnly(setup.mainHand) && !isRuneArm(item)) continue
+            // Thrown weapons are main-hand only
+            if (item.slot === 'Weapon' && isThrownWeapon(item)) continue
+            // Off-hand weapons must be one-handed
+            if (item.slot === 'Weapon' && !isSingleHandedWeapon(item)) continue
+          }
+
           let marginal = 0
           for (const affix of item.affixes) {
             for (const { property, bonusType, value } of expandItemAffix(affix)) {
@@ -354,6 +385,11 @@ export function optimizeSetup(
     setup[bestSlotKey] = bestItem
     usedSlots.add(bestSlotKey)
     if (bestItem.artifact) hasArtifact = true
+
+    // If mainHand blocks offhand, mark offhand as used
+    if (bestSlotKey === 'mainHand' && isOffHandBlocked(bestItem)) {
+      usedSlots.add('offHand')
+    }
 
     // Update coverage
     for (const affix of bestItem.affixes) {
