@@ -45,6 +45,8 @@ export interface SuggestionsResult {
 }
 
 export interface SuggestionsOptions {
+  /** Minimum level of items to consider */
+  minLevel?: number
   /** Maximum level of items to consider */
   maxLevel?: number
   /** Maximum suggestions per slot */
@@ -55,6 +57,10 @@ export interface SuggestionsOptions {
   excludeSetAugments?: boolean
   excludedAugments?: string[]
   excludedPacks?: string[]
+  /** Type filters per slot category */
+  armorTypes?: string[]
+  mainHandTypes?: string[]
+  offHandTypes?: string[]
 }
 
 // --- Suggestion Engine ---
@@ -74,12 +80,16 @@ export function getSlotSuggestions(
   options: SuggestionsOptions = {},
 ): SuggestionsResult {
   const {
+    minLevel,
     maxLevel,
     topN = 5,
     pinnedSlots = new Set(),
     excludeSetAugments = false,
     excludedAugments = [],
     excludedPacks = [],
+    armorTypes = [],
+    mainHandTypes = [],
+    offHandTypes = [],
   } = options
 
   const weights = computePropertyWeights(properties)
@@ -119,7 +129,13 @@ export function getSlotSuggestions(
         if (currentItem && candidate.name === currentItem.name) continue
 
         // Level filter
+        if (minLevel !== undefined && candidate.ml < minLevel) continue
         if (maxLevel !== undefined && candidate.ml > maxLevel) continue
+
+        // Type filter
+        if (slot === 'Armor' && armorTypes.length > 0 && candidate.type && !armorTypes.includes(candidate.type)) continue
+        if (slot === 'Weapon' && mainHandTypes.length > 0 && candidate.type && !mainHandTypes.includes(candidate.type)) continue
+        if (slot === 'Offhand' && offHandTypes.length > 0 && candidate.type && !offHandTypes.includes(candidate.type)) continue
 
         // Build trial setup
         const trialSetup = { ...currentSetup, [slotKey]: candidate }
@@ -260,8 +276,12 @@ export function optimizeSetup(
   options: SuggestionsOptions = {},
 ): OptimizeResult {
   const {
+    minLevel,
     maxLevel,
     pinnedSlots = new Set(),
+    armorTypes = [],
+    mainHandTypes = [],
+    offHandTypes = [],
   } = options
 
   const trackedSet = new Set(properties)
@@ -315,9 +335,14 @@ export function optimizeSetup(
   for (const slot of GEAR_SLOTS) {
     candidatesBySlot.set(
       slot,
-      getItemsBySlot(items, slot).filter(item =>
-        maxLevel === undefined || item.ml <= maxLevel
-      ),
+      getItemsBySlot(items, slot).filter(item => {
+        if (minLevel !== undefined && item.ml < minLevel) return false
+        if (maxLevel !== undefined && item.ml > maxLevel) return false
+        if (slot === 'Armor' && armorTypes.length > 0 && item.type && !armorTypes.includes(item.type)) return false
+        if (slot === 'Weapon' && mainHandTypes.length > 0 && item.type && !mainHandTypes.includes(item.type)) return false
+        if (slot === 'Offhand' && offHandTypes.length > 0 && item.type && !offHandTypes.includes(item.type)) return false
+        return true
+      }),
     )
   }
 
@@ -474,11 +499,13 @@ export function generateSlotSwapVariants(
   alternativesPerSlot = 2,
 ): GearSetup[] {
   const {
+    minLevel,
     maxLevel,
     pinnedSlots = new Set(),
     excludeSetAugments = false,
     excludedAugments = [],
     excludedPacks = [],
+    armorTypes = [],
   } = options
 
   const variants: GearSetup[] = []
@@ -505,8 +532,13 @@ export function generateSlotSwapVariants(
       if (pinnedSlots.has(sk)) continue
 
       let candidates = getItemsBySlot(items, slot)
-      if (maxLevel !== undefined) {
-        candidates = candidates.filter(item => item.ml <= maxLevel)
+      if (minLevel !== undefined || maxLevel !== undefined || armorTypes.length > 0) {
+        candidates = candidates.filter(item => {
+          if (minLevel !== undefined && item.ml < minLevel) return false
+          if (maxLevel !== undefined && item.ml > maxLevel) return false
+          if (slot === 'Armor' && armorTypes.length > 0 && item.type && !armorTypes.includes(item.type)) return false
+          return true
+        })
       }
 
       const currentItem = baseSetup[sk]
@@ -560,8 +592,10 @@ export function generateSetFocusedVariants(
   if (!setsData) return []
 
   const {
+    minLevel,
     maxLevel,
     pinnedSlots = new Set(),
+    armorTypes = [],
   } = options
 
   const variants: GearSetup[] = []
@@ -586,8 +620,13 @@ export function generateSetFocusedVariants(
   for (const slot of GEAR_SLOTS) {
     if (slot === 'Weapon' || slot === 'Offhand') continue
     let slotItems = getItemsBySlot(items, slot)
-    if (maxLevel !== undefined) {
-      slotItems = slotItems.filter(item => item.ml <= maxLevel)
+    if (minLevel !== undefined || maxLevel !== undefined || armorTypes.length > 0) {
+      slotItems = slotItems.filter(item => {
+        if (minLevel !== undefined && item.ml < minLevel) return false
+        if (maxLevel !== undefined && item.ml > maxLevel) return false
+        if (slot === 'Armor' && armorTypes.length > 0 && item.type && !armorTypes.includes(item.type)) return false
+        return true
+      })
     }
     itemsBySlot.set(slot, slotItems)
   }

@@ -36,6 +36,7 @@ import { Item, ItemAffix, SetsData, CraftingData, CraftingOption } from '@/api/d
 import { artifactBorderLabelSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
+import type { ItemFilterState } from '@/pages/GearPlanner'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
 import {
   GearCraftingSelections,
@@ -95,6 +96,8 @@ interface GearDisplayProps {
   excludedPacks?: string[]
   /** Optional content rendered beside the "Selected Gear Setup" title (e.g. tabs) */
   headerSlot?: ReactNode
+  /** Page-level item filters (passed as defaults to item selection dialogs) */
+  itemFilters?: ItemFilterState
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -222,7 +225,11 @@ function GearSlotCard({
   slotCraftingSelections,
   onCraftingChange,
   getImprovementScores,
-  warningText
+  warningText,
+  defaultMinLevel,
+  defaultMaxLevel,
+  defaultTypeFilter,
+  defaultPackFilter,
 }: {
   slotName: string
   item: Item | undefined
@@ -247,6 +254,10 @@ function GearSlotCard({
   onCraftingChange?: (slotIndex: number, option: CraftingOption | null) => void
   getImprovementScores?: (candidates: Item[]) => Map<string, number>
   warningText?: string | null
+  defaultMinLevel?: number
+  defaultMaxLevel?: number
+  defaultTypeFilter?: string[]
+  defaultPackFilter?: string[]
 }) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
@@ -311,6 +322,10 @@ function GearSlotCard({
             onSelect={(item) => onGearChange(item)}
             craftingData={craftingData}
             setsData={setsData}
+            defaultMinLevel={defaultMinLevel}
+            defaultMaxLevel={defaultMaxLevel}
+            defaultTypeFilter={defaultTypeFilter}
+            defaultPackFilter={defaultPackFilter}
           />
         )}
       </>
@@ -644,6 +659,10 @@ function GearSlotCard({
           craftingData={craftingData}
           setsData={setsData}
           getImprovementScores={getImprovementScores}
+          defaultMinLevel={defaultMinLevel}
+          defaultMaxLevel={defaultMaxLevel}
+          defaultTypeFilter={defaultTypeFilter}
+          defaultPackFilter={defaultPackFilter}
         />
       )}
       {/* Augment Selection Dialog */}
@@ -691,6 +710,7 @@ export default function GearDisplay({
   excludeSetAugments = false,
   excludedPacks = [],
   headerSlot,
+  itemFilters,
 }: GearDisplayProps) {
   const { isWished, toggleWish } = useWishlist()
   // Default expanded when editing is available so users can see the augment slots
@@ -988,6 +1008,10 @@ export default function GearDisplay({
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
                 getImprovementScores={propertyIndex ? (candidates) => getSlotImprovementScores(slot, candidates) : undefined}
                 warningText={slot === 'offHand' ? getOffHandWarning(setup.mainHand, setup.offHand) : undefined}
+                defaultMinLevel={itemFilters?.minLevel}
+                defaultMaxLevel={itemFilters?.maxLevel}
+                defaultTypeFilter={slot === 'armor' ? itemFilters?.armorTypes : slot === 'mainHand' ? itemFilters?.mainHandTypes : slot === 'offHand' ? itemFilters?.offHandTypes : undefined}
+                defaultPackFilter={itemFilters?.includedPacks}
               />
             </Grid>
           )
@@ -1023,6 +1047,9 @@ export default function GearDisplay({
                 slotCraftingSelections={craftingSelections?.[slot]}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
                 getImprovementScores={propertyIndex ? (candidates) => getSlotImprovementScores(slot, candidates) : undefined}
+                defaultMinLevel={itemFilters?.minLevel}
+                defaultMaxLevel={itemFilters?.maxLevel}
+                defaultPackFilter={itemFilters?.includedPacks}
               />
             </Grid>
           )

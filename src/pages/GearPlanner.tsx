@@ -3,16 +3,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import BlockIcon from '@mui/icons-material/Block'
 import ShareIcon from '@mui/icons-material/Share'
 import {
+  Autocomplete,
   Badge,
   Box,
   Button,
+  Checkbox,
+  Chip,
   CircularProgress,
   Container,
+  Divider,
   FormControl,
   InputLabel,
+  ListItemText,
   MenuItem,
+  OutlinedInput,
   Paper,
   Select,
+  Slider,
+  Stack,
+  TextField,
   Tooltip,
   Typography
 } from '@mui/material'
@@ -31,6 +40,7 @@ import { useTrove } from '@/contexts/useTrove'
 import { buildPropertyBonusIndex, buildUpdatedCraftingSelections, EvaluatedGearSetup, evaluateGearSetup, getAllAvailableProperties, GearSetup, getTheoreticalMax, PropertyBonusIndex } from '@/domains/gearPlanner'
 import { useGearSetups } from '@/hooks/useGearSetups'
 import { usePropertyPresets } from '@/hooks/usePropertyPresets'
+import { useQuestNameToPack } from '@/hooks/useQuestNameToPack'
 
 const SELECTED_PROPERTIES_KEY = 'gearPlanner_selectedProperties'
 const SELECTED_SETS_KEY = 'gearPlanner_selectedSets'
@@ -39,6 +49,21 @@ const PINNED_SLOTS_KEY = 'gearPlanner_pinnedSlots'
 const EXCLUDED_PACKS_KEY = 'gearPlanner_excludedPacks'
 const EXCLUDED_AUGMENTS_KEY = 'gearPlanner_excludedAugments'
 const EXCLUDED_ITEMS_KEY = 'gearPlanner_excludedItems'
+const ITEM_FILTER_MIN_LEVEL_KEY = 'gearPlanner_itemFilterMinLevel'
+const ITEM_FILTER_MAX_LEVEL_KEY = 'gearPlanner_itemFilterMaxLevel'
+const ITEM_FILTER_ARMOR_TYPES_KEY = 'gearPlanner_itemFilterArmorTypes'
+const ITEM_FILTER_MAIN_HAND_TYPES_KEY = 'gearPlanner_itemFilterMainHandTypes'
+const ITEM_FILTER_OFF_HAND_TYPES_KEY = 'gearPlanner_itemFilterOffHandTypes'
+const ITEM_FILTER_PACKS_KEY = 'gearPlanner_itemFilterPacks'
+
+export interface ItemFilterState {
+  minLevel: number
+  maxLevel: number
+  armorTypes: string[]
+  mainHandTypes: string[]
+  offHandTypes: string[]
+  includedPacks: string[]
+}
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -199,9 +224,32 @@ function saveExcludedItems(items: string[]): void {
   }
 }
 
+function loadItemFilterNumber(key: string, fallback: number): number {
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored !== null) {
+      const n = Number(stored)
+      if (!isNaN(n)) return n
+    }
+  } catch { /* ignore */ }
+  return fallback
+}
+
+function loadItemFilterStringArray(key: string): string[] {
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) return parsed
+    }
+  } catch { /* ignore */ }
+  return []
+}
+
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
   const { inventoryMap, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems, hiddenCharacterIds, isItemAvailableForCharacters } = useTrove()
+  const questNameToPack = useQuestNameToPack()
   const gearSetups = useGearSetups()
   const propertyPresets = usePropertyPresets()
   const [selectedProperties, setSelectedProperties] = useState<string[]>(loadSelectedProperties)
@@ -220,6 +268,23 @@ export default function GearPlanner() {
   const [excludedAugments, setExcludedAugments] = useState<string[]>(loadExcludedAugments)
   const [excludedItems, setExcludedItems] = useState<string[]>(loadExcludedItems)
   const [externalUrlDialogOpen, setExternalUrlDialogOpen] = useState(false)
+
+  // Item filter state (persisted to localStorage)
+  const [itemFilterMinLevel, setItemFilterMinLevel] = useState(() => loadItemFilterNumber(ITEM_FILTER_MIN_LEVEL_KEY, 1))
+  const [itemFilterMaxLevel, setItemFilterMaxLevel] = useState(() => loadItemFilterNumber(ITEM_FILTER_MAX_LEVEL_KEY, 34))
+  const [itemFilterArmorTypes, setItemFilterArmorTypes] = useState<string[]>(() => loadItemFilterStringArray(ITEM_FILTER_ARMOR_TYPES_KEY))
+  const [itemFilterMainHandTypes, setItemFilterMainHandTypes] = useState<string[]>(() => loadItemFilterStringArray(ITEM_FILTER_MAIN_HAND_TYPES_KEY))
+  const [itemFilterOffHandTypes, setItemFilterOffHandTypes] = useState<string[]>(() => loadItemFilterStringArray(ITEM_FILTER_OFF_HAND_TYPES_KEY))
+  const [itemFilterPacks, setItemFilterPacks] = useState<string[]>(() => loadItemFilterStringArray(ITEM_FILTER_PACKS_KEY))
+
+  const itemFilters: ItemFilterState = useMemo(() => ({
+    minLevel: itemFilterMinLevel,
+    maxLevel: itemFilterMaxLevel,
+    armorTypes: itemFilterArmorTypes,
+    mainHandTypes: itemFilterMainHandTypes,
+    offHandTypes: itemFilterOffHandTypes,
+    includedPacks: itemFilterPacks,
+  }), [itemFilterMinLevel, itemFilterMaxLevel, itemFilterArmorTypes, itemFilterMainHandTypes, itemFilterOffHandTypes, itemFilterPacks])
 
   // Track whether initial setup has been loaded from DB
   const initialSetupLoadedRef = useRef(false)
@@ -279,6 +344,70 @@ export default function GearPlanner() {
     }
     return names
   }, [inventoryMap, isItemAvailableForCharacters])
+
+  // Unique types per slot category (for filter dropdowns)
+  const { uniqueArmorTypes, uniqueWeaponTypes, uniqueOffHandTypes } = useMemo(() => {
+    const armorSet = new Set<string>()
+    const weaponSet = new Set<string>()
+    const offHandSet = new Set<string>()
+    for (const item of items) {
+      if (!item.type) continue
+      if (item.slot === 'Armor') armorSet.add(item.type)
+      else if (item.slot === 'Weapon') weaponSet.add(item.type)
+      else if (item.slot === 'Offhand') offHandSet.add(item.type)
+    }
+    return {
+      uniqueArmorTypes: Array.from(armorSet).sort(),
+      uniqueWeaponTypes: Array.from(weaponSet).sort(),
+      uniqueOffHandTypes: Array.from(offHandSet).sort(),
+    }
+  }, [items])
+
+  // Unique adventure packs from items (for pack filter dropdown)
+  const uniquePacks = useMemo(() => {
+    const packMls = new Map<string, Set<number>>()
+    for (const item of items) {
+      if (!item.quests) continue
+      for (const qName of item.quests) {
+        const pack = questNameToPack.get(qName)
+        if (pack) {
+          if (!packMls.has(pack)) packMls.set(pack, new Set())
+          if (item.slot !== 'Augment') packMls.get(pack)!.add(item.ml)
+        }
+      }
+    }
+    return Array.from(packMls.entries()).map(([pack, mls]) => {
+      const mlArr = Array.from(mls).sort((a, b) => a - b)
+      const mlDisplay = mlArr.length > 0 ? `ML ${mlArr.join(', ')}` : ''
+      return { pack, mlRange: mlDisplay }
+    }).sort((a, b) => a.pack.localeCompare(b.pack))
+  }, [items, questNameToPack])
+
+  // Callbacks for item filter changes (persist to localStorage)
+  const handleItemFilterMinLevel = useCallback((v: number) => {
+    setItemFilterMinLevel(v)
+    localStorage.setItem(ITEM_FILTER_MIN_LEVEL_KEY, String(v))
+  }, [])
+  const handleItemFilterMaxLevel = useCallback((v: number) => {
+    setItemFilterMaxLevel(v)
+    localStorage.setItem(ITEM_FILTER_MAX_LEVEL_KEY, String(v))
+  }, [])
+  const handleItemFilterArmorTypes = useCallback((v: string[]) => {
+    setItemFilterArmorTypes(v)
+    localStorage.setItem(ITEM_FILTER_ARMOR_TYPES_KEY, JSON.stringify(v))
+  }, [])
+  const handleItemFilterMainHandTypes = useCallback((v: string[]) => {
+    setItemFilterMainHandTypes(v)
+    localStorage.setItem(ITEM_FILTER_MAIN_HAND_TYPES_KEY, JSON.stringify(v))
+  }, [])
+  const handleItemFilterOffHandTypes = useCallback((v: string[]) => {
+    setItemFilterOffHandTypes(v)
+    localStorage.setItem(ITEM_FILTER_OFF_HAND_TYPES_KEY, JSON.stringify(v))
+  }, [])
+  const handleItemFilterPacks = useCallback((v: string[]) => {
+    setItemFilterPacks(v)
+    localStorage.setItem(ITEM_FILTER_PACKS_KEY, JSON.stringify(v))
+  }, [])
 
   // Helper to evaluate a gear setup and build an EvaluatedGearSetup
   const buildEvaluatedSetup = useCallback((
@@ -701,6 +830,193 @@ export default function GearPlanner() {
         />
       </Paper>
 
+      {/* Item Filters */}
+      <Paper elevation={2} sx={{ mb: 3, p: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1.5 }}>Item Filters</Typography>
+        <Stack direction="row" spacing={2} alignItems="center" useFlexGap flexWrap="wrap">
+          {/* Level Range: dropdown + slider */}
+          <Box sx={{ minWidth: 250, maxWidth: 350, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>Level Range:</Typography>
+              <FormControl size="small">
+                <Select
+                  variant="standard"
+                  disableUnderline
+                  value={itemFilterMinLevel}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    if (val <= itemFilterMaxLevel) handleItemFilterMinLevel(val)
+                  }}
+                  sx={{ fontSize: '0.875rem' }}
+                >
+                  {Array.from({ length: 34 }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <Typography variant="caption">-</Typography>
+              <FormControl size="small">
+                <Select
+                  variant="standard"
+                  disableUnderline
+                  value={itemFilterMaxLevel}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    if (val >= itemFilterMinLevel) handleItemFilterMaxLevel(val)
+                  }}
+                  sx={{ fontSize: '0.875rem' }}
+                >
+                  {Array.from({ length: 34 }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Stack>
+            <Slider
+              value={[itemFilterMinLevel, itemFilterMaxLevel]}
+              onChange={(_, newValue) => {
+                if (Array.isArray(newValue)) {
+                  handleItemFilterMinLevel(newValue[0])
+                  handleItemFilterMaxLevel(newValue[1])
+                }
+              }}
+              valueLabelDisplay="auto"
+              min={1}
+              max={34}
+              size="small"
+            />
+          </Box>
+
+          {/* Armor Type */}
+          {uniqueArmorTypes.length > 1 && (
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Armor Type</InputLabel>
+              <Select
+                multiple
+                value={itemFilterArmorTypes}
+                input={<OutlinedInput label="Armor Type" />}
+                renderValue={(selected) => selected.length === 0 ? '' : selected.length === uniqueArmorTypes.length ? 'All' : selected.join(', ')}
+                onChange={(e) => {
+                  const value = e.target.value
+                  handleItemFilterArmorTypes(typeof value === 'string' ? value.split(',') : value)
+                }}
+              >
+                <MenuItem dense onClick={(e) => { e.preventDefault(); handleItemFilterArmorTypes(itemFilterArmorTypes.length === uniqueArmorTypes.length ? [] : [...uniqueArmorTypes]) }}>
+                  <Checkbox checked={itemFilterArmorTypes.length === uniqueArmorTypes.length} indeterminate={itemFilterArmorTypes.length > 0 && itemFilterArmorTypes.length < uniqueArmorTypes.length} size="small" />
+                  <ListItemText primary={itemFilterArmorTypes.length === uniqueArmorTypes.length ? 'Deselect All' : 'Select All'} />
+                </MenuItem>
+                <Divider />
+                {uniqueArmorTypes.map(type => (
+                  <MenuItem key={type} value={type} dense>
+                    <Checkbox checked={itemFilterArmorTypes.includes(type)} size="small" />
+                    <ListItemText primary={type} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Main Hand Type */}
+          {uniqueWeaponTypes.length > 1 && (
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Main Hand Type</InputLabel>
+              <Select
+                multiple
+                value={itemFilterMainHandTypes}
+                input={<OutlinedInput label="Main Hand Type" />}
+                renderValue={(selected) => selected.length === 0 ? '' : `${selected.length} selected`}
+                onChange={(e) => {
+                  const value = e.target.value
+                  handleItemFilterMainHandTypes(typeof value === 'string' ? value.split(',') : value)
+                }}
+              >
+                <MenuItem dense onClick={(e) => { e.preventDefault(); handleItemFilterMainHandTypes(itemFilterMainHandTypes.length === uniqueWeaponTypes.length ? [] : [...uniqueWeaponTypes]) }}>
+                  <Checkbox checked={itemFilterMainHandTypes.length === uniqueWeaponTypes.length} indeterminate={itemFilterMainHandTypes.length > 0 && itemFilterMainHandTypes.length < uniqueWeaponTypes.length} size="small" />
+                  <ListItemText primary={itemFilterMainHandTypes.length === uniqueWeaponTypes.length ? 'Deselect All' : 'Select All'} />
+                </MenuItem>
+                <Divider />
+                {uniqueWeaponTypes.map(type => (
+                  <MenuItem key={type} value={type} dense>
+                    <Checkbox checked={itemFilterMainHandTypes.includes(type)} size="small" />
+                    <ListItemText primary={type} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Off Hand Type */}
+          {uniqueOffHandTypes.length > 1 && (
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Off Hand Type</InputLabel>
+              <Select
+                multiple
+                value={itemFilterOffHandTypes}
+                input={<OutlinedInput label="Off Hand Type" />}
+                renderValue={(selected) => selected.length === 0 ? '' : selected.length === uniqueOffHandTypes.length ? 'All' : selected.join(', ')}
+                onChange={(e) => {
+                  const value = e.target.value
+                  handleItemFilterOffHandTypes(typeof value === 'string' ? value.split(',') : value)
+                }}
+              >
+                <MenuItem dense onClick={(e) => { e.preventDefault(); handleItemFilterOffHandTypes(itemFilterOffHandTypes.length === uniqueOffHandTypes.length ? [] : [...uniqueOffHandTypes]) }}>
+                  <Checkbox checked={itemFilterOffHandTypes.length === uniqueOffHandTypes.length} indeterminate={itemFilterOffHandTypes.length > 0 && itemFilterOffHandTypes.length < uniqueOffHandTypes.length} size="small" />
+                  <ListItemText primary={itemFilterOffHandTypes.length === uniqueOffHandTypes.length ? 'Deselect All' : 'Select All'} />
+                </MenuItem>
+                <Divider />
+                {uniqueOffHandTypes.map(type => (
+                  <MenuItem key={type} value={type} dense>
+                    <Checkbox checked={itemFilterOffHandTypes.includes(type)} size="small" />
+                    <ListItemText primary={type} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Adventure Pack */}
+          {uniquePacks.length > 0 && (
+            <Autocomplete
+              multiple
+              size="small"
+              limitTags={1}
+              options={uniquePacks}
+              getOptionLabel={(option) => {
+                if (typeof option === 'string') return option
+                return option.mlRange ? `${option.pack} (${option.mlRange})` : option.pack
+              }}
+              isOptionEqualToValue={(option, value) => {
+                const optPack = typeof option === 'string' ? option : option.pack
+                const valPack = typeof value === 'string' ? value : value.pack
+                return optPack === valPack
+              }}
+              value={uniquePacks.filter(p => itemFilterPacks.includes(p.pack))}
+              onChange={(_, newValue) => handleItemFilterPacks(newValue.map(v => typeof v === 'string' ? v : v.pack))}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Adventure Pack"
+                  placeholder="Select pack..."
+                />
+              )}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => {
+                  const { key, ...tagProps } = getTagProps({ index })
+                  return <Chip key={key} {...tagProps} label={typeof option === 'string' ? option : option.pack} size="small" />
+                })
+              }
+              sx={{ minWidth: 200, flex: 1 }}
+            />
+          )}
+
+          {/* Active filter indicator */}
+          {(itemFilterMinLevel > 1 || itemFilterMaxLevel < 34 || itemFilterArmorTypes.length > 0 || itemFilterMainHandTypes.length > 0 || itemFilterOffHandTypes.length > 0 || itemFilterPacks.length > 0) && (
+            <Chip
+              label="Filters active"
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          )}
+        </Stack>
+      </Paper>
+
       {/* Gear Suggestions (right after properties) */}
       {currentSetup && selectedProperties.length > 0 && propertyIndex && (
         <Paper elevation={2} sx={{ mb: 3 }}>
@@ -722,6 +1038,7 @@ export default function GearPlanner() {
               setExcludeSetAugments(exclude)
               saveExcludeSetAugments(exclude)
             }}
+            itemFilters={itemFilters}
           />
         </Paper>
       )}
@@ -764,6 +1081,7 @@ export default function GearPlanner() {
             propertyIndex={propertyIndex}
             excludeSetAugments={excludeSetAugments}
             excludedPacks={excludedPacks}
+            itemFilters={itemFilters}
             headerSlot={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 {gearSetups.isLoaded && (

@@ -23,8 +23,10 @@ import {
 } from '@mui/material'
 
 import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
+import { useQuestNameToPack } from '@/hooks/useQuestNameToPack'
 import { EvaluatedGearSetup, evaluateGearSetup, GearSetup, PropertyBonusIndex } from '@/domains/gearPlanner'
 import { generateSetFocusedVariants, generateSlotSwapVariants, optimizeSetup, SuggestionsOptions } from '@/domains/gearPlanner/suggestions'
+import type { ItemFilterState } from '@/pages/GearPlanner'
 
 interface GearPlan {
   label: string
@@ -55,6 +57,8 @@ interface GearSuggestionsProps {
   /** Whether Trove inventory data is imported (controls toggle visibility) */
   hasTroveData: boolean
   onExcludeSetAugmentsChange: (exclude: boolean) => void
+  /** Page-level item filters for optimization */
+  itemFilters?: ItemFilterState
 }
 
 type SortColumn = 'augments' | 'other' | 'sets' | string
@@ -112,6 +116,7 @@ export default function GearSuggestions({
   ownedItemNames,
   hasTroveData,
   onExcludeSetAugmentsChange,
+  itemFilters,
 }: GearSuggestionsProps) {
   const [optimizedPlans, setOptimizedPlans] = useState<GearPlan[]>([])
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null)
@@ -190,12 +195,19 @@ export default function GearSuggestions({
     setPage(0)
   }, [])
 
+  const questNameToPack = useQuestNameToPack()
+
   const handleOptimize = useCallback(() => {
     const options: SuggestionsOptions = {
       pinnedSlots,
       excludeSetAugments,
       excludedAugments,
       excludedPacks,
+      minLevel: itemFilters?.minLevel,
+      maxLevel: itemFilters?.maxLevel,
+      armorTypes: itemFilters?.armorTypes,
+      mainHandTypes: itemFilters?.mainHandTypes,
+      offHandTypes: itemFilters?.offHandTypes,
     }
 
     // Pre-filter items to those with at least one tracked property
@@ -207,6 +219,17 @@ export default function GearSuggestions({
     // If owned-only mode, further filter to items in Trove inventory
     if (ownedOnly && ownedItemNames.size > 0) {
       relevantItems = relevantItems.filter(item => ownedItemNames.has(item.name))
+    }
+
+    // If pack filter is active, further filter to items from selected packs
+    if (itemFilters?.includedPacks && itemFilters.includedPacks.length > 0) {
+      const allowedPacks = new Set(itemFilters.includedPacks)
+      relevantItems = relevantItems.filter(item =>
+        item.quests?.some(q => {
+          const pack = questNameToPack.get(q)
+          return pack != null && allowedPacks.has(pack)
+        })
+      )
     }
 
     const plans: GearPlan[] = []
@@ -313,7 +336,7 @@ export default function GearSuggestions({
 
     setOptimizedPlans(plans)
     setPage(0)
-  }, [currentSetup, items, selectedProperties, setsData, craftingData, propertyIndex, pinnedSlots, excludeSetAugments, excludedAugments, excludedPacks, ownedOnly, ownedItemNames])
+  }, [currentSetup, items, selectedProperties, setsData, craftingData, propertyIndex, pinnedSlots, excludeSetAugments, excludedAugments, excludedPacks, ownedOnly, ownedItemNames, itemFilters, questNameToPack])
 
   return (
     <Box sx={{ p: 2 }}>
