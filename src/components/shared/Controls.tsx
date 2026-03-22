@@ -41,7 +41,7 @@ export default function Controls({
 
   return (
     <Paper sx={{ p: 2 }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
+      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" useFlexGap flexWrap="wrap">
         <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'space-between', md: 'flex-start' } }}>
           <Button
             variant="contained"
@@ -62,7 +62,7 @@ export default function Controls({
           </Box>
         </Stack>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 3 }} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
+        <Stack direction="row" spacing={{ xs: 1, sm: 3 }} alignItems="center" useFlexGap flexWrap="wrap" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: 'center' }}>
           <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'space-around', sm: 'flex-start' } }}>
             <Tooltip title={autoRefreshEnabled ? "Disable auto refresh" : "Enable auto refresh"}>
               {loading ? (

@@ -432,7 +432,7 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', p: 0, overflow: 'hidden' }}>
         {/* Sticky filter bar - matching ItemTableFilters styling */}
         <Box sx={{ flexShrink: 0, bgcolor: 'background.paper', px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+          <Stack direction="row" spacing={1.5} alignItems="center" useFlexGap flexWrap="wrap">
             <TextField
               size="small"
               label="Search Item Name/Properties"

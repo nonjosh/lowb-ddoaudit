@@ -246,7 +246,7 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
         )}
 
         {/* Effect + ML + toggles row */}
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
+        <Stack direction="row" spacing={1.5} alignItems="center" useFlexGap flexWrap="wrap">
           {/* Type filter (default mode only - wiki mode renders it in the grid above) */}
           {mode === 'default' && (
             <FormControl size="small" fullWidth>
