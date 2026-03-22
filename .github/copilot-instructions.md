@@ -47,6 +47,7 @@ This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online
 
 - **File Naming**: PascalCase for components (e.g., `RaidCard.tsx`), camelCase for utilities.
 - **Imports**: Use `@/` for absolute imports from `src/` (e.g., `@/api/ddoAudit`), except for imports within the same component directory (use relative paths like `./RaidCard`). Order following standard guidelines: external libraries first, then internal modules (api/, components/, domains/, etc.), grouped and sorted alphabetically within each group.
+- **Responsive Layout**: For horizontal arrays of controls or filters, use MUI `<Stack direction="row" useFlexGap flexWrap="wrap">` instead of strict `<Stack direction={{ xs: 'column', md: 'row' }}>` to prevent horizontally overflowing items on vertical displays.
 - **Error Handling**: Use try/catch in async fetches, set error states.
 - **State Updates**: Use `useMemo` for computed values like `raidGroups`.
 - **Config Updates**: Edit `src/data/lowb.json` to add/remove characters, then run `npx tsx scripts/update-character-ids.ts` to fetch IDs from API.

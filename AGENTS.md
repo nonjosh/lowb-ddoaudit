@@ -100,6 +100,7 @@ src/
 - **File naming**: PascalCase for components (`RaidCard.tsx`), camelCase for utilities (`raidLogic.ts`)
 - **Props**: Define TypeScript interfaces for all component props
 - **Computed values**: Use `useMemo` for derived state
+- **Responsive Layout**: For horizontal arrays of controls or filters, use MUI `<Stack direction="row" useFlexGap flexWrap="wrap">` instead of strict `<Stack direction={{ xs: 'column', md: 'row' }}>` to prevent layout breaks and horizontally overflowing items on vertical or intermediate width displays.
 
 ### Error Handling
 
