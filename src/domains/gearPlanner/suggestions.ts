@@ -61,6 +61,8 @@ export interface SuggestionsOptions {
   armorTypes?: string[]
   mainHandTypes?: string[]
   offHandTypes?: string[]
+  /** Require at least one minor artifact in the setup */
+  requireArtifact?: boolean
 }
 
 // --- Suggestion Engine ---
@@ -282,6 +284,7 @@ export function optimizeSetup(
     armorTypes = [],
     mainHandTypes = [],
     offHandTypes = [],
+    requireArtifact = false,
   } = options
 
   const trackedSet = new Set(properties)
@@ -424,6 +427,62 @@ export function optimizeSetup(
           setCovered(property, bonusType, value)
         }
       }
+    }
+  }
+
+  // 4. If requireArtifact and no artifact was placed, force-pick the best artifact
+  if (requireArtifact && !hasArtifact) {
+    let bestArtifact: Item | null = null
+    let bestArtifactSlotKey: keyof GearSetup | null = null
+    let bestArtifactMarginal = -Infinity
+
+    for (const slot of GEAR_SLOTS) {
+      const slotKeys: (keyof GearSetup)[] = slot === 'Ring'
+        ? ['ring1', 'ring2']
+        : [getSlotKey(slot)]
+
+      for (const sk of slotKeys) {
+        // Only consider slots that are not pinned
+        if (pinnedSlots.has(sk)) continue
+
+        for (const item of candidatesBySlot.get(slot) ?? []) {
+          if (!item.artifact) continue
+
+          // Weapon compatibility checks
+          if (sk === 'mainHand' && setup.offHand) {
+            if (isTwoHandedWeapon(item) || isHandwrap(item) || isBow(item)) continue
+            if (isOffHandRuneArmOnly(item) && !isRuneArm(setup.offHand)) continue
+          }
+          if (sk === 'offHand') {
+            if (isOffHandBlocked(setup.mainHand)) continue
+            if (isOffHandRuneArmOnly(setup.mainHand) && !isRuneArm(item)) continue
+            if (item.slot === 'Weapon' && isThrownWeapon(item)) continue
+            if (item.slot === 'Weapon' && !isSingleHandedWeapon(item)) continue
+          }
+
+          let marginal = 0
+          for (const affix of item.affixes) {
+            for (const { property, bonusType, value } of expandItemAffix(affix)) {
+              if (!trackedSet.has(property)) continue
+              const cur = getCovered(property, bonusType)
+              if (value > cur) {
+                const maxVal = theoreticalMax.get(property) ?? 1
+                marginal += (value - cur) / maxVal
+              }
+            }
+          }
+
+          if (marginal > bestArtifactMarginal) {
+            bestArtifactMarginal = marginal
+            bestArtifact = item
+            bestArtifactSlotKey = sk
+          }
+        }
+      }
+    }
+
+    if (bestArtifact && bestArtifactSlotKey) {
+      setup[bestArtifactSlotKey] = bestArtifact
     }
   }
 

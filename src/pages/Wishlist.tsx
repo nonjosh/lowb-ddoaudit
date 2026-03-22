@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item, SetsData } from '@/api/ddoGearPlanner'
+import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
 import ItemCraftingDisplay from '@/components/items/ItemCraftingDisplay'
 import ItemSetTooltip from '@/components/items/ItemSetTooltip'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
@@ -145,6 +146,7 @@ function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: Wishl
               {item.name}
             </Typography>
           )}
+          <InventoryBadge itemName={item.name} />
           <IconButton
             size="small"
             onClick={onRemove}

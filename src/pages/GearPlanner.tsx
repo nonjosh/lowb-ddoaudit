@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import BlockIcon from '@mui/icons-material/Block'
+import SaveIcon from '@mui/icons-material/Save'
 import ShareIcon from '@mui/icons-material/Share'
+import UndoIcon from '@mui/icons-material/Undo'
 import {
   Autocomplete,
   Badge,
@@ -37,7 +39,7 @@ import IgnoreListDialog from '@/components/gearPlanner/SettingsDialog'
 import SummaryTable from '@/components/gearPlanner/SummaryTable'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
-import { buildPropertyBonusIndex, buildUpdatedCraftingSelections, EvaluatedGearSetup, evaluateGearSetup, getAllAvailableProperties, GearSetup, getTheoreticalMax, PropertyBonusIndex } from '@/domains/gearPlanner'
+import { buildPropertyBonusIndex, buildUpdatedCraftingSelections, EvaluatedGearSetup, evaluateGearSetup, GearCraftingSelections, getAllAvailableProperties, GearSetup, getTheoreticalMax, PropertyBonusIndex } from '@/domains/gearPlanner'
 import { useGearSetups } from '@/hooks/useGearSetups'
 import { usePropertyPresets } from '@/hooks/usePropertyPresets'
 import { useQuestNameToPack } from '@/hooks/useQuestNameToPack'
@@ -269,6 +271,15 @@ export default function GearPlanner() {
   const [excludedItems, setExcludedItems] = useState<string[]>(loadExcludedItems)
   const [externalUrlDialogOpen, setExternalUrlDialogOpen] = useState(false)
 
+  // Dirty state: tracks unsaved changes to the current gear setup
+  const [isDirty, setIsDirty] = useState(false)
+  interface SavedSetupState {
+    setup: GearSetup
+    craftingSelections?: GearCraftingSelections
+    pinnedSlots: Set<string>
+  }
+  const savedStateRef = useRef<SavedSetupState | null>(null)
+
   // Item filter state (persisted to localStorage)
   const [itemFilterMinLevel, setItemFilterMinLevel] = useState(() => loadItemFilterNumber(ITEM_FILTER_MIN_LEVEL_KEY, 1))
   const [itemFilterMaxLevel, setItemFilterMaxLevel] = useState(() => loadItemFilterNumber(ITEM_FILTER_MAX_LEVEL_KEY, 34))
@@ -449,13 +460,16 @@ export default function GearPlanner() {
       setPinnedItems(newPinnedItems)
 
       setCurrentSetup(buildEvaluatedSetup(data.setup, selectedProperties, data.craftingSelections))
+      savedStateRef.current = { setup: data.setup, craftingSelections: data.craftingSelections, pinnedSlots: data.pinnedSlots }
     } else {
       // Empty setup
       setCurrentSetup(null)
       setPinnedSlots(new Set())
       savePinnedSlots(new Set())
       setPinnedItems({})
+      savedStateRef.current = { setup: {}, pinnedSlots: new Set() }
     }
+    setIsDirty(false)
   }, [items, craftingData, selectedProperties, buildEvaluatedSetup, gearSetups])
 
   // Load active gear setup from DB when items become available
@@ -477,34 +491,63 @@ export default function GearPlanner() {
         })
         setPinnedItems(newPinnedItems)
         setCurrentSetup(buildEvaluatedSetup(data.setup, selectedProperties, data.craftingSelections))
+        savedStateRef.current = { setup: data.setup, craftingSelections: data.craftingSelections, pinnedSlots: data.pinnedSlots }
       }
+      setIsDirty(false)
     }
     void loadInitial()
   }, [gearSetups.isLoaded, items.length, gearSetups.activeSetupId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle gear setup tab switch
+  // Handle gear setup tab switch (auto-save if dirty before switching)
   const handleSetupSelect = useCallback(async (id: number) => {
+    if (isDirty && currentSetup) {
+      void gearSetups.saveCurrentSetup(currentSetup.setup, currentSetup.craftingSelections, pinnedSlots)
+    }
     gearSetups.selectSetup(id)
     await applyLoadedSetup(id)
-  }, [gearSetups, applyLoadedSetup])
+  }, [gearSetups, applyLoadedSetup, isDirty, currentSetup, pinnedSlots])
 
-  // Handle creating a new gear setup tab
+  // Handle creating a new gear setup tab (auto-save if dirty first)
   const handleSetupAdd = useCallback(async () => {
+    if (isDirty && currentSetup) {
+      void gearSetups.saveCurrentSetup(currentSetup.setup, currentSetup.craftingSelections, pinnedSlots)
+    }
     await gearSetups.createSetup()
     setCurrentSetup(null)
     setPinnedSlots(new Set())
     savePinnedSlots(new Set())
     setPinnedItems({})
-  }, [gearSetups])
+    savedStateRef.current = { setup: {}, pinnedSlots: new Set() }
+    setIsDirty(false)
+  }, [gearSetups, isDirty, currentSetup, pinnedSlots])
 
-  // Auto-save helper: save current setup state to DB
-  const autoSaveSetup = useCallback((
-    setup: GearSetup,
-    craftingSelections?: ReturnType<typeof evaluateGearSetup>['craftingSelections'],
-    currentPinnedSlots?: Set<string>
-  ) => {
-    void gearSetups.saveCurrentSetup(setup, craftingSelections, currentPinnedSlots ?? pinnedSlots)
-  }, [gearSetups, pinnedSlots])
+  // Save current setup to DB explicitly
+  const handleSaveSetup = useCallback(() => {
+    if (!currentSetup) return
+    void gearSetups.saveCurrentSetup(currentSetup.setup, currentSetup.craftingSelections, pinnedSlots)
+    savedStateRef.current = { setup: currentSetup.setup, craftingSelections: currentSetup.craftingSelections, pinnedSlots: new Set(pinnedSlots) }
+    setIsDirty(false)
+  }, [gearSetups, currentSetup, pinnedSlots])
+
+  // Undo: revert to last saved state
+  const handleUndoSetup = useCallback(() => {
+    const saved = savedStateRef.current
+    if (!saved) return
+    setPinnedSlots(saved.pinnedSlots)
+    savePinnedSlots(saved.pinnedSlots)
+    const newPinnedItems: GearSetup = {}
+    saved.pinnedSlots.forEach(slot => {
+      const item = saved.setup[slot as keyof GearSetup]
+      if (item) newPinnedItems[slot as keyof GearSetup] = item
+    })
+    setPinnedItems(newPinnedItems)
+    if (Object.keys(saved.setup).length > 0) {
+      setCurrentSetup(buildEvaluatedSetup(saved.setup, selectedProperties, saved.craftingSelections))
+    } else {
+      setCurrentSetup(null)
+    }
+    setIsDirty(false)
+  }, [selectedProperties, buildEvaluatedSetup])
 
   // Handle property preset selection
   const handlePresetSelect = useCallback((id: number) => {
@@ -550,10 +593,10 @@ export default function GearPlanner() {
         }
       }
       savePinnedSlots(newSet)
-      autoSaveSetup(setup, undefined, newSet)
+      setIsDirty(true)
       return newSet
     })
-  }, [autoSaveSetup])
+  }, [])
 
   // Handle exclusion changes
   const handleExcludedPacksChange = useCallback((packs: string[]) => {
@@ -663,8 +706,8 @@ export default function GearPlanner() {
 
     const evaluated = buildEvaluatedSetup(setup, selectedProperties)
     setCurrentSetup(evaluated)
-    autoSaveSetup(setup, evaluated.craftingSelections, newPinnedSlots)
-  }, [getEquippedItems, items, selectedProperties, pinnedSlots, pinnedItems, autoSaveSetup, buildEvaluatedSetup])
+    setIsDirty(true)
+  }, [getEquippedItems, items, selectedProperties, pinnedSlots, pinnedItems, buildEvaluatedSetup])
 
   // Handle importing a gear setup from an external ddo-gear-planner URL
   const handleExternalUrlImport = useCallback((importedSetup: EvaluatedGearSetup, trackedProperties?: string[]) => {
@@ -678,8 +721,8 @@ export default function GearPlanner() {
     savePinnedSlots(new Set())
 
     setCurrentSetup(importedSetup)
-    autoSaveSetup(importedSetup.setup, importedSetup.craftingSelections, new Set())
-  }, [selectedProperties.length, autoSaveSetup])
+    setIsDirty(true)
+  }, [selectedProperties.length])
 
   // Handle manual gear change
   const handleGearChange = useCallback((slot: string, item: Item | undefined) => {
@@ -687,15 +730,15 @@ export default function GearPlanner() {
 
     const evaluated = buildEvaluatedSetup(newSetup, selectedProperties)
     setCurrentSetup(evaluated)
-    autoSaveSetup(newSetup, evaluated.craftingSelections)
-  }, [currentSetup, selectedProperties, buildEvaluatedSetup, autoSaveSetup])
+    setIsDirty(true)
+  }, [currentSetup, selectedProperties, buildEvaluatedSetup])
 
   // Handle applying a full setup from GearSuggestions
   const handleApplySetup = useCallback((setup: GearSetup) => {
     const evaluated = buildEvaluatedSetup(setup, selectedProperties)
     setCurrentSetup(evaluated)
-    autoSaveSetup(setup, evaluated.craftingSelections)
-  }, [selectedProperties, buildEvaluatedSetup, autoSaveSetup])
+    setIsDirty(true)
+  }, [selectedProperties, buildEvaluatedSetup])
 
   // Handle manual crafting/augment change for a specific slot
   const handleCraftingChange = useCallback((gearSlot: string, slotIndex: number, option: CraftingOption | null) => {
@@ -711,8 +754,8 @@ export default function GearPlanner() {
 
     const evaluated = buildEvaluatedSetup(setupToUse, selectedProperties, newCraftingSelections)
     setCurrentSetup(evaluated)
-    autoSaveSetup(setupToUse, newCraftingSelections)
-  }, [currentSetup, selectedProperties, buildEvaluatedSetup, autoSaveSetup])
+    setIsDirty(true)
+  }, [currentSetup, selectedProperties, buildEvaluatedSetup])
 
   if (loading && items.length === 0) {
     return (
@@ -1031,6 +1074,7 @@ export default function GearPlanner() {
             excludeSetAugments={excludeSetAugments}
             excludedAugments={excludedAugments}
             excludedPacks={excludedPacks}
+            excludedItems={excludedItems}
             onApplySetup={handleApplySetup}
             ownedItemNames={ownedItemNames}
             hasTroveData={hasTroveData}
@@ -1083,20 +1127,49 @@ export default function GearPlanner() {
             excludedPacks={excludedPacks}
             itemFilters={itemFilters}
             headerSlot={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {gearSetups.isLoaded && (
-                  <GearSetupTabs
-                    setups={gearSetups.setups}
-                    activeSetupId={gearSetups.activeSetupId}
-                    onSelect={(id) => { void handleSetupSelect(id) }}
-                    onAdd={() => { void handleSetupAdd() }}
-                    onRename={(id, name) => { void gearSetups.renameSetup(id, name) }}
-                    onDelete={(id) => { void gearSetups.deleteSetup(id) }}
-                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <GearSetupTabs
+                      setups={gearSetups.setups}
+                      activeSetupId={gearSetups.activeSetupId}
+                      isDirty={isDirty}
+                      onSelect={(id) => { void handleSetupSelect(id) }}
+                      onAdd={() => { void handleSetupAdd() }}
+                      onRename={(id, name) => { void gearSetups.renameSetup(id, name) }}
+                      onDelete={(id) => { void gearSetups.deleteSetup(id) }}
+                    />
+                    {isDirty && (
+                      <>
+                        <Tooltip title="Save changes">
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSaveSetup}
+                            startIcon={<SaveIcon />}
+                            sx={{ minWidth: 0, textTransform: 'none', py: 0.25, px: 1 }}
+                          >
+                            Save
+                          </Button>
+                        </Tooltip>
+                        <Tooltip title="Undo unsaved changes">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={handleUndoSetup}
+                            startIcon={<UndoIcon />}
+                            sx={{ minWidth: 0, textTransform: 'none', py: 0.25, px: 1 }}
+                          >
+                            Undo
+                          </Button>
+                        </Tooltip>
+                      </>
+                    )}
+                  </Box>
                 )}
                 {inventoryMap.size > 0 && (
-                  <>
-                    <Box sx={{ flex: 1 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     <FormControl size="small" sx={{ minWidth: 160 }}>
                       <InputLabel>Character</InputLabel>
                       <Select
@@ -1124,7 +1197,7 @@ export default function GearPlanner() {
                         Load {sortedCharacters.find(c => c.id === selectedCharacterId)?.name}'s Gear
                       </Button>
                     )}
-                  </>
+                  </Box>
                 )}
               </Box>
             }

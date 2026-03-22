@@ -3,6 +3,7 @@ import React, { useCallback, useMemo, useState } from 'react'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'
+import DiamondIcon from '@mui/icons-material/Diamond'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import InventoryIcon from '@mui/icons-material/Inventory'
 import LayersClearIcon from '@mui/icons-material/LayersClear'
@@ -51,6 +52,7 @@ interface GearSuggestionsProps {
   excludeSetAugments: boolean
   excludedAugments: string[]
   excludedPacks: string[]
+  excludedItems: string[]
   onApplySetup: (setup: GearSetup) => void
   /** Item names available in Trove inventory. Empty set = no Trove data. */
   ownedItemNames: Set<string>
@@ -112,6 +114,7 @@ export default function GearSuggestions({
   excludeSetAugments,
   excludedAugments,
   excludedPacks,
+  excludedItems,
   onApplySetup,
   ownedItemNames,
   hasTroveData,
@@ -124,6 +127,7 @@ export default function GearSuggestions({
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [ownedOnly, setOwnedOnly] = useState(false)
+  const [requireArtifact, setRequireArtifact] = useState(false)
 
   // Build the current plan from the already-evaluated setup
   const currentPlan: GearPlan = useMemo(() => ({
@@ -208,12 +212,14 @@ export default function GearSuggestions({
       armorTypes: itemFilters?.armorTypes,
       mainHandTypes: itemFilters?.mainHandTypes,
       offHandTypes: itemFilters?.offHandTypes,
+      requireArtifact,
     }
 
     // Pre-filter items to those with at least one tracked property
     const propertySet = new Set(selectedProperties)
+    const excludedItemSet = new Set(excludedItems)
     let relevantItems = items.filter(item =>
-      item.affixes.some(a => propertySet.has(a.name))
+      !excludedItemSet.has(item.name) && item.affixes.some(a => propertySet.has(a.name))
     )
 
     // If owned-only mode, further filter to items in Trove inventory
@@ -248,6 +254,13 @@ export default function GearSuggestions({
     const addPlan = (label: string, setup: GearSetup) => {
       const key = setupToKey(setup)
       if (seenSetups.has(key)) return
+
+      // If requireArtifact, reject plans without exactly one minor artifact
+      if (requireArtifact) {
+        const artifactCount = Object.values(setup).filter(item => item?.artifact).length
+        if (artifactCount !== 1) return
+      }
+
       seenSetups.add(key)
 
       const result = evaluateGearSetup(
@@ -336,7 +349,7 @@ export default function GearSuggestions({
 
     setOptimizedPlans(plans)
     setPage(0)
-  }, [currentSetup, items, selectedProperties, setsData, craftingData, propertyIndex, pinnedSlots, excludeSetAugments, excludedAugments, excludedPacks, ownedOnly, ownedItemNames, itemFilters, questNameToPack])
+  }, [currentSetup, items, selectedProperties, setsData, craftingData, propertyIndex, pinnedSlots, excludeSetAugments, excludedAugments, excludedPacks, excludedItems, ownedOnly, ownedItemNames, requireArtifact, itemFilters, questNameToPack])
 
   return (
     <Box sx={{ p: 2 }}>
@@ -374,6 +387,18 @@ export default function GearSuggestions({
               </ToggleButton>
             </Tooltip>
           )}
+          <Tooltip title="Require exactly one Minor Artifact in optimization plans" arrow>
+            <ToggleButton
+              value="requireArtifact"
+              selected={requireArtifact}
+              onChange={() => setRequireArtifact(prev => !prev)}
+              size="small"
+              sx={{ textTransform: 'none', px: 1 }}
+            >
+              <DiamondIcon sx={{ fontSize: 18, mr: 0.5 }} />
+              Require Artifact
+            </ToggleButton>
+          </Tooltip>
         </Box>
 
         {/* Optimize button */}

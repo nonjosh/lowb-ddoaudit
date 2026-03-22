@@ -9,6 +9,7 @@ import { SavedGearSetup } from '@/storage/gearPlannerDb'
 interface GearSetupTabsProps {
   setups: SavedGearSetup[]
   activeSetupId: number | null
+  isDirty?: boolean
   onSelect: (id: number) => void
   onAdd: () => void
   onRename: (id: number, name: string) => void
@@ -18,6 +19,7 @@ interface GearSetupTabsProps {
 export default function GearSetupTabs({
   setups,
   activeSetupId,
+  isDirty = false,
   onSelect,
   onAdd,
   onRename,
@@ -80,7 +82,7 @@ export default function GearSetupTabs({
                         fontSize: '0.8125rem'
                       }}
                     >
-                      {setup.name}
+                      {setup.name}{activeSetupId === setup.id && isDirty ? ' *' : ''}
                     </Typography>
                     {setups.length > 1 && (
                       <CloseIcon

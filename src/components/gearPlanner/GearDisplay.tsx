@@ -532,6 +532,7 @@ function GearSlotCard({
               const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots)
               const isSelected = selectedProperties.includes(affix.name)
               const isHovered = hoveredProperty === affix.name
+              const isNonStacking = isSelected && !isHighest && affix.type !== 'bool'
 
               // Check if this affix matches the hovered bonus source
               const isBonusSourceHovered = hoveredBonusSource &&
@@ -549,21 +550,24 @@ function GearSlotCard({
                     gap: 0.5
                   }}
                 >
-                  <Typography
-                    variant="caption"
-                    display="block"
-                    sx={{
-                      flex: 1,
-                      fontWeight: isHighest ? 'bold' : 'normal',
-                      color: isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary'),
-                      backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
-                      px: shouldHighlight ? 0.5 : 0,
-                      borderRadius: shouldHighlight ? 0.5 : 0,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {formatAffix(affix)}
-                  </Typography>
+                  <Tooltip title={isNonStacking ? 'Does not stack (superseded by higher bonus)' : ''} disableHoverListener={!isNonStacking}>
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      sx={{
+                        flex: 1,
+                        fontWeight: isHighest ? 'bold' : 'normal',
+                        color: isNonStacking ? 'text.disabled' : (isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary')),
+                        textDecoration: isNonStacking ? 'line-through' : 'none',
+                        backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                        px: shouldHighlight ? 0.5 : 0,
+                        borderRadius: shouldHighlight ? 0.5 : 0,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {formatAffix(affix)}
+                    </Typography>
+                  </Tooltip>
                   {!isSelected && onPropertyAdd && affix.type !== 'bool' && (
                     <Tooltip title="Add to selected properties">
                       <IconButton

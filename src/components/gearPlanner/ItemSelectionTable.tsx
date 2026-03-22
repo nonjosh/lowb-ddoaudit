@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { type MouseEvent, useState } from 'react'
 
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import LaunchIcon from '@mui/icons-material/Launch'
 import {
   Box,
   Button,
@@ -24,7 +25,7 @@ import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
-import { formatAffix, getAugmentColor, getCraftingOptionsForSlot } from '@/utils/affixHelpers'
+import { formatAffix, getAugmentColor, getCraftingOptionsForSlot, getWikiUrl } from '@/utils/affixHelpers'
 import ItemCraftingDisplay from '../items/ItemCraftingDisplay'
 import InventoryBadge from './InventoryBadge'
 
@@ -179,6 +180,21 @@ export function ItemSelectionTable({
                       <Typography variant="body2" fontWeight={isCurrent ? 'bold' : 'normal'}>
                         {item.name}
                       </Typography>
+                      {getWikiUrl(item.url) && (
+                        <Tooltip title="View on DDO Wiki">
+                          <IconButton
+                            size="small"
+                            component="a"
+                            href={getWikiUrl(item.url)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e: MouseEvent) => e.stopPropagation()}
+                            sx={{ p: 0.25 }}
+                          >
+                            <LaunchIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       <InventoryBadge itemName={item.name} showBTC />
                       <Tooltip title={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
                         <IconButton
