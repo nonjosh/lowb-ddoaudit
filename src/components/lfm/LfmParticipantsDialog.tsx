@@ -14,6 +14,8 @@ import { fetchAreasById } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from '@/components/raids/RaidTimerTable'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
+import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
+import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
 
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
@@ -152,6 +154,9 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
       </DialogTitle>
       <DialogContent dividers>
         <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} onGuildClick={onGuildClick} leaderGuildName={selectedLfm?.leaderGuildName ?? ''} />
+        {selectedLfm?.isRaid && (
+          <RaidNotesDisplay raidNotes={getRaidNotesForRaidName(selectedLfm.questName ?? '')} />
+        )}
         {selectedLfm?.isRaid && selectedRaidData ? (
           <>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
