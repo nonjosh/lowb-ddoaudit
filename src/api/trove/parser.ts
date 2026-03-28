@@ -138,7 +138,8 @@ function extractItemsFromBank(bank: TroveBank): TroveItem[] {
 }
 
 /**
- * Add items to the inventory map with their locations
+ * Add items to the inventory map with their locations.
+ * Also adds entries for slotted augments (from AugmentSlots with an Effect).
  */
 function addItemsToMap(
   map: TroveInventoryMap,
@@ -165,6 +166,30 @@ function addItemsToMap(
       existing.push(location)
     } else {
       map.set(item.Name, [location])
+    }
+
+    // Also add entries for slotted augments
+    if (item.AugmentSlots) {
+      for (const slot of item.AugmentSlots) {
+        if (!slot.Effect?.Name) continue
+
+        const augmentLocation: TroveItemLocation = {
+          characterName,
+          characterId,
+          container: item.Container,
+          tab: item.Tab,
+          tabName: item.TabName,
+          binding: item.Binding,
+          minimumLevel: item.MinimumLevel,
+        }
+
+        const existingAugment = map.get(slot.Effect.Name)
+        if (existingAugment) {
+          existingAugment.push(augmentLocation)
+        } else {
+          map.set(slot.Effect.Name, [augmentLocation])
+        }
+      }
     }
   }
 }
