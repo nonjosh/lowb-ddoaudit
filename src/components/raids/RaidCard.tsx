@@ -52,12 +52,13 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
   const runeInfo = useMemo(() => {
     const runeNames = getRuneNamesForRaid(g.raidName)
     if (runeNames.length === 0 || inventoryMap.size === 0) return null
-    const entries: { name: string; count: number }[] = []
+    const entries: { name: string; count: number; iconSource?: string }[] = []
     for (const runeName of runeNames) {
       const locations = inventoryMap.get(runeName)
       if (locations && locations.length > 0) {
         const total = locations.reduce((sum, loc) => sum + (loc.quantity ?? 1), 0)
-        entries.push({ name: runeName, count: total })
+        const iconSource = locations.find((loc) => loc.iconSource)?.iconSource
+        entries.push({ name: runeName, count: total, iconSource })
       }
     }
     return entries.length > 0 ? entries : null
@@ -199,14 +200,16 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                   </Tooltip>
                 ) : null}
                 <ItemLootButton questName={g.raidName} />
-                {runeInfo && runeInfo.map(({ name, count }) => (
+                {runeInfo && runeInfo.map(({ name, count, iconSource }) => (
                   <Tooltip key={name} title={name}>
                     <Chip
                       size="small"
-                      icon={<DiamondIcon sx={{ fontSize: 14 }} />}
+                      icon={iconSource
+                        ? <Box component="img" src={iconSource} alt={name} sx={{ width: 16, height: 16 }} />
+                        : <DiamondIcon sx={{ fontSize: 14 }} />}
                       label={count}
                       variant="outlined"
-                      sx={{ height: 22  }}
+                      sx={{ height: 22 }}
                     />
                   </Tooltip>
                 ))}

@@ -160,6 +160,7 @@ function addItemsToMap(
       minimumLevel: item.MinimumLevel,
       quantity: item.Quantity,
       augmentSlots: item.AugmentSlots,
+      iconSource: item.IconSource,
     }
 
     const existing = map.get(item.Name)

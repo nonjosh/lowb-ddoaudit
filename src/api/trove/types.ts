@@ -152,6 +152,8 @@ export interface TroveItemLocation {
   augmentSlots?: TroveAugmentSlot[]
   /** Name of the parent item this augment is slotted into (only set for augment entries) */
   slottedInItem?: string
+  /** Base64-encoded icon image (data URI) */
+  iconSource?: string
 }
 
 export interface TroveCharacter {
