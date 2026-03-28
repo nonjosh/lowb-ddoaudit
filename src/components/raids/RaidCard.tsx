@@ -22,9 +22,11 @@ import IconWrapper from '@/components/shared/IconWrapper'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useConfig } from '@/contexts/useConfig'
+import { useTrove } from '@/contexts/useTrove'
 import { useWishlist } from '@/contexts/useWishlist'
 import { getPlayerDisplayName, groupEntriesByPlayer, isEntryAvailable, RaidEntry, RaidGroup } from '@/domains/raids/raidLogic'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
+import { getRuneNamesForRaid } from '@/domains/raids/raidRunes'
 import { getRaidUpdate } from '@/domains/raids/raidUpdates'
 
 import RaidTimerTable from './RaidTimerTable'
@@ -43,6 +45,22 @@ interface RaidCardProps {
 export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, isPlayerCollapsed, onTogglePlayer, hasFriendInside, hasLfm, onLfmClick }: RaidCardProps) {
   const { hasWishForQuestName } = useWishlist()
   const { showClassIcons } = useConfig()
+  const { inventoryMap } = useTrove()
+
+  // Count available runes for this raid from Trove inventory
+  const runeInfo = useMemo(() => {
+    const runeNames = getRuneNamesForRaid(g.raidName)
+    if (runeNames.length === 0 || inventoryMap.size === 0) return null
+    const entries: { name: string; count: number }[] = []
+    for (const runeName of runeNames) {
+      const locations = inventoryMap.get(runeName)
+      if (locations && locations.length > 0) {
+        const total = locations.reduce((sum, loc) => sum + (loc.quantity ?? 1), 0)
+        entries.push({ name: runeName, count: total })
+      }
+    }
+    return entries.length > 0 ? entries : null
+  }, [g.raidName, inventoryMap])
 
   const [now, setNow] = useState(() => new Date())
   const perPlayer = useMemo(() => groupEntriesByPlayer(g.entries, now), [g.entries, now])
@@ -180,6 +198,16 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                   </Tooltip>
                 ) : null}
                 <ItemLootButton questName={g.raidName} />
+                {runeInfo && runeInfo.map(({ name, count }) => (
+                  <Tooltip key={name} title={name}>
+                    <Chip
+                      size="small"
+                      label={`🪨 ${count}`}
+                      variant="outlined"
+                      sx={{ height: 22  }}
+                    />
+                  </Tooltip>
+                ))}
                 {hasLfm && onLfmClick ? (
                   <Tooltip title="View LFM details">
                     <IconButton
