@@ -150,6 +150,8 @@ export interface TroveItemLocation {
   quantity?: number
   /** Augment slots with their slotted augments (for equipped items) */
   augmentSlots?: TroveAugmentSlot[]
+  /** Name of the parent item this augment is slotted into (only set for augment entries) */
+  slottedInItem?: string
 }
 
 export interface TroveCharacter {

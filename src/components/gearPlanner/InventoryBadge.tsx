@@ -86,16 +86,22 @@ export default function InventoryBadge({
     : []
 
   // Format location strings
-  const formatLocation = (loc: { characterId: number; container: string; tabName?: string }) => {
+  const formatLocation = (loc: { characterId: number; container: string; tabName?: string; slottedInItem?: string }) => {
+    let result: string
     if (loc.characterId === 0) {
       const tabSuffix = loc.tabName ? ` (${loc.tabName})` : ''
-      return `Shared Bank${tabSuffix}`
+      result = `Shared Bank${tabSuffix}`
+    } else {
+      const char = characters.find((c) => c.id === loc.characterId)
+      const charName = char?.name || 'Unknown'
+      // Don't show tab name for equipped items (there's only one equipped slot)
+      const tabSuffix = loc.container !== 'Equipped' && loc.tabName ? ` (${loc.tabName})` : ''
+      result = `${charName} - ${loc.container}${tabSuffix}`
     }
-    const char = characters.find((c) => c.id === loc.characterId)
-    const charName = char?.name || 'Unknown'
-    // Don't show tab name for equipped items (there's only one equipped slot)
-    const tabSuffix = loc.container !== 'Equipped' && loc.tabName ? ` (${loc.tabName})` : ''
-    return `${charName} - ${loc.container}${tabSuffix}`
+    if (loc.slottedInItem) {
+      result += ` → ${loc.slottedInItem}`
+    }
+    return result
   }
 
   const tooltipContent = (

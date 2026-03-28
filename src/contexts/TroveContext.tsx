@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { parseMultipleTroveFiles } from '@/api/trove/parser'
 import type { TroveAugmentSlot, TroveCharacter, TroveItemLocation } from '@/api/trove/types'
@@ -186,6 +186,28 @@ export function TroveProvider({ children }: TroveProviderProps) {
     [inventoryMap]
   )
 
+  // Build reverse lookup: augment name → Map<characterId, parentItemName>
+  // This lets us show which item an augment is slotted into, even for data
+  // imported before the slottedInItem field was added.
+  const augmentParentLookup = useMemo(() => {
+    const lookup = new Map<string, Map<number, string>>()
+    for (const [itemName, locations] of inventoryMap.entries()) {
+      for (const loc of locations) {
+        if (!loc.augmentSlots) continue
+        for (const slot of loc.augmentSlots) {
+          if (!slot.Effect?.Name) continue
+          let perChar = lookup.get(slot.Effect.Name)
+          if (!perChar) {
+            perChar = new Map()
+            lookup.set(slot.Effect.Name, perChar)
+          }
+          perChar.set(loc.characterId, itemName)
+        }
+      }
+    }
+    return lookup
+  }, [inventoryMap])
+
   // Check if item exists
   const hasItem = useCallback(
     (itemName: string): boolean => {
@@ -194,12 +216,22 @@ export function TroveProvider({ children }: TroveProviderProps) {
     [lookupLocations]
   )
 
-  // Get item locations
+  // Get item locations, enriching augment entries with parent item name
   const getItemLocations = useCallback(
     (itemName: string): TroveItemLocation[] => {
-      return lookupLocations(itemName) || []
+      const locations = lookupLocations(itemName) || []
+      const parentMap = augmentParentLookup.get(itemName)
+      if (!parentMap) return locations
+
+      // Enrich augment locations with parent item info
+      return locations.map(loc => {
+        if (loc.slottedInItem) return loc
+        const parentName = parentMap.get(loc.characterId)
+        if (!parentName) return loc
+        return { ...loc, slottedInItem: parentName }
+      })
     },
-    [lookupLocations]
+    [lookupLocations, augmentParentLookup]
   )
 
   // Check if item is available considering character selection

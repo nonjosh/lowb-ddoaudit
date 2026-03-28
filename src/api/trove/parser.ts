@@ -182,6 +182,7 @@ function addItemsToMap(
           tabName: item.TabName,
           binding: item.Binding,
           minimumLevel: item.MinimumLevel,
+          slottedInItem: item.Name,
         }
 
         const existingAugment = map.get(slot.Effect.Name)
@@ -380,6 +381,10 @@ export function getItemLocationStrings(
       result = `Shared Bank${loc.tabName ? ` (${loc.tabName})` : ''}`
     } else if (loc.container === 'CraftingStorage') {
       result = 'Crafting Storage'
+    }
+
+    if (loc.slottedInItem) {
+      result += ` → ${loc.slottedInItem}`
     }
 
     return result
