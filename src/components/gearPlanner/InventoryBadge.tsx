@@ -99,7 +99,7 @@ export default function InventoryBadge({
       result = `${charName} - ${loc.container}${tabSuffix}`
     }
     if (loc.slottedInItem) {
-      result += ` → ${loc.slottedInItem}`
+      result += ` → slotted in ${loc.slottedInItem}`
     }
     return result
   }

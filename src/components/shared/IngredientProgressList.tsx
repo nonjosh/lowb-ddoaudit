@@ -148,7 +148,7 @@ function IngredientProgressRow({ ingredient, required, available, locations }: I
         label = `${loc.characterName} - ${loc.container}`
       }
       if (loc.slottedInItem) {
-        label += ` slotted→ ${loc.slottedInItem}`
+        label += ` → slotted in ${loc.slottedInItem}`
       }
       grouped.set(label, (grouped.get(label) ?? 0) + (loc.quantity ?? 0))
     }
