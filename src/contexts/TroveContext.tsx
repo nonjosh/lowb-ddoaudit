@@ -1,7 +1,7 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { parseMultipleTroveFiles } from '@/api/trove/parser'
-import type { TroveCharacter, TroveItemLocation } from '@/api/trove/types'
+import type { TroveAugmentSlot, TroveCharacter, TroveItemLocation } from '@/api/trove/types'
 import {
   clearTroveData,
   loadTroveCharacters,
@@ -17,6 +17,7 @@ import {
 } from '@/storage/troveDb'
 
 import { TroveContext, TroveContextValue } from './useTrove'
+import type { EquippedItemInfo } from './useTrove'
 
 // ============================================================================
 // Helpers
@@ -272,6 +273,31 @@ export function TroveProvider({ children }: TroveProviderProps) {
     return equippedItems
   }, [inventoryMap])
 
+  // Get equipped items with augment slot data for a character
+  const getEquippedItemsWithAugments = useCallback((characterId: number): EquippedItemInfo[] => {
+    const equippedItems: EquippedItemInfo[] = []
+    const seen = new Set<string>()
+
+    for (const [itemName, locations] of inventoryMap.entries()) {
+      if (seen.has(itemName)) continue
+      for (const loc of locations) {
+        if (loc.characterId === characterId && loc.container === 'Equipped') {
+          const slotsWithAugments = loc.augmentSlots?.filter(
+            (s: TroveAugmentSlot) => s.Effect?.Name
+          )
+          equippedItems.push({
+            name: itemName,
+            augmentSlots: slotsWithAugments && slotsWithAugments.length > 0 ? slotsWithAugments : undefined,
+          })
+          seen.add(itemName)
+          break
+        }
+      }
+    }
+
+    return equippedItems
+  }, [inventoryMap])
+
   const value: TroveContextValue = {
     inventoryMap,
     characters,
@@ -289,7 +315,8 @@ export function TroveProvider({ children }: TroveProviderProps) {
     getItemLocations,
     isItemAvailableForCharacters,
     getStats,
-    getEquippedItems
+    getEquippedItems,
+    getEquippedItemsWithAugments,
   }
 
   return <TroveContext.Provider value={value}>{children}</TroveContext.Provider>

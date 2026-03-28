@@ -1,10 +1,15 @@
 import { createContext, useContext } from 'react'
 
-import type { TroveCharacter, TroveItemLocation } from '@/api/trove/types'
+import type { TroveAugmentSlot, TroveCharacter, TroveItemLocation } from '@/api/trove/types'
 
 // ============================================================================
 // Context Types
 // ============================================================================
+
+export interface EquippedItemInfo {
+  name: string
+  augmentSlots?: TroveAugmentSlot[]
+}
 
 export interface TroveContextValue {
   // State
@@ -29,6 +34,7 @@ export interface TroveContextValue {
   isItemAvailableForCharacters: (itemName: string) => boolean
   getStats: (equipmentNames?: Set<string>) => { uniqueBTA: number; btcPerCharacter: Map<number, number> }
   getEquippedItems: (characterId: number) => string[]
+  getEquippedItemsWithAugments: (characterId: number) => EquippedItemInfo[]
 }
 
 const defaultContext: TroveContextValue = {
@@ -48,7 +54,8 @@ const defaultContext: TroveContextValue = {
   getItemLocations: () => [],
   isItemAvailableForCharacters: () => false,
   getStats: () => ({ uniqueBTA: 0, btcPerCharacter: new Map() }),
-  getEquippedItems: () => []
+  getEquippedItems: () => [],
+  getEquippedItemsWithAugments: () => [],
 }
 
 export const TroveContext = createContext<TroveContextValue>(defaultContext)

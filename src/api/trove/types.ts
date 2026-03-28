@@ -148,6 +148,8 @@ export interface TroveItemLocation {
   minimumLevel?: number
   /** Stack size for stackable items (e.g., crafting ingredients) */
   quantity?: number
+  /** Augment slots with their slotted augments (for equipped items) */
+  augmentSlots?: TroveAugmentSlot[]
 }
 
 export interface TroveCharacter {

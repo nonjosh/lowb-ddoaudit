@@ -1,3 +1,4 @@
+import DiamondIcon from '@mui/icons-material/Diamond'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import FavoriteIcon from '@mui/icons-material/Favorite'
@@ -202,7 +203,8 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                   <Tooltip key={name} title={name}>
                     <Chip
                       size="small"
-                      label={`🪨 ${count}`}
+                      icon={<DiamondIcon sx={{ fontSize: 14 }} />}
+                      label={count}
                       variant="outlined"
                       sx={{ height: 22  }}
                     />

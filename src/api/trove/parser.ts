@@ -159,6 +159,7 @@ function addItemsToMap(
       binding: item.Binding,
       minimumLevel: item.MinimumLevel,
       quantity: item.Quantity,
+      augmentSlots: item.AugmentSlots,
     }
 
     const existing = map.get(item.Name)

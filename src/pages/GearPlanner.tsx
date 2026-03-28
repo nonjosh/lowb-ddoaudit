@@ -250,7 +250,7 @@ function loadItemFilterStringArray(key: string): string[] {
 
 export default function GearPlanner() {
   const { items, setsData, craftingData, loading, error, refresh } = useGearPlanner()
-  const { inventoryMap, characters, selectedCharacterId, setSelectedCharacter, getEquippedItems, hiddenCharacterIds, isItemAvailableForCharacters } = useTrove()
+  const { inventoryMap, characters, selectedCharacterId, setSelectedCharacter, getEquippedItemsWithAugments, hiddenCharacterIds, isItemAvailableForCharacters } = useTrove()
   const questNameToPack = useQuestNameToPack()
   const gearSetups = useGearSetups()
   const propertyPresets = usePropertyPresets()
@@ -649,42 +649,78 @@ export default function GearPlanner() {
 
   // Handle loading equipped gear from a character
   const handleLoadEquipped = useCallback((characterId: number) => {
-    const equippedItemNames = getEquippedItems(characterId)
+    const equippedItems = getEquippedItemsWithAugments(characterId)
 
     const itemsByName = new Map(items.map(item => [item.name, item]))
     const setup: GearSetup = {}
+    const slotItemMap = new Map<string, { item: Item; augmentNames: Map<string, string> }>()
 
-    for (const itemName of equippedItemNames) {
-      const item = itemsByName.get(itemName)
+    for (const equipped of equippedItems) {
+      const item = itemsByName.get(equipped.name)
       if (item && item.slot) {
         const slotKey = item.slot.toLowerCase()
+        let gearSlot: string | null = null
         if (slotKey === 'ring') {
-          if (!setup.ring1) setup.ring1 = item
-          else if (!setup.ring2) setup.ring2 = item
+          if (!setup.ring1) { setup.ring1 = item; gearSlot = 'ring1' }
+          else if (!setup.ring2) { setup.ring2 = item; gearSlot = 'ring2' }
         } else if (slotKey === 'weapon') {
-          setup.mainHand = item
+          setup.mainHand = item; gearSlot = 'mainHand'
         } else if (slotKey === 'offhand') {
-          setup.offHand = item
+          setup.offHand = item; gearSlot = 'offHand'
         } else if (slotKey === 'armor') {
-          setup.armor = item
+          setup.armor = item; gearSlot = 'armor'
         } else if (slotKey === 'belt') {
-          setup.belt = item
+          setup.belt = item; gearSlot = 'belt'
         } else if (slotKey === 'boots') {
-          setup.boots = item
+          setup.boots = item; gearSlot = 'boots'
         } else if (slotKey === 'bracers') {
-          setup.bracers = item
+          setup.bracers = item; gearSlot = 'bracers'
         } else if (slotKey === 'cloak') {
-          setup.cloak = item
+          setup.cloak = item; gearSlot = 'cloak'
         } else if (slotKey === 'gloves') {
-          setup.gloves = item
+          setup.gloves = item; gearSlot = 'gloves'
         } else if (slotKey === 'goggles') {
-          setup.goggles = item
+          setup.goggles = item; gearSlot = 'goggles'
         } else if (slotKey === 'helm') {
-          setup.helm = item
+          setup.helm = item; gearSlot = 'helm'
         } else if (slotKey === 'necklace') {
-          setup.necklace = item
+          setup.necklace = item; gearSlot = 'necklace'
         } else if (slotKey === 'trinket') {
-          setup.trinket = item
+          setup.trinket = item; gearSlot = 'trinket'
+        }
+
+        if (gearSlot && equipped.augmentSlots) {
+          // Build a mapping of Trove slot type name → augment effect name
+          const augmentNames = new Map<string, string>()
+          for (const aug of equipped.augmentSlots) {
+            if (aug.Effect?.Name) {
+              augmentNames.set(aug.Name, aug.Effect.Name)
+            }
+          }
+          slotItemMap.set(gearSlot, { item, augmentNames })
+        }
+      }
+    }
+
+    // Build crafting selections from Trove augment data
+    const craftingSelections: GearCraftingSelections = {}
+    if (craftingData) {
+      for (const [gearSlot, { item, augmentNames }] of slotItemMap) {
+        if (!item.crafting || item.crafting.length === 0) continue
+        const selections: { slotType: string; option: CraftingOption | null }[] = item.crafting.map(slotType => {
+          // Find if there's a Trove augment for this slot type
+          const troveAugmentName = augmentNames.get(slotType)
+          if (!troveAugmentName) return { slotType, option: null }
+
+          // Look up matching crafting option
+          const slotData = craftingData[slotType]
+          if (!slotData) return { slotType, option: null }
+          const options = slotData[item.name] ?? slotData['*'] ?? []
+          const match = options.find(opt => opt.name === troveAugmentName)
+          return { slotType, option: match ?? null }
+        })
+        if (selections.some(s => s.option !== null)) {
+          craftingSelections[gearSlot] = selections
         }
       }
     }
@@ -704,10 +740,11 @@ export default function GearPlanner() {
     setPinnedItems(newPinnedItems)
     savePinnedSlots(newPinnedSlots)
 
-    const evaluated = buildEvaluatedSetup(setup, selectedProperties)
+    const hasAugmentSelections = Object.keys(craftingSelections).length > 0
+    const evaluated = buildEvaluatedSetup(setup, selectedProperties, hasAugmentSelections ? craftingSelections : undefined)
     setCurrentSetup(evaluated)
     setIsDirty(true)
-  }, [getEquippedItems, items, selectedProperties, pinnedSlots, pinnedItems, buildEvaluatedSetup])
+  }, [getEquippedItemsWithAugments, items, craftingData, selectedProperties, pinnedSlots, pinnedItems, buildEvaluatedSetup])
 
   // Handle importing a gear setup from an external ddo-gear-planner URL
   const handleExternalUrlImport = useCallback((importedSetup: EvaluatedGearSetup, trackedProperties?: string[]) => {
