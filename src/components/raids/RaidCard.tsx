@@ -4,6 +4,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import {
+  Avatar,
   Box,
   Card,
   CardContent,
@@ -204,9 +205,12 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                   <Tooltip key={name} title={name}>
                     <Chip
                       size="small"
-                      icon={iconSource
-                        ? <Box component="img" src={iconSource} alt={name} sx={{ width: 16, height: 16 }} />
-                        : <DiamondIcon sx={{ fontSize: 14 }} />}
+                      avatar={iconSource
+                        ? <Avatar src={iconSource} alt={name} />
+                        : undefined}
+                      icon={!iconSource
+                        ? <DiamondIcon sx={{ fontSize: 14 }} />
+                        : undefined}
                       label={count}
                       variant="outlined"
                       sx={{ height: 22 }}
