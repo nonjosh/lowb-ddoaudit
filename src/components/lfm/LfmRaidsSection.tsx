@@ -1,3 +1,4 @@
+import DirectionsRailwayIcon from '@mui/icons-material/DirectionsRailway'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
@@ -31,6 +32,7 @@ import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
+import { detectRaidTrain } from '@/domains/raids/raidTrainLogic'
 
 import GuildCharactersDialog from './GuildCharactersDialog'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
@@ -91,6 +93,18 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
 
   const shownCount = raidLfms.length
   const totalCount = rawCount
+
+  // Detect which LFMs have raid trains in their comments
+  const trainLfmIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const l of raidLfms) {
+      if (l.comment && raidGroups.length > 0) {
+        const matched = detectRaidTrain(l.comment, raidGroups)
+        if (matched.length >= 2) ids.add(l.id)
+      }
+    }
+    return ids
+  }, [raidLfms, raidGroups])
 
   // If server is offline, show message and do not render LFM table.
   if (isServerOnline === false) {
@@ -255,11 +269,18 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
                         <Typography variant="body2" noWrap>
                           {l.comment || '—'}
                         </Typography>
-                        {typeof l.adventureActiveMinutes === 'number' ? (
-                          <Typography variant="caption" sx={{ color: 'info.main' }} noWrap>
-                            Active {l.adventureActiveMinutes} min
-                          </Typography>
-                        ) : null}
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          {typeof l.adventureActiveMinutes === 'number' ? (
+                            <Typography variant="caption" sx={{ color: 'info.main' }} noWrap>
+                              Active {l.adventureActiveMinutes} min
+                            </Typography>
+                          ) : null}
+                          {trainLfmIds.has(l.id) && (
+                            <Tooltip title="Raid train detected">
+                              <DirectionsRailwayIcon sx={{ width: 14, height: 14, color: 'warning.main' }} />
+                            </Tooltip>
+                          )}
+                        </Stack>
                       </Stack>
                     </TableCell>
                   </TableRow>
