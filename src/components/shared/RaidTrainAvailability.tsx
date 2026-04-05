@@ -53,11 +53,11 @@ export default function RaidTrainAvailability({ selectedRaids, now }: RaidTrainA
     return collapsed
   })
 
-  // Update collapsed state when trainGroups identity changes (e.g. new raids selected)
-  const [prevGroupKey, setPrevGroupKey] = useState(() =>
-    trainGroups.map((g) => g.player).join(','),
-  )
-  const groupKey = trainGroups.map((g) => g.player).join(',')
+  // Update collapsed state when trainGroups identity changes (e.g. new raids selected or online status changes)
+  const buildGroupKey = (groups: TrainPlayerGroup[]) =>
+    groups.map((g) => `${g.player}:${g.isPlayerOnline ? '1' : '0'}`).join(',')
+  const [prevGroupKey, setPrevGroupKey] = useState(() => buildGroupKey(trainGroups))
+  const groupKey = buildGroupKey(trainGroups)
   if (groupKey !== prevGroupKey) {
     setPrevGroupKey(groupKey)
     const collapsed = new Set<string>()
@@ -216,11 +216,9 @@ export default function RaidTrainAvailability({ selectedRaids, now }: RaidTrainA
                     >
                       <TableCell sx={{ pl: 5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          {c.isOnline && (
-                            <FiberManualRecordIcon
-                              sx={{ width: 6, height: 6, color: 'success.main', flexShrink: 0 }}
-                            />
-                          )}
+                          <FiberManualRecordIcon
+                            sx={{ width: 6, height: 6, color: c.isOnline ? 'success.main' : 'text.disabled', flexShrink: 0 }}
+                          />
                           <Typography variant="body2" noWrap>{c.characterName}</Typography>
                           <Typography variant="caption" color="text.secondary">
                             {c.totalLevel}
