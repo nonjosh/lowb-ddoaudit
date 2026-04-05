@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material'
+import { useMemo } from 'react'
 
 import LfmParticipantRow from './LfmParticipantRow'
 import { LfmParticipant } from '@/domains/lfm/lfmHelpers'
@@ -18,6 +19,15 @@ export default function LfmParticipantsTable({ participants, areas, onGuildClick
       : undefined
     : undefined
 
+  // Leader first, then members in join order (API array order)
+  const sortedParticipants = useMemo(
+    () => participants.slice().sort((a, b) => {
+      if (a.isLeader !== b.isLeader) return a.isLeader ? -1 : 1
+      return 0
+    }),
+    [participants],
+  )
+
   return (
     <Table size="small" aria-label="lfm members">
       <TableHead>
@@ -32,7 +42,7 @@ export default function LfmParticipantsTable({ participants, areas, onGuildClick
         </TableRow>
       </TableHead>
       <TableBody>
-        {participants.map((p) => (
+        {sortedParticipants.map((p) => (
           <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} onGuildClick={onGuildClick} leaderGuildName={effectiveLeaderGuild} />
         ))}
       </TableBody>
