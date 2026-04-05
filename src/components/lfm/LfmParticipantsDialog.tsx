@@ -1,11 +1,15 @@
+import DiamondIcon from '@mui/icons-material/Diamond'
 import {
+  Avatar,
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Stack,
+  Tooltip,
   Typography
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
@@ -16,7 +20,9 @@ import RaidTimerTable from '@/components/raids/RaidTimerTable'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import RaidTrainAvailability from '@/components/shared/RaidTrainAvailability'
+import { useTrove } from '@/contexts/useTrove'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
+import { getRuneNamesForRaid } from '@/domains/raids/raidRunes'
 import { detectRaidTrain } from '@/domains/raids/raidTrainLogic'
 
 import LfmParticipantsTable from './LfmParticipantsTable'
@@ -29,6 +35,24 @@ interface ExtendedLfmParticipantsDialogProps extends LfmParticipantsDialogProps 
 export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData, raidGroups, onGuildClick }: ExtendedLfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [now, setNow] = useState(() => new Date())
+  const { inventoryMap } = useTrove()
+
+  // Count available runes for this raid from Trove inventory
+  const runeInfo = useMemo(() => {
+    if (!selectedLfm?.questName) return null
+    const runeNames = getRuneNamesForRaid(selectedLfm.questName)
+    if (runeNames.length === 0 || inventoryMap.size === 0) return null
+    const entries: { name: string; count: number; iconSource?: string }[] = []
+    for (const runeName of runeNames) {
+      const locations = inventoryMap.get(runeName)
+      if (locations && locations.length > 0) {
+        const total = locations.reduce((sum, loc) => sum + (loc.quantity ?? 1), 0)
+        const iconSource = locations.find((loc) => loc.iconSource)?.iconSource
+        entries.push({ name: runeName, count: total, iconSource })
+      }
+    }
+    return entries.length > 0 ? entries : null
+  }, [selectedLfm?.questName, inventoryMap])
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60000) // Update every minute
@@ -115,6 +139,22 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
               </Typography>
               {selectedLfm?.questName && <ItemLootButton questName={selectedLfm.questName} />}
               {selectedLfm?.questName && <DdoWikiLink questName={selectedLfm.questName} />}
+              {runeInfo && runeInfo.map(({ name, count, iconSource }) => (
+                <Tooltip key={name} title={name}>
+                  <Chip
+                    size="small"
+                    avatar={iconSource
+                      ? <Avatar src={iconSource} alt={name} />
+                      : undefined}
+                    icon={!iconSource
+                      ? <DiamondIcon sx={{ fontSize: 14 }} />
+                      : undefined}
+                    label={count}
+                    variant="outlined"
+                    sx={{ height: 22 }}
+                  />
+                </Tooltip>
+              ))}
             </Box>
             {selectedLfm?.adventurePack && (
               <Typography variant="caption" color="text.secondary">
