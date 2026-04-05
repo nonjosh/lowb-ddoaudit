@@ -5,4 +5,5 @@ export interface LfmParticipantsDialogProps {
   selectedLfm: LfmDisplayData | null
   onClose: () => void
   selectedRaidData: { raidGroup: RaidGroup; perPlayerEligible: PlayerGroup[] } | null
+  raidGroups?: RaidGroup[]
 }

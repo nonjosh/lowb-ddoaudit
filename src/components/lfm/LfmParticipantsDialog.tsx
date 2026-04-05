@@ -15,7 +15,9 @@ import ItemLootButton from '@/components/items/ItemLootButton'
 import RaidTimerTable from '@/components/raids/RaidTimerTable'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
+import RaidTrainAvailability from '@/components/shared/RaidTrainAvailability'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
+import { detectRaidTrain } from '@/domains/raids/raidTrainLogic'
 
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
@@ -24,7 +26,7 @@ interface ExtendedLfmParticipantsDialogProps extends LfmParticipantsDialogProps 
   onGuildClick?: (guildName: string) => void
 }
 
-export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData, onGuildClick }: ExtendedLfmParticipantsDialogProps) {
+export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData, raidGroups, onGuildClick }: ExtendedLfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [now, setNow] = useState(() => new Date())
 
@@ -83,6 +85,19 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
   useEffect(() => {
     fetchAreasById().then(setAreas).catch(console.error)
   }, [])
+
+  // Auto-detect raid train from LFM comment, including the current quest
+  const detectedTrainRaids = useMemo(() => {
+    if (!selectedLfm?.comment || !raidGroups?.length) return []
+    const fromComment = detectRaidTrain(selectedLfm.comment, raidGroups)
+    if (fromComment.length < 2) return fromComment
+    // Include the current LFM's quest if not already in the detected train
+    const currentRaid = raidGroups.find((g) => g.questId === selectedLfm.questId)
+    if (currentRaid && !fromComment.some((r) => r.questId === currentRaid.questId)) {
+      return [currentRaid, ...fromComment]
+    }
+    return fromComment
+  }, [selectedLfm?.comment, selectedLfm?.questId, raidGroups])
 
   return (
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="md" fullWidth>
@@ -157,7 +172,7 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
       </DialogTitle>
       <DialogContent dividers>
         <LfmParticipantsTable participants={selectedLfm?.participants ?? []} areas={areas} onGuildClick={onGuildClick} leaderGuildName={selectedLfm?.leaderGuildName ?? ''} />
-        {selectedLfm?.isRaid && selectedRaidData ? (
+        {selectedLfm?.isRaid && selectedRaidData && detectedTrainRaids.length < 2 ? (
           <>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
               Raid Timers
@@ -170,6 +185,28 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
             />
           </>
         ) : null}
+        {detectedTrainRaids.length >= 2 && (
+          <>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+              Raid Train Detected ({detectedTrainRaids.length} raids)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              {detectedTrainRaids.map((r, idx) => (
+                <span key={r.questId}>
+                  {idx > 0 && ' → '}
+                  {r.questId === selectedLfm?.questId ? (
+                    <Typography component="span" variant="body2" fontWeight={700} color="text.primary">
+                      {r.raidName}
+                    </Typography>
+                  ) : (
+                    r.raidName
+                  )}
+                </span>
+              ))}
+            </Typography>
+            <RaidTrainAvailability selectedRaids={detectedTrainRaids} now={now} />
+          </>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>

@@ -33,6 +33,7 @@ export interface RaidEntry {
   lastTimestamp: string | null
   isOnline: boolean
   isInRaid: boolean
+  locationId: string | null
 }
 
 export interface PlayerGroup {
@@ -203,6 +204,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           lastTimestamp: ts,
           isOnline,
           isInRaid,
+          locationId,
         })
       }
 
@@ -241,6 +243,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         lastTimestamp: null,
         isOnline,
         isInRaid,
+        locationId,
       })
     }
   }
@@ -305,6 +308,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
           lastTimestamp: null,
           isOnline,
           isInRaid,
+          locationId,
         })
       }
 

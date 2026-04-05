@@ -1,5 +1,6 @@
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import TimerIcon from '@mui/icons-material/Timer'
+import TrainIcon from '@mui/icons-material/Tram'
 import { Box, Chip, CircularProgress, IconButton, Skeleton, Stack, Tooltip, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -14,6 +15,7 @@ import { groupEntriesByPlayer, isLevelInTier, RaidGroup } from '@/domains/raids/
 import { getRaidUpdateNumber } from '@/domains/raids/raidUpdates'
 
 import RaidCard from './RaidCard'
+import RaidTrainDialog from './RaidTrainDialog'
 
 interface RaidTimerSectionProps {
   loading: boolean
@@ -151,6 +153,7 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
   }, [raidGroups, lfms, tierFilter, questsByIdLocal])
 
   const [selectedLfmId, setSelectedLfmId] = useState<string | null>(null)
+  const [trainDialogOpen, setTrainDialogOpen] = useState(false)
 
   // Derive selectedLfm from live lfms data so it refreshes automatically
   const selectedLfm = useMemo(() => {
@@ -209,6 +212,15 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
             <OpenInNewIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        <Tooltip title="Raid Train Checker">
+          <IconButton
+            size="small"
+            onClick={() => setTrainDialogOpen(true)}
+            sx={{ color: 'text.secondary' }}
+          >
+            <TrainIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Box sx={{ ml: 'auto' }}>
           <QuestTierFilter value={tierFilter} onChange={setTierFilter} />
         </Box>
@@ -248,7 +260,8 @@ export default function RaidTimerSection({ loading, hasFetched, raidGroups, isRa
           })}
         </Stack>
       )}
-      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfmId(null)} selectedRaidData={selectedRaidData} />
+      <LfmParticipantsDialog selectedLfm={selectedLfm} onClose={() => setSelectedLfmId(null)} selectedRaidData={selectedRaidData} raidGroups={raidGroups} />
+      <RaidTrainDialog open={trainDialogOpen} onClose={() => setTrainDialogOpen(false)} raidGroups={sortedRaidGroups} />
     </>
   )
 }
