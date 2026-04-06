@@ -17,7 +17,7 @@ const RAID_UPDATE_MAP: Record<string, string> = {
   'legendary hound of xoriat': 'U29',
   'legendary tempest spine': 'U29',
   "legendary tempest's spine": 'U29',
-  'hunt or be hunted': 'U51',
+  'hunt or be hunted': 'U53',
 
   // Vecna Unleashed Raids
   'fire over morgrave': 'U61',
