@@ -123,14 +123,23 @@ src/
 ### DDO Audit API
 
 - Raid activity: `https://api.ddoaudit.com/v1/activity/raids`
-- Characters: `https://api.ddoaudit.com/v1/characters/ids/{ids}`
-- LFM posts: `https://api.ddoaudit.com/v1/lfms/shadowdale`
+- Characters by IDs: `https://api.ddoaudit.com/v1/characters/ids/{ids}`
+- Characters by server: `https://api.ddoaudit.com/v1/characters/{serverName}`
+- Guild characters: `https://api.ddoaudit.com/v1/characters/by-server-and-guild-name/{server}/{guild}`
+- LFM posts: `https://api.ddoaudit.com/v1/lfms/{serverName}`
 - Server info: `https://api.ddoaudit.com/v1/game/server-info`
+- Quests (API): `https://api.ddoaudit.com/v1/quests`
 
-### Static Data (GitHub Raw)
+### Static Data (Local)
 
-- Quests: `quests.json` from ddo-audit-service
-- Areas: `areas.json` from ddo-audit-service
+- Quests: `public/data/quests.json` (served at `{BASE_URL}/data/quests.json`)
+- Areas: `public/data/areas.json` (served at `{BASE_URL}/data/areas.json`)
+
+### DDO Gear Planner (GitHub Raw)
+
+- Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/items.json`
+- Crafting: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/crafting.json`
+- Sets: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/sets.json`
 - Items/Crafting/Sets: from ddo-gear-planner
 
 ## Routes
