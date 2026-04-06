@@ -52,6 +52,38 @@ export async function fetchCharactersByIds(characterIds: string[], options: Fetc
   return merged
 }
 
+export interface ServerCharacter {
+  id: number
+  name: string
+  gender: string
+  race: string
+  total_level: number
+  classes: Array<{ name: string; level: number }>
+  location_id: number
+  guild_name: string
+  server_name: string
+  home_server_name: string
+  group_id: number
+  is_online: boolean
+  is_in_party: boolean
+  is_anonymous: boolean
+}
+
+export async function fetchServerCharacters(serverName: string, options: FetchOptions = {}): Promise<ServerCharacter[]> {
+  const url = `${DDOAUDIT_BASE_URL}/characters/${encodeURIComponent(serverName)}`
+  const resp = await fetch(url, { signal: options.signal })
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch server characters (${resp.status})`)
+  }
+  const json = await resp.json()
+  const data = json?.data ?? json ?? {}
+  const characters = Object.values(data) as ServerCharacter[]
+  for (const char of characters) {
+    char.race = normalizeRaceName(char.race)
+  }
+  return characters
+}
+
 export async function fetchRaidActivity(characterIds: string[], options: FetchOptions = {}): Promise<RaidActivityEntry[]> {
   if (!characterIds?.length) return []
 

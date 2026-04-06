@@ -36,6 +36,7 @@ import { detectRaidTrain } from '@/domains/raids/raidTrainLogic'
 
 import GuildCharactersDialog from './GuildCharactersDialog'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
+import ServerPlayerStatsDialog from './ServerPlayerStatsDialog'
 
 interface LfmRaidsSectionProps {
   raidGroups: RaidGroup[]
@@ -55,6 +56,7 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
   const [tierFilter, setTierFilter] = useState('legendary')
   const [selectedLfmId, setSelectedLfmId] = useState<string | null>(null)
   const [selectedGuildName, setSelectedGuildName] = useState<string | null>(null)
+  const [playerStatsOpen, setPlayerStatsOpen] = useState(false)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   useEffect(() => {
@@ -133,7 +135,7 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
           </Typography>
         </Box>
         <Chip size="small" variant="outlined" label={`Showing ${shownCount} out of ${totalCount}`} />
-        <Chip size="small" variant="outlined" label={`Players: ${serverPlayers ?? '—'}`} sx={{ ml: 1 }} />
+        <Chip size="small" variant="outlined" label={`Players: ${serverPlayers ?? '—'}`} sx={{ ml: 1, cursor: 'pointer' }} onClick={() => setPlayerStatsOpen(true)} />
         {loading && <CircularProgress size={20} />}
         <Tooltip title="DDO Audit Grouping (Shadowdale)">
           <IconButton
@@ -331,6 +333,7 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
           setSelectedLfmId(lfm.id)
         }}
       />
+      <ServerPlayerStatsDialog open={playerStatsOpen} onClose={() => setPlayerStatsOpen(false)} />
     </Paper>
   )
 }

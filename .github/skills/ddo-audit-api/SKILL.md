@@ -26,6 +26,7 @@ Defined in `src/api/ddoAudit/constants.ts`.
 | Endpoint | Function | File |
 | --- | --- | --- |
 | `GET /characters/ids/{ids}` | `fetchCharactersByIds()` | `characters.ts` |
+| `GET /characters/{serverName}` | `fetchServerCharacters()` | `characters.ts` |
 | `GET /activity/raids?character_ids=...` | `fetchRaidActivity()` | `characters.ts` |
 | `GET /lfms/{serverName}` | `fetchLfms()` | `lfms.ts` |
 | `GET /characters/by-server-and-guild-name/{server}/{guild}` | `fetchGuildCharacters()` | `guilds.ts` |
@@ -57,6 +58,23 @@ interface RaidActivityEntry {
   character_id: string;
   timestamp: string;
   data: { quest_ids: string[] };
+}
+
+interface ServerCharacter {
+  id: number;
+  name: string;
+  gender: string;
+  race: string;
+  total_level: number;
+  classes: Array<{ name: string; level: number }>;
+  location_id: number;
+  guild_name: string;
+  server_name: string;
+  home_server_name: string;
+  group_id: number;
+  is_online: boolean;
+  is_in_party: boolean;
+  is_anonymous: boolean;
 }
 
 interface LfmItem {
