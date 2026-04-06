@@ -135,7 +135,14 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
           </Typography>
         </Box>
         <Chip size="small" variant="outlined" label={`Showing ${shownCount} out of ${totalCount}`} />
-        <Chip size="small" variant="outlined" label={`Players: ${serverPlayers ?? '—'}`} sx={{ ml: 1, cursor: 'pointer' }} onClick={() => setPlayerStatsOpen(true)} />
+        <Chip
+          size="small"
+          variant="outlined"
+          icon={<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: isServerOnline ? 'success.main' : 'error.main', ml: 1 }} />}
+          label={`Online: ${serverPlayers ?? '—'}`}
+          sx={{ ml: 1, cursor: 'pointer' }}
+          onClick={() => setPlayerStatsOpen(true)}
+        />
         {loading && <CircularProgress size={20} />}
         <Tooltip title="DDO Audit Grouping (Shadowdale)">
           <IconButton

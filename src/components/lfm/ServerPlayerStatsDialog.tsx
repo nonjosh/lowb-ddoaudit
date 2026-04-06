@@ -1,5 +1,6 @@
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import RefreshIcon from '@mui/icons-material/Refresh'
 import {
   Alert,
   Box,
@@ -34,6 +35,7 @@ interface FetchState {
   quests: Record<string, Quest>
   loading: boolean
   error: string | null
+  lastUpdated: Date | null
 }
 
 type FetchAction =
@@ -46,7 +48,7 @@ function fetchReducer(state: FetchState, action: FetchAction): FetchState {
     case 'start':
       return { ...state, loading: true, error: null }
     case 'success':
-      return { characters: action.characters, areas: action.areas, quests: action.quests, loading: false, error: null }
+      return { characters: action.characters, areas: action.areas, quests: action.quests, loading: false, error: null, lastUpdated: new Date() }
     case 'error':
       return { ...state, loading: false, error: action.error }
   }
@@ -57,6 +59,7 @@ interface AreaGroup {
   locationName: string
   questType: string | null
   quest: Quest | null
+  area: { is_public: boolean; is_wilderness: boolean } | null
   count: number
 }
 
@@ -84,6 +87,7 @@ function buildAreaGroups(
       locationName,
       questType,
       quest,
+      area,
       count: chars.length,
     })
   }
@@ -226,6 +230,7 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
     quests: {},
     loading: false,
     error: null,
+    lastUpdated: null,
   })
 
   const fetchData = useCallback(async () => {
@@ -236,7 +241,9 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
         fetchAreasById(),
         fetchQuestsById(),
       ])
-      dispatch({ type: 'success', characters, areas, quests })
+      // Only keep online characters for this dialog
+      const onlineCharacters = characters.filter((c) => c.is_online)
+      dispatch({ type: 'success', characters: onlineCharacters, areas, quests })
     } catch (e) {
       const error = e as Error
       dispatch({ type: 'error', error: error?.message ?? String(e) })
@@ -258,21 +265,50 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
   )
 
   const questGroups = useMemo(
-    () => allAreaGroups.filter((g) => g.questType && g.questType.toLowerCase() !== 'raid'),
+    () => allAreaGroups.filter((g) => g.questType && g.questType.toLowerCase() !== 'raid').sort((a, b) => {
+      const aLevel = typeof a.quest?.level === 'number' ? a.quest.level : -1
+      const bLevel = typeof b.quest?.level === 'number' ? b.quest.level : -1
+      if (aLevel !== bLevel) return bLevel - aLevel // descending level
+      return b.count - a.count // tie break by count
+    }),
+    [allAreaGroups],
+  )
+
+  const wildernessGroups = useMemo(
+    () => allAreaGroups.filter((g) => !g.questType && g.area?.is_wilderness),
+    [allAreaGroups],
+  )
+
+  const publicGroups = useMemo(
+    () => allAreaGroups.filter((g) => !g.questType && !g.area?.is_wilderness && g.area?.is_public),
     [allAreaGroups],
   )
 
   const otherGroups = useMemo(
-    () => allAreaGroups.filter((g) => !g.questType),
+    () => allAreaGroups.filter((g) => !g.questType && !g.area?.is_wilderness && !g.area?.is_public),
     [allAreaGroups],
   )
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography variant="h6">
-          Shadowdale Server — Player Statistics
-        </Typography>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Typography variant="h6">
+            Shadowdale Server — Online Players
+          </Typography>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {state.lastUpdated && (
+              <Typography variant="caption" color="text.secondary">
+                Updated: {state.lastUpdated.toLocaleTimeString()}
+              </Typography>
+            )}
+            <Tooltip title="Refresh">
+              <IconButton onClick={fetchData} disabled={state.loading} size="small">
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Stack>
       </DialogTitle>
       <DialogContent>
         {state.loading && (
@@ -286,6 +322,8 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
             <LevelDistributionChart characters={state.characters} />
             <AreaGroupsTable title="Raid Areas" groups={raidGroups} defaultExpanded />
             <AreaGroupsTable title="Quest Areas" groups={questGroups} defaultExpanded={false} />
+            <AreaGroupsTable title="Wilderness Areas" groups={wildernessGroups} defaultExpanded={false} />
+            <AreaGroupsTable title="Public Areas" groups={publicGroups} defaultExpanded={false} />
             <AreaGroupsTable title="Other Areas" groups={otherGroups} defaultExpanded={false} />
           </Stack>
         )}
