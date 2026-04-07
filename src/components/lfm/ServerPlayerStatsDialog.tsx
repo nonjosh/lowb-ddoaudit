@@ -33,6 +33,7 @@ interface LevelBin {
   min: number
   max: number
   count: number
+  inPartyCount: number
 }
 
 interface ServerPlayerStatsDialogProps {
@@ -120,19 +121,22 @@ function LevelDistributionChart({
 }) {
   const buckets = useMemo(() => {
     const bins: LevelBin[] = [
-      { label: '1-4', min: 1, max: 4, count: 0 },
-      { label: '5-9', min: 5, max: 9, count: 0 },
-      { label: '10-14', min: 10, max: 14, count: 0 },
-      { label: '15-19', min: 15, max: 19, count: 0 },
-      { label: '20-24', min: 20, max: 24, count: 0 },
-      { label: '25-29', min: 25, max: 29, count: 0 },
-      { label: '30-34', min: 30, max: 34, count: 0 },
+      { label: '1-4', min: 1, max: 4, count: 0, inPartyCount: 0 },
+      { label: '5-9', min: 5, max: 9, count: 0, inPartyCount: 0 },
+      { label: '10-14', min: 10, max: 14, count: 0, inPartyCount: 0 },
+      { label: '15-19', min: 15, max: 19, count: 0, inPartyCount: 0 },
+      { label: '20-24', min: 20, max: 24, count: 0, inPartyCount: 0 },
+      { label: '25-29', min: 25, max: 29, count: 0, inPartyCount: 0 },
+      { label: '30-34', min: 30, max: 34, count: 0, inPartyCount: 0 },
     ]
     for (const c of characters) {
       const lvl = c.total_level
       for (const bin of bins) {
         if (lvl >= bin.min && lvl <= bin.max) {
           bin.count++
+          if (c.is_in_party) {
+            bin.inPartyCount++
+          }
           break
         }
       }
@@ -147,8 +151,18 @@ function LevelDistributionChart({
     <Box>
       <Typography variant="subtitle2" gutterBottom>
         Level Distribution ({characters.length} players)
+        <Box component="span" sx={{ float: 'right', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Box sx={{ width: 12, height: 12, bgcolor: 'success.main', borderRadius: 0.5 }} />
+            <Typography variant="caption" color="text.secondary">In Party / Raid</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Box sx={{ width: 12, height: 12, bgcolor: 'divider', borderRadius: 0.5 }} />
+            <Typography variant="caption" color="text.secondary">Solo</Typography>
+          </Stack>
+        </Box>
         {hasFilter && (
-          <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 1 }}>
+          <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 1, display: 'block' }}>
             — click bars to filter areas
           </Typography>
         )}
@@ -170,20 +184,49 @@ function LevelDistributionChart({
                 {bin.label}
               </Typography>
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                <Tooltip title={`${bin.count} players — click to ${isSelected ? 'deselect' : 'select'}`}>
+                <Tooltip
+                  title={
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="body2" fontWeight={600}>{bin.count} players</Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>{bin.inPartyCount} In Party ({Math.round(bin.inPartyCount / Math.max(bin.count, 1) * 100)}%)</Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>{bin.count - bin.inPartyCount} Solo</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic', opacity: 0.8 }}>
+                        click to {isSelected ? 'deselect' : 'select'}
+                      </Typography>
+                    </Box>
+                  }
+                >
                   <Box
                     sx={{
                       height: 18,
                       width: `${(bin.count / maxCount) * 100}%`,
+                      display: 'flex',
                       minWidth: bin.count > 0 ? 4 : 0,
-                      bgcolor: bin.min >= 30 ? 'warning.main' : bin.min >= 20 ? 'info.main' : 'success.main',
                       borderRadius: 0.5,
+                      overflow: 'hidden',
                       transition: 'width 0.3s ease',
                       outline: isSelected ? '2px solid' : 'none',
                       outlineColor: 'primary.main',
                       outlineOffset: 1,
                     }}
-                  />
+                  >
+                    {bin.inPartyCount > 0 && (
+                      <Box
+                        sx={{
+                          width: `${(bin.inPartyCount / bin.count) * 100}%`,
+                          bgcolor: bin.min >= 30 ? 'warning.main' : bin.min >= 20 ? 'info.main' : 'success.main',
+                        }}
+                      />
+                    )}
+                    {bin.count - bin.inPartyCount > 0 && (
+                      <Box
+                        sx={{
+                          width: `${((bin.count - bin.inPartyCount) / bin.count) * 100}%`,
+                          bgcolor: 'divider',
+                        }}
+                      />
+                    )}
+                  </Box>
                 </Tooltip>
                 <Typography variant="caption" sx={{ ml: 0.5, color: 'text.secondary' }}>
                   {bin.count}
@@ -356,13 +399,13 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
   const selectedLevelRanges = useMemo(() => {
     if (selectedBins.size === 0) return null
     const LEVEL_BINS: LevelBin[] = [
-      { label: '1-4', min: 1, max: 4, count: 0 },
-      { label: '5-9', min: 5, max: 9, count: 0 },
-      { label: '10-14', min: 10, max: 14, count: 0 },
-      { label: '15-19', min: 15, max: 19, count: 0 },
-      { label: '20-24', min: 20, max: 24, count: 0 },
-      { label: '25-29', min: 25, max: 29, count: 0 },
-      { label: '30-34', min: 30, max: 34, count: 0 },
+      { label: '1-4', min: 1, max: 4, count: 0, inPartyCount: 0 },
+      { label: '5-9', min: 5, max: 9, count: 0, inPartyCount: 0 },
+      { label: '10-14', min: 10, max: 14, count: 0, inPartyCount: 0 },
+      { label: '15-19', min: 15, max: 19, count: 0, inPartyCount: 0 },
+      { label: '20-24', min: 20, max: 24, count: 0, inPartyCount: 0 },
+      { label: '25-29', min: 25, max: 29, count: 0, inPartyCount: 0 },
+      { label: '30-34', min: 30, max: 34, count: 0, inPartyCount: 0 },
     ]
     return LEVEL_BINS.filter((b) => selectedBins.has(b.label))
   }, [selectedBins])
