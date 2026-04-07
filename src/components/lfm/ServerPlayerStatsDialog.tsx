@@ -20,9 +20,18 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, fetchServerCharacters, Quest, ServerCharacter } from '@/api/ddoAudit'
+
+const AUTO_REFRESH_INTERVAL_MS = 10_000
+
+interface LevelBin {
+  label: string
+  min: number
+  max: number
+  count: number
+}
 
 interface ServerPlayerStatsDialogProps {
   open: boolean
@@ -96,9 +105,17 @@ function buildAreaGroups(
   return groups
 }
 
-function LevelDistributionChart({ characters }: { characters: ServerCharacter[] }) {
+function LevelDistributionChart({
+  characters,
+  selectedBins,
+  onToggleBin,
+}: {
+  characters: ServerCharacter[]
+  selectedBins: Set<string>
+  onToggleBin: (label: string) => void
+}) {
   const buckets = useMemo(() => {
-    const bins: { label: string; min: number; max: number; count: number }[] = [
+    const bins: LevelBin[] = [
       { label: '1-4', min: 1, max: 4, count: 0 },
       { label: '5-9', min: 5, max: 9, count: 0 },
       { label: '10-14', min: 10, max: 14, count: 0 },
@@ -120,38 +137,68 @@ function LevelDistributionChart({ characters }: { characters: ServerCharacter[] 
   }, [characters])
 
   const maxCount = Math.max(...buckets.map((b) => b.count), 1)
+  const hasFilter = selectedBins.size > 0
 
   return (
     <Box>
       <Typography variant="subtitle2" gutterBottom>
         Level Distribution ({characters.length} players)
+        {hasFilter && (
+          <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 1 }}>
+            — click bars to filter areas
+          </Typography>
+        )}
       </Typography>
       <Stack spacing={0.5}>
-        {buckets.map((bin) => (
-          <Stack key={bin.label} direction="row" alignItems="center" spacing={1}>
-            <Typography variant="caption" sx={{ width: 40, textAlign: 'right', flexShrink: 0 }}>
-              {bin.label}
-            </Typography>
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-              <Tooltip title={`${bin.count} players`}>
-                <Box
-                  sx={{
-                    height: 18,
-                    width: `${(bin.count / maxCount) * 100}%`,
-                    minWidth: bin.count > 0 ? 4 : 0,
-                    bgcolor: bin.min >= 30 ? 'warning.main' : bin.min >= 20 ? 'info.main' : 'success.main',
-                    borderRadius: 0.5,
-                    transition: 'width 0.3s ease',
-                  }}
-                />
-              </Tooltip>
-              <Typography variant="caption" sx={{ ml: 0.5, color: 'text.secondary' }}>
-                {bin.count}
+        {buckets.map((bin) => {
+          const isSelected = selectedBins.has(bin.label)
+          const dimmed = hasFilter && !isSelected
+          return (
+            <Stack
+              key={bin.label}
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              onClick={() => onToggleBin(bin.label)}
+              sx={{ cursor: 'pointer', userSelect: 'none', opacity: dimmed ? 0.35 : 1, transition: 'opacity 0.2s' }}
+            >
+              <Typography variant="caption" sx={{ width: 40, textAlign: 'right', flexShrink: 0 }}>
+                {bin.label}
               </Typography>
-            </Box>
-          </Stack>
-        ))}
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                <Tooltip title={`${bin.count} players — click to ${isSelected ? 'deselect' : 'select'}`}>
+                  <Box
+                    sx={{
+                      height: 18,
+                      width: `${(bin.count / maxCount) * 100}%`,
+                      minWidth: bin.count > 0 ? 4 : 0,
+                      bgcolor: bin.min >= 30 ? 'warning.main' : bin.min >= 20 ? 'info.main' : 'success.main',
+                      borderRadius: 0.5,
+                      transition: 'width 0.3s ease',
+                      outline: isSelected ? '2px solid' : 'none',
+                      outlineColor: 'primary.main',
+                      outlineOffset: 1,
+                    }}
+                  />
+                </Tooltip>
+                <Typography variant="caption" sx={{ ml: 0.5, color: 'text.secondary' }}>
+                  {bin.count}
+                </Typography>
+              </Box>
+            </Stack>
+          )
+        })}
       </Stack>
+      {hasFilter && (
+        <Typography
+          variant="caption"
+          color="primary.main"
+          onClick={() => { for (const label of selectedBins) onToggleBin(label) }}
+          sx={{ cursor: 'pointer', mt: 0.5, display: 'inline-block' }}
+        >
+          Clear filter
+        </Typography>
+      )}
     </Box>
   )
 }
@@ -232,6 +279,8 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
     error: null,
     lastUpdated: null,
   })
+  const [selectedBins, setSelectedBins] = useState<Set<string>>(new Set())
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchData = useCallback(async () => {
     dispatch({ type: 'start' })
@@ -250,43 +299,83 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
     }
   }, [])
 
+  // Initial fetch + auto-refresh every 10s while dialog is open
   useEffect(() => {
-    if (open) fetchData()
+    if (!open) return
+    void fetchData()
+    autoRefreshRef.current = setInterval(() => { void fetchData() }, AUTO_REFRESH_INTERVAL_MS)
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current)
+    }
   }, [open, fetchData])
+
+  const handleToggleBin = useCallback((label: string) => {
+    setSelectedBins((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }, [])
+
+  // Build the selected level ranges from bin labels for filtering
+  const selectedLevelRanges = useMemo(() => {
+    if (selectedBins.size === 0) return null
+    const LEVEL_BINS: LevelBin[] = [
+      { label: '1-4', min: 1, max: 4, count: 0 },
+      { label: '5-9', min: 5, max: 9, count: 0 },
+      { label: '10-14', min: 10, max: 14, count: 0 },
+      { label: '15-19', min: 15, max: 19, count: 0 },
+      { label: '20-24', min: 20, max: 24, count: 0 },
+      { label: '25-29', min: 25, max: 29, count: 0 },
+      { label: '30-34', min: 30, max: 34, count: 0 },
+    ]
+    return LEVEL_BINS.filter((b) => selectedBins.has(b.label))
+  }, [selectedBins])
 
   const allAreaGroups = useMemo(
     () => buildAreaGroups(state.characters, state.areas, state.quests),
     [state.characters, state.areas, state.quests],
   )
 
+  // Filter area groups by selected level ranges
+  const filteredAreaGroups = useMemo(() => {
+    if (!selectedLevelRanges) return allAreaGroups
+    return allAreaGroups.filter((g) => {
+      const level = g.quest?.level
+      if (typeof level !== 'number') return false
+      return selectedLevelRanges.some((r) => level >= r.min && level <= r.max)
+    })
+  }, [allAreaGroups, selectedLevelRanges])
+
   const raidGroups = useMemo(
-    () => allAreaGroups.filter((g) => g.questType?.toLowerCase() === 'raid'),
-    [allAreaGroups],
+    () => filteredAreaGroups.filter((g) => g.questType?.toLowerCase() === 'raid'),
+    [filteredAreaGroups],
   )
 
   const questGroups = useMemo(
-    () => allAreaGroups.filter((g) => g.questType && g.questType.toLowerCase() !== 'raid').sort((a, b) => {
+    () => filteredAreaGroups.filter((g) => g.questType && g.questType.toLowerCase() !== 'raid').sort((a, b) => {
       const aLevel = typeof a.quest?.level === 'number' ? a.quest.level : -1
       const bLevel = typeof b.quest?.level === 'number' ? b.quest.level : -1
       if (aLevel !== bLevel) return bLevel - aLevel // descending level
       return b.count - a.count // tie break by count
     }),
-    [allAreaGroups],
+    [filteredAreaGroups],
   )
 
   const wildernessGroups = useMemo(
-    () => allAreaGroups.filter((g) => !g.questType && g.area?.is_wilderness),
-    [allAreaGroups],
+    () => filteredAreaGroups.filter((g) => !g.questType && g.area?.is_wilderness),
+    [filteredAreaGroups],
   )
 
   const publicGroups = useMemo(
-    () => allAreaGroups.filter((g) => !g.questType && !g.area?.is_wilderness && g.area?.is_public),
-    [allAreaGroups],
+    () => filteredAreaGroups.filter((g) => !g.questType && !g.area?.is_wilderness && g.area?.is_public),
+    [filteredAreaGroups],
   )
 
   const otherGroups = useMemo(
-    () => allAreaGroups.filter((g) => !g.questType && !g.area?.is_wilderness && !g.area?.is_public),
-    [allAreaGroups],
+    () => filteredAreaGroups.filter((g) => !g.questType && !g.area?.is_wilderness && !g.area?.is_public),
+    [filteredAreaGroups],
   )
 
   return (
@@ -319,7 +408,7 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
         {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
         {!state.loading && state.characters.length > 0 && (
           <Stack spacing={3}>
-            <LevelDistributionChart characters={state.characters} />
+            <LevelDistributionChart characters={state.characters} selectedBins={selectedBins} onToggleBin={handleToggleBin} />
             <AreaGroupsTable title="Raid Areas" groups={raidGroups} defaultExpanded />
             <AreaGroupsTable title="Quest Areas" groups={questGroups} defaultExpanded={false} />
             <AreaGroupsTable title="Wilderness Areas" groups={wildernessGroups} defaultExpanded={false} />
