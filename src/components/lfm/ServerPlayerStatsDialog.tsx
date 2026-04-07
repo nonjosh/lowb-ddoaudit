@@ -23,6 +23,8 @@ import {
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, fetchServerCharacters, Quest, ServerCharacter } from '@/api/ddoAudit'
+import ClassDisplay from '@/components/shared/ClassDisplay'
+import { useConfig } from '@/contexts/useConfig'
 
 const AUTO_REFRESH_INTERVAL_MS = 10_000
 
@@ -70,6 +72,7 @@ interface AreaGroup {
   quest: Quest | null
   area: { is_public: boolean; is_wilderness: boolean } | null
   count: number
+  characters: ServerCharacter[]
 }
 
 function buildAreaGroups(
@@ -98,6 +101,7 @@ function buildAreaGroups(
       quest,
       area,
       count: chars.length,
+      characters: chars,
     })
   }
 
@@ -213,6 +217,7 @@ function AreaGroupsTable({
   defaultExpanded: boolean
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded)
+  const { showClassIcons } = useConfig()
 
   const totalPlayers = useMemo(() => groups.reduce((sum, g) => sum + g.count, 0), [groups])
 
@@ -256,9 +261,38 @@ function AreaGroupsTable({
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" fontWeight={600}>
-                      {g.count}
-                    </Typography>
+                    <Tooltip
+                      arrow
+                      placement="left"
+                      slotProps={{ tooltip: { sx: { maxWidth: 'none' } } }}
+                      title={
+                        <Stack spacing={1} sx={{ p: 0.5 }}>
+                          {g.characters.map((c) => (
+                            <Stack key={c.id} direction="row" spacing={1.5} alignItems="center">
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.name}</Typography>
+                              {c.guild_name && (
+                                <Typography variant="caption" color="text.secondary">&lt;{c.guild_name}&gt;</Typography>
+                              )}
+                              <Typography variant="caption" sx={{ ml: 'auto' }}>Lv {c.total_level}</Typography>
+                              <ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={16} />
+                            </Stack>
+                          ))}
+                        </Stack>
+                      }
+                    >
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{
+                          cursor: 'help',
+                          textDecoration: 'underline dotted',
+                          textUnderlineOffset: 2,
+                          textDecorationColor: 'text.secondary',
+                        }}
+                      >
+                        {g.count}
+                      </Typography>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -393,20 +427,24 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
             )}
             <Tooltip title="Refresh">
               <IconButton onClick={fetchData} disabled={state.loading} size="small">
-                <RefreshIcon />
+                {state.loading && state.characters.length > 0 ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <RefreshIcon />
+                )}
               </IconButton>
             </Tooltip>
           </Stack>
         </Stack>
       </DialogTitle>
       <DialogContent>
-        {state.loading && (
+        {state.loading && state.characters.length === 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
           </Box>
         )}
         {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
-        {!state.loading && state.characters.length > 0 && (
+        {state.characters.length > 0 && (
           <Stack spacing={3}>
             <LevelDistributionChart characters={state.characters} selectedBins={selectedBins} onToggleBin={handleToggleBin} />
             <AreaGroupsTable title="Raid Areas" groups={raidGroups} defaultExpanded />
