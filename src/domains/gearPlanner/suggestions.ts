@@ -176,56 +176,6 @@ export function getSlotSuggestions(
   return { bySlot, currentScore }
 }
 
-// --- Single-Slot Improvement Scores ---
-
-/**
- * Compute improvement scores for candidate items in a specific slot.
- * Returns a Map from item name to score delta (positive = better than current).
- * Used by the item selection dialog to show which items improve the setup.
- */
-export function computeItemImprovements(
-  currentSetup: GearSetup,
-  slotKey: keyof GearSetup,
-  candidates: Item[],
-  properties: string[],
-  setsData: SetsData | null,
-  craftingData: CraftingData | null,
-  index: PropertyBonusIndex,
-  options: Pick<SuggestionsOptions, 'excludeSetAugments' | 'excludedAugments' | 'excludedPacks'> = {},
-): Map<string, number> {
-  const {
-    excludeSetAugments = false,
-    excludedAugments = [],
-    excludedPacks = [],
-  } = options
-
-  const weights = computePropertyWeights(properties)
-  const maxValues = precomputePropertyMaxValues(index, properties)
-
-  const currentEval = evaluateGearSetup(
-    currentSetup, properties, setsData, craftingData,
-    excludeSetAugments, excludedAugments, excludedPacks,
-  )
-  const currentScore = computeScore(currentEval.propertyValues, weights, maxValues)
-
-  const improvements = new Map<string, number>()
-  const currentItem = currentSetup[slotKey]
-
-  for (const candidate of candidates) {
-    if (currentItem && candidate.name === currentItem.name) continue
-
-    const trialSetup = { ...currentSetup, [slotKey]: candidate }
-    const trialEval = evaluateGearSetup(
-      trialSetup, properties, setsData, craftingData,
-      excludeSetAugments, excludedAugments, excludedPacks,
-    )
-    const trialScore = computeScore(trialEval.propertyValues, weights, maxValues)
-    improvements.set(candidate.name, trialScore.total - currentScore.total)
-  }
-
-  return improvements
-}
-
 // --- Greedy Optimizer ---
 
 export interface OptimizeResult {

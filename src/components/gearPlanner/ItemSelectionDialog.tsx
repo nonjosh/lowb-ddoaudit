@@ -4,7 +4,6 @@ import ClearAllIcon from '@mui/icons-material/ClearAll'
 import CloseIcon from '@mui/icons-material/Close'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import SearchIcon from '@mui/icons-material/Search'
-import SortIcon from '@mui/icons-material/Sort'
 import {
   Autocomplete,
   Box,
@@ -50,7 +49,6 @@ interface ItemSelectionDialogProps {
   onSelect: (item: Item | undefined) => void
   craftingData?: CraftingData | null
   setsData?: SetsData | null
-  getImprovementScores?: (candidates: Item[]) => Map<string, number>
   /** Page-level defaults for min/max level */
   defaultMinLevel?: number
   defaultMaxLevel?: number
@@ -69,7 +67,6 @@ export default function ItemSelectionDialog({
   onSelect,
   craftingData,
   setsData,
-  getImprovementScores,
   defaultMinLevel,
   defaultMaxLevel,
   defaultTypeFilter: externalDefaultTypeFilter,
@@ -77,7 +74,6 @@ export default function ItemSelectionDialog({
 }: ItemSelectionDialogProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showOwnedOnly, setShowOwnedOnly] = useState(false)
-  const [sortByScore, setSortByScore] = useState(false)
   const [minLevel, setMinLevel] = useState<number>(defaultMinLevel ?? 1)
   const [maxLevel, setMaxLevel] = useState<number>(defaultMaxLevel ?? 34)
   const [packFilter, setPackFilter] = useState<string[]>(defaultPackFilter ?? [])
@@ -147,7 +143,6 @@ export default function ItemSelectionDialog({
     if (!open) {
       setSearchTerm('')
       setShowOwnedOnly(false)
-      setSortByScore(false)
       setMinLevel(defaultMinLevel ?? 1)
       setMaxLevel(defaultMaxLevel ?? 34)
       setPackFilter(defaultPackFilter ?? [])
@@ -193,12 +188,6 @@ export default function ItemSelectionDialog({
       item.affixes.some(affix => affix.name.toLowerCase().includes(searchLower)) ||
       item.quests?.some(quest => quest.toLowerCase().includes(searchLower))
   }), [items, searchTerm, typeFilter, showOwnedOnly, isItemAvailableForCharacters, minLevel, maxLevel, packFilter, questNameToPack])
-
-  // Compute improvement scores when dialog is open
-  const improvementScores = useMemo(() => {
-    if (!open || !getImprovementScores) return undefined
-    return getImprovementScores(filteredItems)
-  }, [open, getImprovementScores, filteredItems])
 
   const handleSelect = (item: Item) => {
     onSelect(item)
@@ -254,21 +243,6 @@ export default function ItemSelectionDialog({
               >
                 <Inventory2Icon sx={{ mr: 0.5, fontSize: '1.1rem' }} />
                 Owned
-              </ToggleButton>
-            </Tooltip>
-          )}
-          {improvementScores && (
-            <Tooltip title="Sort by improvement score">
-              <ToggleButton
-                value="score"
-                selected={sortByScore}
-                onChange={() => setSortByScore(prev => !prev)}
-                size="small"
-                color="primary"
-                sx={{ whiteSpace: 'nowrap', px: 1.5 }}
-              >
-                <SortIcon sx={{ mr: 0.5, fontSize: '1.1rem' }} />
-                Score
               </ToggleButton>
             </Tooltip>
           )}
@@ -438,11 +412,8 @@ export default function ItemSelectionDialog({
           currentItem={currentItem}
           onSelect={handleSelect}
           maxHeight={500}
-          sortByML={!sortByScore}
           craftingData={craftingData}
           setsData={setsData}
-          improvementScores={improvementScores}
-          sortByScore={sortByScore}
         />
       </DialogContent>
       <DialogActions>

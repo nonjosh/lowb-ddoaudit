@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import IconWrapper from "@/components/shared/IconWrapper"
-import { useCallback, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import BlockIcon from '@mui/icons-material/Block'
@@ -48,11 +48,9 @@ import {
   isRuneArm,
   isSingleHandedWeapon,
   isThrownWeapon,
-  PropertyBonusIndex,
   SelectedCraftingOption
 } from '@/domains/gearPlanner'
 import { generateCraftingOptionName } from '@/domains/gearPlanner/augmentHelpers'
-import { computeItemImprovements } from '@/domains/gearPlanner/suggestions'
 import { formatAffix, getWikiUrl } from '@/utils/affixHelpers'
 
 import AugmentSelectionDialog from './AugmentSelectionDialog'
@@ -91,9 +89,6 @@ interface GearDisplayProps {
   excludedAugments?: string[]
   onExcludedAugmentsChange?: (augments: string[]) => void
   onCraftingChange?: (gearSlot: string, slotIndex: number, option: CraftingOption | null) => void
-  propertyIndex?: PropertyBonusIndex | null
-  excludeSetAugments?: boolean
-  excludedPacks?: string[]
   /** Optional content rendered beside the "Selected Gear Setup" title (e.g. tabs) */
   headerSlot?: ReactNode
   /** Page-level item filters (passed as defaults to item selection dialogs) */
@@ -224,7 +219,6 @@ function GearSlotCard({
   onToggleIgnore,
   slotCraftingSelections,
   onCraftingChange,
-  getImprovementScores,
   warningText,
   defaultMinLevel,
   defaultMaxLevel,
@@ -252,7 +246,6 @@ function GearSlotCard({
   onToggleIgnore?: () => void
   slotCraftingSelections?: SelectedCraftingOption[]
   onCraftingChange?: (slotIndex: number, option: CraftingOption | null) => void
-  getImprovementScores?: (candidates: Item[]) => Map<string, number>
   warningText?: string | null
   defaultMinLevel?: number
   defaultMaxLevel?: number
@@ -662,7 +655,6 @@ function GearSlotCard({
           onSelect={(newItem) => onGearChange(newItem)}
           craftingData={craftingData}
           setsData={setsData}
-          getImprovementScores={getImprovementScores}
           defaultMinLevel={defaultMinLevel}
           defaultMaxLevel={defaultMaxLevel}
           defaultTypeFilter={defaultTypeFilter}
@@ -710,9 +702,6 @@ export default function GearDisplay({
   excludedAugments = [],
   onExcludedAugmentsChange,
   onCraftingChange,
-  propertyIndex,
-  excludeSetAugments = false,
-  excludedPacks = [],
   headerSlot,
   itemFilters,
 }: GearDisplayProps) {
@@ -940,16 +929,6 @@ export default function GearDisplay({
     return map
   }, [availableItems, setup.mainHand])
 
-  // Create per-slot scoring callback
-  const getSlotImprovementScores = useCallback((slotKey: string, candidates: Item[]) => {
-    if (!propertyIndex || selectedProperties.length === 0) return new Map<string, number>()
-    return computeItemImprovements(
-      setup, slotKey as keyof GearSetup, candidates,
-      selectedProperties, setsData ?? null, craftingData ?? null, propertyIndex,
-      { excludeSetAugments, excludedAugments, excludedPacks }
-    )
-  }, [setup, selectedProperties, setsData, craftingData, propertyIndex, excludeSetAugments, excludedAugments, excludedPacks])
-
   return (
     <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
@@ -1010,7 +989,6 @@ export default function GearDisplay({
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
                 slotCraftingSelections={craftingSelections?.[slot]}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
-                getImprovementScores={propertyIndex ? (candidates) => getSlotImprovementScores(slot, candidates) : undefined}
                 warningText={slot === 'offHand' ? getOffHandWarning(setup.mainHand, setup.offHand) : undefined}
                 defaultMinLevel={itemFilters?.minLevel}
                 defaultMaxLevel={itemFilters?.maxLevel}
@@ -1050,7 +1028,6 @@ export default function GearDisplay({
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
                 slotCraftingSelections={craftingSelections?.[slot]}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
-                getImprovementScores={propertyIndex ? (candidates) => getSlotImprovementScores(slot, candidates) : undefined}
                 defaultMinLevel={itemFilters?.minLevel}
                 defaultMaxLevel={itemFilters?.maxLevel}
                 defaultPackFilter={itemFilters?.includedPacks}

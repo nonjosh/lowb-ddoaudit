@@ -1159,9 +1159,6 @@ export default function GearPlanner() {
             excludedAugments={excludedAugments}
             onExcludedAugmentsChange={handleExcludedAugmentsChange}
             onCraftingChange={handleCraftingChange}
-            propertyIndex={propertyIndex}
-            excludeSetAugments={excludeSetAugments}
-            excludedPacks={excludedPacks}
             itemFilters={itemFilters}
             headerSlot={
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

@@ -37,8 +37,6 @@ interface ItemSelectionTableProps {
   sortByML?: boolean
   craftingData?: CraftingData | null
   setsData?: SetsData | null
-  improvementScores?: Map<string, number>
-  sortByScore?: boolean
 }
 
 /**
@@ -52,8 +50,6 @@ export function ItemSelectionTable({
   maxHeight = 500,
   sortByML = true,
   craftingData,
-  improvementScores,
-  sortByScore = false
 }: ItemSelectionTableProps) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
@@ -68,20 +64,13 @@ export function ItemSelectionTable({
     setDisplayLimit(50)
   }
 
-  // Sort items by score (desc), ML (desc), or keep original order
-  const sortedItems = sortByScore && improvementScores
+  // Sort items by ML (desc) or keep original order
+  const sortedItems = sortByML
     ? [...items].sort((a, b) => {
-      const scoreA = improvementScores.get(a.name) ?? -Infinity
-      const scoreB = improvementScores.get(b.name) ?? -Infinity
-      if (scoreB !== scoreA) return scoreB - scoreA
+      if (a.ml !== b.ml) return b.ml - a.ml
       return a.name.localeCompare(b.name)
     })
-    : sortByML
-      ? [...items].sort((a, b) => {
-        if (a.ml !== b.ml) return b.ml - a.ml
-        return a.name.localeCompare(b.name)
-      })
-      : items
+    : items
 
   // Calculate property differences when hovering
   const getPropertyDiff = (item: Item, property: string): number | null => {
@@ -132,7 +121,6 @@ export function ItemSelectionTable({
           <TableRow>
             <TableCell>Item</TableCell>
             <TableCell align="center">ML</TableCell>
-            {improvementScores && <TableCell align="right">Score</TableCell>}
             <TableCell>Effects</TableCell>
             <TableCell>Augments/Crafting</TableCell>
             <TableCell>Quest/Source</TableCell>
@@ -142,7 +130,7 @@ export function ItemSelectionTable({
         <TableBody>
           {displayedItems.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={improvementScores ? 7 : 6} align="center">
+              <TableCell colSpan={6} align="center">
                 <Typography color="text.secondary">No items found</Typography>
               </TableCell>
             </TableRow>
@@ -223,24 +211,6 @@ export function ItemSelectionTable({
                     )}
                   </TableCell>
                   <TableCell align="center">{item.ml}</TableCell>
-                  {improvementScores && (() => {
-                    const score = improvementScores.get(item.name)
-                    return (
-                      <TableCell align="right">
-                        {score !== undefined ? (
-                          <Chip
-                            label={`${score > 0 ? '+' : ''}${score.toFixed(2)}`}
-                            size="small"
-                            color={score > 0 ? 'success' : score < 0 ? 'error' : 'default'}
-                            variant="outlined"
-                            sx={{ height: 20, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }}
-                          />
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">—</Typography>
-                        )}
-                      </TableCell>
-                    )
-                  })()}
                   <TableCell>
                     <Box sx={{ maxWidth: 400 }}>
                       {displayAffixes.map((affix, idx) => (
