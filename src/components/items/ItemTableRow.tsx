@@ -4,6 +4,7 @@ import {
   Box,
   Chip,
   IconButton,
+  Link,
   TableCell,
   TableRow,
   Tooltip,
@@ -16,7 +17,6 @@ import { useCallback } from 'react'
 import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
 import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
-import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useWishlist } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
 import { RaidNotes } from '@/domains/raids/raidNotes'
@@ -36,6 +36,10 @@ interface ItemTableRowProps {
   renderAction?: (item: Item) => React.ReactNode
   /** Hide the "Raid" tag (e.g. when all items are already known to be from a raid) */
   hideRaidTag?: boolean
+  /** Show the wishlist heart toggle next to the item name (default: true) */
+  showWishlistToggle?: boolean
+  /** Extra content rendered next to the item name (e.g. delete button) */
+  renderNameExtra?: (item: Item) => React.ReactNode
 }
 
 export default function ItemTableRow({
@@ -46,6 +50,8 @@ export default function ItemTableRow({
   craftingData = null,
   renderAction,
   hideRaidTag = false,
+  showWishlistToggle = true,
+  renderNameExtra,
 }: ItemTableRowProps) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
@@ -56,7 +62,8 @@ export default function ItemTableRow({
   )
 
   const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
-  const wikiUrl = getWikiUrl(item.url)
+  const wikiUrl = getWikiUrl(item.url) ||
+    (item.slot === 'Augment' ? `https://ddowiki.com/page/Item:${item.name.replace(/\s+/g, '_')}` : null)
 
   const wished = isWished(item)
 
@@ -67,30 +74,50 @@ export default function ItemTableRow({
       <TableCell>{item.ml}</TableCell>
       <TableCell>
         <Box sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.5 }}>
-          <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
-            {highlightText(item.name, searchText)}
-          </Typography>
-          <InventoryBadge itemName={item.name} />
-          <Tooltip title={wished ? 'Remove from wish list' : 'Add to wish list'}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleWish(item)
+          {wikiUrl ? (
+            <Link
+              href={wikiUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              sx={{
+                color: augmentColor || 'text.primary',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline', color: 'primary.main' },
               }}
-              aria-label={wished ? 'remove from wish list' : 'add to wish list'}
-              sx={{ p: 0.25 }}
             >
-              <IconWrapper>
-                {wished ? (
-                  <FavoriteIcon sx={{ color: 'error.main' }} />
-                ) : (
-                  <FavoriteBorderIcon />
-                )}
-              </IconWrapper>
-            </IconButton>
-          </Tooltip>
-          {wikiUrl && <DdoWikiLink wikiUrl={wikiUrl} />}
+              {highlightText(item.name, searchText)}
+            </Link>
+          ) : (
+            <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
+              {highlightText(item.name, searchText)}
+            </Typography>
+          )}
+          <InventoryBadge itemName={item.name} />
+          {showWishlistToggle && (
+            <Tooltip title={wished ? 'Remove from wish list' : 'Add to wish list'}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleWish(item)
+                }}
+                aria-label={wished ? 'remove from wish list' : 'add to wish list'}
+                sx={{ p: 0.25 }}
+              >
+                <IconWrapper>
+                  {wished ? (
+                    <FavoriteIcon sx={{ color: 'error.main' }} />
+                  ) : (
+                    <FavoriteBorderIcon />
+                  )}
+                </IconWrapper>
+              </IconButton>
+            </Tooltip>
+          )}
+          {renderNameExtra?.(item)}
         </Box>
         {item.slot && (item.slot === 'Weapon' || item.slot === 'Offhand') && (
           <Typography variant="caption" color="text.secondary" display="block">
