@@ -1,33 +1,18 @@
-import { type MouseEvent, useState } from 'react'
+import { useState } from 'react'
 
-import FavoriteIcon from '@mui/icons-material/Favorite'
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import {
   Box,
   Button,
-  Chip,
-  IconButton,
-  Link,
   Paper,
-  Table,
-  TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
   Tooltip,
   Typography
 } from '@mui/material'
 
 import { Item, ItemAffix, CraftingData, SetsData } from '@/api/ddoGearPlanner'
-import { artifactTableRowSx } from '@/components/shared/artifactStyles'
-import { useWishlist } from '@/contexts/useWishlist'
-import { isRaidItem } from '@/domains/quests/questHelpers'
-import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
-import { formatAffix, getAugmentColor, getCraftingOptionsForSlot, getWikiUrl } from '@/utils/affixHelpers'
-import ItemCraftingDisplay from '../items/ItemCraftingDisplay'
-import InventoryBadge from './InventoryBadge'
+import ItemTable from '@/components/items/ItemTable'
 
 interface ItemSelectionTableProps {
   items: Item[]
@@ -40,8 +25,8 @@ interface ItemSelectionTableProps {
 }
 
 /**
- * Shared table component for displaying and selecting items
- * with wishlist, inventory badges, and property comparison
+ * Item selection table for gear planner, built on shared ItemTable.
+ * Adds currently-equipped indicator, Select button, property comparison, and pagination.
  */
 export function ItemSelectionTable({
   items,
@@ -50,9 +35,8 @@ export function ItemSelectionTable({
   maxHeight = 500,
   sortByML = true,
   craftingData,
+  setsData,
 }: ItemSelectionTableProps) {
-  const { isWished, toggleWish } = useWishlist()
-  const raidQuestNames = useRaidQuestNames()
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null)
   const [displayLimit, setDisplayLimit] = useState(50)
 
@@ -96,9 +80,6 @@ export function ItemSelectionTable({
     return newValue - currentValue
   }
 
-  // Get crafting options for tooltip
-  const getCraftingOptions = (craft: string) => getCraftingOptionsForSlot(craft, craftingData ?? null)
-
   // Get all unique properties from both current and hovered item
   const getComparisonProperties = (): string[] => {
     if (!hoveredItem || !currentItem) return []
@@ -115,149 +96,68 @@ export function ItemSelectionTable({
   const hasMore = sortedItems.length > displayLimit
 
   return (
-    <TableContainer component={Paper} sx={{ maxHeight }}>
-      <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell>Item</TableCell>
-            <TableCell align="center">ML</TableCell>
-            <TableCell>Effects</TableCell>
-            <TableCell>Augments/Crafting</TableCell>
-            <TableCell>Quest/Source</TableCell>
-            <TableCell align="center">Action</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {displayedItems.length === 0 ? (
+    <Box
+      sx={{ maxHeight, overflow: 'auto' }}
+      onMouseLeave={() => setHoveredItem(null)}
+    >
+      <ItemTable
+        items={displayedItems}
+        setsData={setsData}
+        craftingData={craftingData}
+        stickyHeader
+        renderNameExtra={(item) => {
+          const isCurrent = currentItem?.name === item.name
+          if (!isCurrent) return null
+          return (
+            <Tooltip title="Currently equipped">
+              <CheckCircleIcon fontSize="small" color="success" />
+            </Tooltip>
+          )
+        }}
+        renderAction={(item) => {
+          const isCurrent = currentItem?.name === item.name
+          return (
+            <Button
+              size="small"
+              variant={isCurrent ? 'outlined' : 'contained'}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelect(item)
+              }}
+              disabled={isCurrent}
+            >
+              {isCurrent ? 'Current' : 'Select'}
+            </Button>
+          )
+        }}
+        rowProps={(item) => ({
+          onMouseEnter: () => setHoveredItem(item),
+          onClick: () => {
+            if (currentItem?.name !== item.name) onSelect(item)
+          },
+          sx: {
+            cursor: 'pointer',
+            bgcolor: currentItem?.name === item.name ? 'action.selected' : undefined,
+          },
+        })}
+        emptyContent={
+          <Typography color="text.secondary">No items found</Typography>
+        }
+        footer={
+          hasMore ? (
             <TableRow>
-              <TableCell colSpan={6} align="center">
-                <Typography color="text.secondary">No items found</Typography>
+              <TableCell colSpan={6} sx={{ textAlign: 'center' }}>
+                <Button
+                  size="small"
+                  onClick={() => setDisplayLimit(prev => prev + 50)}
+                >
+                  Show more ({sortedItems.length - displayLimit} remaining)
+                </Button>
               </TableCell>
             </TableRow>
-          ) : (
-            displayedItems.map((item) => {
-              const isCurrent = currentItem?.name === item.name
-              const wished = isWished(item)
-              const isHovered = hoveredItem?.name === item.name
-
-              // Show first 5 effects
-              const displayAffixes = item.affixes.slice(0, 5)
-              const hasMore = item.affixes.length > 5
-
-              return (
-                <TableRow
-                  key={item.name}
-                  hover
-                  onMouseEnter={() => setHoveredItem(item)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  sx={{
-                    cursor: 'pointer',
-                    bgcolor: isCurrent ? 'action.selected' : 'inherit',
-                    '&:hover': { bgcolor: isHovered ? 'action.hover' : undefined },
-                    ...(item.artifact ? artifactTableRowSx : {})
-                  }}
-                  onClick={() => !isCurrent && onSelect(item)}
-                >
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {isCurrent && (
-                        <Tooltip title="Currently equipped">
-                          <CheckCircleIcon fontSize="small" color="success" />
-                        </Tooltip>
-                      )}
-                      {getWikiUrl(item.url) ? (
-                        <Link
-                          href={getWikiUrl(item.url)!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e: MouseEvent) => e.stopPropagation()}
-                          sx={{
-                            color: 'text.primary',
-                            fontWeight: isCurrent ? 'bold' : 'normal',
-                            fontSize: '0.875rem',
-                            textDecoration: 'none',
-                            '&:hover': { textDecoration: 'underline', color: 'primary.main' },
-                          }}
-                        >
-                          {item.name}
-                        </Link>
-                      ) : (
-                        <Typography variant="body2" fontWeight={isCurrent ? 'bold' : 'normal'}>
-                          {item.name}
-                        </Typography>
-                      )}
-                      <InventoryBadge itemName={item.name} showBTC />
-                      <Tooltip title={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleWish(item)
-                          }}
-                          color={wished ? 'error' : 'default'}
-                        >
-                          {wished ? (
-                            <FavoriteIcon fontSize="small" />
-                          ) : (
-                            <FavoriteBorderIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                    {isRaidItem(item, raidQuestNames) && (
-                      <Box>
-                        <Chip label="Raid" size="small" color="error" variant="outlined" sx={{ mt: 0.5 }} />
-                      </Box>
-                    )}
-                  </TableCell>
-                  <TableCell align="center">{item.ml}</TableCell>
-                  <TableCell>
-                    <Box sx={{ maxWidth: 400 }}>
-                      {displayAffixes.map((affix, idx) => (
-                        <Typography key={idx} variant="caption" display="block">
-                          {formatAffix(affix)}
-                        </Typography>
-                      ))}
-                      {hasMore && (
-                        <Typography variant="caption" color="text.secondary">
-                          +{item.affixes.length - 5} more...
-                        </Typography>
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    {item.crafting && (
-                      <ItemCraftingDisplay
-                        crafting={item.crafting}
-                        getAugmentColor={getAugmentColor}
-                        getCraftingOptions={getCraftingOptions}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" noWrap sx={{ maxWidth: 150, display: 'block' }}>
-                      {item.quests?.[0] || '—'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Button
-                      size="small"
-                      variant={isCurrent ? 'outlined' : 'contained'}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onSelect(item)
-                      }}
-                      disabled={isCurrent}
-                    >
-                      {isCurrent ? 'Current' : 'Select'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )
-            })
-          )}
-        </TableBody>
-      </Table>
+          ) : undefined
+        }
+      />
 
       {/* Property Comparison Tooltip */}
       {hoveredItem && currentItem && hoveredItem.name !== currentItem.name && (
@@ -297,16 +197,6 @@ export function ItemSelectionTable({
           </Box>
         </Paper>
       )}
-      {hasMore && (
-        <Box sx={{ p: 1, textAlign: 'center' }}>
-          <Button
-            size="small"
-            onClick={() => setDisplayLimit(prev => prev + 50)}
-          >
-            Show more ({sortedItems.length - displayLimit} remaining)
-          </Button>
-        </Box>
-      )}
-    </TableContainer>
+    </Box>
   )
 }

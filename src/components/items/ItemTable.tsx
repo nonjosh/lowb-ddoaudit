@@ -35,6 +35,8 @@ interface ItemTableProps {
   headerSx?: SxProps<Theme>
   /** Extra rows rendered at the end of TableBody (e.g. truncation notice) */
   footer?: React.ReactNode
+  /** Per-row custom props (e.g. onClick, onMouseEnter, sx) */
+  rowProps?: (item: Item) => { onClick?: React.MouseEventHandler; onMouseEnter?: React.MouseEventHandler; sx?: SxProps<Theme> }
 }
 
 export default function ItemTable({
@@ -52,6 +54,7 @@ export default function ItemTable({
   fixedLayout = false,
   headerSx,
   footer,
+  rowProps,
 }: ItemTableProps) {
   const hasActionColumn = !!renderAction
   const colSpan = hasActionColumn ? 6 : 5
@@ -102,6 +105,7 @@ export default function ItemTable({
               showWishlistToggle={showWishlistToggle}
               renderAction={renderAction}
               renderNameExtra={renderNameExtra}
+              rowProps={rowProps?.(item)}
             />
           ))
         )}

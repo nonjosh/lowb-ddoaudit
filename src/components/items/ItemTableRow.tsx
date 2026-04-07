@@ -12,6 +12,7 @@ import {
 } from '@mui/material'
 import IconWrapper from "@/components/shared/IconWrapper"
 import type React from 'react'
+import type { SxProps, Theme } from '@mui/material'
 import { useCallback } from 'react'
 
 import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
@@ -40,6 +41,8 @@ interface ItemTableRowProps {
   showWishlistToggle?: boolean
   /** Extra content rendered next to the item name (e.g. delete button) */
   renderNameExtra?: (item: Item) => React.ReactNode
+  /** Custom props spread onto the TableRow (e.g. onClick, onMouseEnter, sx) */
+  rowProps?: { onClick?: React.MouseEventHandler; onMouseEnter?: React.MouseEventHandler; sx?: SxProps<Theme> }
 }
 
 export default function ItemTableRow({
@@ -52,6 +55,7 @@ export default function ItemTableRow({
   hideRaidTag = false,
   showWishlistToggle = true,
   renderNameExtra,
+  rowProps,
 }: ItemTableRowProps) {
   const { isWished, toggleWish } = useWishlist()
   const raidQuestNames = useRaidQuestNames()
@@ -70,7 +74,13 @@ export default function ItemTableRow({
   const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
 
   return (
-    <TableRow key={itemKey} hover sx={item.artifact ? artifactTableRowSx : undefined}>
+    <TableRow
+      key={itemKey}
+      hover
+      sx={{ ...(item.artifact ? artifactTableRowSx : undefined), ...rowProps?.sx as Record<string, unknown> }}
+      onClick={rowProps?.onClick}
+      onMouseEnter={rowProps?.onMouseEnter}
+    >
       <TableCell>{item.ml}</TableCell>
       <TableCell>
         <Box sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.5 }}>
