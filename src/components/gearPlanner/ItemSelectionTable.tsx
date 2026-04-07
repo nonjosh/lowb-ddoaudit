@@ -3,12 +3,12 @@ import { type MouseEvent, useState } from 'react'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import LaunchIcon from '@mui/icons-material/Launch'
 import {
   Box,
   Button,
   Chip,
   IconButton,
+  Link,
   Paper,
   Table,
   TableBody,
@@ -177,23 +177,26 @@ export function ItemSelectionTable({
                           <CheckCircleIcon fontSize="small" color="success" />
                         </Tooltip>
                       )}
-                      <Typography variant="body2" fontWeight={isCurrent ? 'bold' : 'normal'}>
-                        {item.name}
-                      </Typography>
-                      {getWikiUrl(item.url) && (
-                        <Tooltip title="View on DDO Wiki">
-                          <IconButton
-                            size="small"
-                            component="a"
-                            href={getWikiUrl(item.url)!}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e: MouseEvent) => e.stopPropagation()}
-                            sx={{ p: 0.25 }}
-                          >
-                            <LaunchIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Tooltip>
+                      {getWikiUrl(item.url) ? (
+                        <Link
+                          href={getWikiUrl(item.url)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e: MouseEvent) => e.stopPropagation()}
+                          sx={{
+                            color: 'text.primary',
+                            fontWeight: isCurrent ? 'bold' : 'normal',
+                            fontSize: '0.875rem',
+                            textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline', color: 'primary.main' },
+                          }}
+                        >
+                          {item.name}
+                        </Link>
+                      ) : (
+                        <Typography variant="body2" fontWeight={isCurrent ? 'bold' : 'normal'}>
+                          {item.name}
+                        </Typography>
                       )}
                       <InventoryBadge itemName={item.name} showBTC />
                       <Tooltip title={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
