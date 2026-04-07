@@ -67,13 +67,68 @@ function fetchReducer(state: FetchState, action: FetchAction): FetchState {
 }
 
 interface AreaGroup {
+  groupId: string
   locationId: string
   locationName: string
   questType: string | null
   quest: Quest | null
   area: { is_public: boolean; is_wilderness: boolean } | null
   count: number
+  level: number | null
   characters: ServerCharacter[]
+}
+
+interface QuestVersion {
+  name: string
+  level: number
+  type: string | null
+  quest: Quest | null
+}
+
+function getQuestVersionsForLoc(locId: string, quests: Record<string, Quest>): QuestVersion[] {
+  const versions: QuestVersion[] = []
+  const seenNames = new Set<string>()
+
+  // Find all unique quest objects associated with this locId
+  const matchedQuests = new Set<Quest>()
+  for (const q of Object.values(quests)) {
+    if (q.id === locId || q.areaId === locId) {
+      matchedQuests.add(q)
+    }
+  }
+
+  if (matchedQuests.size === 0) {
+    const fallback = quests[locId]
+    if (fallback) {
+      versions.push({ name: fallback.name, level: fallback.level ?? 0, type: fallback.type, quest: fallback })
+    }
+    return versions
+  }
+
+  for (const q of matchedQuests) {
+    if (q.heroicLevel !== null && q.epicLevel !== null && q.heroicLevel !== q.epicLevel) {
+      const hName = `${q.name} (Heroic)`
+      const eLabel = q.epicLevel >= 30 ? 'Legendary' : 'Epic'
+      const eName = `${q.name} (${eLabel})`
+
+      if (!seenNames.has(hName)) {
+        seenNames.add(hName)
+        versions.push({ name: hName, level: q.heroicLevel, type: q.type, quest: q })
+      }
+      if (!seenNames.has(eName)) {
+        seenNames.add(eName)
+        versions.push({ name: eName, level: q.epicLevel, type: q.type, quest: q })
+      }
+    } else {
+      const level = Math.max(q.heroicLevel ?? 0, q.epicLevel ?? 0, q.level ?? 0)
+      if (!seenNames.has(q.name)) {
+        seenNames.add(q.name)
+        versions.push({ name: q.name, level, type: q.type, quest: q })
+      }
+    }
+  }
+
+  return versions
 }
 
 function buildAreaGroups(
@@ -81,29 +136,59 @@ function buildAreaGroups(
   areas: FetchState['areas'],
   quests: Record<string, Quest>,
 ): AreaGroup[] {
-  const byLocation = new Map<string, ServerCharacter[]>()
+  const byLocAndVersion = new Map<string, { group: AreaGroup; chars: ServerCharacter[] }>()
+
   for (const c of characters) {
     const locId = String(c.location_id)
-    const list = byLocation.get(locId)
-    if (list) list.push(c)
-    else byLocation.set(locId, [c])
+    const versions = getQuestVersionsForLoc(locId, quests)
+
+    let bestVersion: QuestVersion | null = null
+    if (versions.length === 1) {
+      bestVersion = versions[0]
+    } else if (versions.length > 1) {
+      let minDiff = Infinity
+      const playerLevel = c.total_level ?? 20
+      for (const v of versions) {
+        const diff = Math.abs(playerLevel - v.level)
+        if (diff < minDiff) {
+          minDiff = diff
+          bestVersion = v
+        }
+      }
+    }
+
+    const groupId = bestVersion ? `${locId}__${bestVersion.name}` : `${locId}__default`
+    const existing = byLocAndVersion.get(groupId)
+
+    if (existing) {
+      existing.chars.push(c)
+    } else {
+      const area = areas[locId] ?? null
+      const defaultQuest = quests[locId] ?? null
+      const locationName = bestVersion?.name ?? defaultQuest?.name ?? area?.name ?? `Unknown (${locId})`
+
+      byLocAndVersion.set(groupId, {
+        group: {
+          groupId,
+          locationId: locId,
+          locationName,
+          questType: bestVersion?.type ?? defaultQuest?.type ?? null,
+          quest: bestVersion?.quest ?? defaultQuest,
+          area,
+          count: 0,
+          level: bestVersion?.level ?? defaultQuest?.level ?? null,
+          characters: [],
+        },
+        chars: [c],
+      })
+    }
   }
 
   const groups: AreaGroup[] = []
-  for (const [locId, chars] of byLocation) {
-    const quest = quests[locId] ?? null
-    const area = areas[locId] ?? null
-    const locationName = quest?.name ?? area?.name ?? `Unknown (${locId})`
-    const questType = quest?.type ?? null
-    groups.push({
-      locationId: locId,
-      locationName,
-      questType,
-      quest,
-      area,
-      count: chars.length,
-      characters: chars,
-    })
+  for (const { group, chars } of byLocAndVersion.values()) {
+    group.count = chars.length
+    group.characters = chars
+    groups.push(group)
   }
 
   groups.sort((a, b) => b.count - a.count)
@@ -292,7 +377,7 @@ function AreaGroupsTable({
             </TableHead>
             <TableBody>
               {groups.map((g) => (
-                <TableRow key={g.locationId}>
+                <TableRow key={g.groupId}>
                   <TableCell>
                     <Typography variant="body2" noWrap>
                       {g.locationName}
@@ -300,7 +385,7 @@ function AreaGroupsTable({
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" color="text.secondary">
-                      {g.quest?.level ?? '—'}
+                      {g.level ?? '—'}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
