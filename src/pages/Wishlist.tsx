@@ -23,19 +23,15 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import { Item, SetsData } from '@/api/ddoGearPlanner'
-import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
-import ItemCraftingDisplay from '@/components/items/ItemCraftingDisplay'
-import ItemSetTooltip from '@/components/items/ItemSetTooltip'
-import { artifactTableRowSx } from '@/components/shared/artifactStyles'
+import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
+import ItemTable from '@/components/items/ItemTable'
+import ItemTableRow from '@/components/items/ItemTableRow'
+import { ITEM_TABLE_COLUMN_WIDTHS } from '@/components/items/itemTableConstants'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useWishlist, WishlistEntry } from '@/contexts/useWishlist'
-import { isRaidItem } from '@/domains/quests/questHelpers'
-import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
-import { formatAffix, getAugmentColor, getCraftingOptionsForSlot, getWikiUrl } from '@/utils/affixHelpers'
 
 type GroupingMode = 'none' | 'quest' | 'pack' | 'slot'
 
@@ -53,25 +49,6 @@ const SLOT_ORDER: string[] = [
   'Ring', 'Gloves', 'Bracers', 'Boots', 'Armor',
   'Offhand', 'Weapon', 'Quiver', 'Augment',
 ]
-
-const WISHLIST_COLUMN_WIDTHS = {
-  ml: '60px',
-  name: '250px',
-  type: '150px',
-  augments: '200px',
-}
-
-function WishlistTableColGroup() {
-  return (
-    <colgroup>
-      <col style={{ width: WISHLIST_COLUMN_WIDTHS.ml }} />
-      <col style={{ width: WISHLIST_COLUMN_WIDTHS.name }} />
-      <col style={{ width: WISHLIST_COLUMN_WIDTHS.type }} />
-      <col />
-      <col style={{ width: WISHLIST_COLUMN_WIDTHS.augments }} />
-    </colgroup>
-  )
-}
 
 function normalizeKeyPart(value: string | undefined): string {
   return String(value ?? '').trim().toLowerCase()
@@ -103,118 +80,16 @@ function entryToItem(entry: WishlistEntry, matchedItem?: Item): Item {
   }
 }
 
-interface WishlistItemRowProps {
-  item: Item
-  setsData: SetsData | null
-  onRemove: () => void
-  getCraftingOptions: (craft: string) => string[]
-}
-
-function WishlistItemRow({ item, setsData, onRemove, getCraftingOptions }: WishlistItemRowProps) {
-  const raidQuestNames = useRaidQuestNames()
-  // Get wiki URL for both regular items and augments
-  // For augments without a URL field, generate one from the name
-  const wikiUrl = getWikiUrl(item.url) ||
-    (item.slot === 'Augment' ? `https://ddowiki.com/page/Item:${item.name.replace(/\s+/g, '_')}` : null)
-  const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
-
-  return (
-    <TableRow hover sx={item.artifact ? artifactTableRowSx : undefined}>
-      <TableCell>{item.ml}</TableCell>
-      <TableCell>
-        <Box sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.5 }}>
-          {wikiUrl ? (
-            <Link
-              href={wikiUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{
-                color: augmentColor || 'text.primary',
-                fontWeight: 'bold',
-                fontSize: '0.875rem',
-                textDecoration: 'none',
-                '&:hover': {
-                  textDecoration: 'underline',
-                  color: 'primary.main'
-                }
-              }}
-            >
-              {item.name}
-            </Link>
-          ) : (
-            <Typography variant="body2" fontWeight="bold" sx={{ color: augmentColor }}>
-              {item.name}
-            </Typography>
-          )}
-          <InventoryBadge itemName={item.name} />
-          <IconButton
-            size="small"
-            onClick={onRemove}
-            aria-label="remove from wish list"
-            sx={{ p: 0.25, color: 'error.main' }}
-          >
-            <DeleteSweepIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        {item.slot && (item.slot === 'Weapon' || item.slot === 'Offhand') && (
-          <Typography variant="caption" color="text.secondary" display="block">
-            {item.slot}
-          </Typography>
-        )}
-        {isRaidItem(item, raidQuestNames) && (
-          <Box>
-            <Chip label="Raid" size="small" color="error" variant="outlined" sx={{ mt: 0.5 }} />
-          </Box>
-        )}
-      </TableCell>
-      <TableCell>
-        {(item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand')
-          ? (item.slot === 'Augment' ? `Augment (${item.type})` : (item.slot === 'Armor' && item.type ? item.type : item.slot))
-          : (item.type || '—')}
-      </TableCell>
-      <TableCell>
-        {item.affixes && item.affixes.length > 0 ? (
-          <ul style={{ margin: 0, paddingLeft: 20 }}>
-            {item.affixes.map((affix, idx) => (
-              <li key={idx}>
-                <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-                  {formatAffix(affix)}
-                </Typography>
-              </li>
-            ))}
-            {item.sets?.[0] && (
-              <li>
-                <ItemSetTooltip setName={item.sets[0]} setsData={setsData} formatAffix={formatAffix} />
-              </li>
-            )}
-          </ul>
-        ) : (
-          <Typography variant="body2" color="text.secondary">—</Typography>
-        )}
-      </TableCell>
-      <TableCell>
-        {item.crafting && (
-          <ItemCraftingDisplay
-            crafting={item.crafting}
-            getAugmentColor={getAugmentColor}
-            getCraftingOptions={getCraftingOptions}
-          />
-        )}
-      </TableCell>
-    </TableRow>
-  )
-}
-
 interface CollapsibleGroupProps {
   group: GroupedItems
   setsData: SetsData | null
+  craftingData: CraftingData | null
   onRemove: (key: string) => void
-  getCraftingOptions: (craft: string) => string[]
   defaultExpanded?: boolean
   isQuestGroup?: boolean
 }
 
-function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defaultExpanded = true, isQuestGroup = false }: CollapsibleGroupProps) {
+function CollapsibleGroup({ group, setsData, craftingData, onRemove, defaultExpanded = true, isQuestGroup = false }: CollapsibleGroupProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
 
   return (
@@ -272,24 +147,33 @@ function CollapsibleGroup({ group, setsData, onRemove, getCraftingOptions, defau
         <TableCell colSpan={5} sx={{ p: 0 }}>
           <Collapse in={expanded} timeout="auto" unmountOnExit>
             <Table size="small" sx={{ tableLayout: 'fixed' }}>
-              <WishlistTableColGroup />
+              <colgroup>
+                <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.ml }} />
+                <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.name }} />
+                <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.type }} />
+                <col />
+                <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.augments }} />
+              </colgroup>
               <TableBody>
-                {group.items.map((item) => {
-                  const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
-                  return (
-                    <WishlistItemRow
-                      key={itemKey}
-                      item={item}
-                      setsData={setsData}
-                      onRemove={() => {
-                        // Build the wishlist key
-                        const key = `${item.name.trim().toLowerCase()}__${item.ml}__${item.slot.trim().toLowerCase()}__${(item.type || '').trim().toLowerCase()}`
-                        onRemove(key)
-                      }}
-                      getCraftingOptions={getCraftingOptions}
-                    />
-                  )
-                })}
+                {group.items.map((item) => (
+                  <ItemTableRow
+                    key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
+                    item={item}
+                    setsData={setsData}
+                    craftingData={craftingData}
+                    showWishlistToggle={false}
+                    renderNameExtra={(item) => (
+                      <IconButton
+                        size="small"
+                        onClick={() => onRemove(buildWishlistItemKey(item.name, item.ml, item.slot, item.type))}
+                        aria-label="remove from wish list"
+                        sx={{ p: 0.25, color: 'error.main' }}
+                      >
+                        <DeleteSweepIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  />
+                ))}
               </TableBody>
             </Table>
           </Collapse>
@@ -410,11 +294,6 @@ export default function Wishlist() {
       return entryToItem(entry, matched)
     })
   }, [entries, itemLookup])
-
-  const getCraftingOptions = useCallback(
-    (craft: string) => getCraftingOptionsForSlot(craft, craftingData ?? null),
-    [craftingData],
-  )
 
   // Group items based on grouping mode
   const groupedItems = useMemo((): GroupedItems[] => {
@@ -574,10 +453,36 @@ export default function Wishlist() {
             Your wish list is empty. Add items using the heart button in quest loot or the Item Wiki.
           </Typography>
         </Paper>
+      ) : groupingMode === 'none' ? (
+        <TableContainer component={Paper} variant="outlined">
+          <ItemTable
+            items={items}
+            setsData={setsData}
+            craftingData={craftingData}
+            fixedLayout
+            showWishlistToggle={false}
+            renderNameExtra={(item) => (
+              <IconButton
+                size="small"
+                onClick={() => removeWish(buildWishlistItemKey(item.name, item.ml, item.slot, item.type))}
+                aria-label="remove from wish list"
+                sx={{ p: 0.25, color: 'error.main' }}
+              >
+                <DeleteSweepIcon fontSize="small" />
+              </IconButton>
+            )}
+          />
+        </TableContainer>
       ) : (
         <TableContainer component={Paper} variant="outlined">
           <Table size="small" aria-label="wish list table" sx={{ tableLayout: 'fixed' }}>
-            <WishlistTableColGroup />
+            <colgroup>
+              <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.ml }} />
+              <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.name }} />
+              <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.type }} />
+              <col />
+              <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.augments }} />
+            </colgroup>
             <TableHead>
               <TableRow>
                 <TableCell>ML</TableCell>
@@ -588,36 +493,16 @@ export default function Wishlist() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {groupingMode === 'none' ? (
-                // Flat list
-                items.map((item) => {
-                  const itemKey = `${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`
-                  return (
-                    <WishlistItemRow
-                      key={itemKey}
-                      item={item}
-                      setsData={setsData}
-                      onRemove={() => {
-                        const key = `${item.name.trim().toLowerCase()}__${item.ml}__${item.slot.trim().toLowerCase()}__${(item.type || '').trim().toLowerCase()}`
-                        removeWish(key)
-                      }}
-                      getCraftingOptions={getCraftingOptions}
-                    />
-                  )
-                })
-              ) : (
-                // Grouped list (by slot, quest, or pack)
-                groupedItems.map((group) => (
-                  <CollapsibleGroup
-                    key={group.key}
-                    group={group}
-                    setsData={setsData}
-                    onRemove={removeWish}
-                    getCraftingOptions={getCraftingOptions}
-                    isQuestGroup={groupingMode === 'quest'}
-                  />
-                ))
-              )}
+              {groupedItems.map((group) => (
+                <CollapsibleGroup
+                  key={group.key}
+                  group={group}
+                  setsData={setsData}
+                  craftingData={craftingData}
+                  onRemove={removeWish}
+                  isQuestGroup={groupingMode === 'quest'}
+                />
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
