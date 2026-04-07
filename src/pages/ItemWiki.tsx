@@ -1,23 +1,127 @@
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
   Box,
+  Chip,
+  Collapse,
   Container,
+  FormControl,
+  InputLabel,
+  Link,
+  MenuItem,
   Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
   TableCell,
   TableContainer,
+  TableHead,
   TableRow,
   Typography,
   Button
 } from '@mui/material'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
-import { fetchQuestsById, Quest } from '@/api/ddoAudit'
+import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item } from '@/api/ddoGearPlanner'
 import ItemTable from '@/components/items/ItemTable'
 import ItemTableFilters from '@/components/items/ItemTableFilters'
+import ItemTableRow from '@/components/items/ItemTableRow'
+import { ITEM_TABLE_COLUMN_WIDTHS } from '@/components/items/itemTableConstants'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import { useWishlist } from '@/contexts/useWishlist'
 import { formatAffixPlain } from '@/utils/affixHelpers'
+
+type GroupingMode = 'none' | 'quest' | 'pack' | 'slot'
+
+interface GroupedItems {
+  key: string
+  label: string
+  sublabel?: string
+  questLevel?: string
+  isWilderness?: boolean
+  items: Item[]
+}
+
+const SLOT_ORDER: string[] = [
+  'Head', 'Eyes', 'Neck', 'Trinket', 'Cloak', 'Belt',
+  'Ring', 'Gloves', 'Bracers', 'Boots', 'Armor',
+  'Offhand', 'Weapon', 'Quiver', 'Augment',
+]
+
+interface CollapsibleGroupProps {
+  group: GroupedItems
+  defaultExpanded?: boolean
+  isQuestGroup?: boolean
+  children: ReactNode
+}
+
+function CollapsibleGroup({ group, defaultExpanded = true, isQuestGroup = false, children }: CollapsibleGroupProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded)
+
+  return (
+    <>
+      <TableRow
+        onClick={() => setExpanded(!expanded)}
+        sx={{ cursor: 'pointer', bgcolor: 'action.hover' }}
+      >
+        <TableCell colSpan={5}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            {isQuestGroup ? (
+              <>
+                <Link
+                  href={`https://ddowiki.com/page/${group.label.replace(/\s+/g, '_')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      color: 'primary.main'
+                    }
+                  }}
+                >
+                  {group.label}
+                </Link>
+                {group.questLevel && (
+                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                    ({group.questLevel})
+                  </Typography>
+                )}
+                {group.isWilderness && (
+                  <Chip size="small" label="Wilderness" variant="outlined" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />
+                )}
+                {group.sublabel && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    — {group.sublabel}
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <Typography variant="subtitle2" fontWeight="bold">
+                {group.label}
+              </Typography>
+            )}
+            <Chip size="small" label={group.items.length} />
+          </Stack>
+        </TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell colSpan={5} sx={{ p: 0 }}>
+          <Collapse in={expanded} timeout="auto" unmountOnExit>
+            {children}
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  )
+}
 
 export default function ItemWiki() {
   const { items, augmentItems, craftingData, setsData, loading, refresh, error } = useGearPlanner()
@@ -35,6 +139,8 @@ export default function ItemWiki() {
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
   const [showWishlistOnly, setShowWishlistOnly] = useState(false)
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
+  const [groupingMode, setGroupingMode] = useState<GroupingMode>('none')
+  const [wildernessAreaIds, setWildernessAreaIds] = useState<Set<string>>(new Set())
 
   const boxRef = useRef<HTMLDivElement>(null)
 
@@ -43,6 +149,13 @@ export default function ItemWiki() {
 
   useEffect(() => {
     fetchQuestsById().then(setQuestsById).catch(console.error)
+    fetchAreasById().then(areas => {
+      const ids = new Set<string>()
+      for (const area of Object.values(areas)) {
+        if (area.is_wilderness) ids.add(area.id)
+      }
+      setWildernessAreaIds(ids)
+    }).catch(console.error)
   }, [])
 
   useEffect(() => {
@@ -284,6 +397,123 @@ export default function ItemWiki() {
     })
   }, [allItems, searchText, typeFilter, effectFilter, craftingFilter, minMl, maxMl, packFilter, questFilter, questNameToPack, isWished, showAvailableOnly, showWishlistOnly, hasItem])
 
+  // Quest lookup by name for grouping enrichment
+  const questByName = useMemo(() => {
+    const map = new Map<string, Quest>()
+    Object.values(questsById).forEach(q => {
+      if (q.name) {
+        map.set(q.name, q)
+        const normalized = q.name.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim()
+        if (!map.has(normalized)) {
+          map.set(normalized, q)
+        }
+      }
+    })
+    return map
+  }, [questsById])
+
+  // Fuzzy quest-to-pack lookup
+  const questNameToPackFuzzy = useMemo(() => {
+    const normalizedMap = new Map<string, string>()
+    Object.values(questsById).forEach(q => {
+      if (q.name && q.required_adventure_pack) {
+        const normalized = q.name.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim()
+        normalizedMap.set(normalized, q.required_adventure_pack)
+      }
+    })
+    return (questName: string): string | undefined => {
+      const exact = questNameToPack.get(questName)
+      if (exact) return exact
+      const normalized = questName.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim()
+      return normalizedMap.get(normalized)
+    }
+  }, [questsById, questNameToPack])
+
+  // Grouped items for collapsible view
+  const groupedItems = useMemo((): GroupedItems[] => {
+    if (groupingMode === 'none') return []
+
+    const itemsToGroup = filteredItems
+
+    if (groupingMode === 'slot') {
+      const groups = new Map<string, Item[]>()
+      itemsToGroup.forEach(item => {
+        const slotKey = item.slot || 'Unknown'
+        const existing = groups.get(slotKey) || []
+        existing.push(item)
+        groups.set(slotKey, existing)
+      })
+      const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+        const idxA = SLOT_ORDER.indexOf(a)
+        const idxB = SLOT_ORDER.indexOf(b)
+        if (idxA === -1 && idxB === -1) return a.localeCompare(b)
+        if (idxA === -1) return 1
+        if (idxB === -1) return -1
+        return idxA - idxB
+      })
+      return sortedKeys.map(key => ({ key, label: key, items: groups.get(key) || [] }))
+    }
+
+    const groups = new Map<string, Item[]>()
+    const noGroupKey = groupingMode === 'quest' ? 'No Quest' : 'No Pack'
+
+    itemsToGroup.forEach(item => {
+      if (!item.quests || item.quests.length === 0) {
+        const existing = groups.get(noGroupKey) || []
+        existing.push(item)
+        groups.set(noGroupKey, existing)
+        return
+      }
+      if (groupingMode === 'quest') {
+        item.quests.forEach(questName => {
+          const existing = groups.get(questName) ?? []
+          existing.push(item)
+          groups.set(questName, existing)
+        })
+      } else {
+        const packs = new Set<string>()
+        item.quests.forEach(questName => {
+          const pack = questNameToPackFuzzy(questName)
+          if (pack) packs.add(pack)
+        })
+        if (packs.size === 0) {
+          const existing = groups.get(noGroupKey) || []
+          existing.push(item)
+          groups.set(noGroupKey, existing)
+        } else {
+          packs.forEach(pack => {
+            const existing = groups.get(pack) || []
+            existing.push(item)
+            groups.set(pack, existing)
+          })
+        }
+      }
+    })
+
+    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+      if (a === noGroupKey) return 1
+      if (b === noGroupKey) return -1
+      return a.localeCompare(b)
+    })
+
+    return sortedKeys.map(key => {
+      const group: GroupedItems = { key, label: key, items: groups.get(key) || [] }
+      if (groupingMode === 'quest' && key !== noGroupKey) {
+        const quest = questByName.get(key)
+          ?? questByName.get(key.toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, ' ').trim())
+        if (quest) {
+          if (quest.required_adventure_pack) group.sublabel = quest.required_adventure_pack
+          const parts: string[] = []
+          if (quest.heroicLevel != null && quest.heroicLevel > 0) parts.push(`H ${quest.heroicLevel}`)
+          if (quest.epicLevel != null && quest.epicLevel > 0) parts.push(`E ${quest.epicLevel}`)
+          if (parts.length > 0) group.questLevel = parts.join(' / ')
+          if (quest.areaId && wildernessAreaIds.has(quest.areaId)) group.isWilderness = true
+        }
+      }
+      return group
+    })
+  }, [filteredItems, groupingMode, questNameToPackFuzzy, questByName, wildernessAreaIds])
+
   const showInitialState = searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && craftingFilter.length === 0 && minMl === 1 && maxMl === 34 && !showAvailableOnly && !showWishlistOnly
   const maxDisplayed = 100
   const isTruncated = filteredItems.length > maxDisplayed
@@ -331,42 +561,131 @@ export default function ItemWiki() {
               setShowWishlistOnly={setShowWishlistOnly}
               hasTroveData={importedAt !== null}
             />
+            {/* Group By dropdown */}
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 2, py: 1 }}>
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Group By</InputLabel>
+                <Select
+                  value={groupingMode}
+                  label="Group By"
+                  onChange={(e) => setGroupingMode(e.target.value as GroupingMode)}
+                >
+                  <MenuItem value="none">None</MenuItem>
+                  <MenuItem value="slot">Gear Slot</MenuItem>
+                  <MenuItem value="quest">Quest</MenuItem>
+                  <MenuItem value="pack">Adventure Pack</MenuItem>
+                </Select>
+              </FormControl>
+              {!showInitialState && (
+                <Typography variant="caption" color="text.secondary">
+                  {filteredItems.length} items{groupingMode !== 'none' ? ` in ${groupedItems.length} groups` : ''}
+                </Typography>
+              )}
+            </Stack>
           </Box>
           <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-            <ItemTable
-              items={displayedItems}
-              searchText={searchText}
-              setsData={setsData}
-              craftingData={craftingData}
-              stickyHeader
-              headerSx={{ zIndex: 5 }}
-              emptyContent={
-                showInitialState ? (
-                  <Box sx={{ py: 6 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      Enter a search term or select filters to view items.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box sx={{ py: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No items found matching criteria.
-                    </Typography>
-                  </Box>
-                )
-              }
-              footer={
-                isTruncated ? (
-                  <TableRow>
-                    <TableCell colSpan={5} sx={{ textAlign: 'center', py: 2 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Showing first {maxDisplayed} results of {filteredItems.length}. Refine search to see more.
+            {groupingMode !== 'none' ? (
+              // Grouped view
+              showInitialState ? (
+                <Box sx={{ py: 6, textAlign: 'center' }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Enter a search term or select filters to view items.
+                  </Typography>
+                </Box>
+              ) : groupedItems.length === 0 ? (
+                <Box sx={{ py: 2, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No items found matching criteria.
+                  </Typography>
+                </Box>
+              ) : (
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.ml }} />
+                    <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.name }} />
+                    <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.type }} />
+                    <col />
+                    <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.augments }} />
+                  </colgroup>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>ML</TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Properties</TableCell>
+                      <TableCell>Augments/Crafting</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {groupedItems.map((group) => (
+                      <CollapsibleGroup
+                        key={group.key}
+                        group={group}
+                        defaultExpanded
+                        isQuestGroup={groupingMode === 'quest'}
+                      >
+                        <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                          <colgroup>
+                            <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.ml }} />
+                            <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.name }} />
+                            <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.type }} />
+                            <col />
+                            <col style={{ width: ITEM_TABLE_COLUMN_WIDTHS.augments }} />
+                          </colgroup>
+                          <TableBody>
+                            {group.items.map((item) => (
+                              <ItemTableRow
+                                key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
+                                item={item}
+                                searchText={searchText}
+                                setsData={setsData}
+                                craftingData={craftingData}
+                              />
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CollapsibleGroup>
+                    ))}
+                  </TableBody>
+                </Table>
+              )
+            ) : (
+              // Flat view
+              <ItemTable
+                items={displayedItems}
+                searchText={searchText}
+                setsData={setsData}
+                craftingData={craftingData}
+                stickyHeader
+                headerSx={{ zIndex: 5 }}
+                emptyContent={
+                  showInitialState ? (
+                    <Box sx={{ py: 6 }}>
+                      <Typography variant="body1" color="text.secondary">
+                        Enter a search term or select filters to view items.
                       </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : undefined
-              }
-            />
+                    </Box>
+                  ) : (
+                    <Box sx={{ py: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No items found matching criteria.
+                      </Typography>
+                    </Box>
+                  )
+                }
+                footer={
+                  isTruncated ? (
+                    <TableRow>
+                      <TableCell colSpan={5} sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Showing first {maxDisplayed} results of {filteredItems.length}. Refine search to see more.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : undefined
+                }
+              />
+            )}
           </Box>
         </TableContainer>
       )}

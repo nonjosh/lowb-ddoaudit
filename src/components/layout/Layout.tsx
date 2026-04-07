@@ -42,7 +42,6 @@ export default function Layout({ children }: LayoutProps) {
       label: 'Gear',
       items: [
         { label: 'Gear Wiki', path: '/gear/wiki' },
-        { label: 'Gear Wishlist', path: '/gear/wishlist' },
         { label: 'Gear Planner', path: '/gear/planner' },
       ],
     },

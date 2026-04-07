@@ -14,7 +14,6 @@ import LegendaryGreenSteelCrafting from '@/pages/LegendaryGreenSteelCrafting'
 import ItemWiki from '@/pages/ItemWiki'
 import TRPlanner from '@/pages/TRPlanner'
 import ViktraniumCrafting from '@/pages/ViktraniumCrafting'
-import Wishlist from '@/pages/Wishlist'
 
 function App() {
   return (
@@ -30,7 +29,6 @@ function App() {
                       <Route path="/" element={<Dashboard />} />
                       {/* Gear-related routes */}
                       <Route path="/gear/wiki" element={<ItemWiki />} />
-                      <Route path="/gear/wishlist" element={<Wishlist />} />
                       <Route path="/gear/planner" element={<GearPlanner />} />
                       {/* Crafting */}
                       <Route path="/crafting/viktranium" element={<ViktraniumCrafting />} />
@@ -40,7 +38,8 @@ function App() {
                       <Route path="/tr-planner" element={<TRPlanner />} />
                       {/* Redirects for backward compatibility */}
                       <Route path="/wiki" element={<Navigate to="/gear/wiki" replace />} />
-                      <Route path="/wishlist" element={<Navigate to="/gear/wishlist" replace />} />
+                      <Route path="/wishlist" element={<Navigate to="/gear/wiki" replace />} />
+                      <Route path="/gear/wishlist" element={<Navigate to="/gear/wiki" replace />} />
                       <Route path="/planner" element={<Navigate to="/gear/planner" replace />} />
                     </Routes>
                   </Layout>
