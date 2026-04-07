@@ -108,3 +108,19 @@ export function getRaidNotesForRaidName(raidName: string): RaidNotes | null {
   if (!key) return null
   return RAID_NOTES_BY_KEY[key] ?? null
 }
+
+export function getSoulforgeForItem(itemName: string): string | null {
+  for (const notes of Object.values(RAID_NOTES_BY_KEY)) {
+    const augmentMatch = notes.augments.find(augment => augment.includes(itemName))
+    if (augmentMatch) return augmentMatch.split(':').pop()?.trim() ?? null
+  }
+  return null
+}
+
+export function getSetAugmentForItem(itemName: string): string | null {
+  for (const notes of Object.values(RAID_NOTES_BY_KEY)) {
+    const setMatch = notes.sets.find(set => set.includes(itemName))
+    if (setMatch) return setMatch.split(':').pop()?.trim() ?? null
+  }
+  return null
+}

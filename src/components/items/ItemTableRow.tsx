@@ -20,7 +20,7 @@ import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
-import { RaidNotes } from '@/domains/raids/raidNotes'
+import { getSetAugmentForItem, getSoulforgeForItem, RaidNotes } from '@/domains/raids/raidNotes'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
 import { formatAffix, getAugmentColor, getCraftingOptionsForSlot, getWikiUrl, highlightText } from '@/utils/affixHelpers'
 
@@ -140,17 +140,39 @@ export default function ItemTableRow({
           </Box>
         )}
         {(() => {
-          const augmentMatch = raidNotes?.augments.find(augment => augment.includes(item.name))
-          return augmentMatch ? (
-            <Tooltip title={augmentMatch.split(':').pop()?.trim()}>
+          let tooltipTitle: string | undefined
+
+          if (raidNotes) {
+            const augmentMatch = raidNotes.augments.find(augment => augment.includes(item.name))
+            if (augmentMatch) tooltipTitle = augmentMatch.split(':').pop()?.trim()
+          }
+
+          if (!tooltipTitle) {
+            const globalMatch = getSoulforgeForItem(item.name)
+            if (globalMatch) tooltipTitle = globalMatch
+          }
+
+          return tooltipTitle ? (
+            <Tooltip title={tooltipTitle}>
               <Chip label="Soulforge" size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
             </Tooltip>
           ) : null
         })()}
         {(() => {
-          const setMatch = raidNotes?.sets.find(set => set.includes(item.name))
-          return setMatch ? (
-            <Tooltip title={setMatch.split(':').pop()?.trim()}>
+          let tooltipTitle: string | undefined
+
+          if (raidNotes) {
+            const setMatch = raidNotes.sets.find(set => set.includes(item.name))
+            if (setMatch) tooltipTitle = setMatch.split(':').pop()?.trim()
+          }
+
+          if (!tooltipTitle) {
+            const globalMatch = getSetAugmentForItem(item.name)
+            if (globalMatch) tooltipTitle = globalMatch
+          }
+
+          return tooltipTitle ? (
+            <Tooltip title={tooltipTitle}>
               <Chip label="Set Augment" size="small" color="warning" variant="outlined" sx={{ mt: 0.5 }} />
             </Tooltip>
           ) : null
