@@ -23,16 +23,16 @@ Defined in `src/api/ddoAudit/constants.ts`.
 
 ## Endpoints
 
-| Endpoint | Function | File |
-| --- | --- | --- |
-| `GET /characters/ids/{ids}` | `fetchCharactersByIds()` | `characters.ts` |
-| `GET /characters/{serverName}` | `fetchServerCharacters()` | `characters.ts` |
-| `GET /activity/raids?character_ids=...` | `fetchRaidActivity()` | `characters.ts` |
-| `GET /lfms/{serverName}` | `fetchLfms()` | `lfms.ts` |
-| `GET /characters/by-server-and-guild-name/{server}/{guild}` | `fetchGuildCharacters()` | `guilds.ts` |
-| `GET /game/server-info?server=...` | `fetchServerInfo()` | `server.ts` |
-| `GET {BASE_URL}/data/quests.json` | `fetchQuestsById()` | `quests.ts` |
-| `GET {BASE_URL}/data/areas.json` | `fetchAreasById()` | `areas.ts` |
+| Endpoint                                                    | Function                  | File            |
+| ----------------------------------------------------------- | ------------------------- | --------------- |
+| `GET /characters/ids/{ids}`                                 | `fetchCharactersByIds()`  | `characters.ts` |
+| `GET /characters/{serverName}`                              | `fetchServerCharacters()` | `characters.ts` |
+| `GET /activity/raids?character_ids=...`                     | `fetchRaidActivity()`     | `characters.ts` |
+| `GET /lfms/{serverName}`                                    | `fetchLfms()`             | `lfms.ts`       |
+| `GET /characters/by-server-and-guild-name/{server}/{guild}` | `fetchGuildCharacters()`  | `guilds.ts`     |
+| `GET /game/server-info?server=...`                          | `fetchServerInfo()`       | `server.ts`     |
+| `GET {BASE_URL}/data/quests.json`                           | `fetchQuestsById()`       | `quests.ts`     |
+| `GET {BASE_URL}/data/areas.json`                            | `fetchAreasById()`        | `areas.ts`      |
 
 **Note**: Quests and areas JSON are served locally from `public/data/`, not from the DDO Audit API.
 
@@ -109,12 +109,12 @@ interface Quest {
 
 ## Key Constants
 
-| Constant | Value | Purpose |
-| --- | --- | --- |
-| `DDO_AUDIT_API_BASE_URL` | `https://api.ddoaudit.com/v1` | API base |
-| `MAX_CHARACTER_IDS_PER_REQUEST` | 30 | Batch size limit |
-| `RAID_LOCKOUT_MS` | 66 hours | Timer duration |
-| `HOUR_IN_MS` | 3,600,000 | Time constant |
+| Constant                        | Value                         | Purpose          |
+| ------------------------------- | ----------------------------- | ---------------- |
+| `DDO_AUDIT_API_BASE_URL`        | `https://api.ddoaudit.com/v1` | API base         |
+| `MAX_CHARACTER_IDS_PER_REQUEST` | 30                            | Batch size limit |
+| `RAID_LOCKOUT_MS`               | 66 hours                      | Timer duration   |
+| `HOUR_IN_MS`                    | 3,600,000                     | Time constant    |
 
 ## Special Behaviors
 
@@ -124,14 +124,14 @@ interface Quest {
 
 ## Related Files
 
-| File | Purpose |
-| --- | --- |
-| `src/api/ddoAudit/constants.ts` | URLs, time constants |
-| `src/api/ddoAudit/characters.ts` | Character + raid fetch |
-| `src/api/ddoAudit/lfms.ts` | LFM fetch |
-| `src/api/ddoAudit/guilds.ts` | Guild character fetch |
-| `src/api/ddoAudit/server.ts` | Server info fetch |
-| `src/api/ddoAudit/quests.ts` | Quest data (local JSON) |
-| `src/api/ddoAudit/areas.ts` | Area data (local JSON) |
-| `src/api/ddoAudit/helpers.ts` | Time formatting utilities |
-| `src/api/ddoAudit/index.ts` | Public exports |
+| File                             | Purpose                   |
+| -------------------------------- | ------------------------- |
+| `src/api/ddoAudit/constants.ts`  | URLs, time constants      |
+| `src/api/ddoAudit/characters.ts` | Character + raid fetch    |
+| `src/api/ddoAudit/lfms.ts`       | LFM fetch                 |
+| `src/api/ddoAudit/guilds.ts`     | Guild character fetch     |
+| `src/api/ddoAudit/server.ts`     | Server info fetch         |
+| `src/api/ddoAudit/quests.ts`     | Quest data (local JSON)   |
+| `src/api/ddoAudit/areas.ts`      | Area data (local JSON)    |
+| `src/api/ddoAudit/helpers.ts`    | Time formatting utilities |
+| `src/api/ddoAudit/index.ts`      | Public exports            |
