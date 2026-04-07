@@ -2,11 +2,8 @@ import {
   Box,
   Container,
   Paper,
-  Table,
-  TableBody,
   TableCell,
   TableContainer,
-  TableHead,
   TableRow,
   Typography,
   Button
@@ -15,8 +12,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item } from '@/api/ddoGearPlanner'
+import ItemTable from '@/components/items/ItemTable'
 import ItemTableFilters from '@/components/items/ItemTableFilters'
-import ItemTableRow from '@/components/items/ItemTableRow'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import { useWishlist } from '@/contexts/useWishlist'
@@ -336,57 +333,40 @@ export default function ItemWiki() {
             />
           </Box>
           <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-            <Table size="small" stickyHeader>
-              <TableHead sx={{ zIndex: 5 }}>
-                <TableRow>
-                  <TableCell width="60">ML</TableCell>
-                  <TableCell width="250">Name</TableCell>
-                  <TableCell width="150">Type</TableCell>
-                  <TableCell>Properties</TableCell>
-                  <TableCell width="200">Augments/Crafting</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {showInitialState ? (
-                  <TableRow>
-                    <TableCell colSpan={5} sx={{ textAlign: 'center', py: 8 }}>
-                      <Typography variant="body1" color="text.secondary">
-                        Enter a search term or select filters to view items.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : displayedItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No items found matching criteria.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
+            <ItemTable
+              items={displayedItems}
+              searchText={searchText}
+              setsData={setsData}
+              craftingData={craftingData}
+              stickyHeader
+              headerSx={{ zIndex: 5 }}
+              emptyContent={
+                showInitialState ? (
+                  <Box sx={{ py: 6 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      Enter a search term or select filters to view items.
+                    </Typography>
+                  </Box>
                 ) : (
-                  <>
-                    {displayedItems.map((item) => (
-                      <ItemTableRow
-                        key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
-                        item={item}
-                        searchText={searchText}
-                        setsData={setsData}
-                        craftingData={craftingData}
-                      />
-                    ))}
-                    {isTruncated && (
-                      <TableRow>
-                        <TableCell colSpan={5} sx={{ textAlign: 'center', py: 2 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Showing first {maxDisplayed} results of {filteredItems.length}. Refine search to see more.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                )}
-              </TableBody>
-            </Table>
+                  <Box sx={{ py: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No items found matching criteria.
+                    </Typography>
+                  </Box>
+                )
+              }
+              footer={
+                isTruncated ? (
+                  <TableRow>
+                    <TableCell colSpan={5} sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Showing first {maxDisplayed} results of {filteredItems.length}. Refine search to see more.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : undefined
+              }
+            />
           </Box>
         </TableContainer>
       )}

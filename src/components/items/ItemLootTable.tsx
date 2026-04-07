@@ -1,11 +1,6 @@
 import {
   Paper,
-  Table,
-  TableBody,
-  TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
   Typography
 } from '@mui/material'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -15,8 +10,8 @@ import { useWishlist } from '@/contexts/useWishlist'
 import { RaidNotes } from '@/domains/raids/raidNotes'
 import { formatAffixPlain } from '@/utils/affixHelpers'
 
+import ItemTable from './ItemTable'
 import ItemTableFilters from './ItemTableFilters'
-import ItemTableRow from './ItemTableRow'
 
 interface ItemLootTableProps {
   questItems: Item[]
@@ -159,40 +154,20 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
           setMlFilter={setMlFilter}
           uniqueMLs={uniqueMLs}
         />
-        <Table size="small">
-          <TableHead sx={{ position: 'sticky', top: tableHeadTop, zIndex: 5, bgcolor: 'background.paper' }}>
-            <TableRow>
-              <TableCell width="60">ML</TableCell>
-              <TableCell width="250">Name</TableCell>
-              <TableCell width="150">Type</TableCell>
-              <TableCell>Properties</TableCell>
-              <TableCell width="200">Augments/Crafting</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredItems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <Typography variant="body2" color="text.secondary">
-                    No items found matching criteria.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredItems.map((item) => (
-                <ItemTableRow
-                  key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
-                  item={item}
-                  searchText={searchText}
-                  setsData={setsData}
-                  raidNotes={raidNotes}
-                  craftingData={craftingData}
-                  hideRaidTag
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <ItemTable
+          items={filteredItems}
+          searchText={searchText}
+          setsData={setsData}
+          raidNotes={raidNotes}
+          craftingData={craftingData}
+          hideRaidTag
+          headerSx={{ position: 'sticky', top: tableHeadTop, zIndex: 5, bgcolor: 'background.paper' }}
+          emptyContent={
+            <Typography variant="body2" color="text.secondary">
+              No items found matching criteria.
+            </Typography>
+          }
+        />
       </TableContainer>
     </>
   )
