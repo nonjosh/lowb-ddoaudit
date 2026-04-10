@@ -263,7 +263,13 @@ function LevelDistributionChart({
               alignItems="center"
               spacing={1}
               onClick={() => onToggleBin(bin.label)}
-              sx={{ cursor: 'pointer', userSelect: 'none', opacity: dimmed ? 0.35 : 1, transition: 'opacity 0.2s' }}
+              sx={{
+                cursor: 'pointer',
+                userSelect: 'none',
+                opacity: dimmed ? 0.35 : 1,
+                transition: 'opacity 0.2s',
+                '&:hover .bar-label': { opacity: 1 }
+              }}
             >
               <Typography variant="caption" sx={{ width: 40, textAlign: 'right', flexShrink: 0 }}>
                 {bin.label}
@@ -300,16 +306,36 @@ function LevelDistributionChart({
                         sx={{
                           width: `${(bin.inPartyCount / bin.count) * 100}%`,
                           bgcolor: bin.min >= 30 ? 'warning.main' : bin.min >= 20 ? 'info.main' : 'success.main',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
                         }}
-                      />
+                      >
+                        {(bin.inPartyCount / maxCount) > 0.05 && (
+                          <Typography className="bar-label" variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.65rem', fontWeight: 'bold', opacity: 0, transition: 'opacity 0.2s' }}>
+                            {bin.inPartyCount}
+                          </Typography>
+                        )}
+                      </Box>
                     )}
                     {bin.count - bin.inPartyCount > 0 && (
                       <Box
                         sx={{
                           width: `${((bin.count - bin.inPartyCount) / bin.count) * 100}%`,
                           bgcolor: 'divider',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
                         }}
-                      />
+                      >
+                        {((bin.count - bin.inPartyCount) / maxCount) > 0.05 && (
+                          <Typography className="bar-label" variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem', fontWeight: 'bold', opacity: 0, transition: 'opacity 0.2s' }}>
+                            {bin.count - bin.inPartyCount}
+                          </Typography>
+                        )}
+                      </Box>
                     )}
                   </Box>
                 </Tooltip>
