@@ -239,7 +239,7 @@ function LevelDistributionChart({
         <Box component="span" sx={{ float: 'right', display: 'flex', alignItems: 'center', gap: 2 }}>
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <Box sx={{ width: 12, height: 12, bgcolor: 'success.main', borderRadius: 0.5 }} />
-            <Typography variant="caption" color="text.secondary">In Party / Raid</Typography>
+            <Typography variant="caption" color="text.secondary">In Party</Typography>
           </Stack>
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <Box sx={{ width: 12, height: 12, bgcolor: 'divider', borderRadius: 0.5 }} />
