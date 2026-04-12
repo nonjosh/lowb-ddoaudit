@@ -304,11 +304,11 @@ export default function SummaryTable({
       <Typography variant="h6" gutterBottom>
         Property Breakdown
       </Typography>
-      <TableContainer component={Paper} variant="outlined">
+      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Bonus Type</TableCell>
+              <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'background.paper' }}>Bonus Type</TableCell>
               {selectedProperties.map(property => (
                 <TableCell
                   key={property}
@@ -337,7 +337,7 @@ export default function SummaryTable({
               )
             ).sort((a, b) => getBonusTypePriority(a) - getBonusTypePriority(b)).map(bonusType => (
               <TableRow key={bonusType}>
-                <TableCell>{bonusType}</TableCell>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, backgroundColor: 'background.paper' }}>{bonusType}</TableCell>
                 {selectedProperties.map(property => {
                   const bonusData = propertyBonuses.get(property)?.get(bonusType)
 
@@ -498,7 +498,7 @@ export default function SummaryTable({
               </TableRow>
             ))}
             <TableRow sx={{ fontWeight: 'bold', backgroundColor: 'action.hover' }}>
-              <TableCell>
+              <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, backgroundColor: 'action.hover' }}>
                 <strong>Total</strong>
               </TableCell>
               {selectedProperties.map(property => {
