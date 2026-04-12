@@ -44,21 +44,21 @@ export const COMPLEX_PROPERTIES: Record<string, string[]> = {
 }
 
 /**
- * Check if a property is a complex property
- */
-export function isComplexProperty(propertyName: string): boolean {
-  return propertyName in COMPLEX_PROPERTIES
-}
-
-/**
  * Normalize property names (handle aliases)
  */
-function normalizePropertyName(name: string): string {
+export function normalizePropertyName(name: string): string {
   // Normalize "Spell Focus" to "Spell Focus Mastery"
   if (name === 'Spell Focus') {
     return 'Spell Focus Mastery'
   }
   return name
+}
+
+/**
+ * Check if a property is a complex property (handles aliases)
+ */
+export function isComplexProperty(propertyName: string): boolean {
+  return normalizePropertyName(propertyName) in COMPLEX_PROPERTIES
 }
 
 /**

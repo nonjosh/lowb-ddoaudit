@@ -1,5 +1,5 @@
 import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
-import { combineAffixes, getPropertyBreakdown, getPropertyTotal, isComplexProperty } from './affixStacking'
+import { COMPLEX_PROPERTIES, combineAffixes, getPropertyBreakdown, getPropertyTotal, normalizePropertyName } from './affixStacking'
 import {
   autoSelectCraftingOptionsForGearSetup,
   countAugmentSlots,
@@ -187,13 +187,20 @@ export function getAllAvailableProperties(items: Item[]): string[] {
   for (const item of items) {
     for (const affix of item.affixes) {
       if (affix.type !== 'bool') {
-        propertySet.add(affix.name)
+        const name = normalizePropertyName(affix.name)
+        const children = COMPLEX_PROPERTIES[name]
+        if (children) {
+          // Add the complex property and its children
+          propertySet.add(name)
+          for (const child of children) {
+            propertySet.add(child)
+          }
+        } else {
+          propertySet.add(name)
+        }
       }
     }
   }
 
-  // Filter out complex properties from the available list
-  return Array.from(propertySet)
-    .filter(prop => !isComplexProperty(prop))
-    .sort()
+  return Array.from(propertySet).sort()
 }

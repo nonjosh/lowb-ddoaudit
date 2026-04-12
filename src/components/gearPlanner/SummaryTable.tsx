@@ -12,7 +12,7 @@ import {
 } from '@mui/material'
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
-import { COMPLEX_PROPERTIES, GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships } from '@/domains/gearPlanner'
+import { COMPLEX_PROPERTIES, GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships, normalizePropertyName } from '@/domains/gearPlanner'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -105,15 +105,27 @@ export default function SummaryTable({
 
   // Expand a complex property affix into its component properties
   const expandComplexAffix = (affix: ItemAffix): ItemAffix[] => {
-    const expanded = COMPLEX_PROPERTIES[affix.name]
+    const name = normalizePropertyName(affix.name)
+    const expanded = COMPLEX_PROPERTIES[name]
     if (!expanded) {
-      return [affix]
+      return [{ ...affix, name }]
     }
     return expanded.map(componentName => ({
       name: componentName,
       type: affix.type,
       value: affix.value
     }))
+  }
+
+  // Build a set of child property names from selected complex properties
+  const selectedChildProperties = new Set<string>()
+  for (const prop of selectedProperties) {
+    const children = COMPLEX_PROPERTIES[prop]
+    if (children) {
+      for (const child of children) {
+        selectedChildProperties.add(child)
+      }
+    }
   }
 
   // Helper to add a bonus source
@@ -127,14 +139,17 @@ export default function SummaryTable({
     setName?: string
   ) => {
     // Check if this is a complex property before expansion
-    const isComplexProperty = affix.name in COMPLEX_PROPERTIES
-    const originalComplexProperty = isComplexProperty ? affix.name : undefined
+    const normalizedName = normalizePropertyName(affix.name)
+    const isComplex = normalizedName in COMPLEX_PROPERTIES
+    const originalComplexProperty = isComplex ? normalizedName : undefined
 
     // Expand complex properties first
     const expandedAffixes = expandComplexAffix(affix)
 
     for (const expandedAffix of expandedAffixes) {
-      if (expandedAffix.type === 'bool' || !selectedProperties.includes(expandedAffix.name)) continue
+      if (expandedAffix.type === 'bool') continue
+      // Include if directly selected OR is a child of a selected complex property
+      if (!selectedProperties.includes(expandedAffix.name) && !selectedChildProperties.has(expandedAffix.name)) continue
 
       const value = typeof expandedAffix.value === 'string' ? parseFloat(expandedAffix.value) : expandedAffix.value
       if (isNaN(value) || typeof value !== 'number') continue
