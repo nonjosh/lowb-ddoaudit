@@ -39,6 +39,34 @@ const RAID_ABBREVIATIONS: Record<string, string> = {
   fot: 'fall of truth',
 }
 
+function normalizeRaidSearchText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9']+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+function findRaidByCandidate(candidate: string, raidGroups: RaidGroup[]): RaidGroup | null {
+  const expanded = RAID_ABBREVIATIONS[candidate]
+  if (expanded) {
+    const normalizedExpanded = normalizeRaidSearchText(expanded)
+    const found = raidGroups.find(
+      (g) => normalizeRaidSearchText(g.raidName).includes(normalizedExpanded),
+    )
+    if (found) return found
+  }
+
+  if (candidate.length >= 3) {
+    const found = raidGroups.find(
+      (g) => normalizeRaidSearchText(g.raidName).includes(candidate),
+    )
+    if (found) return found
+  }
+
+  return null
+}
+
 /**
  * Try to match a token (word or abbreviation) from a comment against
  * the available raid groups. Returns the matched RaidGroup or null.
@@ -47,24 +75,26 @@ export function matchTokenToRaid(
   token: string,
   raidGroups: RaidGroup[],
 ): RaidGroup | null {
-  const lower = token.toLowerCase().trim()
-  if (!lower) return null
+  const normalized = normalizeRaidSearchText(token)
+  if (!normalized) return null
 
-  // 1. Try abbreviation lookup
-  const expanded = RAID_ABBREVIATIONS[lower]
-  if (expanded) {
-    const found = raidGroups.find(
-      (g) => g.raidName.toLowerCase().includes(expanded),
-    )
-    if (found) return found
+  const words = normalized.split(' ')
+  const candidates: string[] = []
+  const seenCandidates = new Set<string>()
+
+  for (let length = words.length; length >= 1; length -= 1) {
+    for (let start = 0; start <= words.length - length; start += 1) {
+      const candidate = words.slice(start, start + length).join(' ')
+      if (!seenCandidates.has(candidate)) {
+        seenCandidates.add(candidate)
+        candidates.push(candidate)
+      }
+    }
   }
 
-  // 2. Try direct substring match against raid names (at least 3 chars)
-  if (lower.length >= 3) {
-    const found = raidGroups.find(
-      (g) => g.raidName.toLowerCase().includes(lower),
-    )
-    if (found) return found
+  for (const candidate of candidates) {
+    const matchedRaid = findRaidByCandidate(candidate, raidGroups)
+    if (matchedRaid) return matchedRaid
   }
 
   return null
