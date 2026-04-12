@@ -19,10 +19,17 @@ export default function LfmParticipantsTable({ participants, areas, onGuildClick
       : undefined
     : undefined
 
-  // Leader first, then members in join order (API array order)
+  // Leader first, then members sorted by join time (oldest first, newest last)
   const sortedParticipants = useMemo(
     () => participants.slice().sort((a, b) => {
       if (a.isLeader !== b.isLeader) return a.isLeader ? -1 : 1
+      // Sort by joinedAt ascending (earliest join at top)
+      if (a.joinedAt && b.joinedAt) {
+        return new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
+      }
+      // Members without joinedAt go after those with it
+      if (a.joinedAt && !b.joinedAt) return -1
+      if (!a.joinedAt && b.joinedAt) return 1
       return 0
     }),
     [participants],

@@ -15,6 +15,7 @@ export interface LfmParticipant {
   isLeader: boolean
   race: string
   location_id: number
+  joinedAt: string | null
 }
 
 export interface LfmDisplayData {
@@ -107,12 +108,33 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
 
   const memberCount = 1 + (lfm?.members?.length ?? 0)
 
+  // Extract join times from activity log
+  const memberJoinTimes = new Map<string, string>()
+  let postedTimestamp: string | null = null
+  if (Array.isArray(lfm.activity)) {
+    for (const act of lfm.activity) {
+      if (act.events && Array.isArray(act.events)) {
+        for (const event of act.events) {
+          if (event.tag === 'posted') {
+            postedTimestamp = postedTimestamp ?? act.timestamp
+          } else if (event.tag === 'member_joined' && typeof event.data === 'string') {
+            // Only record the first join time for each member
+            if (!memberJoinTimes.has(event.data)) {
+              memberJoinTimes.set(event.data, act.timestamp)
+            }
+          }
+        }
+      }
+    }
+  }
+
   const participants: LfmParticipant[] = [lfm.leader, ...(lfm?.members ?? [])]
     .filter(Boolean)
     .map((p) => {
       const characterName = String(p.name).trim() || '—'
       const playerName = getPlayerName(characterName)
       const classesDisplay = formatClasses(p.classes)
+      const isLeader = Boolean(lfm.leader.id && p.id && p.id === lfm.leader.id)
       return {
         characterName,
         playerName,
@@ -121,9 +143,10 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
         totalLevel: p.total_level,
         classesDisplay,
         classes: p.classes,
-        isLeader: Boolean(lfm.leader.id && p.id && p.id === lfm.leader.id),
+        isLeader,
         race: p.race,
         location_id: p.location_id,
+        joinedAt: isLeader ? postedTimestamp : (memberJoinTimes.get(characterName) ?? null),
       }
     })
 
@@ -157,21 +180,6 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
   const friendPlayersInside = Array.from(
     new Set(groupNames.map(getPlayerName).filter((p) => EXPECTED_PLAYERS.includes(p))),
   ).sort((a, b) => a.localeCompare(b))
-
-  let postedTimestamp: string | null = null
-  if (Array.isArray(lfm.activity)) {
-    for (const act of lfm.activity) {
-      if (act.events && Array.isArray(act.events)) {
-        for (const event of act.events) {
-          if (event.tag === 'posted') {
-            postedTimestamp = act.timestamp
-            break
-          }
-        }
-        if (postedTimestamp) break
-      }
-    }
-  }
 
   return {
     id: String(lfm.id),
