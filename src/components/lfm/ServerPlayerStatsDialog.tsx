@@ -529,12 +529,22 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
   // Filter area groups by selected level ranges
   const filteredAreaGroups = useMemo(() => {
     if (!selectedLevelRanges) return allAreaGroups
-    return allAreaGroups.filter((g) => {
-      // Filter by whether any character in the group is in the selected level range
-      return g.characters.some((c) =>
-        selectedLevelRanges.some((r) => c.total_level >= r.min && c.total_level <= r.max)
-      )
-    })
+
+    return allAreaGroups
+      .flatMap((group) => {
+        const characters = group.characters.filter((character) =>
+          selectedLevelRanges.some(
+            (range) => character.total_level >= range.min && character.total_level <= range.max,
+          ),
+        )
+
+        if (characters.length === 0) {
+          return []
+        }
+
+        return [{ ...group, characters, count: characters.length }]
+      })
+      .sort((a, b) => b.count - a.count)
   }, [allAreaGroups, selectedLevelRanges])
 
   const raidGroups = useMemo(
