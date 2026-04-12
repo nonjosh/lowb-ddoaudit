@@ -167,28 +167,51 @@ function getCraftingSlotPriority(slotType: string): number {
 }
 
 // Check if this property has the highest bonus of its type across all gear
+// (including both item affixes and augment/crafting affixes)
 function isHighestBonus(
-  item: Item,
+  sourceItem: Item | undefined,
   affix: ItemAffix,
   setup: GearSetup,
-  slots: string[]
+  slots: string[],
+  craftingSelections?: GearCraftingSelections,
+  sourceSlot?: string,
+  isAugmentAffix?: boolean
 ): boolean {
   if (affix.type === 'bool') return false
 
   const value = typeof affix.value === 'string' ? parseFloat(affix.value) : affix.value
   if (isNaN(value)) return false
 
-  // Check all other items for the same property and type
-  let maxValue = value
+  // Check all items and their augments for the same property and type
   for (const slot of slots) {
     const otherItem = getItemForSlot(setup, slot)
-    if (!otherItem || otherItem === item) continue
 
-    for (const otherAffix of otherItem.affixes) {
-      if (otherAffix.name === affix.name && otherAffix.type === affix.type) {
-        const otherValue = typeof otherAffix.value === 'string' ? parseFloat(otherAffix.value) : otherAffix.value
-        if (!isNaN(otherValue) && otherValue > maxValue) {
-          return false
+    // Check item affixes
+    if (otherItem && otherItem !== sourceItem) {
+      for (const otherAffix of otherItem.affixes) {
+        if (otherAffix.name === affix.name && otherAffix.type === affix.type) {
+          const otherValue = typeof otherAffix.value === 'string' ? parseFloat(otherAffix.value) : otherAffix.value
+          if (!isNaN(otherValue) && otherValue > value) {
+            return false
+          }
+        }
+      }
+    }
+
+    // Check crafting/augment affixes
+    const slotSelections = craftingSelections?.[slot]
+    if (slotSelections) {
+      for (const selection of slotSelections) {
+        if (!selection?.option?.affixes) continue
+        // Skip self-comparison: same slot and this is an augment affix
+        if (slot === sourceSlot && isAugmentAffix) continue
+        for (const otherAffix of selection.option.affixes) {
+          if (otherAffix.name === affix.name && otherAffix.type === affix.type) {
+            const otherValue = typeof otherAffix.value === 'string' ? parseFloat(otherAffix.value) : otherAffix.value
+            if (!isNaN(otherValue) && otherValue > value) {
+              return false
+            }
+          }
         }
       }
     }
@@ -199,6 +222,7 @@ function isHighestBonus(
 
 function GearSlotCard({
   slotName,
+  slotKey,
   item,
   selectedProperties,
   setup,
@@ -218,6 +242,7 @@ function GearSlotCard({
   isIgnored,
   onToggleIgnore,
   slotCraftingSelections,
+  craftingSelections,
   onCraftingChange,
   warningText,
   defaultMinLevel,
@@ -226,6 +251,7 @@ function GearSlotCard({
   defaultPackFilter,
 }: {
   slotName: string
+  slotKey: string
   item: Item | undefined
   selectedProperties: string[]
   setup: GearSetup
@@ -245,6 +271,7 @@ function GearSlotCard({
   isIgnored?: boolean
   onToggleIgnore?: () => void
   slotCraftingSelections?: SelectedCraftingOption[]
+  craftingSelections?: GearCraftingSelections
   onCraftingChange?: (slotIndex: number, option: CraftingOption | null) => void
   warningText?: string | null
   defaultMinLevel?: number
@@ -522,7 +549,7 @@ function GearSlotCard({
           {/* All Properties */}
           <Box sx={{ mt: 1 }}>
             {regularAffixes.map((affix, idx) => {
-              const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots)
+              const isHighest = selectedProperties.includes(affix.name) && isHighestBonus(item, affix, setup, slots, craftingSelections, slotKey, false)
               const isSelected = selectedProperties.includes(affix.name)
               const isHovered = hoveredProperty === affix.name
               const isNonStacking = isSelected && !isHighest && affix.type !== 'bool'
@@ -591,47 +618,86 @@ function GearSlotCard({
                   ? generateCraftingOptionName(selection.option)
                   : null
                 const canEdit = !!onCraftingChange && !!craftingData
+                const augmentAffixes = selection?.option?.affixes ?? []
                 return (
-                  <Box key={idx} sx={{ mb: 0.5, display: 'flex', alignItems: 'flex-start', gap: 0.5, flexWrap: 'wrap' }}>
-                    <Box
-                      component="span"
-                      sx={{
-                        bgcolor: bgColor || 'grey.700',
-                        color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
-                        px: 0.5,
-                        py: 0.25,
-                        borderRadius: 0.5,
-                        fontSize: '0.7rem',
-                        display: 'inline-block',
-                        lineHeight: 1.2,
-                        flexShrink: 0
-                      }}
-                    >
-                      {craftingSlot}
+                  <Box key={idx} sx={{ mb: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flexWrap: 'wrap' }}>
+                      <Box
+                        component="span"
+                        sx={{
+                          bgcolor: bgColor || 'grey.700',
+                          color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
+                          px: 0.5,
+                          py: 0.25,
+                          borderRadius: 0.5,
+                          fontSize: '0.7rem',
+                          display: 'inline-block',
+                          lineHeight: 1.2,
+                          flexShrink: 0
+                        }}
+                      >
+                        {craftingSlot}
+                      </Box>
+                      {canEdit ? (
+                        <Tooltip title="Click to change augment / crafting option">
+                          <Box
+                            component="span"
+                            onClick={() => setAugmentDialogIndex(idx)}
+                            sx={{
+                              fontSize: '0.7rem',
+                              color: selectedOptionName ? 'text.primary' : 'text.disabled',
+                              cursor: 'pointer',
+                              borderBottom: '1px dashed',
+                              borderColor: selectedOptionName ? 'text.secondary' : 'text.disabled',
+                              lineHeight: 1.4,
+                              '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                            }}
+                          >
+                            {selectedOptionName ?? '(empty)'}
+                          </Box>
+                        </Tooltip>
+                      ) : selectedOptionName ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                          {selectedOptionName}
+                        </Typography>
+                      ) : null}
                     </Box>
-                    {canEdit ? (
-                      <Tooltip title="Click to change augment / crafting option">
-                        <Box
-                          component="span"
-                          onClick={() => setAugmentDialogIndex(idx)}
-                          sx={{
-                            fontSize: '0.7rem',
-                            color: selectedOptionName ? 'text.primary' : 'text.disabled',
-                            cursor: 'pointer',
-                            borderBottom: '1px dashed',
-                            borderColor: selectedOptionName ? 'text.secondary' : 'text.disabled',
-                            lineHeight: 1.4,
-                            '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
-                          }}
-                        >
-                          {selectedOptionName ?? '(empty)'}
-                        </Box>
-                      </Tooltip>
-                    ) : selectedOptionName ? (
-                      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
-                        {selectedOptionName}
-                      </Typography>
-                    ) : null}
+                    {/* Augment affixes with strikethrough for non-stacking */}
+                    {augmentAffixes.length > 0 && (
+                      <Box sx={{ ml: 2 }}>
+                        {augmentAffixes.filter(a => a.type !== 'bool').map((affix, affixIdx) => {
+                          const isSelected = selectedProperties.includes(affix.name)
+                          const isHighest = isSelected && isHighestBonus(undefined, affix, setup, slots, craftingSelections, slotKey, true)
+                          const isNonStacking = isSelected && !isHighest
+                          const isHovered = hoveredProperty === affix.name
+                          const isBonusSourceHovered = hoveredBonusSource &&
+                            affix.name === hoveredBonusSource.property &&
+                            (affix.type || 'Untyped') === hoveredBonusSource.bonusType
+                          const shouldHighlight = isHovered || isBonusSourceHovered
+
+                          return (
+                            <Tooltip key={affixIdx} title={isNonStacking ? 'Does not stack (superseded by higher bonus)' : ''} disableHoverListener={!isNonStacking}>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                sx={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: isHighest ? 'bold' : 'normal',
+                                  color: isNonStacking ? 'text.disabled' : (isHighest ? 'primary.main' : (isSelected ? 'text.primary' : 'text.secondary')),
+                                  textDecoration: isNonStacking ? 'line-through' : 'none',
+                                  backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                  px: shouldHighlight ? 0.5 : 0,
+                                  borderRadius: shouldHighlight ? 0.5 : 0,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {formatAffix(affix)}
+                              </Typography>
+                            </Tooltip>
+                          )
+                        })}
+                      </Box>
+                    )}
                   </Box>
                 )
               })}
@@ -969,6 +1035,7 @@ export default function GearDisplay({
             <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={slot}>
               <GearSlotCard
                 slotName={slotDisplayNames[slot]}
+                slotKey={slot}
                 item={getItemForSlot(setup, slot)}
                 selectedProperties={selectedProperties}
                 setup={setup}
@@ -988,6 +1055,7 @@ export default function GearDisplay({
                 isIgnored={getItemForSlot(setup, slot) ? excludedItems.includes(getItemForSlot(setup, slot)!.name) : false}
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
                 slotCraftingSelections={craftingSelections?.[slot]}
+                craftingSelections={craftingSelections}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
                 warningText={slot === 'offHand' ? getOffHandWarning(setup.mainHand, setup.offHand) : undefined}
                 defaultMinLevel={itemFilters?.minLevel}
@@ -1008,6 +1076,7 @@ export default function GearDisplay({
             <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={slot}>
               <GearSlotCard
                 slotName={slotDisplayNames[slot]}
+                slotKey={slot}
                 item={getItemForSlot(setup, slot)}
                 selectedProperties={selectedProperties}
                 setup={setup}
@@ -1027,6 +1096,7 @@ export default function GearDisplay({
                 isIgnored={getItemForSlot(setup, slot) ? excludedItems.includes(getItemForSlot(setup, slot)!.name) : false}
                 onToggleIgnore={onToggleItemIgnore && getItemForSlot(setup, slot) ? () => onToggleItemIgnore(getItemForSlot(setup, slot)!.name) : undefined}
                 slotCraftingSelections={craftingSelections?.[slot]}
+                craftingSelections={craftingSelections}
                 onCraftingChange={onCraftingChange ? (slotIndex, option) => onCraftingChange(slot, slotIndex, option) : undefined}
                 defaultMinLevel={itemFilters?.minLevel}
                 defaultMaxLevel={itemFilters?.maxLevel}
