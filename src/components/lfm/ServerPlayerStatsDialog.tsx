@@ -9,8 +9,10 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -468,6 +470,7 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
     lastUpdated: null,
   })
   const [selectedBins, setSelectedBins] = useState<Set<string>>(new Set())
+  const [showSoloOnly, setShowSoloOnly] = useState(false)
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchData = useCallback(async () => {
@@ -506,6 +509,11 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
     })
   }, [])
 
+  const visibleCharacters = useMemo(
+    () => (showSoloOnly ? state.characters.filter((character) => !character.is_in_party) : state.characters),
+    [showSoloOnly, state.characters],
+  )
+
   // Build the selected level ranges from bin labels for filtering
   const selectedLevelRanges = useMemo(() => {
     if (selectedBins.size === 0) return null
@@ -522,8 +530,8 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
   }, [selectedBins])
 
   const allAreaGroups = useMemo(
-    () => buildAreaGroups(state.characters, state.areas, state.quests),
-    [state.characters, state.areas, state.quests],
+    () => buildAreaGroups(visibleCharacters, state.areas, state.quests),
+    [state.areas, state.quests, visibleCharacters],
   )
 
   // Filter area groups by selected level ranges
@@ -611,7 +619,24 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
         {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
         {state.characters.length > 0 && (
           <Stack spacing={3}>
-            <LevelDistributionChart characters={state.characters} selectedBins={selectedBins} onToggleBin={handleToggleBin} />
+            <Stack direction="row" justifyContent="flex-end">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showSoloOnly}
+                    onChange={(_, checked) => setShowSoloOnly(checked)}
+                    size="small"
+                  />
+                }
+                label="Solo only"
+                sx={{ mr: 0 }}
+              />
+            </Stack>
+            <LevelDistributionChart
+              characters={visibleCharacters}
+              selectedBins={selectedBins}
+              onToggleBin={handleToggleBin}
+            />
             <AreaGroupsTable title="Raid Areas" groups={raidGroups} defaultExpanded />
             <AreaGroupsTable title="Quest Areas" groups={questGroups} defaultExpanded={false} />
             <AreaGroupsTable title="Wilderness Areas" groups={wildernessGroups} defaultExpanded={false} />
