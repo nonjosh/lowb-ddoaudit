@@ -38,7 +38,8 @@ export const COMPLEX_PROPERTIES: Record<string, string[]> = {
     'Illusion Focus',
     'Necromancy Focus',
     'Transmutation Focus'
-  ]
+  ],
+  'Alluring Skills Bonus': ['Bluff', 'Diplomacy', 'Use Magic Device', 'Haggle', 'Intimidate', 'Perform']
   // Note: 'Spell Focus' is normalized to 'Spell Focus Mastery' before expansion
   // Note: 'Luck' for all skills and saves would be too broad and is not included
 }
