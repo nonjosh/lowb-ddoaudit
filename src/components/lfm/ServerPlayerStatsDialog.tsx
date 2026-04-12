@@ -530,7 +530,7 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
   const filteredAreaGroups = useMemo(() => {
     if (!selectedLevelRanges) return allAreaGroups
     return allAreaGroups.filter((g) => {
-      const level = g.quest?.level
+      const level = g.quest?.level ?? g.level
       if (typeof level !== 'number') return false
       return selectedLevelRanges.some((r) => level >= r.min && level <= r.max)
     })
