@@ -530,9 +530,10 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
   const filteredAreaGroups = useMemo(() => {
     if (!selectedLevelRanges) return allAreaGroups
     return allAreaGroups.filter((g) => {
-      const level = g.quest?.level ?? g.level
-      if (typeof level !== 'number') return false
-      return selectedLevelRanges.some((r) => level >= r.min && level <= r.max)
+      // Filter by whether any character in the group is in the selected level range
+      return g.characters.some((c) =>
+        selectedLevelRanges.some((r) => c.total_level >= r.min && c.total_level <= r.max)
+      )
     })
   }, [allAreaGroups, selectedLevelRanges])
 
