@@ -15,6 +15,7 @@ import {
   Container,
   Divider,
   FormControl,
+  FormControlLabel,
   InputLabel,
   ListItemText,
   MenuItem,
@@ -23,6 +24,7 @@ import {
   Select,
   Slider,
   Stack,
+  Switch,
   TextField,
   Tooltip,
   Typography
@@ -273,6 +275,8 @@ export default function GearPlanner() {
 
   // Dirty state: tracks unsaved changes to the current gear setup
   const [isDirty, setIsDirty] = useState(false)
+  // Auto-optimize toggle: when ON, auto-selects best augments on gear change
+  const [autoOptimize, setAutoOptimize] = useState(true)
   interface SavedSetupState {
     setup: GearSetup
     craftingSelections?: GearCraftingSelections
@@ -765,10 +769,12 @@ export default function GearPlanner() {
   const handleGearChange = useCallback((slot: string, item: Item | undefined) => {
     const newSetup: GearSetup = { ...(currentSetup?.setup ?? {}), [slot]: item }
 
-    const evaluated = buildEvaluatedSetup(newSetup, selectedProperties)
+    // When auto-optimize is off, preserve existing crafting selections
+    const existingSelections = !autoOptimize ? currentSetup?.craftingSelections : undefined
+    const evaluated = buildEvaluatedSetup(newSetup, selectedProperties, existingSelections)
     setCurrentSetup(evaluated)
     setIsDirty(true)
-  }, [currentSetup, selectedProperties, buildEvaluatedSetup])
+  }, [currentSetup, selectedProperties, buildEvaluatedSetup, autoOptimize])
 
   // Handle applying a full setup from GearSuggestions
   const handleApplySetup = useCallback((setup: GearSetup) => {
@@ -1200,6 +1206,19 @@ export default function GearPlanner() {
                         </Tooltip>
                       </>
                     )}
+                    <Tooltip title="When on, augments are auto-optimized on gear change. Turn off to compare stats manually.">
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            size="small"
+                            checked={autoOptimize}
+                            onChange={(e) => setAutoOptimize(e.target.checked)}
+                          />
+                        }
+                        label={<Typography variant="caption">Auto-optimize</Typography>}
+                        sx={{ ml: 0.5 }}
+                      />
+                    </Tooltip>
                   </Box>
                 )}
                 {inventoryMap.size > 0 && (
