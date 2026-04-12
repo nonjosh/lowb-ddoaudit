@@ -1251,6 +1251,7 @@ export default function GearPlanner() {
               hoveredSetName={hoveredSetName}
               craftingSelections={currentSetup.craftingSelections}
               theoreticalMaxValues={theoreticalMaxValues}
+              propertyIndex={propertyIndex}
             />
           </Paper>
         )}

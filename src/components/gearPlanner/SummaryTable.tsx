@@ -1,5 +1,11 @@
+import { useState } from 'react'
+
 import {
   Box,
+  Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Paper,
   Table,
   TableBody,
@@ -13,6 +19,7 @@ import {
 
 import { Item, ItemAffix, SetsData } from '@/api/ddoGearPlanner'
 import { COMPLEX_PROPERTIES, GearCraftingSelections, GearSetup, getCraftingAffixes, getCraftingSetMemberships, normalizePropertyName } from '@/domains/gearPlanner'
+import type { PropertyBonusIndex } from '@/domains/gearPlanner/propertyIndex'
 
 // Type for hovering on a specific bonus source (property + bonus type cell)
 interface HoveredBonusSource {
@@ -31,6 +38,7 @@ interface SummaryTableProps {
   hoveredSetName?: string | null
   craftingSelections?: GearCraftingSelections
   theoreticalMaxValues?: Map<string, number>
+  propertyIndex?: PropertyBonusIndex | null
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -79,9 +87,16 @@ export default function SummaryTable({
   hoveredAugment,
   hoveredSetName,
   craftingSelections,
-  theoreticalMaxValues
+  theoreticalMaxValues,
+  propertyIndex
 }: SummaryTableProps) {
   const slots = ['armor', 'belt', 'boots', 'bracers', 'cloak', 'gloves', 'goggles', 'helm', 'necklace', 'ring1', 'ring2', 'trinket']
+
+  // State for bonus source picker dialog
+  const [pickerDialog, setPickerDialog] = useState<{
+    property: string
+    bonusType: string
+  } | null>(null)
 
   // Build data structure: property -> bonusType -> {value, slots: [{slot, item, isFromSet, isFromAugment}]}
   interface BonusSource {
@@ -375,7 +390,20 @@ export default function SummaryTable({
                     })
 
                     if (childSourceValues.length === 0) {
-                      return <TableCell key={property} align="right">-</TableCell>
+                      const hasAvailableSources = propertyIndex?.get(property)?.has(bonusType)
+                      return (
+                        <TableCell
+                          key={property}
+                          align="right"
+                          onClick={() => hasAvailableSources && propertyIndex && setPickerDialog({ property, bonusType })}
+                          sx={{
+                            cursor: hasAvailableSources ? 'pointer' : 'default',
+                            '&:hover': hasAvailableSources ? { backgroundColor: 'action.hover' } : {}
+                          }}
+                        >
+                          -
+                        </TableCell>
+                      )
                     }
 
                     // Find minimum value across all children (universal bonus)
@@ -391,7 +419,20 @@ export default function SummaryTable({
                     // 2. Bonuses from parent complex property that expanded to this property
 
                     if (!bonusData || bonusData.value === 0) {
-                      return <TableCell key={property} align="right">-</TableCell>
+                      const hasAvailableSources = propertyIndex?.get(property)?.has(bonusType)
+                      return (
+                        <TableCell
+                          key={property}
+                          align="right"
+                          onClick={() => hasAvailableSources && propertyIndex && setPickerDialog({ property, bonusType })}
+                          sx={{
+                            cursor: hasAvailableSources ? 'pointer' : 'default',
+                            '&:hover': hasAvailableSources ? { backgroundColor: 'action.hover' } : {}
+                          }}
+                        >
+                          -
+                        </TableCell>
+                      )
                     }
 
                     displayValue = bonusData.value
@@ -466,6 +507,10 @@ export default function SummaryTable({
                     </Box>
                   )
 
+                  // Determine if this cell can be improved
+                  const maxForBonusType = propertyIndex?.get(property)?.get(bonusType)?.maxValue ?? 0
+                  const canBeImproved = displayValue > 0 && displayValue < maxForBonusType
+
                   return (
                     <TableCell
                       key={property}
@@ -478,9 +523,14 @@ export default function SummaryTable({
                         })
                       }}
                       onMouseLeave={() => onBonusSourceHover?.(null)}
+                      onClick={() => propertyIndex && setPickerDialog({ property, bonusType })}
                       sx={{
-                        cursor: 'help',
-                        backgroundColor: (isHighlightedByAugment || isHighlightedBySet) ? 'action.selected' : 'inherit',
+                        cursor: propertyIndex ? 'pointer' : 'help',
+                        backgroundColor: (isHighlightedByAugment || isHighlightedBySet)
+                          ? 'action.selected'
+                          : canBeImproved
+                            ? 'rgba(255, 152, 0, 0.12)'
+                            : 'inherit',
                         transition: 'all 0.2s',
                         '&:hover': {
                           backgroundColor: 'action.hover'
@@ -488,7 +538,7 @@ export default function SummaryTable({
                       }}
                     >
                       <Tooltip title={tooltipContent} arrow>
-                        <span>
+                        <span style={{ color: canBeImproved ? '#ff9800' : undefined }}>
                           +{displayValue}
                         </span>
                       </Tooltip>
@@ -530,6 +580,133 @@ export default function SummaryTable({
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Bonus Source Picker Dialog */}
+      {pickerDialog && propertyIndex && (
+        <BonusSourcePickerDialog
+          open={true}
+          onClose={() => setPickerDialog(null)}
+          property={pickerDialog.property}
+          bonusType={pickerDialog.bonusType}
+          propertyIndex={propertyIndex}
+          currentValue={propertyBonuses.get(pickerDialog.property)?.get(pickerDialog.bonusType)?.value ?? 0}
+        />
+      )}
     </Box>
+  )
+}
+
+function BonusSourcePickerDialog({
+  open,
+  onClose,
+  property,
+  bonusType,
+  propertyIndex,
+  currentValue
+}: {
+  open: boolean
+  onClose: () => void
+  property: string
+  bonusType: string
+  propertyIndex: PropertyBonusIndex
+  currentValue: number
+}) {
+  const entry = propertyIndex.get(property)?.get(bonusType)
+
+  const allSources: Array<{ name: string; value: number; type: 'item' | 'set' | 'crafting'; detail: string }> = []
+
+  if (entry) {
+    for (const src of entry.fromItems) {
+      allSources.push({
+        name: src.itemName,
+        value: src.value,
+        type: 'item',
+        detail: `Slot: ${src.slot}`
+      })
+    }
+    for (const src of entry.fromSets) {
+      allSources.push({
+        name: `${src.setName} Set`,
+        value: src.value,
+        type: 'set',
+        detail: `${src.threshold}pc bonus`
+      })
+    }
+    for (const src of entry.fromCrafting) {
+      allSources.push({
+        name: src.optionName,
+        value: src.value,
+        type: 'crafting',
+        detail: `Slot: ${src.craftingSlotType}${src.setMembership ? ` (${src.setMembership})` : ''}`
+      })
+    }
+  }
+
+  // Sort by value descending
+  allSources.sort((a, b) => b.value - a.value)
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        {bonusType} {property}
+        <Typography variant="body2" color="text.secondary">
+          Current: +{currentValue} / Max: +{entry?.maxValue ?? 0}
+        </Typography>
+      </DialogTitle>
+      <DialogContent>
+        {allSources.length === 0 ? (
+          <Typography color="text.secondary">No sources found</Typography>
+        ) : (
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Source</TableCell>
+                <TableCell align="right">Value</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Detail</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {allSources.map((src, idx) => (
+                <TableRow
+                  key={idx}
+                  sx={{
+                    backgroundColor: src.value > currentValue ? 'rgba(76, 175, 80, 0.08)' : undefined
+                  }}
+                >
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: src.value > currentValue ? 'bold' : 'normal' }}>
+                      {src.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                      +{src.value}
+                      {src.value > currentValue && (
+                        <Typography component="span" variant="caption" color="success.main">
+                          ↑{src.value - currentValue}
+                        </Typography>
+                      )}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={src.type}
+                      size="small"
+                      color={src.type === 'item' ? 'primary' : src.type === 'set' ? 'secondary' : 'default'}
+                      variant="outlined"
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="caption" color="text.secondary">{src.detail}</Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
