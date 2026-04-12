@@ -93,18 +93,16 @@ export function TroveProvider({ children }: TroveProviderProps) {
     try {
       const data = await parseMultipleTroveFiles(files)
 
-      // Save to IndexedDB
+      // Update state first to ensure immediate UI update
+      setInventoryMap(new Map(data.inventoryMap))
+      setCharacters(data.characters)
+      setImportedAt(data.importedAt)
+      setSelectedCharacterId(null)
+
+      // Then persist to IndexedDB
       await saveTroveInventory(data.inventoryMap)
       await saveTroveCharacters(data.characters)
       await saveTroveImportTime(data.importedAt)
-
-      // Update state
-      setInventoryMap(data.inventoryMap)
-      setCharacters(data.characters)
-      setImportedAt(data.importedAt)
-
-      // Reset selected character on new import
-      setSelectedCharacterId(null)
       await saveTroveSelectedCharacters([])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import files')

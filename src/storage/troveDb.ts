@@ -48,7 +48,8 @@ export async function clearTroveData(): Promise<void> {
 }
 
 /**
- * Save Trove inventory data
+ * Save Trove inventory data.
+ * Clears old data first to ensure consistency between state and IndexedDB.
  */
 export async function saveTroveInventory(
   inventoryMap: Map<string, TroveItemLocation[]>
@@ -59,7 +60,10 @@ export async function saveTroveInventory(
     records.push({ itemName, locations })
   }
 
-  await troveDb.inventory.bulkPut(records)
+  await troveDb.transaction('rw', troveDb.inventory, async () => {
+    await troveDb.inventory.clear()
+    await troveDb.inventory.bulkPut(records)
+  })
 }
 
 /**
