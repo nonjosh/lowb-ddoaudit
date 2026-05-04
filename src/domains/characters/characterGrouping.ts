@@ -5,6 +5,7 @@ import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 export interface GroupedCharacters {
   publicAreaGroups: Record<string, PlayerGroup[]>
   wildernessAreaGroups: Record<string, PlayerGroup[]>
+  unknownLocationGroups: PlayerGroup[]
   notInQuestGroups: PlayerGroup[]
   questGroups: Record<string, PlayerGroup[]>
   questNameToPack: Record<string, string | null>
@@ -28,9 +29,12 @@ export function groupCharactersByLocation({
   quests,
   areas,
 }: GroupCharactersParams): GroupedCharacters {
+  const hasAreaLookup = Object.keys(areas).length > 0
+  const hasQuestLookup = Object.keys(quests).length > 0
   const publicAreas: Record<string, PlayerGroup[]> = {}
   const wildernessAreas: Record<string, PlayerGroup[]> = {}
   const wildernessPacks: Record<string, string | null> = {}
+  const unknownLocations: PlayerGroup[] = []
   const notInQuest: PlayerGroup[] = []
   const questsMap: Record<string, PlayerGroup[]> = {}
   const questMeta: Record<string, string | null> = {}
@@ -110,6 +114,11 @@ export function groupCharactersByLocation({
         return
       }
 
+      if (!area && !quest && hasAreaLookup && hasQuestLookup) {
+        unknownLocations.push(group)
+        return
+      }
+
       // Not in quest (and not public/wilderness)
       notInQuest.push(group)
     } else {
@@ -120,6 +129,7 @@ export function groupCharactersByLocation({
   return {
     publicAreaGroups: publicAreas,
     wildernessAreaGroups: wildernessAreas,
+    unknownLocationGroups: unknownLocations,
     notInQuestGroups: notInQuest,
     questGroups: questsMap,
     questNameToPack: questMeta,

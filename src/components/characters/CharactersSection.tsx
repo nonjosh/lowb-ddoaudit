@@ -74,6 +74,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
   const {
     publicAreaGroups,
     wildernessAreaGroups,
+    unknownLocationGroups,
     notInQuestGroups,
     questGroups,
     questNameToPack,
@@ -95,7 +96,7 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
   const sortedWildernessAreas = Object.keys(wildernessAreaGroups || {}).sort((a, b) => a.localeCompare(b))
   const sortedQuestNames = Object.keys(questGroups || {}).sort((a, b) => a.localeCompare(b))
 
-  const hasOnlineGroups = sortedPublicAreas.length > 0 || sortedWildernessAreas.length > 0 || sortedQuestNames.length > 0 || notInQuestGroups.length > 0
+  const hasOnlineGroups = sortedPublicAreas.length > 0 || sortedWildernessAreas.length > 0 || sortedQuestNames.length > 0 || unknownLocationGroups.length > 0 || notInQuestGroups.length > 0
 
   return (
     <>
@@ -133,6 +134,18 @@ export default function CharactersSection({ loading, hasFetched, characterCount,
             lfmByCharacterName={lfmByCharacterName}
             getLocationDuration={getLocationDuration}
             packsByAreaName={wildernessAreaPacks}
+            onPlayerClick={handlePlayerClick}
+            onLfmClick={handleLfmClick}
+          />
+
+          <NotInQuestGroupCard
+            title="Unknown"
+            groups={unknownLocationGroups}
+            quests={quests}
+            areas={areas}
+            lfmByCharacterName={lfmByCharacterName}
+            getLocationDuration={getLocationDuration}
+            showUnknownLocationId
             onPlayerClick={handlePlayerClick}
             onLfmClick={handleLfmClick}
           />

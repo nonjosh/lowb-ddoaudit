@@ -8,11 +8,13 @@ import { PlayerGroup } from '@/contexts/useCharacter'
 import PlayerRow from './PlayerRow'
 
 interface NotInQuestGroupCardProps {
+  title?: string
   groups: PlayerGroup[]
   quests: Record<string, Quest>
   areas: Record<string, { id: string; name: string; is_public: boolean; is_wilderness: boolean }>
   lfmByCharacterName: Map<string, LfmDisplayData>
   getLocationDuration?: (characterId: string) => number | null
+  showUnknownLocationId?: boolean
   onPlayerClick: (group: PlayerGroup) => void
   onLfmClick: (lfm: LfmDisplayData) => void
 }
@@ -22,11 +24,13 @@ interface NotInQuestGroupCardProps {
  * (not in public areas, wilderness, or recognized quests).
  */
 export default function NotInQuestGroupCard({
+  title = 'Not in quest',
   groups,
   quests,
   areas,
   lfmByCharacterName,
   getLocationDuration,
+  showUnknownLocationId = false,
   onPlayerClick,
   onLfmClick,
 }: NotInQuestGroupCardProps) {
@@ -37,7 +41,7 @@ export default function NotInQuestGroupCard({
   groups.forEach((group) => {
     const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
     const areaId = onlineChar?.location_id
-    const areaName = (areaId && areas[areaId]?.name) || 'Unknown Area'
+    const areaName = (areaId && areas[areaId]?.name) || (showUnknownLocationId && areaId ? `Unknown Area (${areaId})` : 'Unknown Area')
     if (!groupsByArea[areaName]) groupsByArea[areaName] = []
     groupsByArea[areaName].push(group)
   })
@@ -49,12 +53,12 @@ export default function NotInQuestGroupCard({
       <ListSubheader sx={{ bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <PlaceOutlinedIcon sx={{ fontSize: 18 }} />
-          <Typography variant="subtitle2">Not in quest</Typography>
+          <Typography variant="subtitle2">{title}</Typography>
         </Box>
       </ListSubheader>
       <List dense disablePadding>
-        {sortedAreas.map((areaName) => {
-          const firstGroup = groupsByArea[areaName][0]
+        {sortedAreas.map((areaLabel) => {
+          const firstGroup = groupsByArea[areaLabel][0]
           const onlineChar = (firstGroup.chars ?? []).find((c) => c?.is_online)
           const areaId = onlineChar?.location_id
           const area = areaId ? areas[areaId] : null
@@ -64,7 +68,7 @@ export default function NotInQuestGroupCard({
           else if (area?.is_wilderness) tooltipTitle = 'Wilderness'
 
           return (
-            <Box key={areaName}>
+            <Box key={areaLabel}>
               <Tooltip title={tooltipTitle} arrow placement="top">
                 <ListSubheader
                   sx={{
@@ -74,10 +78,10 @@ export default function NotInQuestGroupCard({
                     cursor: tooltipTitle ? 'help' : 'default',
                   }}
                 >
-                  {areaName}
+                  {areaLabel}
                 </ListSubheader>
               </Tooltip>
-              {groupsByArea[areaName].map((g) => (
+              {groupsByArea[areaLabel].map((g) => (
                 <PlayerRow
                   key={g.player}
                   group={g}
