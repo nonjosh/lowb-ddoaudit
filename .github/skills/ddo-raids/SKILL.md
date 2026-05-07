@@ -131,4 +131,6 @@ Functions: `getIgnoredTimers()`, `isTimerIgnored()`, `addIgnoredTimer()`, `remov
 - Raid train comments are split on common separators such as commas, slashes, arrows, `>`, `+`, and `|`
 - Matching normalizes case and strips surrounding punctuation so fragments like `KT...` still match `Killing Time`
 - Segment matching considers contiguous sub-phrases, so filler text before the target raid (for example `next THTH`) still resolves to the raid abbreviation
+- Common shorthand aliases such as `MA`, `LoB`, `Skellys`, and `SITC` are expanded before fallback substring matching
+- Generic fallback matches are ignored when they would match multiple raids, which prevents broad tokens like `legendary` from hijacking a more specific later alias in the same segment
 - A train requires **2+ distinct matched raids** from the comment; the selected LFM raid may then be prepended in the dialog if it was not explicitly mentioned

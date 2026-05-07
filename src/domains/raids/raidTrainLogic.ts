@@ -9,6 +9,7 @@ const RAID_ABBREVIATIONS: Record<string, string> = {
   dov: 'den of vipers',
   threats: 'threats old and new',
   fom: 'fire over morgrave',
+  ma: 'master artificer',
   lob: 'lord of blades',
   vod: 'vision of destruction',
   thth: 'too hot to handle',
@@ -35,6 +36,10 @@ const RAID_ABBREVIATIONS: Record<string, string> = {
   lsb: 'the lord of stone and bone',
   kor: 'the curse of strahd',
   csw: 'caught in the web',
+  skelly: 'skeletons in the closet',
+  skellys: 'skeletons in the closet',
+  skellies: 'skeletons in the closet',
+  sitc: 'skeletons in the closet',
   'fall of truth': 'fall of truth',
   fot: 'fall of truth',
 }
@@ -51,17 +56,24 @@ function findRaidByCandidate(candidate: string, raidGroups: RaidGroup[]): RaidGr
   const expanded = RAID_ABBREVIATIONS[candidate]
   if (expanded) {
     const normalizedExpanded = normalizeRaidSearchText(expanded)
-    const found = raidGroups.find(
+    const expandedMatches = raidGroups.filter(
       (g) => normalizeRaidSearchText(g.raidName).includes(normalizedExpanded),
     )
-    if (found) return found
+    if (expandedMatches.length === 1) return expandedMatches[0]
+    if (expandedMatches.length > 1) {
+      const exactExpandedMatch = expandedMatches.find(
+        (g) => normalizeRaidSearchText(g.raidName) === normalizedExpanded,
+      )
+      if (exactExpandedMatch) return exactExpandedMatch
+      return expandedMatches[0]
+    }
   }
 
   if (candidate.length >= 3) {
-    const found = raidGroups.find(
+    const matches = raidGroups.filter(
       (g) => normalizeRaidSearchText(g.raidName).includes(candidate),
     )
-    if (found) return found
+    if (matches.length === 1) return matches[0]
   }
 
   return null
