@@ -10,19 +10,27 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import IconWrapper from "@/components/shared/IconWrapper"
 import type React from 'react'
 import type { SxProps, Theme } from '@mui/material'
 import { useCallback } from 'react'
 
 import { CraftingData, Item, SetsData } from '@/api/ddoGearPlanner'
 import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
+import IconWrapper from '@/components/shared/IconWrapper'
 import { artifactTableRowSx } from '@/components/shared/artifactStyles'
 import { useWishlist } from '@/contexts/useWishlist'
 import { isRaidItem } from '@/domains/quests/questHelpers'
 import { getSetAugmentForItem, getSoulforgeForItem, RaidNotes } from '@/domains/raids/raidNotes'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
-import { formatAffix, getAugmentColor, getCraftingOptionsForSlot, getWikiUrl, highlightText } from '@/utils/affixHelpers'
+import {
+  formatAffix,
+  getAffixWikiUrl,
+  getAugmentColor,
+  getCraftingOptionsForSlot,
+  getWikiUrl,
+  highlightText,
+  isBooleanAffixType,
+} from '@/utils/affixHelpers'
 
 import ItemCraftingDisplay from './ItemCraftingDisplay'
 import ItemSetTooltip from './ItemSetTooltip'
@@ -184,7 +192,22 @@ export default function ItemTableRow({
           {item.affixes.map((affix, idx) => (
             <li key={idx}>
               <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-                {formatAffix(affix, searchText)}
+                {isBooleanAffixType(affix.type) ? (
+                  <Link
+                    href={getAffixWikiUrl(affix.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    sx={{
+                      color: 'inherit',
+                      fontSize: 'inherit',
+                      textDecoration: 'none',
+                      '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+                    }}
+                  >
+                    {highlightText(affix.name, searchText)}
+                  </Link>
+                ) : formatAffix(affix, searchText)}
               </Typography>
             </li>
           ))}

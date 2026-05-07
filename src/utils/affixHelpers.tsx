@@ -8,6 +8,14 @@ export interface AffixLike {
   value?: string | number
 }
 
+export function isBooleanAffixType(type?: string | null): boolean {
+  return (type ?? '').trim().toLowerCase() === 'bool'
+}
+
+export function getAffixWikiUrl(affixName: string): string {
+  return `https://ddowiki.com/page/${encodeURIComponent(affixName.trim().replace(/\s+/g, '_'))}`
+}
+
 /**
  * Format an affix as a plain text string (for search matching, etc.)
  */
@@ -16,7 +24,7 @@ export function formatAffixPlain(affix: AffixLike): string {
   if (affix.value && affix.value !== 1 && affix.value !== '1') {
     text += ` +${affix.value}`
   }
-  if (affix.type && affix.type !== 'bool') {
+  if (affix.type && !isBooleanAffixType(affix.type)) {
     text += ` (${affix.type})`
   }
   return text
@@ -45,7 +53,7 @@ export function formatAffix(affix: ItemAffix, query: string = ''): string | Reac
   if (affix.value && affix.value !== 1 && affix.value !== '1') {
     text = <>{text} +{affix.value}</>
   }
-  if (affix.type && affix.type !== 'bool') {
+  if (affix.type && !isBooleanAffixType(affix.type)) {
     text = <>{text} ({affix.type})</>
   }
   return text
