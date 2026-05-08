@@ -10,7 +10,8 @@ import {
   DialogTitle,
   Stack,
   Tooltip,
-  Typography
+  Typography,
+  Divider
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -181,16 +182,16 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
               {areas && areas[selectedLfm.areaId]?.name}
             </Typography>
           )}
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 0.5 }}>
             <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                 {typeof selectedLfm?.questLevel === 'number'
                   ? `Quest Lv ${selectedLfm.questLevel}`
                   : 'Quest Lv —'}
               </Typography>
               {selectedLfm?.difficultyDisplay && (
                 <Typography
-                  variant="caption"
+                  variant="body2"
                   fontWeight={600}
                   sx={{ color: selectedLfm.difficultyColor || 'text.primary' }}
                 >
@@ -198,36 +199,36 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
                 </Typography>
               )}
             </Stack>
-            <Stack direction="row" alignItems="center" spacing={2}>
+            <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" useFlexGap divider={<Divider orientation="vertical" flexItem />}>
+              <Typography variant="body2" color="text.secondary">
+                {formatAcceptedLevelRange(selectedLfm?.minLevel, selectedLfm?.maxLevel)}
+              </Typography>
+              {acceptedClassesDisplay ? (
+                <Typography variant="body2" color="text.secondary">
+                  Classes: {acceptedClassesDisplay}
+                </Typography>
+              ) : null}
               {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
-                <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ color: 'info.main', fontWeight: 600 }}>
                   Active {formatDuration(selectedLfm.adventureActiveMinutes)}
                 </Typography>
               ) : null}
               {(() => {
                 const postedMinutes = getPostedMinutes(selectedLfm?.postedAt ?? null)
                 return typeof postedMinutes === 'number' ? (
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Posted {formatDuration(postedMinutes)} ago
                   </Typography>
                 ) : null
               })()}
             </Stack>
           </Stack>
-          <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} sx={{ mt: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
-              {formatAcceptedLevelRange(selectedLfm?.minLevel, selectedLfm?.maxLevel)}
-            </Typography>
-            {acceptedClassesDisplay ? (
-              <Typography variant="caption" color="text.secondary">
-                Accepted Classes: {acceptedClassesDisplay}
-              </Typography>
-            ) : null}
-          </Stack>
           {selectedLfm?.comment && (
-            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-              "{selectedLfm.comment}"
-            </Typography>
+            <Box sx={{ mt: 1, p: 1.5, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="body2" color="text.primary" sx={{ fontStyle: 'italic' }}>
+                "{selectedLfm.comment}"
+              </Typography>
+            </Box>
           )}
         </Box>
         {selectedLfm?.isRaid && (
