@@ -23,7 +23,7 @@ import {
 } from '@mui/material'
 import React, { useState } from 'react'
 
-import { formatAge, formatLocalDateTime } from '@/api/ddoAudit'
+import { formatAge, formatLocalDateTime, getCharacterDisplayName } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { Character, useCharacter } from '@/contexts/useCharacter'
 import { useConfig } from '@/contexts/useConfig'
@@ -176,7 +176,7 @@ export default function PlayerCharactersDialog({ open, onClose, playerName, char
                             <TableCell>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <FiberManualRecordIcon color={c.is_online ? 'success' : 'disabled'} sx={{ width: 10, height: 10 }} />
-                                {c.name}
+                                {getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })}
                               </Box>
                             </TableCell>
                             <TableCell>{c.total_level}</TableCell>

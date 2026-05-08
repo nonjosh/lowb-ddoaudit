@@ -27,7 +27,7 @@ import {
 } from '@mui/material'
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 
-import { fetchAreasById, fetchGuildCharacters, fetchQuestsById, GuildCharacter, Quest } from '@/api/ddoAudit'
+import { fetchAreasById, fetchGuildCharacters, fetchQuestsById, getCharacterDisplayName, GuildCharacter, Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { useConfig } from '@/contexts/useConfig'
@@ -90,7 +90,9 @@ function sortCharsInGroup(chars: GuildCharacter[]): GuildCharacter[] {
     const bKnown = EXPECTED_PLAYERS.includes(getPlayerName(b.name)) ? 0 : 1
     if (aKnown !== bKnown) return aKnown - bKnown
     if (b.total_level !== a.total_level) return b.total_level - a.total_level
-    return a.name.localeCompare(b.name)
+    const aDisplayName = getCharacterDisplayName(a.name, { isAnonymous: a.is_anonymous })
+    const bDisplayName = getCharacterDisplayName(b.name, { isAnonymous: b.is_anonymous })
+    return aDisplayName.localeCompare(bDisplayName)
   })
 }
 
@@ -198,14 +200,15 @@ function CollapsibleLocationGroup({
             <Table size="small">
               <TableBody>
                 {group.characters.map((c) => {
+                  const characterDisplayName = getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })
                   const playerName = getPlayerName(c.name)
                   const isKnown = EXPECTED_PLAYERS.includes(playerName)
-                  const charLfm = lfmByCharacterName.get(c.name)
+                  const charLfm = c.name ? lfmByCharacterName.get(c.name) : undefined
                   return (
                     <TableRow key={c.id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" noWrap>{c.name}</Typography>
+                          <Typography variant="body2" noWrap>{characterDisplayName}</Typography>
                           {isKnown && (
                             <Chip size="small" color="success" label={playerName} />
                           )}
@@ -431,9 +434,10 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose, 
               </TableHead>
               <TableBody>
                 {sortCharsInGroup(characters).map((c) => {
+                  const characterDisplayName = getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })
                   const playerName = getPlayerName(c.name)
                   const isKnown = EXPECTED_PLAYERS.includes(playerName)
-                  const charLfm = lfmByCharacterName.get(c.name)
+                  const charLfm = c.name ? lfmByCharacterName.get(c.name) : undefined
                   const locId = String(c.location_id)
                   const area = areas[locId] as AreaInfo | undefined
                   const locationName = quests[locId]?.name || area?.name || 'Unknown'
@@ -441,7 +445,7 @@ export default function GuildCharactersDialog({ guildName, serverName, onClose, 
                     <TableRow key={c.id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" noWrap>{c.name}</Typography>
+                          <Typography variant="body2" noWrap>{characterDisplayName}</Typography>
                           {isKnown && (
                             <Chip size="small" color="success" label={playerName} />
                           )}

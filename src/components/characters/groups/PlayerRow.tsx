@@ -5,7 +5,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt'
 import { Box, ListItem, ListItemButton, ListItemText, Tooltip, Typography } from '@mui/material'
 import { ReactNode } from 'react'
 
-import { Quest } from '@/api/ddoAudit'
+import { getCharacterDisplayName, Quest } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { PlayerGroup } from '@/contexts/useCharacter'
 import { useConfig } from '@/contexts/useConfig'
@@ -77,16 +77,17 @@ export default function PlayerRow({
     }
 
     isInParty = onlineChars.some((c) => c.group_id || c.is_in_party)
-    const charInLfm = onlineChars.find((c) => lfmByCharacterName.has(c.name))
+    const charInLfm = onlineChars.find((c) => c.name && lfmByCharacterName.has(c.name))
     if (charInLfm) {
       lfmForCharacter = lfmByCharacterName.get(charInLfm.name)
       isInLfm = true
     }
 
     onlineInfo = onlineChars.map((c, idx) => {
+      const characterDisplayName = getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })
       return (
-        <span key={c.name}>
-          {c.name} (<ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={20} />){c.total_level !== 34 ? ` Lv${c.total_level}` : ''}
+        <span key={c.id}>
+          {characterDisplayName} (<ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={20} />){c.total_level !== 34 ? ` Lv${c.total_level}` : ''}
           {idx < onlineChars.length - 1 ? ', ' : ''}
         </span>
       )

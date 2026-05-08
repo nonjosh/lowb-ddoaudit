@@ -20,7 +20,7 @@ import {
 } from '@mui/material'
 import { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { fetchCharactersByIds } from '@/api/ddoAudit'
+import { fetchCharactersByIds, getCharacterDisplayName } from '@/api/ddoAudit'
 import BonusConfigPanel from '@/components/trPlanner/BonusConfigPanel'
 import LevelRuler from '@/components/trPlanner/LevelRuler'
 import PlanManager from '@/components/trPlanner/PlanManager'
@@ -73,7 +73,7 @@ export default function TRPlanner() {
   } = useTRPlanner()
 
   // Character data state - fetched directly from API
-  const [charactersById, setCharactersById] = useState<Record<string, { name: string; total_level: number; is_online?: boolean; location_id?: string }>>({})
+  const [charactersById, setCharactersById] = useState<Record<string, { name: string; total_level: number; is_anonymous?: boolean; is_online?: boolean; location_id?: string }>>({})
   const [characterLoading, setCharacterLoading] = useState(false)
   const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Track previous location IDs to detect quest enter/leave
@@ -114,7 +114,7 @@ export default function TRPlanner() {
     setCharacterLoading(true)
     try {
       const data = await fetchCharactersByIds(characterIds)
-      setCharactersById(data as Record<string, { name: string; total_level: number; is_online?: boolean }>)
+      setCharactersById(data as Record<string, { name: string; total_level: number; is_anonymous?: boolean; is_online?: boolean }>)
     } catch (err) {
       console.error('Failed to fetch character data:', err)
     } finally {
@@ -272,7 +272,7 @@ export default function TRPlanner() {
       })
       .map(([id, char]) => ({
         id,
-        name: char.name,
+        name: getCharacterDisplayName(char.name, { isAnonymous: char.is_anonymous }),
         level: char.total_level,
         isOnline: char.is_online ?? false,
       }))

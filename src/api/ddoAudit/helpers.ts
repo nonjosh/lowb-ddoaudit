@@ -9,12 +9,24 @@ const RACE_NAME_OVERRIDES: Record<string, string> = {
   'Unknown: 218': 'Dhampir',
 }
 
+export const ANONYMOUS_CHARACTER_NAME = 'Anonymous'
+
 /**
  * Normalizes race names returned by the DDO Audit API.
  * Some new races are returned as "Unknown: <id>" by the API.
  */
 export function normalizeRaceName(race: string): string {
   return RACE_NAME_OVERRIDES[race] ?? race
+}
+
+export function getCharacterDisplayName(
+  name: string | null | undefined,
+  options: { anonymousWhenBlank?: boolean; isAnonymous?: boolean } = {},
+): string {
+  const normalizedName = String(name ?? '').trim()
+  if (normalizedName) return normalizedName
+  if (options.isAnonymous || options.anonymousWhenBlank) return ANONYMOUS_CHARACTER_NAME
+  return '—'
 }
 
 export function chunk<T>(items: T[], size: number): T[][] {

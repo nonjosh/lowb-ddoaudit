@@ -24,7 +24,7 @@ import {
 } from '@mui/material'
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
-import { fetchAreasById, fetchQuestsById, fetchServerCharacters, Quest, ServerCharacter } from '@/api/ddoAudit'
+import { fetchAreasById, fetchQuestsById, fetchServerCharacters, getCharacterDisplayName, Quest, ServerCharacter } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { useConfig } from '@/contexts/useConfig'
 
@@ -425,7 +425,9 @@ function AreaGroupsTable({
                         <Stack spacing={1} sx={{ p: 0.5 }}>
                           {g.characters.map((c) => (
                             <Stack key={c.id} direction="row" spacing={1.5} alignItems="center">
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.name}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })}
+                              </Typography>
                               {c.guild_name && (
                                 <Typography variant="caption" color="text.secondary">&lt;{c.guild_name}&gt;</Typography>
                               )}

@@ -49,8 +49,14 @@ export default function LfmParticipantsTable({ participants, areas, onGuildClick
         </TableRow>
       </TableHead>
       <TableBody>
-        {sortedParticipants.map((p) => (
-          <LfmParticipantRow key={`${p.characterName}:${p.playerName}`} participant={p} areas={areas} onGuildClick={onGuildClick} leaderGuildName={effectiveLeaderGuild} />
+        {sortedParticipants.map((p, index) => (
+          <LfmParticipantRow
+            key={p.characterId || `${p.characterDisplayName}:${p.playerName}:${index}`}
+            participant={p}
+            areas={areas}
+            onGuildClick={onGuildClick}
+            leaderGuildName={effectiveLeaderGuild}
+          />
         ))}
       </TableBody>
     </Table>

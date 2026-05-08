@@ -1,11 +1,13 @@
-import { Quest, LfmItem } from '@/api/ddoAudit'
+import { getCharacterDisplayName, LfmItem, Quest } from '@/api/ddoAudit'
 import { EXPECTED_PLAYERS } from '@/config/characters'
 import { getEffectiveLevel, isRaidQuest, parseReaperSkulls } from '@/domains/quests/questHelpers'
 import { CharacterClass, formatClasses, getPlayerDisplayName, getPlayerName, isLevelInTier } from '@/domains/raids/raidLogic'
 
 
 export interface LfmParticipant {
+  characterId: string
   characterName: string
+  characterDisplayName: string
   playerName: string
   playerDisplayName: string
   guildName: string
@@ -85,7 +87,7 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
   const maxPlayers = isRaid ? 12 : 6
   const level = getEffectiveLevel(lfm, quest)
 
-  const leaderName = String(lfm.leader.name ?? '').trim() || '—'
+  const leaderName = getCharacterDisplayName(lfm.leader.name, { anonymousWhenBlank: true })
   const leaderGuildName = String(lfm.leader.guild_name ?? '').trim() || ''
   const minLevel = lfm.minimum_level
   const maxLevel = lfm.maximum_level
@@ -137,12 +139,16 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
   const participants: LfmParticipant[] = [lfm.leader, ...(lfm?.members ?? [])]
     .filter(Boolean)
     .map((p) => {
-      const characterName = String(p.name).trim() || '—'
+      const characterId = String(p.id ?? '').trim()
+      const characterName = String(p.name ?? '').trim()
+      const characterDisplayName = getCharacterDisplayName(characterName, { anonymousWhenBlank: true })
       const playerName = getPlayerName(characterName)
       const classesDisplay = formatClasses(p.classes)
       const isLeader = Boolean(lfm.leader.id && p.id && p.id === lfm.leader.id)
       return {
+        characterId,
         characterName,
+        characterDisplayName,
         playerName,
         playerDisplayName: getPlayerDisplayName(playerName),
         guildName: String(p?.guild_name ?? '').trim() || '',
@@ -152,7 +158,7 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
         isLeader,
         race: p.race,
         location_id: p.location_id,
-        joinedAt: isLeader ? postedTimestamp : (memberJoinTimes.get(characterName) ?? null),
+        joinedAt: isLeader ? postedTimestamp : (characterName ? (memberJoinTimes.get(characterName) ?? null) : null),
       }
     })
 

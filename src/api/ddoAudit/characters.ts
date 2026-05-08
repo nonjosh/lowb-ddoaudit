@@ -10,10 +10,12 @@ export interface CharacterData {
   total_level: number
   race: string
   classes: Array<{ name: string; level: number }>
+  is_anonymous?: boolean
   is_online?: boolean
   location_id?: string
   group_id?: string
   is_in_party?: boolean
+  last_update?: string
 }
 
 export interface RaidActivityEntry {

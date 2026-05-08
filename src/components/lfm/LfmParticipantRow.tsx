@@ -20,7 +20,7 @@ export default function LfmParticipantRow({ participant, areas, onGuildClick, le
         <Stack spacing={0.25}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="body2" noWrap>
-              {participant.characterName}
+              {participant.characterDisplayName}
             </Typography>
             {EXPECTED_PLAYERS.includes(participant.playerName) ? (
               <Chip size="small" color="success" label={participant.playerDisplayName} />

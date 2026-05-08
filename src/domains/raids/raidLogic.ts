@@ -1,4 +1,4 @@
-import { addMs, isTimerIgnored, Quest, RAID_LOCKOUT_MS, RaidActivityEntry, CharacterData } from '@/api/ddoAudit'
+import { addMs, getCharacterDisplayName, isTimerIgnored, Quest, RAID_LOCKOUT_MS, RaidActivityEntry, CharacterData } from '@/api/ddoAudit'
 import { CHARACTERS } from '@/config/characters'
 
 // Since the player name in lowb.json IS the display name, this function simply returns the player name.
@@ -16,6 +16,15 @@ export function getPlayerName(characterName: string | null | undefined): string 
     (c) => c.name.toLowerCase() === name.toLowerCase()
   )
   return found?.player ?? 'Unknown'
+}
+
+export function getPlayerNameForCharacter(characterId: string | null | undefined, characterName: string | null | undefined): string {
+  const id = String(characterId ?? '').trim()
+  if (id) {
+    const configured = CHARACTERS[id]
+    if (configured?.player) return configured.player
+  }
+  return getPlayerName(characterName)
 }
 
 export interface CharacterClass {
@@ -154,8 +163,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
     const totalLevel = character.total_level
     const race = character.race
 
-    const characterName = character?.name ?? characterId
-    const playerName = getPlayerName(characterName)
+    const characterName = getCharacterDisplayName(character?.name, { isAnonymous: character?.is_anonymous })
+    const playerName = getPlayerNameForCharacter(characterId, character?.name)
     const classes = character?.classes ?? []
 
     for (const questIdRaw of questIds) {
@@ -223,8 +232,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       if (g.entriesByCharacterId.has(characterId)) continue
       const character = charactersById[characterId]
       if (!character) continue
-      const characterName = character.name
-      const playerName = getPlayerName(characterName)
+      const characterName = getCharacterDisplayName(character.name, { isAnonymous: character.is_anonymous })
+      const playerName = getPlayerNameForCharacter(characterId, character.name)
       const totalLevel = character.total_level
       const classes = character.classes
       const race = character.race
@@ -289,8 +298,8 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       for (const characterId of allCharacterIds) {
         const character = charactersById[characterId]
         if (!character) continue
-        const characterName = character.name
-        const playerName = getPlayerName(characterName)
+        const characterName = getCharacterDisplayName(character.name, { isAnonymous: character.is_anonymous })
+        const playerName = getPlayerNameForCharacter(characterId, character.name)
         const totalLevel = character.total_level
         const classes = character.classes
         const race = character.race

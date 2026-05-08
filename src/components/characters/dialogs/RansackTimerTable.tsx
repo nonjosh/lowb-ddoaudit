@@ -14,7 +14,7 @@ import {
 } from '@mui/material'
 import { useMemo } from 'react'
 
-import { formatLocalDateTime } from '@/api/ddoAudit'
+import { formatLocalDateTime, getCharacterDisplayName } from '@/api/ddoAudit'
 import type { RansackTimer } from '@/storage/ransackDb'
 
 interface RansackTimerTableProps {
@@ -66,6 +66,10 @@ interface GroupedTimers {
   timers: RansackTimer[]
 }
 
+function formatCharacterName(name: string): string {
+  return getCharacterDisplayName(name, { anonymousWhenBlank: true })
+}
+
 export default function RansackTimerTable({
   timers,
   onDelete,
@@ -86,7 +90,7 @@ export default function RansackTimerTable({
     return Array.from(groups.entries())
       .map(([key, groupTimers]) => ({
         key,
-        label: groupBy === 'character' ? groupTimers[0].characterName : groupTimers[0].questName,
+        label: groupBy === 'character' ? formatCharacterName(groupTimers[0].characterName) : groupTimers[0].questName,
         timers: groupTimers.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime()),
       }))
       .sort((a, b) => a.label.localeCompare(b.label))
@@ -129,7 +133,7 @@ export default function RansackTimerTable({
                   <>
                     {showCharacterColumn && (
                       <TableCell>
-                        {index > 0 ? '' : timer.characterName}
+                        {index > 0 ? '' : formatCharacterName(timer.characterName)}
                       </TableCell>
                     )}
                     {showQuestColumn && (
@@ -144,7 +148,7 @@ export default function RansackTimerTable({
                       </TableCell>
                     )}
                     {showCharacterColumn && (
-                      <TableCell>{timer.characterName}</TableCell>
+                      <TableCell>{formatCharacterName(timer.characterName)}</TableCell>
                     )}
                   </>
                 )}

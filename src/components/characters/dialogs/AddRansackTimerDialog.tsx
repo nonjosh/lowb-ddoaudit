@@ -14,7 +14,7 @@ import {
 } from '@mui/material'
 import { useMemo, useState } from 'react'
 
-import { Quest } from '@/api/ddoAudit'
+import { getCharacterDisplayName, Quest } from '@/api/ddoAudit'
 import { Character, useCharacter } from '@/contexts/useCharacter'
 import { useRansack } from '@/contexts/useRansack'
 
@@ -107,7 +107,7 @@ function FormContent({
 
     await addTimer({
       characterId: selectedCharacter.id,
-      characterName: selectedCharacter.name,
+      characterName: getCharacterDisplayName(selectedCharacter.name, { isAnonymous: selectedCharacter.is_anonymous }),
       questId: selectedQuest.id,
       questName: selectedQuest.name,
       createdAt: now.toISOString(),
@@ -135,7 +135,7 @@ function FormContent({
             >
               {characters.map((c) => (
                 <MenuItem key={c.id} value={c.id}>
-                  {c.name} {c.is_online && '(online)'}
+                  {getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })} {c.is_online && '(online)'}
                 </MenuItem>
               ))}
             </Select>

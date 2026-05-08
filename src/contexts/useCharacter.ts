@@ -4,6 +4,7 @@ import { Quest, RaidActivityEntry } from '@/api/ddoAudit'
 export interface Character {
   id: string
   name: string
+  is_anonymous?: boolean
   is_online?: boolean
   location_id?: string
   group_id?: string
