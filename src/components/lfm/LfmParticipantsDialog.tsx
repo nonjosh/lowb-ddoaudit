@@ -37,6 +37,15 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
   const [now, setNow] = useState(() => new Date())
   const { inventoryMap } = useTrove()
 
+  const formatAcceptedLevelRange = (minLevel: number | null | undefined, maxLevel: number | null | undefined): string => {
+    if (typeof minLevel === 'number' && typeof maxLevel === 'number') {
+      return minLevel === maxLevel ? `Accepted Lv ${minLevel}` : `Accepted Lv ${minLevel}-${maxLevel}`
+    }
+    if (typeof minLevel === 'number') return `Accepted Lv ${minLevel}+`
+    if (typeof maxLevel === 'number') return `Accepted Lv up to ${maxLevel}`
+    return 'Accepted Lv —'
+  }
+
   // Count available runes for this raid from Trove inventory
   const runeInfo = useMemo(() => {
     if (!selectedLfm?.questName) return null
@@ -123,6 +132,11 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
     return fromComment
   }, [selectedLfm?.comment, selectedLfm?.questId, raidGroups])
 
+  const acceptedClassesDisplay = useMemo(() => {
+    if (!selectedLfm?.acceptedClasses?.length) return null
+    return selectedLfm.acceptedClasses.join(', ')
+  }, [selectedLfm?.acceptedClasses])
+
   return (
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
@@ -199,6 +213,16 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
                 ) : null
               })()}
             </Stack>
+          </Stack>
+          <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} sx={{ mt: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              {formatAcceptedLevelRange(selectedLfm?.minLevel, selectedLfm?.maxLevel)}
+            </Typography>
+            {acceptedClassesDisplay ? (
+              <Typography variant="caption" color="text.secondary">
+                Accepted Classes: {acceptedClassesDisplay}
+              </Typography>
+            ) : null}
           </Stack>
           {selectedLfm?.comment && (
             <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>

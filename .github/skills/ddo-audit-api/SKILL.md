@@ -82,6 +82,8 @@ interface LfmItem {
   quest_id: string | number;
   minimum_level: number;
   maximum_level: number;
+  accepted_classes?: string[];
+  accepted_classes_count?: number;
   leader: LfmCharacter;
   members?: LfmCharacter[];
   activity: LfmActivity[];

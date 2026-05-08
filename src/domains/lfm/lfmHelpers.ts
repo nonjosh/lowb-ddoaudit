@@ -35,6 +35,7 @@ export interface LfmDisplayData {
   leaderGuildName: string
   minLevel: number | null
   maxLevel: number | null
+  acceptedClasses: string[]
   comment: string
   participants: LfmParticipant[]
   memberCount: number
@@ -88,6 +89,11 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
   const leaderGuildName = String(lfm.leader.guild_name ?? '').trim() || ''
   const minLevel = lfm.minimum_level
   const maxLevel = lfm.maximum_level
+  const acceptedClasses = Array.isArray(lfm.accepted_classes)
+    ? lfm.accepted_classes
+      .map((className) => String(className ?? '').trim())
+      .filter(Boolean)
+    : []
   const comment = String(lfm?.comment ?? '').trim() || ''
 
   const difficulty = String(lfm?.difficulty ?? '').trim() || '—'
@@ -198,6 +204,7 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
     leaderGuildName,
     minLevel,
     maxLevel,
+    acceptedClasses,
     comment,
     participants,
     memberCount,
