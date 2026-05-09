@@ -22,7 +22,6 @@ import {
   ListItemText,
   MenuItem,
   OutlinedInput,
-  Paper,
   Select,
   Slider,
   Stack,
@@ -36,8 +35,6 @@ import { Item } from '@/api/ddoGearPlanner'
 import type { CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import { useQuestNameToPack } from '@/hooks/useQuestNameToPack'
-import { formatAffix } from '@/utils/affixHelpers'
-import InventoryBadge from './InventoryBadge'
 import { ItemSelectionTable } from './ItemSelectionTable'
 
 interface ItemSelectionDialogProps {
@@ -188,6 +185,20 @@ export default function ItemSelectionDialog({
       item.affixes.some(affix => affix.name.toLowerCase().includes(searchLower)) ||
       item.quests?.some(quest => quest.toLowerCase().includes(searchLower))
   }), [items, searchTerm, typeFilter, showOwnedOnly, isItemAvailableForCharacters, minLevel, maxLevel, packFilter, questNameToPack])
+
+  const selectionTableKey = useMemo(() => {
+    let hash = 0
+
+    for (const item of filteredItems) {
+      const signature = `${item.name}|${item.ml}|${item.type ?? ''}|${item.slot ?? ''}`
+
+      for (let index = 0; index < signature.length; index += 1) {
+        hash = (hash * 31 + signature.charCodeAt(index)) >>> 0
+      }
+    }
+
+    return `${slotName}-${filteredItems.length}-${hash}`
+  }, [filteredItems, slotName])
 
   const handleSelect = (item: Item) => {
     onSelect(item)
@@ -380,38 +391,13 @@ export default function ItemSelectionDialog({
           )}
         </Box>
 
-        {/* Currently Equipped Item with Effects */}
-        {currentItem && (
-          <Paper sx={{ p: 2, mb: 2, bgcolor: 'action.hover' }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Currently Equipped
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Typography variant="body2" fontWeight="bold">
-                {currentItem.name}
-              </Typography>
-              <InventoryBadge itemName={currentItem.name} showBTC />
-              <Typography variant="caption" color="text.secondary">
-                (ML {currentItem.ml})
-              </Typography>
-            </Box>
-            {/* Show all effects of current item */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, ml: 2 }}>
-              {currentItem.affixes.map((affix, idx) => (
-                <Typography key={idx} variant="caption" color="text.secondary">
-                  {formatAffix(affix)}
-                </Typography>
-              ))}
-            </Box>
-          </Paper>
-        )}
-
         {/* Reusable Item Selection Table */}
         <ItemSelectionTable
+          key={selectionTableKey}
           items={filteredItems}
           currentItem={currentItem}
           onSelect={handleSelect}
-          maxHeight={500}
+          maxHeight={currentItem ? 420 : 500}
           craftingData={craftingData}
           setsData={setsData}
         />
