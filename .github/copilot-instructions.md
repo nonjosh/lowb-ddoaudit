@@ -41,7 +41,7 @@ This is a React TypeScript web app using Vite for DDO (Dungeons & Dragons Online
 
 - **DDO Audit API**: Endpoints like `https://api.ddoaudit.com/v1/activity/raids` for raid data, `/characters/{serverName}` for server population, `/characters/by-server-and-guild-name/{server}/{guild}` for guild data.
 - **DDO Gear Planner**: Items/crafting/sets JSON from `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/`.
-- **Static Data**: Quests/areas served locally from `public/data/`.
+- **Quest/Area Metadata**: Quests come from `https://api.ddoaudit.com/v1/quests?force=false`; areas come from `https://api.ddoaudit.com/v1/areas?force=false`; both are cached client-side for 24 hours.
 - **Libraries**: React 19, Material-UI 7, Vite with custom rollup.
 
 ## Conventions

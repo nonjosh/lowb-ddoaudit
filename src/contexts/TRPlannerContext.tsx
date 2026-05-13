@@ -1,5 +1,6 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
+import { fetchAreasById, fetchQuestsResponse } from '@/api/ddoAudit'
 import { PlanMode, TRTier } from '@/domains/trPlanner/levelRequirements'
 import { DEFAULT_BONUS_CONFIG, XPBonusConfig } from '@/domains/trPlanner/xpCalculator'
 import {
@@ -19,8 +20,6 @@ import {
   TRPlannerState,
 } from './useTRPlanner'
 
-const DDOAUDIT_QUESTS_URL = 'https://api.ddoaudit.com/v1/quests'
-const AREAS_URL = '/lowb-ddoaudit/data/areas.json'
 const STORAGE_KEY = 'trPlannerSelection'
 
 interface TRPlannerProviderProps {
@@ -32,16 +31,14 @@ interface TRPlannerProviderProps {
  */
 async function loadWildernessAreaIds(): Promise<Set<number>> {
   try {
-    const response = await fetch(AREAS_URL)
-    if (!response.ok) {
-      console.warn('Failed to load areas.json, wilderness filtering disabled')
-      return new Set()
-    }
-    const areasData = (await response.json()) as { data: Array<{ id: number; is_wilderness: boolean }> }
+    const areasData = await fetchAreasById()
     const wildernessIds = new Set<number>()
-    for (const area of areasData.data) {
+    for (const area of Object.values(areasData)) {
       if (area.is_wilderness) {
-        wildernessIds.add(area.id)
+        const areaId = Number(area.id)
+        if (!Number.isNaN(areaId) && Number.isFinite(areaId)) {
+          wildernessIds.add(areaId)
+        }
       }
     }
     return wildernessIds
@@ -269,12 +266,8 @@ export function TRPlannerProvider({ children }: TRPlannerProviderProps) {
       // Load wilderness area IDs first
       const wildernessAreaIds = await loadWildernessAreaIds()
 
-      const response = await fetch(DDOAUDIT_QUESTS_URL)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch quests: ${response.status}`)
-      }
-
-      const json = await response.json()
+      const result = await fetchQuestsResponse()
+      const json = result.data
       const data = Array.isArray(json) ? json : json.data ?? []
       const quests = parseQuestData(data, wildernessAreaIds)
       const packs = groupQuestsByPack(quests)

@@ -128,12 +128,12 @@ src/
 - Guild characters: `https://api.ddoaudit.com/v1/characters/by-server-and-guild-name/{server}/{guild}`
 - LFM posts: `https://api.ddoaudit.com/v1/lfms/{serverName}`
 - Server info: `https://api.ddoaudit.com/v1/game/server-info`
-- Quests (API): `https://api.ddoaudit.com/v1/quests`
+- Quests (API): `https://api.ddoaudit.com/v1/quests?force=false`
+- Areas (API): `https://api.ddoaudit.com/v1/areas?force=false`
 
-### Static Data (Local)
+### Metadata Cache
 
-- Quests: `public/data/quests.json` (served at `{BASE_URL}/data/quests.json`)
-- Areas: `public/data/areas.json` (served at `{BASE_URL}/data/areas.json`)
+- Quest and area responses are fetched from DDO Audit at runtime, cached client-side for 24 hours, and can fall back to stale cached data if the network request fails.
 
 ### DDO Gear Planner (GitHub Raw)
 

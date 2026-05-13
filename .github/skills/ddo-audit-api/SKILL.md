@@ -23,18 +23,18 @@ Defined in `src/api/ddoAudit/constants.ts`.
 
 ## Endpoints
 
-| Endpoint                                                    | Function                  | File            |
-| ----------------------------------------------------------- | ------------------------- | --------------- |
-| `GET /characters/ids/{ids}`                                 | `fetchCharactersByIds()`  | `characters.ts` |
-| `GET /characters/{serverName}`                              | `fetchServerCharacters()` | `characters.ts` |
-| `GET /activity/raids?character_ids=...`                     | `fetchRaidActivity()`     | `characters.ts` |
-| `GET /lfms/{serverName}`                                    | `fetchLfms()`             | `lfms.ts`       |
-| `GET /characters/by-server-and-guild-name/{server}/{guild}` | `fetchGuildCharacters()`  | `guilds.ts`     |
-| `GET /game/server-info?server=...`                          | `fetchServerInfo()`       | `server.ts`     |
-| `GET {BASE_URL}/data/quests.json`                           | `fetchQuestsById()`       | `quests.ts`     |
-| `GET {BASE_URL}/data/areas.json`                            | `fetchAreasById()`        | `areas.ts`      |
+| Endpoint                                                    | Function                                      | File            |
+| ----------------------------------------------------------- | --------------------------------------------- | --------------- |
+| `GET /characters/ids/{ids}`                                 | `fetchCharactersByIds()`                      | `characters.ts` |
+| `GET /characters/{serverName}`                              | `fetchServerCharacters()`                     | `characters.ts` |
+| `GET /activity/raids?character_ids=...`                     | `fetchRaidActivity()`                         | `characters.ts` |
+| `GET /lfms/{serverName}`                                    | `fetchLfms()`                                 | `lfms.ts`       |
+| `GET /characters/by-server-and-guild-name/{server}/{guild}` | `fetchGuildCharacters()`                      | `guilds.ts`     |
+| `GET /game/server-info?server=...`                          | `fetchServerInfo()`                           | `server.ts`     |
+| `GET /quests?force=false`                                   | `fetchQuestsById()` / `fetchQuestsResponse()` | `quests.ts`     |
+| `GET /areas?force=false`                                    | `fetchAreasById()` / `fetchAreasResponse()`   | `areas.ts`      |
 
-**Note**: Quests and areas JSON are served locally from `public/data/`, not from the DDO Audit API.
+**Note**: Quest and area metadata are fetched live from DDO Audit and cached client-side for 24 hours with stale fallback if the network request fails.
 
 ## Request Batching
 
@@ -113,7 +113,8 @@ interface Quest {
 
 | Constant                        | Value                         | Purpose          |
 | ------------------------------- | ----------------------------- | ---------------- |
-| `DDO_AUDIT_API_BASE_URL`        | `https://api.ddoaudit.com/v1` | API base         |
+| `DDOAUDIT_BASE_URL`             | `https://api.ddoaudit.com/v1` | API base         |
+| `DDOAUDIT_JSON_CACHE_TTL_MS`    | 24 hours                      | Quest/area cache |
 | `MAX_CHARACTER_IDS_PER_REQUEST` | 30                            | Batch size limit |
 | `RAID_LOCKOUT_MS`               | 66 hours                      | Timer duration   |
 | `HOUR_IN_MS`                    | 3,600,000                     | Time constant    |
@@ -126,14 +127,15 @@ interface Quest {
 
 ## Related Files
 
-| File                             | Purpose                   |
-| -------------------------------- | ------------------------- |
-| `src/api/ddoAudit/constants.ts`  | URLs, time constants      |
-| `src/api/ddoAudit/characters.ts` | Character + raid fetch    |
-| `src/api/ddoAudit/lfms.ts`       | LFM fetch                 |
-| `src/api/ddoAudit/guilds.ts`     | Guild character fetch     |
-| `src/api/ddoAudit/server.ts`     | Server info fetch         |
-| `src/api/ddoAudit/quests.ts`     | Quest data (local JSON)   |
-| `src/api/ddoAudit/areas.ts`      | Area data (local JSON)    |
-| `src/api/ddoAudit/helpers.ts`    | Time formatting utilities |
-| `src/api/ddoAudit/index.ts`      | Public exports            |
+| File                             | Purpose                    |
+| -------------------------------- | -------------------------- |
+| `src/api/ddoAudit/constants.ts`  | URLs, time constants       |
+| `src/api/ddoAudit/characters.ts` | Character + raid fetch     |
+| `src/api/ddoAudit/lfms.ts`       | LFM fetch                  |
+| `src/api/ddoAudit/guilds.ts`     | Guild character fetch      |
+| `src/api/ddoAudit/server.ts`     | Server info fetch          |
+| `src/api/ddoAudit/cache.ts`      | Local quest/area TTL cache |
+| `src/api/ddoAudit/quests.ts`     | Quest data (live API)      |
+| `src/api/ddoAudit/areas.ts`      | Area data (live API)       |
+| `src/api/ddoAudit/helpers.ts`    | Time formatting utilities  |
+| `src/api/ddoAudit/index.ts`      | Public exports             |

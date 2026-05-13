@@ -51,8 +51,8 @@ interface SagaProgress {
 }
 
 /**
- * Normalize quest name for matching between saga data and quests.json
- * Handles common differences like "The", "A", "An" prefixes and singular/plural
+ * Normalize quest name for matching between saga data and live quest metadata.
+ * Handles common differences like "The", "A", "An" prefixes and singular/plural.
  */
 function normalizeQuestName(name: string): string {
   return name

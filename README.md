@@ -25,15 +25,15 @@ and then open the forwarded port from VS Code.
 ## Related APIs
 
 - **DDO Audit**:
-
   - **APIs**:
     - Raid activity: `https://api.ddoaudit.com/v1/activity/raids`
     - Character details: `https://api.ddoaudit.com/v1/characters/ids/{ids}`
     - LFM posts: `https://api.ddoaudit.com/v1/lfms/shadowdale`
     - Server health: `https://api.ddoaudit.com/v1/game/server-info`
-  - **GitHub Data**:
-    - Quests: `https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/quests.json`
-    - Areas: `https://raw.githubusercontent.com/Clemeit/ddo-audit-service/refs/heads/master/areas.json`
+    - Quests: `https://api.ddoaudit.com/v1/quests?force=false`
+    - Areas: `https://api.ddoaudit.com/v1/areas?force=false`
+
+Quest and area metadata are fetched live from DDO Audit and cached client-side for 24 hours.
 
 - **DDO Gear Planner**:
   - **GitHub Data**:
