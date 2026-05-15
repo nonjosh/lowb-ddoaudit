@@ -7,8 +7,18 @@
 //           https://ddowiki.com/page/Legendary_Green_Steel_items/Tier_3
 // ============================================================================
 
-import type { EssenceType, GemType, GreenSteelElement, GreenSteelIngredientSummary, GreenSteelTierSelection, WeaponBonusEffect } from './greenSteelLogic'
-import { getEffectByName, getFocusName } from './greenSteelLogic'
+import type {
+  EssenceType,
+  GemType,
+  GreenSteelElement,
+  GreenSteelIngredientSummary,
+  GreenSteelItemType,
+  GreenSteelTier,
+  WeaponBonusEffect,
+} from './greenSteelLogic'
+import type { LgsTierSelection } from './lgsData'
+import { getFocusName } from './greenSteelLogic'
+import { getLgsOptionById } from './lgsData'
 
 // ============================================================================
 // LGS Raw Ingredient Names (6 base ingredients from Legendary Shroud)
@@ -97,6 +107,11 @@ export const LGS_TIER_GEM_PREFIX: Record<1 | 2 | 3, string> = {
   3: 'Flawless',
 }
 
+export interface LgsPlannedItemLike {
+  itemType: GreenSteelItemType
+  tierSelections: LgsTierSelection[]
+}
+
 // ============================================================================
 // Ingredient Name Helpers
 // ============================================================================
@@ -118,41 +133,51 @@ export function getLgsRawIngredientName(tier: 1 | 2 | 3, ingredient: LgsRawIngre
  * Commendation of Valor. An Energy Cell is consumed when applying the tier.
  */
 export function calculateLgsIngredients(
-  selections: GreenSteelTierSelection[],
+  items: LgsPlannedItemLike[],
 ): GreenSteelIngredientSummary {
   const summary: GreenSteelIngredientSummary = {}
 
-  for (const sel of selections) {
-    if (!sel.effectName) continue
-    const effect = getEffectByName(sel.effectName)
-    if (!effect) continue
+  for (const item of items) {
+    for (const selection of item.tierSelections) {
+      if (!selection.optionId) continue
 
-    const tier = sel.tier as 1 | 2 | 3
+      const option = getLgsOptionById(selection.optionId)
+      if (!option) continue
 
-    // Focus raw ingredients (4 per focus)
-    for (const ingredient of LGS_FOCUS_RECIPES[effect.element]) {
-      const name = getLgsRawIngredientName(tier, ingredient)
-      summary[name] = (summary[name] ?? 0) + 1
+      const tier = selection.tier as 1 | 2 | 3
+
+      for (const ingredient of LGS_FOCUS_RECIPES[option.focus]) {
+        const name = getLgsRawIngredientName(tier, ingredient)
+        summary[name] = (summary[name] ?? 0) + 1
+      }
+
+      summary['Commendation of Valor'] =
+        (summary['Commendation of Valor'] ?? 0) + LGS_COV_PER_TIER[tier]
+
+      for (const ingredient of LGS_ESSENCE_RECIPES[option.essenceType]) {
+        const name = getLgsRawIngredientName(tier, ingredient)
+        summary[name] = (summary[name] ?? 0) + 1
+      }
+
+      for (const ingredient of LGS_GEM_RECIPES[option.gemType]) {
+        const name = getLgsRawIngredientName(tier, ingredient)
+        summary[name] = (summary[name] ?? 0) + 1
+      }
+
+      const cell = LGS_ENERGY_CELL[tier]
+      summary[cell] = (summary[cell] ?? 0) + 1
+
+      if (item.itemType === 'Weapon' && tier === 3) {
+        const secondaryFocus = selection.secondaryFocus ?? option.focus
+        for (const ingredient of LGS_FOCUS_RECIPES[secondaryFocus]) {
+          const name = getLgsRawIngredientName(tier, ingredient)
+          summary[name] = (summary[name] ?? 0) + 1
+        }
+
+        summary['Commendation of Valor'] =
+          (summary['Commendation of Valor'] ?? 0) + LGS_COV_PER_TIER[tier]
+      }
     }
-
-    // Commendation of Valor for the Focus
-    summary['Commendation of Valor'] = (summary['Commendation of Valor'] ?? 0) + LGS_COV_PER_TIER[tier]
-
-    // Essence raw ingredients (4 per essence)
-    for (const ingredient of LGS_ESSENCE_RECIPES[effect.essenceType]) {
-      const name = getLgsRawIngredientName(tier, ingredient)
-      summary[name] = (summary[name] ?? 0) + 1
-    }
-
-    // Gem raw ingredients (4 per gem)
-    for (const ingredient of LGS_GEM_RECIPES[effect.gemType]) {
-      const name = getLgsRawIngredientName(tier, ingredient)
-      summary[name] = (summary[name] ?? 0) + 1
-    }
-
-    // Energy cell
-    const cell = LGS_ENERGY_CELL[tier]
-    summary[cell] = (summary[cell] ?? 0) + 1
   }
 
   return summary
@@ -171,37 +196,59 @@ export function getLgsFocusName(tier: 1 | 2 | 3, element: GreenSteelElement): st
 // ============================================================================
 
 export interface LgsCraftingStep {
-  tier: 1 | 2 | 3
+  tier: GreenSteelTier
+  effectName: string
   focus: string
+  secondaryFocus: string | null
   essence: string
   gem: string
   cell: string
+  requiresSecondaryFocus: boolean
 }
 
 /**
  * Get the LGS manufactured ingredient names for the crafting steps display.
  * Uses LGS-specific tier prefixes (Tier 2 has no prefix, unlike GS).
  */
-export function getLgsCraftingSteps(selections: GreenSteelTierSelection[]): LgsCraftingStep[] {
-  return selections
-    .filter((sel) => sel.effectName)
-    .map((sel) => {
-      const effect = getEffectByName(sel.effectName!)!
-      const tier = sel.tier as 1 | 2 | 3
-      const essencePrefix = LGS_TIER_ESSENCE_PREFIX[tier]
-      const gemPrefix = LGS_TIER_GEM_PREFIX[tier]
-      return {
+export function getLgsCraftingSteps(
+  itemType: GreenSteelItemType,
+  selections: LgsTierSelection[],
+): LgsCraftingStep[] {
+  return selections.flatMap((selection) => {
+    if (!selection.optionId) {
+      return []
+    }
+
+    const option = getLgsOptionById(selection.optionId)
+    if (!option) {
+      return []
+    }
+
+    const tier = selection.tier as 1 | 2 | 3
+    const essencePrefix = LGS_TIER_ESSENCE_PREFIX[tier]
+    const gemPrefix = LGS_TIER_GEM_PREFIX[tier]
+    const secondaryFocus =
+      itemType === 'Weapon' && tier === 3
+        ? getLgsFocusName(tier, selection.secondaryFocus ?? option.focus)
+        : null
+
+    return [
+      {
         tier,
-        focus: getLgsFocusName(tier, effect.element),
+        effectName: option.effectName,
+        focus: getLgsFocusName(tier, option.focus),
+        secondaryFocus,
         essence: essencePrefix
-          ? `Legendary ${essencePrefix} ${effect.essenceType} Essence`
-          : `Legendary ${effect.essenceType} Essence`,
+          ? `Legendary ${essencePrefix} ${option.essenceType} Essence`
+          : `Legendary ${option.essenceType} Essence`,
         gem: gemPrefix
-          ? `Legendary ${gemPrefix} Gem of ${effect.gemType}`
-          : `Legendary Gem of ${effect.gemType}`,
+          ? `Legendary ${gemPrefix} Gem of ${option.gemType}`
+          : `Legendary Gem of ${option.gemType}`,
         cell: LGS_ENERGY_CELL[tier],
-      }
-    })
+        requiresSecondaryFocus: itemType === 'Weapon' && tier === 3,
+      },
+    ]
+  })
 }
 
 // ============================================================================
@@ -242,25 +289,55 @@ const LGS_DUAL_WEAPON_BONUS: Record<string, WeaponBonusEffect> = {
 
 /**
  * Get the weapon bonus effect for an LGS weapon when all 3 tiers are filled.
- * Only applies to weapons. Returns null if fewer than 3 tiers or 3+ distinct elements.
+ * Legendary weapon bonuses are determined by four focuses: T1, T2, and two T3 foci.
  */
 export function getLgsWeaponBonusEffect(
-  tierSelections: GreenSteelTierSelection[],
+  tierSelections: LgsTierSelection[],
 ): WeaponBonusEffect | null {
-  const elements = tierSelections
-    .filter((ts) => ts.effectName)
-    .map((ts) => getEffectByName(ts.effectName!)?.element)
-    .filter(Boolean) as GreenSteelElement[]
+  const selectionByTier = new Map(
+    tierSelections
+      .filter((selection) => selection.optionId)
+      .map((selection) => [selection.tier, selection]),
+  )
 
-  if (elements.length !== 3) return null
+  const tierOneSelection = selectionByTier.get(1)
+  const tierTwoSelection = selectionByTier.get(2)
+  const tierThreeSelection = selectionByTier.get(3)
 
-  const uniqueElements = [...new Set(elements)]
+  if (!tierOneSelection?.optionId || !tierTwoSelection?.optionId || !tierThreeSelection?.optionId) {
+    return null
+  }
 
-  if (uniqueElements.length === 1) {
+  const tierOneOption = getLgsOptionById(tierOneSelection.optionId)
+  const tierTwoOption = getLgsOptionById(tierTwoSelection.optionId)
+  const tierThreeOption = getLgsOptionById(tierThreeSelection.optionId)
+
+  if (!tierOneOption || !tierTwoOption || !tierThreeOption) {
+    return null
+  }
+
+  const secondaryFocus = tierThreeSelection.secondaryFocus
+  if (!secondaryFocus) {
+    return null
+  }
+
+  const focusCounts = new Map<GreenSteelElement, number>()
+  for (const focus of [
+    tierOneOption.focus,
+    tierTwoOption.focus,
+    tierThreeOption.focus,
+    secondaryFocus,
+  ]) {
+    focusCounts.set(focus, (focusCounts.get(focus) ?? 0) + 1)
+  }
+
+  const uniqueElements = [...focusCounts.keys()]
+
+  if (uniqueElements.length === 1 && focusCounts.get(uniqueElements[0]) === 4) {
     return LGS_PURE_WEAPON_BONUS[uniqueElements[0]] ?? null
   }
 
-  if (uniqueElements.length === 2) {
+  if (uniqueElements.length === 2 && uniqueElements.every((element) => focusCounts.get(element) === 2)) {
     const key = elementPairKey(uniqueElements[0], uniqueElements[1])
     return LGS_DUAL_WEAPON_BONUS[key] ?? null
   }

@@ -14,19 +14,24 @@ import {
   Select,
   Typography,
 } from '@mui/material'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import IngredientProgressList from '@/components/shared/IngredientProgressList'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import { useTrove } from '@/contexts/useTrove'
 import {
-  getEffectByName,
-  GREEN_STEEL_ACCESSORY_TYPES,
-  GREEN_STEEL_EFFECTS,
-  GREEN_STEEL_WEAPON_TYPES,
+  getLgsOptionById,
+  getLgsOptionCategories,
+  getLgsOptions,
+  getLgsSubTypeOptions,
+  LGS_FOCUS_OPTIONS,
+  LgsTierSelection,
+  normalizeLgsItemSubType,
+} from '@/domains/crafting/lgsData'
+import type {
+  GreenSteelElement,
   GreenSteelItemType,
   GreenSteelTier,
-  GreenSteelTierSelection,
 } from '@/domains/crafting/greenSteelLogic'
 import {
   calculateLgsIngredients,
@@ -34,26 +39,101 @@ import {
   getLgsWeaponBonusEffect,
 } from '@/domains/crafting/lgsLogic'
 import { useCraftingStorage } from '@/hooks/useCraftingStorage'
-// ============================================================================
 
 interface PlannedLgsItem {
   id: string
   itemType: GreenSteelItemType
   itemSubType: string
-  tierSelections: GreenSteelTierSelection[]
+  tierSelections: LgsTierSelection[]
 }
 
-const EMPTY_TIER_SELECTIONS: GreenSteelTierSelection[] = [
-  { tier: 1, effectName: null },
-  { tier: 2, effectName: null },
-  { tier: 3, effectName: null },
+const EMPTY_TIER_SELECTIONS: LgsTierSelection[] = [
+  { tier: 1, optionId: null, secondaryFocus: null },
+  { tier: 2, optionId: null, secondaryFocus: null },
+  { tier: 3, optionId: null, secondaryFocus: null },
 ]
 
 const STORAGE_KEY = 'crafting-lgs-planned-items'
 
-// ============================================================================
-// Main Component
-// ============================================================================
+function normalizeSecondaryFocus(value: unknown): GreenSteelElement | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  return LGS_FOCUS_OPTIONS.some((focus) => focus === value)
+    ? (value as GreenSteelElement)
+    : null
+}
+
+function findStoredSelection(rawSelections: unknown[], tier: GreenSteelTier): unknown {
+  return (
+    rawSelections.find(
+      (selection) =>
+        selection &&
+        typeof selection === 'object' &&
+        (selection as { tier?: unknown }).tier === tier,
+    ) ?? rawSelections[tier - 1]
+  )
+}
+
+function normalizeStoredSelection(
+  itemType: GreenSteelItemType,
+  rawSelection: unknown,
+  tier: GreenSteelTier,
+): LgsTierSelection {
+  const selectionRecord =
+    rawSelection && typeof rawSelection === 'object'
+      ? (rawSelection as Record<string, unknown>)
+      : {}
+
+  const rawOptionId =
+    typeof selectionRecord.optionId === 'string'
+      ? selectionRecord.optionId
+      : typeof selectionRecord.effectName === 'string'
+        ? selectionRecord.effectName
+        : null
+
+  const option = rawOptionId ? getLgsOptionById(rawOptionId) : undefined
+  if (!option || option.itemType !== itemType || option.tier !== tier) {
+    return { tier, optionId: null, secondaryFocus: null }
+  }
+
+  return {
+    tier,
+    optionId: option.id,
+    secondaryFocus: option.requiresSecondaryFocus
+      ? normalizeSecondaryFocus(selectionRecord.secondaryFocus) ?? option.focus
+      : null,
+  }
+}
+
+function normalizeStoredPlannedItems(items: PlannedLgsItem[]): PlannedLgsItem[] {
+  return items.map((item, index) => {
+    const itemRecord =
+      item && typeof item === 'object' ? (item as unknown as Record<string, unknown>) : {}
+    const itemType: GreenSteelItemType = itemRecord.itemType === 'Accessory' ? 'Accessory' : 'Weapon'
+    const itemSubType = normalizeLgsItemSubType(
+      itemType,
+      typeof itemRecord.itemSubType === 'string'
+        ? itemRecord.itemSubType
+        : getLgsSubTypeOptions(itemType)[0],
+    )
+    const rawSelections = Array.isArray(itemRecord.tierSelections) ? itemRecord.tierSelections : []
+
+    return {
+      id: typeof itemRecord.id === 'string' ? itemRecord.id : `${itemSubType}-${index}`,
+      itemType,
+      itemSubType,
+      tierSelections: [1, 2, 3].map((tier) =>
+        normalizeStoredSelection(
+          itemType,
+          findStoredSelection(rawSelections, tier as GreenSteelTier),
+          tier as GreenSteelTier,
+        ),
+      ),
+    }
+  })
+}
 
 export default function LegendaryGreenSteelCrafting() {
   const { inventoryMap, importedAt } = useTrove()
@@ -67,56 +147,65 @@ export default function LegendaryGreenSteelCrafting() {
   )
   const [newItemSubType, setNewItemSubType] = useCraftingStorage<string>(
     'crafting-lgs-new-item-subtype',
-    'Long Sword',
+    'Longsword',
   )
 
+  useEffect(() => {
+    setPlannedItems((prev) => {
+      const normalized = normalizeStoredPlannedItems(prev)
+      return JSON.stringify(prev) === JSON.stringify(normalized) ? prev : normalized
+    })
+  }, [setPlannedItems])
+
+  useEffect(() => {
+    setNewItemSubType((prev) => normalizeLgsItemSubType(newItemType, prev))
+  }, [newItemType, setNewItemSubType])
+
   const addItem = () => {
-    const id = `${newItemSubType}-${Date.now()}`
+    const itemSubType = normalizeLgsItemSubType(newItemType, newItemSubType)
+    const id = `${itemSubType}-${Date.now()}`
     setPlannedItems((prev) => [
       ...prev,
       {
         id,
         itemType: newItemType,
-        itemSubType: newItemSubType,
-        tierSelections: EMPTY_TIER_SELECTIONS.map((t) => ({ ...t })),
+        itemSubType,
+        tierSelections: EMPTY_TIER_SELECTIONS.map((selection) => ({ ...selection })),
       },
     ])
   }
 
   const removeItem = (id: string) => {
-    setPlannedItems((prev) => prev.filter((p) => p.id !== id))
+    setPlannedItems((prev) => prev.filter((planned) => planned.id !== id))
   }
 
   const updateTierSelection = (
     itemId: string,
     tier: GreenSteelTier,
-    updates: Partial<Omit<GreenSteelTierSelection, 'tier'>>,
+    updates: Partial<Omit<LgsTierSelection, 'tier'>>,
   ) => {
     setPlannedItems((prev) =>
-      prev.map((p) => {
-        if (p.id !== itemId) return p
+      prev.map((planned) => {
+        if (planned.id !== itemId) {
+          return planned
+        }
+
         return {
-          ...p,
-          tierSelections: p.tierSelections.map((ts) =>
-            ts.tier === tier ? { ...ts, ...updates } : ts,
+          ...planned,
+          tierSelections: planned.tierSelections.map((selection) =>
+            selection.tier === tier ? { ...selection, ...updates } : selection,
           ),
         }
       }),
     )
   }
 
-  const ingredientSummary = useMemo(() => {
-    const allSelections = plannedItems.flatMap((p) => p.tierSelections)
-    return calculateLgsIngredients(allSelections)
-  }, [plannedItems])
-
-  const hasIngredients = Object.values(ingredientSummary).some((v) => v > 0)
-
-  const subTypeOptions = newItemType === 'Weapon' ? GREEN_STEEL_WEAPON_TYPES : GREEN_STEEL_ACCESSORY_TYPES
+  const ingredientSummary = useMemo(() => calculateLgsIngredients(plannedItems), [plannedItems])
+  const hasIngredients = Object.values(ingredientSummary).some((value) => value > 0)
+  const subTypeOptions = getLgsSubTypeOptions(newItemType)
 
   return (
     <Container maxWidth="xl" sx={{ py: 2 }}>
-      {/* Header */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="h5">Legendary Green Steel Crafting</Typography>
@@ -132,18 +221,18 @@ export default function LegendaryGreenSteelCrafting() {
           )}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Plan your Legendary Green Steel item upgrades across Tier 1, 2, and 3. Each tier requires
-          crafting a Focus, Essence, and Gem from raw Legendary Shroud ingredients, plus 1 Energy Cell.
+          Plan the core Legendary Green Steel Tier 1, 2, and 3 augments using the actual wiki recipe
+          tables for weapons and accessories.
         </Typography>
         <Alert severity="info" sx={{ mt: 1 }} icon={false}>
           <Typography variant="caption">
-            Crafted with Legendary ingredients from Legendary The Shroud. Each tier uses
-            Small/Medium/Large ingredient sizes with Low/Medium/High Energy Cells.
+            Accessories share one augment pool regardless of blank. Tier 3 weapons use a double-shard
+            recipe with a second superior focus. Active augments and the Fangs of Shavarath cleanse slot
+            are not modeled here yet.
           </Typography>
         </Alert>
       </Paper>
 
-      {/* Add Item Panel */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="subtitle1" gutterBottom fontWeight="bold">
           Add Item to Plan
@@ -154,12 +243,10 @@ export default function LegendaryGreenSteelCrafting() {
             <Select
               value={newItemType}
               label="Item Type"
-              onChange={(e) => {
-                const t = e.target.value as GreenSteelItemType
-                setNewItemType(t)
-                setNewItemSubType(
-                  t === 'Weapon' ? GREEN_STEEL_WEAPON_TYPES[0] : GREEN_STEEL_ACCESSORY_TYPES[0],
-                )
+              onChange={(event) => {
+                const itemType = event.target.value as GreenSteelItemType
+                setNewItemType(itemType)
+                setNewItemSubType(getLgsSubTypeOptions(itemType)[0])
               }}
             >
               <MenuItem value="Weapon">Weapon</MenuItem>
@@ -172,11 +259,11 @@ export default function LegendaryGreenSteelCrafting() {
             <Select
               value={newItemSubType}
               label="Sub Type"
-              onChange={(e) => setNewItemSubType(e.target.value)}
+              onChange={(event) => setNewItemSubType(event.target.value)}
             >
-              {subTypeOptions.map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {opt}
+              {subTypeOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
                 </MenuItem>
               ))}
             </Select>
@@ -207,7 +294,6 @@ export default function LegendaryGreenSteelCrafting() {
         </Box>
       </Paper>
 
-      {/* Planned Items */}
       {plannedItems.length > 0 && (
         <Paper sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle1" gutterBottom fontWeight="bold">
@@ -235,7 +321,6 @@ export default function LegendaryGreenSteelCrafting() {
         </Paper>
       )}
 
-      {/* Ingredient Summary */}
       {hasIngredients && (
         <Paper sx={{ p: 2 }}>
           <Typography variant="subtitle1" gutterBottom fontWeight="bold">
@@ -252,50 +337,47 @@ export default function LegendaryGreenSteelCrafting() {
   )
 }
 
-// ============================================================================
-// LgsItemCard Component
-// ============================================================================
-
 interface LgsItemCardProps {
   planned: PlannedLgsItem
   onRemove: () => void
   onUpdateTier: (
     tier: GreenSteelTier,
-    updates: Partial<Omit<GreenSteelTierSelection, 'tier'>>,
+    updates: Partial<Omit<LgsTierSelection, 'tier'>>,
   ) => void
 }
 
 function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
-  const effects = planned.tierSelections
-    .map((ts) => (ts.effectName ? getEffectByName(ts.effectName) : null))
-    .filter(Boolean)
-  let comboInfo: string | null = null
-  if (effects.length > 0) {
-    const elements = effects.map((e) => e!.element)
-    const uniqueElements = [...new Set(elements)]
-    if (uniqueElements.length === 1 && elements.length === 3) {
-      comboInfo = `Pure ${uniqueElements[0]} build`
-    } else {
-      const tierLabels = planned.tierSelections
-        .map((ts, i) => {
-          const eff = ts.effectName ? getEffectByName(ts.effectName) : null
-          return eff ? `T${i + 1}: ${eff.element}` : null
-        })
-        .filter(Boolean)
-      comboInfo = tierLabels.join(', ')
-    }
-  }
+  const focusSummary = planned.tierSelections
+    .flatMap((selection) => {
+      if (!selection.optionId) {
+        return []
+      }
 
-  // Weapon bonus effect (only for weapons with all 3 tiers filled)
+      const option = getLgsOptionById(selection.optionId)
+      if (!option) {
+        return []
+      }
+
+      const secondaryFocus =
+        planned.itemType === 'Weapon' && selection.tier === 3 && selection.secondaryFocus
+          ? ` + ${selection.secondaryFocus}`
+          : ''
+
+      return [`T${selection.tier}: ${option.focus}${secondaryFocus}`]
+    })
+    .join(', ')
+
   const weaponBonus = useMemo(() => {
-    if (planned.itemType !== 'Weapon') return null
+    if (planned.itemType !== 'Weapon') {
+      return null
+    }
+
     return getLgsWeaponBonusEffect(planned.tierSelections)
   }, [planned.itemType, planned.tierSelections])
 
-  // Crafting steps (Focus/Essence/Gem per tier)
   const craftingSteps = useMemo(
-    () => getLgsCraftingSteps(planned.tierSelections),
-    [planned.tierSelections],
+    () => getLgsCraftingSteps(planned.itemType, planned.tierSelections),
+    [planned.itemType, planned.tierSelections],
   )
 
   return (
@@ -305,8 +387,8 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
         <Typography variant="subtitle2" fontWeight="bold">
           Legendary Green Steel {planned.itemSubType}
         </Typography>
-        {comboInfo && (
-          <Chip label={comboInfo} size="small" color="info" variant="outlined" />
+        {focusSummary && (
+          <Chip label={focusSummary} size="small" color="info" variant="outlined" />
         )}
         <Box sx={{ flex: 1 }} />
         <IconButton size="small" onClick={onRemove} title="Remove item">
@@ -321,16 +403,16 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
           gap: 1.5,
         }}
       >
-        {planned.tierSelections.map((ts) => (
+        {planned.tierSelections.map((selection) => (
           <LgsTierSelectionPanel
-            key={ts.tier}
-            selection={ts}
-            onUpdate={(updates) => onUpdateTier(ts.tier, updates)}
+            key={selection.tier}
+            itemType={planned.itemType}
+            selection={selection}
+            onUpdate={(updates) => onUpdateTier(selection.tier, updates)}
           />
         ))}
       </Box>
 
-      {/* Weapon Bonus Effect */}
       {planned.itemType === 'Weapon' && weaponBonus && (
         <Alert severity="info" icon={false} sx={{ mt: 1.5, py: 0.5 }}>
           <Typography variant="body2" fontWeight="bold">
@@ -342,10 +424,14 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
         </Alert>
       )}
 
-      {/* Crafting Recipe Summary */}
       {craftingSteps.length > 0 && (
         <Box sx={{ mt: 1.5 }}>
-          <Typography variant="caption" fontWeight="bold" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          <Typography
+            variant="caption"
+            fontWeight="bold"
+            color="text.secondary"
+            sx={{ display: 'block', mb: 0.5 }}
+          >
             Crafting Recipe (Focus / Essence / Gem)
           </Typography>
           {craftingSteps.map((step) => (
@@ -371,9 +457,21 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
                 }}
               />
               <Typography variant="caption">{step.focus}</Typography>
-              <Typography variant="caption" color="text.secondary">+</Typography>
+              {step.secondaryFocus && (
+                <>
+                  <Typography variant="caption" color="text.secondary">
+                    +
+                  </Typography>
+                  <Typography variant="caption">{step.secondaryFocus}</Typography>
+                </>
+              )}
+              <Typography variant="caption" color="text.secondary">
+                +
+              </Typography>
               <Typography variant="caption">{step.essence}</Typography>
-              <Typography variant="caption" color="text.secondary">+</Typography>
+              <Typography variant="caption" color="text.secondary">
+                +
+              </Typography>
               <Typography variant="caption">{step.gem}</Typography>
             </Box>
           ))}
@@ -383,13 +481,10 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
   )
 }
 
-// ============================================================================
-// LgsTierSelectionPanel Component
-// ============================================================================
-
 interface LgsTierSelectionPanelProps {
-  selection: GreenSteelTierSelection
-  onUpdate: (updates: Partial<Omit<GreenSteelTierSelection, 'tier'>>) => void
+  itemType: GreenSteelItemType
+  selection: LgsTierSelection
+  onUpdate: (updates: Partial<Omit<LgsTierSelection, 'tier'>>) => void
 }
 
 const TIER_COLORS: Record<GreenSteelTier, string> = {
@@ -399,18 +494,17 @@ const TIER_COLORS: Record<GreenSteelTier, string> = {
 }
 
 const TIER_LABELS: Record<GreenSteelTier, string> = {
-  1: 'Tier 1 — Small / Low Energy Cell',
-  2: 'Tier 2 — Medium / Medium Energy Cell',
-  3: 'Tier 3 — Large / High Energy Cell',
+  1: 'Tier 1 — Invasion (Inferior / Diluted / Cloudy)',
+  2: 'Tier 2 — Subjugation (Focus / Essence / Gem)',
+  3: 'Tier 3 — Devastation (Superior / Pure / Flawless)',
 }
 
-const EFFECT_CATEGORIES = ['Spell Power', 'Lore', 'Resistance', 'Stat', 'Weapon Bonus'] as const
-
-const lgsEffects = GREEN_STEEL_EFFECTS.filter((e) => !e.gsOnly)
-
-function LgsTierSelectionPanel({ selection, onUpdate }: LgsTierSelectionPanelProps) {
+function LgsTierSelectionPanel({ itemType, selection, onUpdate }: LgsTierSelectionPanelProps) {
   const color = TIER_COLORS[selection.tier]
-  const selectedEffect = selection.effectName ? getEffectByName(selection.effectName) : null
+  const categoryOrder = getLgsOptionCategories(itemType)
+  const options = getLgsOptions(itemType, selection.tier)
+  const selectedOption = selection.optionId ? getLgsOptionById(selection.optionId) : null
+  const isTierThreeWeapon = itemType === 'Weapon' && selection.tier === 3
 
   return (
     <Box
@@ -428,27 +522,47 @@ function LgsTierSelectionPanel({ selection, onUpdate }: LgsTierSelectionPanelPro
       </Typography>
 
       <FormControl size="small" fullWidth>
-        <InputLabel shrink>Effect</InputLabel>
+        <InputLabel shrink>Augment</InputLabel>
         <Select
-          value={selection.effectName ?? ''}
-          label="Effect"
+          value={selection.optionId ?? ''}
+          label="Augment"
           displayEmpty
-          onChange={(e) => onUpdate({ effectName: e.target.value || null })}
+          onChange={(event) => {
+            const optionId = event.target.value || null
+            const option = optionId ? getLgsOptionById(optionId) : null
+            onUpdate({
+              optionId,
+              secondaryFocus:
+                optionId && isTierThreeWeapon ? selection.secondaryFocus ?? option?.focus ?? null : null,
+            })
+          }}
         >
           <MenuItem value="">
             <em>None (skip this tier)</em>
           </MenuItem>
-          {EFFECT_CATEGORIES.flatMap((cat) => {
-            const catEffects = lgsEffects.filter((e) => e.category === cat)
+          {categoryOrder.flatMap((category) => {
+            const categoryOptions = options.filter((option) => option.category === category)
+            if (categoryOptions.length === 0) {
+              return []
+            }
+
             return [
-              <MenuItem key={`__category__${cat}`} disabled sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}>
-                — {cat} —
+              <MenuItem
+                key={`__category__${category}`}
+                disabled
+                sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}
+              >
+                — {category} —
               </MenuItem>,
-              ...catEffects.map((eff) => (
-                <MenuItem key={eff.name} value={eff.name}>
+              ...categoryOptions.map((option) => (
+                <MenuItem key={option.id} value={option.id}>
                   <Box>
-                    <Typography variant="body2" fontSize="0.85rem">{eff.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">{eff.description}</Typography>
+                    <Typography variant="body2" fontSize="0.85rem">
+                      {option.effectName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.description}
+                    </Typography>
                   </Box>
                 </MenuItem>
               )),
@@ -457,10 +571,36 @@ function LgsTierSelectionPanel({ selection, onUpdate }: LgsTierSelectionPanelPro
         </Select>
       </FormControl>
 
-      {selectedEffect && (
+      {selectedOption && (
         <Typography variant="caption" color="text.secondary">
-          {selectedEffect.element} element
+          {selectedOption.description}
         </Typography>
+      )}
+
+      {isTierThreeWeapon && selectedOption && (
+        <>
+          <FormControl size="small" fullWidth>
+            <InputLabel shrink>Secondary Tier 3 Focus</InputLabel>
+            <Select
+              value={selection.secondaryFocus ?? selectedOption.focus}
+              label="Secondary Tier 3 Focus"
+              onChange={(event) =>
+                onUpdate({ secondaryFocus: event.target.value as GreenSteelElement })
+              }
+            >
+              {LGS_FOCUS_OPTIONS.map((focus) => (
+                <MenuItem key={focus} value={focus}>
+                  {focus}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Typography variant="caption" color="text.secondary">
+            Tier 3 weapon augments use a second superior focus. That extra focus changes both the raw
+            ingredient cost and the final weapon bonus.
+          </Typography>
+        </>
       )}
     </Box>
   )
