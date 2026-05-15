@@ -33,11 +33,11 @@ Legendary Green Steel uses augment slots rather than the heroic GS upgrade path.
 
 ## Altars and Tiers
 
-| Tier | Altar                          | Raw Size | Energy Cell                  |
-| ---- | ------------------------------ | -------- | ---------------------------- |
-| 1    | Legendary Altar of Invasion    | Small    | Legendary Low Energy Cell    |
-| 2    | Legendary Altar of Subjugation | Medium   | Legendary Medium Energy Cell |
-| 3    | Legendary Altar of Devastation | Large    | Legendary High Energy Cell   |
+| Tier | Altar                          | Raw Size |
+| ---- | ------------------------------ | -------- |
+| 1    | Legendary Altar of Invasion    | Small    |
+| 2    | Legendary Altar of Subjugation | Medium   |
+| 3    | Legendary Altar of Devastation | Large    |
 
 ## Blank Items
 
@@ -54,13 +54,14 @@ Full names: `Legendary {Small/Medium/Large} {base_name}`
 
 ## Per-Tier Cost
 
-- Standard Tier 1-3 augment: 1 Focus + 1 Essence + 1 Gem + 1 Energy Cell
+- Standard Tier 1-3 augment: 1 Focus + 1 Essence + 1 Gem
 - Focus cost: 4 raw ingredients + CoV (25 / 50 / 100 by tier)
 - Essence cost: 4 raw ingredients
 - Gem cost: 4 raw ingredients
-- Standard total: 12 raw ingredients + CoV + 1 Energy Cell per selected tier
+- Standard total: 12 raw ingredients + CoV per selected tier
+- LGS does **not** use Low/Medium/High Energy Cells; the main wiki page states CoV is used for raw-to-manufactured generation in place of charged cells
 - **Tier 3 weapons are different**: every Tier 3 weapon augment is a double-shard-equivalent recipe and needs a second Superior Focus
-- Tier 3 weapon total: 2 Focuses + 1 Essence + 1 Gem + 1 High Energy Cell = 16 raw ingredients + 2x CoV + 1 cell
+- Tier 3 weapon total: 2 Focuses + 1 Essence + 1 Gem = 16 raw ingredients + 2x CoV
 
 ## Raw Ingredient Recipes
 

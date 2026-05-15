@@ -67,19 +67,13 @@ export const LGS_GEM_RECIPES: Record<GemType, LgsRawIngredient[]> = {
 }
 
 // ============================================================================
-// LGS Size, Energy Cell, and CoV Constants
+// LGS Size and CoV Constants
 // ============================================================================
 
 export const LGS_SIZE_PREFIX: Record<1 | 2 | 3, string> = {
   1: 'Small',
   2: 'Medium',
   3: 'Large',
-}
-
-export const LGS_ENERGY_CELL: Record<1 | 2 | 3, string> = {
-  1: 'Legendary Low Energy Cell',
-  2: 'Legendary Medium Energy Cell',
-  3: 'Legendary High Energy Cell',
 }
 
 /** Commendation of Valor cost per Focus, by tier */
@@ -128,9 +122,9 @@ export function getLgsRawIngredientName(tier: 1 | 2 | 3, ingredient: LgsRawIngre
 /**
  * Calculate total LGS raw ingredient requirements for a set of tier selections.
  *
- * Each tier slot requires crafting 3 manufactured ingredients (Focus + Essence + Gem),
- * each of which requires 4 of the 6 raw ingredients (1 each). Focuses also require
- * Commendation of Valor. An Energy Cell is consumed when applying the tier.
+ * Each tier slot requires crafting manufactured ingredients (Focus + Essence + Gem).
+ * Each manufactured ingredient requires 4 of the 6 raw ingredients (1 each). Focuses
+ * also require Commendation of Valor, which replaces heroic GS charged cells.
  */
 export function calculateLgsIngredients(
   items: LgsPlannedItemLike[],
@@ -163,9 +157,6 @@ export function calculateLgsIngredients(
         const name = getLgsRawIngredientName(tier, ingredient)
         summary[name] = (summary[name] ?? 0) + 1
       }
-
-      const cell = LGS_ENERGY_CELL[tier]
-      summary[cell] = (summary[cell] ?? 0) + 1
 
       if (item.itemType === 'Weapon' && tier === 3) {
         const secondaryFocus = selection.secondaryFocus ?? option.focus
@@ -202,7 +193,6 @@ export interface LgsCraftingStep {
   secondaryFocus: string | null
   essence: string
   gem: string
-  cell: string
   requiresSecondaryFocus: boolean
 }
 
@@ -244,7 +234,6 @@ export function getLgsCraftingSteps(
         gem: gemPrefix
           ? `Legendary ${gemPrefix} Gem of ${option.gemType}`
           : `Legendary Gem of ${option.gemType}`,
-        cell: LGS_ENERGY_CELL[tier],
         requiresSecondaryFocus: itemType === 'Weapon' && tier === 3,
       },
     ]
