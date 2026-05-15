@@ -11,6 +11,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { useMemo } from 'react'
 
 import type { TroveItemLocation } from '@/api/trove/types'
@@ -32,6 +33,8 @@ interface IngredientProgressListProps {
   groups?: IngredientGroup[]
   /** Whether to sort ingredients alphabetically (default: preserve order) */
   sortAlphabetically?: boolean
+  /** Ingredient names to visually emphasize */
+  highlightedIngredients?: Iterable<string>
 }
 
 interface IngredientRowData {
@@ -50,8 +53,13 @@ export default function IngredientProgressList({
   inventoryMap,
   groups,
   sortAlphabetically = false,
+  highlightedIngredients,
 }: IngredientProgressListProps) {
   const hasTrove = inventoryMap.size > 0
+  const highlightedIngredientSet = useMemo(
+    () => new Set(highlightedIngredients ?? []),
+    [highlightedIngredients],
+  )
 
   const allRows = useMemo(() => {
     let ingredients = Object.keys(summary).filter((k) => summary[k] > 0)
@@ -66,9 +74,21 @@ export default function IngredientProgressList({
   }, [summary, inventoryMap, sortAlphabetically])
 
   if (hasTrove) {
-    return <ProgressBarView rows={allRows} groups={groups} />
+    return (
+      <ProgressBarView
+        rows={allRows}
+        groups={groups}
+        highlightedIngredientSet={highlightedIngredientSet}
+      />
+    )
   }
-  return <TableView rows={allRows} groups={groups} />
+  return (
+    <TableView
+      rows={allRows}
+      groups={groups}
+      highlightedIngredientSet={highlightedIngredientSet}
+    />
+  )
 }
 
 // ============================================================================
@@ -86,9 +106,11 @@ const PROGRESS_GRID_SX = {
 function ProgressBarView({
   rows,
   groups,
+  highlightedIngredientSet,
 }: {
   rows: IngredientRowData[]
   groups?: IngredientGroup[]
+  highlightedIngredientSet: Set<string>
 }) {
   if (groups) {
     return (
@@ -107,7 +129,11 @@ function ProgressBarView({
               {group.label}
             </Typography>,
             ...groupRows.map((row) => (
-              <IngredientProgressRow key={row.ingredient} {...row} />
+              <IngredientProgressRow
+                key={row.ingredient}
+                {...row}
+                isHighlighted={highlightedIngredientSet.has(row.ingredient)}
+              />
             )),
           ]
         })}
@@ -118,13 +144,23 @@ function ProgressBarView({
   return (
     <Box sx={PROGRESS_GRID_SX}>
       {rows.map((row) => (
-        <IngredientProgressRow key={row.ingredient} {...row} />
+        <IngredientProgressRow
+          key={row.ingredient}
+          {...row}
+          isHighlighted={highlightedIngredientSet.has(row.ingredient)}
+        />
       ))}
     </Box>
   )
 }
 
-function IngredientProgressRow({ ingredient, required, available, locations }: IngredientRowData) {
+function IngredientProgressRow({
+  ingredient,
+  required,
+  available,
+  locations,
+  isHighlighted = false,
+}: IngredientRowData & { isHighlighted?: boolean }) {
   const percentage = Math.min(100, (available / required) * 100)
   const sufficient = available >= required
 
@@ -165,9 +201,23 @@ function IngredientProgressRow({ ingredient, required, available, locations }: I
       arrow
       placement="top"
     >
-      {/* Fragment renders 3 direct grid children (columns) */}
-      <Box sx={{ display: 'contents' }}>
-        {/* Col 1: Icon + Name */}
+      <Box
+        sx={(theme) => ({
+          gridColumn: '1 / -1',
+          display: 'grid',
+          gridTemplateColumns: 'subgrid',
+          alignItems: 'center',
+          px: 0.75,
+          py: 0.4,
+          borderRadius: 1,
+          ...(isHighlighted
+            ? {
+                bgcolor: alpha(theme.palette.info.main, theme.palette.mode === 'dark' ? 0.2 : 0.1),
+                boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.info.main, 0.45)}`,
+              }
+            : {}),
+        })}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
           <img
             src={getIngredientImagePath(ingredient)}
@@ -184,15 +234,15 @@ function IngredientProgressRow({ ingredient, required, available, locations }: I
           </Typography>
         </Box>
 
-        {/* Col 2: Progress bar */}
-        <LinearProgress
-          variant="determinate"
-          value={percentage}
-          color={sufficient ? 'success' : 'warning'}
-          sx={{ height: 6, borderRadius: 1, minWidth: 40, width: '100%' }}
-        />
+        <Box sx={{ minWidth: 40, width: '100%' }}>
+          <LinearProgress
+            variant="determinate"
+            value={percentage}
+            color={sufficient ? 'success' : 'warning'}
+            sx={{ height: 6, borderRadius: 1, width: '100%' }}
+          />
+        </Box>
 
-        {/* Col 3: Count + badge */}
         <Box
           sx={{
             display: 'flex',
@@ -243,9 +293,11 @@ function IngredientProgressRow({ ingredient, required, available, locations }: I
 function TableView({
   rows,
   groups,
+  highlightedIngredientSet,
 }: {
   rows: IngredientRowData[]
   groups?: IngredientGroup[]
+  highlightedIngredientSet: Set<string>
 }) {
   if (groups) {
     return (
@@ -271,7 +323,11 @@ function TableView({
                   </TableCell>
                 </TableRow>,
                 ...groupRows.map((row) => (
-                  <IngredientTableRow key={row.ingredient} {...row} />
+                  <IngredientTableRow
+                    key={row.ingredient}
+                    {...row}
+                    isHighlighted={highlightedIngredientSet.has(row.ingredient)}
+                  />
                 )),
               ]
             })}
@@ -292,7 +348,11 @@ function TableView({
         </TableHead>
         <TableBody>
           {rows.map((row) => (
-            <IngredientTableRow key={row.ingredient} {...row} />
+            <IngredientTableRow
+              key={row.ingredient}
+              {...row}
+              isHighlighted={highlightedIngredientSet.has(row.ingredient)}
+            />
           ))}
         </TableBody>
       </Table>
@@ -300,9 +360,27 @@ function TableView({
   )
 }
 
-function IngredientTableRow({ ingredient, required }: IngredientRowData) {
+function IngredientTableRow({
+  ingredient,
+  required,
+  isHighlighted = false,
+}: IngredientRowData & { isHighlighted?: boolean }) {
   return (
-    <TableRow>
+    <TableRow
+      sx={
+        isHighlighted
+          ? {
+              bgcolor: 'action.hover',
+              outline: '1px solid',
+              outlineColor: 'info.main',
+              outlineOffset: '-1px',
+              '& td': {
+                bgcolor: 'transparent',
+              },
+            }
+          : undefined
+      }
+    >
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <img

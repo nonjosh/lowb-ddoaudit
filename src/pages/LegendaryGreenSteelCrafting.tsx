@@ -14,10 +14,10 @@ import {
   Select,
   Typography,
 } from '@mui/material'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import IngredientProgressList from '@/components/shared/IngredientProgressList'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
+import IngredientProgressList from '@/components/shared/IngredientProgressList'
 import { useTrove } from '@/contexts/useTrove'
 import {
   getLgsOptionById,
@@ -36,6 +36,7 @@ import type {
 import {
   calculateLgsIngredients,
   getLgsCraftingSteps,
+  getLgsIngredientSummaryForSelection,
   getLgsWeaponBonusEffect,
 } from '@/domains/crafting/lgsLogic'
 import { useCraftingStorage } from '@/hooks/useCraftingStorage'
@@ -45,6 +46,12 @@ interface PlannedLgsItem {
   itemType: GreenSteelItemType
   itemSubType: string
   tierSelections: LgsTierSelection[]
+}
+
+interface LgsIngredientPreview {
+  itemId: string
+  itemType: GreenSteelItemType
+  selection: LgsTierSelection
 }
 
 const EMPTY_TIER_SELECTIONS: LgsTierSelection[] = [
@@ -135,8 +142,32 @@ function normalizeStoredPlannedItems(items: PlannedLgsItem[]): PlannedLgsItem[] 
   })
 }
 
+function replaceTierSelection(
+  items: PlannedLgsItem[],
+  itemId: string,
+  nextSelection: LgsTierSelection,
+): PlannedLgsItem[] {
+  return items.map((plannedItem) => {
+    if (plannedItem.id !== itemId) {
+      return plannedItem
+    }
+
+    return {
+      ...plannedItem,
+      tierSelections: plannedItem.tierSelections.map((plannedSelection) =>
+        plannedSelection.tier === nextSelection.tier ? nextSelection : plannedSelection,
+      ),
+    }
+  })
+}
+
 export default function LegendaryGreenSteelCrafting() {
   const { inventoryMap, importedAt } = useTrove()
+  const [hoveredSelection, setHoveredSelection] = useState<{
+    itemId: string
+    tier: GreenSteelTier
+  } | null>(null)
+  const [previewSelection, setPreviewSelection] = useState<LgsIngredientPreview | null>(null)
   const [plannedItems, setPlannedItems] = useCraftingStorage<PlannedLgsItem[]>(
     STORAGE_KEY,
     [],
@@ -201,6 +232,47 @@ export default function LegendaryGreenSteelCrafting() {
   }
 
   const ingredientSummary = useMemo(() => calculateLgsIngredients(plannedItems), [plannedItems])
+  const displayedIngredientSummary = useMemo(() => {
+    if (!previewSelection) {
+      return ingredientSummary
+    }
+
+    return calculateLgsIngredients(
+      replaceTierSelection(plannedItems, previewSelection.itemId, previewSelection.selection),
+    )
+  }, [ingredientSummary, plannedItems, previewSelection])
+  const inventoryCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    for (const [ingredient, locations] of inventoryMap.entries()) {
+      counts.set(
+        ingredient,
+        locations.reduce((sum, location) => sum + (location.quantity ?? 0), 0),
+      )
+    }
+
+    return counts
+  }, [inventoryMap])
+  const highlightedIngredients = useMemo(() => {
+    if (previewSelection) {
+      return Object.keys(
+        getLgsIngredientSummaryForSelection(previewSelection.itemType, previewSelection.selection),
+      )
+    }
+
+    if (!hoveredSelection) {
+      return []
+    }
+
+    const planned = plannedItems.find((item) => item.id === hoveredSelection.itemId)
+    const selection = planned?.tierSelections.find((tier) => tier.tier === hoveredSelection.tier)
+
+    if (!planned || !selection) {
+      return []
+    }
+
+    return Object.keys(getLgsIngredientSummaryForSelection(planned.itemType, selection))
+  }, [hoveredSelection, plannedItems, previewSelection])
   const hasIngredients = Object.values(ingredientSummary).some((value) => value > 0)
   const subTypeOptions = getLgsSubTypeOptions(newItemType)
 
@@ -303,7 +375,13 @@ export default function LegendaryGreenSteelCrafting() {
             {plannedItems.map((planned) => (
               <LgsItemCard
                 key={planned.id}
+                allPlannedItems={plannedItems}
+                inventoryCounts={inventoryCounts}
                 planned={planned}
+                onHoverSelectionChange={(tier) =>
+                  setHoveredSelection(tier ? { itemId: planned.id, tier } : null)
+                }
+                onPreviewSelectionChange={setPreviewSelection}
                 onRemove={() => removeItem(planned.id)}
                 onUpdateTier={(tier, updates) => updateTierSelection(planned.id, tier, updates)}
               />
@@ -327,7 +405,8 @@ export default function LegendaryGreenSteelCrafting() {
             Ingredient Summary
           </Typography>
           <IngredientProgressList
-            summary={ingredientSummary}
+            summary={displayedIngredientSummary}
+            highlightedIngredients={highlightedIngredients}
             inventoryMap={inventoryMap}
             sortAlphabetically
           />
@@ -338,7 +417,11 @@ export default function LegendaryGreenSteelCrafting() {
 }
 
 interface LgsItemCardProps {
+  allPlannedItems: PlannedLgsItem[]
+  inventoryCounts: Map<string, number>
   planned: PlannedLgsItem
+  onHoverSelectionChange: (tier: GreenSteelTier | null) => void
+  onPreviewSelectionChange: (preview: LgsIngredientPreview | null) => void
   onRemove: () => void
   onUpdateTier: (
     tier: GreenSteelTier,
@@ -346,7 +429,15 @@ interface LgsItemCardProps {
   ) => void
 }
 
-function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
+function LgsItemCard({
+  allPlannedItems,
+  inventoryCounts,
+  planned,
+  onHoverSelectionChange,
+  onPreviewSelectionChange,
+  onRemove,
+  onUpdateTier,
+}: LgsItemCardProps) {
   const focusSummary = planned.tierSelections
     .flatMap((selection) => {
       if (!selection.optionId) {
@@ -406,7 +497,12 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
         {planned.tierSelections.map((selection) => (
           <LgsTierSelectionPanel
             key={selection.tier}
+            allPlannedItems={allPlannedItems}
+            inventoryCounts={inventoryCounts}
+            itemId={planned.id}
             itemType={planned.itemType}
+            onHoverChange={onHoverSelectionChange}
+            onPreviewChange={onPreviewSelectionChange}
             selection={selection}
             onUpdate={(updates) => onUpdateTier(selection.tier, updates)}
           />
@@ -482,7 +578,12 @@ function LgsItemCard({ planned, onRemove, onUpdateTier }: LgsItemCardProps) {
 }
 
 interface LgsTierSelectionPanelProps {
+  allPlannedItems: PlannedLgsItem[]
+  inventoryCounts: Map<string, number>
+  itemId: string
   itemType: GreenSteelItemType
+  onHoverChange: (tier: GreenSteelTier | null) => void
+  onPreviewChange: (preview: LgsIngredientPreview | null) => void
   selection: LgsTierSelection
   onUpdate: (updates: Partial<Omit<LgsTierSelection, 'tier'>>) => void
 }
@@ -499,12 +600,58 @@ const TIER_LABELS: Record<GreenSteelTier, string> = {
   3: 'Tier 3 — Devastation (Superior / Pure / Flawless)',
 }
 
-function LgsTierSelectionPanel({ itemType, selection, onUpdate }: LgsTierSelectionPanelProps) {
+function LgsTierSelectionPanel({
+  allPlannedItems,
+  inventoryCounts,
+  itemId,
+  itemType,
+  onHoverChange,
+  onPreviewChange,
+  selection,
+  onUpdate,
+}: LgsTierSelectionPanelProps) {
   const color = TIER_COLORS[selection.tier]
   const categoryOrder = getLgsOptionCategories(itemType)
   const options = getLgsOptions(itemType, selection.tier)
   const selectedOption = selection.optionId ? getLgsOptionById(selection.optionId) : null
   const isTierThreeWeapon = itemType === 'Weapon' && selection.tier === 3
+  const hasTrove = inventoryCounts.size > 0
+  const reservedIngredientSummary = useMemo(
+    () =>
+      calculateLgsIngredients(
+        replaceTierSelection(allPlannedItems, itemId, {
+          ...selection,
+          optionId: null,
+          secondaryFocus: null,
+        }),
+      ),
+    [allPlannedItems, itemId, selection],
+  )
+
+  const clearPreview = () => onPreviewChange(null)
+
+  const showPreview = (candidateSelection: LgsTierSelection) => {
+    onPreviewChange({
+      itemId,
+      itemType,
+      selection: candidateSelection,
+    })
+  }
+
+  const getAvailabilityColor = (candidateSelection: LgsTierSelection) => {
+    if (!hasTrove || !candidateSelection.optionId) {
+      return undefined
+    }
+
+    const candidateSummary = getLgsIngredientSummaryForSelection(itemType, candidateSelection)
+    const hasEnoughIngredients = Object.entries(candidateSummary).every(([ingredient, required]) => {
+      const available = inventoryCounts.get(ingredient) ?? 0
+      const reserved = reservedIngredientSummary[ingredient] ?? 0
+      return available - reserved >= required
+    })
+
+    return hasEnoughIngredients ? 'success.main' : 'error.main'
+  }
 
   return (
     <Box
@@ -521,87 +668,169 @@ function LgsTierSelectionPanel({ itemType, selection, onUpdate }: LgsTierSelecti
         {TIER_LABELS[selection.tier]}
       </Typography>
 
-      <FormControl size="small" fullWidth>
-        <InputLabel shrink>Augment</InputLabel>
-        <Select
-          value={selection.optionId ?? ''}
-          label="Augment"
-          displayEmpty
-          onChange={(event) => {
-            const optionId = event.target.value || null
-            const option = optionId ? getLgsOptionById(optionId) : null
-            onUpdate({
-              optionId,
-              secondaryFocus:
-                optionId && isTierThreeWeapon ? selection.secondaryFocus ?? option?.focus ?? null : null,
-            })
-          }}
-        >
-          <MenuItem value="">
-            <em>None (skip this tier)</em>
-          </MenuItem>
-          {categoryOrder.flatMap((category) => {
-            const categoryOptions = options.filter((option) => option.category === category)
-            if (categoryOptions.length === 0) {
-              return []
-            }
-
-            return [
-              <MenuItem
-                key={`__category__${category}`}
-                disabled
-                sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}
-              >
-                — {category} —
-              </MenuItem>,
-              ...categoryOptions.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  <Box>
-                    <Typography variant="body2" fontSize="0.85rem">
-                      {option.effectName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {option.description}
-                    </Typography>
-                  </Box>
-                </MenuItem>
-              )),
-            ]
-          })}
-        </Select>
-      </FormControl>
-
-      {selectedOption && (
-        <Typography variant="caption" color="text.secondary">
-          {selectedOption.description}
-        </Typography>
-      )}
-
-      {isTierThreeWeapon && selectedOption && (
-        <>
-          <FormControl size="small" fullWidth>
-            <InputLabel shrink>Secondary Tier 3 Focus</InputLabel>
-            <Select
-              value={selection.secondaryFocus ?? selectedOption.focus}
-              label="Secondary Tier 3 Focus"
-              onChange={(event) =>
-                onUpdate({ secondaryFocus: event.target.value as GreenSteelElement })
+      <Box
+        onMouseEnter={() => onHoverChange(selection.optionId ? selection.tier : null)}
+        onMouseLeave={() => onHoverChange(null)}
+        sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+      >
+        <FormControl size="small" fullWidth>
+          <InputLabel shrink>Augment</InputLabel>
+          <Select
+            value={selection.optionId ?? ''}
+            label="Augment"
+            displayEmpty
+            onClose={clearPreview}
+            MenuProps={{
+              MenuListProps: {
+                onMouseLeave: clearPreview,
+              },
+            }}
+            onChange={(event) => {
+              const optionId = event.target.value || null
+              const option = optionId ? getLgsOptionById(optionId) : null
+              clearPreview()
+              onUpdate({
+                optionId,
+                secondaryFocus:
+                  optionId && isTierThreeWeapon ? selection.secondaryFocus ?? option?.focus ?? null : null,
+              })
+            }}
+          >
+            <MenuItem
+              value=""
+              onFocus={() =>
+                showPreview({
+                  ...selection,
+                  optionId: null,
+                  secondaryFocus: null,
+                })
+              }
+              onMouseEnter={() =>
+                showPreview({
+                  ...selection,
+                  optionId: null,
+                  secondaryFocus: null,
+                })
               }
             >
-              {LGS_FOCUS_OPTIONS.map((focus) => (
-                <MenuItem key={focus} value={focus}>
-                  {focus}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              <em>None (skip this tier)</em>
+            </MenuItem>
+            {categoryOrder.flatMap((category) => {
+              const categoryOptions = options.filter((option) => option.category === category)
+              if (categoryOptions.length === 0) {
+                return []
+              }
 
+              return [
+                <MenuItem
+                  key={`__category__${category}`}
+                  disabled
+                  sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}
+                >
+                  — {category} —
+                </MenuItem>,
+                ...categoryOptions.map((option) => {
+                  const candidateSelection = {
+                    ...selection,
+                    optionId: option.id,
+                    secondaryFocus: option.requiresSecondaryFocus
+                      ? selection.secondaryFocus ?? option.focus
+                      : null,
+                  }
+                  const availabilityColor = getAvailabilityColor({
+                    ...candidateSelection,
+                  })
+
+                  return (
+                    <MenuItem
+                      key={option.id}
+                      value={option.id}
+                      onFocus={() => showPreview(candidateSelection)}
+                      onMouseEnter={() => showPreview(candidateSelection)}
+                      sx={availabilityColor ? { color: availabilityColor } : undefined}
+                    >
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          fontSize="0.85rem"
+                          fontWeight={availabilityColor ? 600 : undefined}
+                        >
+                          {option.effectName}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color={availabilityColor ? 'inherit' : 'text.secondary'}
+                          sx={availabilityColor ? { opacity: 0.85 } : undefined}
+                        >
+                          {option.description}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  )
+                }),
+              ]
+            })}
+          </Select>
+        </FormControl>
+
+        {selectedOption && (
           <Typography variant="caption" color="text.secondary">
-            Tier 3 weapon augments use a second superior focus. That extra focus changes both the raw
-            ingredient cost and the final weapon bonus.
+            {selectedOption.description}
           </Typography>
-        </>
-      )}
+        )}
+
+        {isTierThreeWeapon && selectedOption && (
+          <>
+            <FormControl size="small" fullWidth>
+              <InputLabel shrink>Secondary Tier 3 Focus</InputLabel>
+              <Select
+                value={selection.secondaryFocus ?? selectedOption.focus}
+                label="Secondary Tier 3 Focus"
+                onClose={clearPreview}
+                MenuProps={{
+                  MenuListProps: {
+                    onMouseLeave: clearPreview,
+                  },
+                }}
+                onChange={(event) =>
+                {
+                  clearPreview()
+                  onUpdate({ secondaryFocus: event.target.value as GreenSteelElement })
+                }}
+              >
+                {LGS_FOCUS_OPTIONS.map((focus) => {
+                  const candidateSelection = {
+                    ...selection,
+                    secondaryFocus: focus,
+                  }
+                  const availabilityColor = getAvailabilityColor({
+                    ...candidateSelection,
+                  })
+
+                  return (
+                    <MenuItem
+                      key={focus}
+                      value={focus}
+                      onFocus={() => showPreview(candidateSelection)}
+                      onMouseEnter={() => showPreview(candidateSelection)}
+                      sx={availabilityColor ? { color: availabilityColor } : undefined}
+                    >
+                      <Typography fontWeight={availabilityColor ? 600 : undefined}>
+                        {focus}
+                      </Typography>
+                    </MenuItem>
+                  )
+                })}
+              </Select>
+            </FormControl>
+
+            <Typography variant="caption" color="text.secondary">
+              Tier 3 weapon augments use a second superior focus. That extra focus changes both the raw
+              ingredient cost and the final weapon bonus.
+            </Typography>
+          </>
+        )}
+      </Box>
     </Box>
   )
 }

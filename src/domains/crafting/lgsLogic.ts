@@ -115,6 +115,52 @@ export function getLgsRawIngredientName(tier: 1 | 2 | 3, ingredient: LgsRawIngre
   return `Legendary ${LGS_SIZE_PREFIX[tier]} ${ingredient}`
 }
 
+function addIngredient(summary: GreenSteelIngredientSummary, ingredient: string, amount = 1) {
+  summary[ingredient] = (summary[ingredient] ?? 0) + amount
+}
+
+export function getLgsIngredientSummaryForSelection(
+  itemType: GreenSteelItemType,
+  selection: LgsTierSelection,
+): GreenSteelIngredientSummary {
+  if (!selection.optionId) {
+    return {}
+  }
+
+  const option = getLgsOptionById(selection.optionId)
+  if (!option) {
+    return {}
+  }
+
+  const tier = selection.tier as 1 | 2 | 3
+  const summary: GreenSteelIngredientSummary = {}
+
+  for (const ingredient of LGS_FOCUS_RECIPES[option.focus]) {
+    addIngredient(summary, getLgsRawIngredientName(tier, ingredient))
+  }
+
+  addIngredient(summary, 'Commendation of Valor', LGS_COV_PER_TIER[tier])
+
+  for (const ingredient of LGS_ESSENCE_RECIPES[option.essenceType]) {
+    addIngredient(summary, getLgsRawIngredientName(tier, ingredient))
+  }
+
+  for (const ingredient of LGS_GEM_RECIPES[option.gemType]) {
+    addIngredient(summary, getLgsRawIngredientName(tier, ingredient))
+  }
+
+  if (itemType === 'Weapon' && tier === 3) {
+    const secondaryFocus = selection.secondaryFocus ?? option.focus
+    for (const ingredient of LGS_FOCUS_RECIPES[secondaryFocus]) {
+      addIngredient(summary, getLgsRawIngredientName(tier, ingredient))
+    }
+
+    addIngredient(summary, 'Commendation of Valor', LGS_COV_PER_TIER[tier])
+  }
+
+  return summary
+}
+
 // ============================================================================
 // Ingredient Calculation
 // ============================================================================
@@ -133,40 +179,9 @@ export function calculateLgsIngredients(
 
   for (const item of items) {
     for (const selection of item.tierSelections) {
-      if (!selection.optionId) continue
-
-      const option = getLgsOptionById(selection.optionId)
-      if (!option) continue
-
-      const tier = selection.tier as 1 | 2 | 3
-
-      for (const ingredient of LGS_FOCUS_RECIPES[option.focus]) {
-        const name = getLgsRawIngredientName(tier, ingredient)
-        summary[name] = (summary[name] ?? 0) + 1
-      }
-
-      summary['Commendation of Valor'] =
-        (summary['Commendation of Valor'] ?? 0) + LGS_COV_PER_TIER[tier]
-
-      for (const ingredient of LGS_ESSENCE_RECIPES[option.essenceType]) {
-        const name = getLgsRawIngredientName(tier, ingredient)
-        summary[name] = (summary[name] ?? 0) + 1
-      }
-
-      for (const ingredient of LGS_GEM_RECIPES[option.gemType]) {
-        const name = getLgsRawIngredientName(tier, ingredient)
-        summary[name] = (summary[name] ?? 0) + 1
-      }
-
-      if (item.itemType === 'Weapon' && tier === 3) {
-        const secondaryFocus = selection.secondaryFocus ?? option.focus
-        for (const ingredient of LGS_FOCUS_RECIPES[secondaryFocus]) {
-          const name = getLgsRawIngredientName(tier, ingredient)
-          summary[name] = (summary[name] ?? 0) + 1
-        }
-
-        summary['Commendation of Valor'] =
-          (summary['Commendation of Valor'] ?? 0) + LGS_COV_PER_TIER[tier]
+      const selectionSummary = getLgsIngredientSummaryForSelection(item.itemType, selection)
+      for (const [ingredient, required] of Object.entries(selectionSummary)) {
+        addIngredient(summary, ingredient, required)
       }
     }
   }
