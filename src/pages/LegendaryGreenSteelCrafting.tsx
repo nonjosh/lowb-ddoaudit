@@ -792,8 +792,7 @@ function LgsTierSelectionPanel({
                     onMouseLeave: clearPreview,
                   },
                 }}
-                onChange={(event) =>
-                {
+                onChange={(event) => {
                   clearPreview()
                   onUpdate({ secondaryFocus: event.target.value as GreenSteelElement })
                 }}

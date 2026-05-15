@@ -163,6 +163,7 @@ function IngredientProgressRow({
 }: IngredientRowData & { isHighlighted?: boolean }) {
   const percentage = Math.min(100, (available / required) * 100)
   const sufficient = available >= required
+  const statusColor = sufficient ? 'success' : 'error'
 
   // Build tooltip content showing per-location breakdown
   const tooltipContent = useMemo(() => {
@@ -202,21 +203,25 @@ function IngredientProgressRow({
       placement="top"
     >
       <Box
-        sx={(theme) => ({
-          gridColumn: '1 / -1',
-          display: 'grid',
-          gridTemplateColumns: 'subgrid',
-          alignItems: 'center',
-          px: 0.75,
-          py: 0.4,
-          borderRadius: 1,
-          ...(isHighlighted
-            ? {
-                bgcolor: alpha(theme.palette.info.main, theme.palette.mode === 'dark' ? 0.2 : 0.1),
-                boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.info.main, 0.45)}`,
-              }
-            : {}),
-        })}
+        sx={(theme) => {
+          const highlightColor = sufficient ? theme.palette.success.main : theme.palette.error.main
+
+          return {
+            gridColumn: '1 / -1',
+            display: 'grid',
+            gridTemplateColumns: 'subgrid',
+            alignItems: 'center',
+            px: 0.75,
+            py: 0.4,
+            borderRadius: 1,
+            ...(isHighlighted
+              ? {
+                  bgcolor: alpha(highlightColor, theme.palette.mode === 'dark' ? 0.2 : 0.1),
+                  boxShadow: `inset 0 0 0 1px ${alpha(highlightColor, 0.45)}`,
+                }
+              : {}),
+          }
+        }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
           <img
@@ -229,7 +234,12 @@ function IngredientProgressRow({
               ; (e.target as HTMLImageElement).src = getIngredientFallbackPath()
             }}
           />
-          <Typography variant="body2" noWrap sx={{ fontSize: '0.8rem' }}>
+          <Typography
+            variant="body2"
+            noWrap
+            color={sufficient ? 'text.primary' : 'error.main'}
+            sx={{ fontSize: '0.8rem' }}
+          >
             {ingredient}
           </Typography>
         </Box>
@@ -238,7 +248,7 @@ function IngredientProgressRow({
           <LinearProgress
             variant="determinate"
             value={percentage}
-            color={sufficient ? 'success' : 'warning'}
+            color={statusColor}
             sx={{ height: 6, borderRadius: 1, width: '100%' }}
           />
         </Box>
@@ -254,7 +264,7 @@ function IngredientProgressRow({
         >
           <Typography
             variant="caption"
-            color={sufficient ? 'success.main' : 'warning.main'}
+            color={sufficient ? 'success.main' : 'error.main'}
             fontWeight="bold"
           >
             {available} / {required}
@@ -273,7 +283,7 @@ function IngredientProgressRow({
             <Chip
               label={`-${required - available}`}
               size="small"
-              color="warning"
+              color="error"
               sx={{
                 height: 18,
                 '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' },
@@ -370,14 +380,14 @@ function IngredientTableRow({
       sx={
         isHighlighted
           ? {
-              bgcolor: 'action.hover',
-              outline: '1px solid',
-              outlineColor: 'info.main',
-              outlineOffset: '-1px',
-              '& td': {
-                bgcolor: 'transparent',
-              },
-            }
+            bgcolor: 'action.hover',
+            outline: '1px solid',
+            outlineColor: 'info.main',
+            outlineOffset: '-1px',
+            '& td': {
+              bgcolor: 'transparent',
+            },
+          }
           : undefined
       }
     >
