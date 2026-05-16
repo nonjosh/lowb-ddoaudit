@@ -14,7 +14,7 @@ import {
   Select,
   Typography,
 } from '@mui/material'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import IngredientProgressList from '@/components/shared/IngredientProgressList'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
@@ -22,6 +22,7 @@ import { useTrove } from '@/contexts/useTrove'
 import {
   calculateGreenSteelIngredients,
   getEffectByName,
+  getGreenSteelIngredientSummaryForSelection,
   getGsCraftingSteps,
   getGsWeaponBonusEffect,
   GREEN_STEEL_ACCESSORY_TYPES,
@@ -42,6 +43,11 @@ interface PlannedGreenSteelItem {
   tierSelections: GreenSteelTierSelection[]
 }
 
+interface GreenSteelIngredientPreview {
+  itemId: string
+  selection: GreenSteelTierSelection
+}
+
 const EMPTY_TIER_SELECTIONS: GreenSteelTierSelection[] = [
   { tier: 1, effectName: null },
   { tier: 2, effectName: null },
@@ -50,12 +56,36 @@ const EMPTY_TIER_SELECTIONS: GreenSteelTierSelection[] = [
 
 const STORAGE_KEY = 'crafting-gs-planned-items'
 
+function replaceTierSelection(
+  items: PlannedGreenSteelItem[],
+  itemId: string,
+  nextSelection: GreenSteelTierSelection,
+): PlannedGreenSteelItem[] {
+  return items.map((plannedItem) => {
+    if (plannedItem.id !== itemId) {
+      return plannedItem
+    }
+
+    return {
+      ...plannedItem,
+      tierSelections: plannedItem.tierSelections.map((selection) =>
+        selection.tier === nextSelection.tier ? nextSelection : selection,
+      ),
+    }
+  })
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export default function GreenSteelCrafting() {
   const { inventoryMap, importedAt } = useTrove()
+  const [hoveredSelection, setHoveredSelection] = useState<{
+    itemId: string
+    tier: GreenSteelTier
+  } | null>(null)
+  const [previewSelection, setPreviewSelection] = useState<GreenSteelIngredientPreview | null>(null)
   const [plannedItems, setPlannedItems] = useCraftingStorage<PlannedGreenSteelItem[]>(
     STORAGE_KEY,
     [],
@@ -108,6 +138,47 @@ export default function GreenSteelCrafting() {
     const allSelections = plannedItems.flatMap((p) => p.tierSelections)
     return calculateGreenSteelIngredients(allSelections)
   }, [plannedItems])
+  const displayedIngredientSummary = useMemo(() => {
+    if (!previewSelection) {
+      return ingredientSummary
+    }
+
+    return calculateGreenSteelIngredients(
+      replaceTierSelection(plannedItems, previewSelection.itemId, previewSelection.selection).flatMap(
+        (plannedItem) => plannedItem.tierSelections,
+      ),
+    )
+  }, [ingredientSummary, plannedItems, previewSelection])
+  const inventoryCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    for (const [ingredient, locations] of inventoryMap.entries()) {
+      counts.set(
+        ingredient,
+        locations.reduce((sum, location) => sum + (location.quantity ?? 0), 0),
+      )
+    }
+
+    return counts
+  }, [inventoryMap])
+  const highlightedIngredients = useMemo(() => {
+    if (previewSelection) {
+      return Object.keys(getGreenSteelIngredientSummaryForSelection(previewSelection.selection))
+    }
+
+    if (!hoveredSelection) {
+      return []
+    }
+
+    const plannedItem = plannedItems.find((item) => item.id === hoveredSelection.itemId)
+    const selection = plannedItem?.tierSelections.find((tier) => tier.tier === hoveredSelection.tier)
+
+    if (!selection) {
+      return []
+    }
+
+    return Object.keys(getGreenSteelIngredientSummaryForSelection(selection))
+  }, [hoveredSelection, plannedItems, previewSelection])
 
   const hasIngredients = Object.values(ingredientSummary).some((v) => v > 0)
 
@@ -217,7 +288,13 @@ export default function GreenSteelCrafting() {
             {plannedItems.map((planned) => (
               <PlannedItemCard
                 key={planned.id}
+                allPlannedItems={plannedItems}
+                inventoryCounts={inventoryCounts}
                 planned={planned}
+                onHoverSelectionChange={(tier) =>
+                  setHoveredSelection(tier ? { itemId: planned.id, tier } : null)
+                }
+                onPreviewSelectionChange={setPreviewSelection}
                 onRemove={() => removeItem(planned.id)}
                 onUpdateTier={(tier, updates) => updateTierSelection(planned.id, tier, updates)}
               />
@@ -242,7 +319,8 @@ export default function GreenSteelCrafting() {
             Ingredient Summary
           </Typography>
           <IngredientProgressList
-            summary={ingredientSummary}
+            summary={displayedIngredientSummary}
+            highlightedIngredients={highlightedIngredients}
             inventoryMap={inventoryMap}
             sortAlphabetically
           />
@@ -257,7 +335,11 @@ export default function GreenSteelCrafting() {
 // ============================================================================
 
 interface PlannedItemCardProps {
+  allPlannedItems: PlannedGreenSteelItem[]
+  inventoryCounts: Map<string, number>
   planned: PlannedGreenSteelItem
+  onHoverSelectionChange: (tier: GreenSteelTier | null) => void
+  onPreviewSelectionChange: (preview: GreenSteelIngredientPreview | null) => void
   onRemove: () => void
   onUpdateTier: (
     tier: GreenSteelTier,
@@ -265,7 +347,15 @@ interface PlannedItemCardProps {
   ) => void
 }
 
-function PlannedItemCard({ planned, onRemove, onUpdateTier }: PlannedItemCardProps) {
+function PlannedItemCard({
+  allPlannedItems,
+  inventoryCounts,
+  planned,
+  onHoverSelectionChange,
+  onPreviewSelectionChange,
+  onRemove,
+  onUpdateTier,
+}: PlannedItemCardProps) {
   const effects = planned.tierSelections
     .map((ts) => (ts.effectName ? getEffectByName(ts.effectName) : null))
     .filter(Boolean)
@@ -324,6 +414,11 @@ function PlannedItemCard({ planned, onRemove, onUpdateTier }: PlannedItemCardPro
         {planned.tierSelections.map((ts) => (
           <TierSelectionPanel
             key={ts.tier}
+            allPlannedItems={allPlannedItems}
+            inventoryCounts={inventoryCounts}
+            itemId={planned.id}
+            onHoverChange={onHoverSelectionChange}
+            onPreviewChange={onPreviewSelectionChange}
             selection={ts}
             onUpdate={(updates) => onUpdateTier(ts.tier, updates)}
           />
@@ -388,6 +483,11 @@ function PlannedItemCard({ planned, onRemove, onUpdateTier }: PlannedItemCardPro
 // ============================================================================
 
 interface TierSelectionPanelProps {
+  allPlannedItems: PlannedGreenSteelItem[]
+  inventoryCounts: Map<string, number>
+  itemId: string
+  onHoverChange: (tier: GreenSteelTier | null) => void
+  onPreviewChange: (preview: GreenSteelIngredientPreview | null) => void
   selection: GreenSteelTierSelection
   onUpdate: (updates: Partial<Omit<GreenSteelTierSelection, 'tier'>>) => void
 }
@@ -408,9 +508,48 @@ const EFFECT_CATEGORIES = ['Spell Power', 'Lore', 'Resistance', 'Stat', 'Weapon 
 
 const gsEffects = GREEN_STEEL_EFFECTS.filter((e) => !e.lgsOnly)
 
-function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
+function TierSelectionPanel({
+  allPlannedItems,
+  inventoryCounts,
+  itemId,
+  onHoverChange,
+  onPreviewChange,
+  selection,
+  onUpdate,
+}: TierSelectionPanelProps) {
   const color = TIER_COLORS[selection.tier]
   const selectedEffect = selection.effectName ? getEffectByName(selection.effectName) : null
+  const hasTrove = inventoryCounts.size > 0
+  const reservedIngredientSummary = useMemo(
+    () =>
+      calculateGreenSteelIngredients(
+        replaceTierSelection(allPlannedItems, itemId, { ...selection, effectName: null }).flatMap(
+          (plannedItem) => plannedItem.tierSelections,
+        ),
+      ),
+    [allPlannedItems, itemId, selection],
+  )
+
+  const clearPreview = () => onPreviewChange(null)
+
+  const showPreview = (candidateSelection: GreenSteelTierSelection) => {
+    onPreviewChange({ itemId, selection: candidateSelection })
+  }
+
+  const getAvailabilityColor = (candidateSelection: GreenSteelTierSelection) => {
+    if (!hasTrove || !candidateSelection.effectName) {
+      return undefined
+    }
+
+    const candidateSummary = getGreenSteelIngredientSummaryForSelection(candidateSelection)
+    const hasEnoughIngredients = Object.entries(candidateSummary).every(([ingredient, required]) => {
+      const available = inventoryCounts.get(ingredient) ?? 0
+      const reserved = reservedIngredientSummary[ingredient] ?? 0
+      return available - reserved >= required
+    })
+
+    return hasEnoughIngredients ? 'success.main' : 'error.main'
+  }
 
   return (
     <Box
@@ -427,43 +566,87 @@ function TierSelectionPanel({ selection, onUpdate }: TierSelectionPanelProps) {
         {TIER_LABELS[selection.tier]}
       </Typography>
 
-      {/* Effect selector */}
-      <FormControl size="small" fullWidth>
-        <InputLabel shrink>Effect</InputLabel>
-        <Select
-          value={selection.effectName ?? ''}
-          label="Effect"
-          displayEmpty
-          onChange={(e) => onUpdate({ effectName: e.target.value || null })}
-        >
-          <MenuItem value="">
-            <em>None (skip this tier)</em>
-          </MenuItem>
-          {EFFECT_CATEGORIES.flatMap((cat) => {
-            const catEffects = gsEffects.filter((e) => e.category === cat)
-            return [
-              <MenuItem key={`__category__${cat}`} disabled sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}>
-                — {cat} —
-              </MenuItem>,
-              ...catEffects.map((eff) => (
-                <MenuItem key={eff.name} value={eff.name}>
-                  <Box>
-                    <Typography variant="body2" fontSize="0.85rem">{eff.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">{eff.description}</Typography>
-                  </Box>
-                </MenuItem>
-              )),
-            ]
-          })}
-        </Select>
-      </FormControl>
+      <Box
+        onMouseEnter={() => onHoverChange(selection.effectName ? selection.tier : null)}
+        onMouseLeave={() => onHoverChange(null)}
+        sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+      >
+        <FormControl size="small" fullWidth>
+          <InputLabel shrink>Effect</InputLabel>
+          <Select
+            value={selection.effectName ?? ''}
+            label="Effect"
+            displayEmpty
+            onClose={clearPreview}
+            MenuProps={{
+              MenuListProps: {
+                onMouseLeave: clearPreview,
+              },
+            }}
+            onChange={(e) => {
+              clearPreview()
+              onUpdate({ effectName: e.target.value || null })
+            }}
+          >
+            <MenuItem
+              value=""
+              onFocus={() => showPreview({ ...selection, effectName: null })}
+              onMouseEnter={() => showPreview({ ...selection, effectName: null })}
+            >
+              <em>None (skip this tier)</em>
+            </MenuItem>
+            {EFFECT_CATEGORIES.flatMap((cat) => {
+              const catEffects = gsEffects.filter((e) => e.category === cat)
+              return [
+                <MenuItem
+                  key={`__category__${cat}`}
+                  disabled
+                  sx={{ fontWeight: 'bold', opacity: 0.7, fontSize: '0.75rem' }}
+                >
+                  — {cat} —
+                </MenuItem>,
+                ...catEffects.map((eff) => {
+                  const candidateSelection = { ...selection, effectName: eff.name }
+                  const availabilityColor = getAvailabilityColor(candidateSelection)
 
-      {/* Summary of selected effect */}
-      {selectedEffect && (
-        <Typography variant="caption" color="text.secondary">
-          {selectedEffect.element} / {selectedEffect.essenceType} / {selectedEffect.gemType}
-        </Typography>
-      )}
+                  return (
+                    <MenuItem
+                      key={eff.name}
+                      value={eff.name}
+                      onFocus={() => showPreview(candidateSelection)}
+                      onMouseEnter={() => showPreview(candidateSelection)}
+                      sx={availabilityColor ? { color: availabilityColor } : undefined}
+                    >
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          fontSize="0.85rem"
+                          fontWeight={availabilityColor ? 600 : undefined}
+                        >
+                          {eff.name}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color={availabilityColor ? 'inherit' : 'text.secondary'}
+                          sx={availabilityColor ? { opacity: 0.85 } : undefined}
+                        >
+                          {eff.description}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  )
+                }),
+              ]
+            })}
+          </Select>
+        </FormControl>
+
+        {selectedEffect && (
+          <Typography variant="caption" color="text.secondary">
+            {selectedEffect.element} / {selectedEffect.essenceType} / {selectedEffect.gemType}
+          </Typography>
+        )}
+      </Box>
     </Box>
   )
 }

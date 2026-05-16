@@ -177,6 +177,10 @@ export interface GreenSteelIngredientSummary {
   [ingredient: string]: number
 }
 
+function addIngredient(summary: GreenSteelIngredientSummary, ingredient: string, amount = 1) {
+  summary[ingredient] = (summary[ingredient] ?? 0) + amount
+}
+
 /**
  * Get the ingredient names for a given tier + essence + gem combination.
  */
@@ -195,6 +199,28 @@ export function getTierIngredients(
   }
 }
 
+export function getGreenSteelIngredientSummaryForSelection(
+  selection: GreenSteelTierSelection,
+): GreenSteelIngredientSummary {
+  if (!selection.effectName) {
+    return {}
+  }
+
+  const effect = getEffectByName(selection.effectName)
+  if (!effect) {
+    return {}
+  }
+
+  const { essence, gem, cell } = getTierIngredients(selection.tier, effect.essenceType, effect.gemType)
+  const summary: GreenSteelIngredientSummary = {}
+
+  addIngredient(summary, essence, INGREDIENTS_PER_TIER)
+  addIngredient(summary, gem, INGREDIENTS_PER_TIER)
+  addIngredient(summary, cell)
+
+  return summary
+}
+
 /**
  * Calculate total ingredient requirements for a set of tier selections.
  * Each filled tier requires INGREDIENTS_PER_TIER essences + INGREDIENTS_PER_TIER gems + 1 energy cell.
@@ -205,15 +231,10 @@ export function calculateGreenSteelIngredients(
   const summary: GreenSteelIngredientSummary = {}
 
   for (const sel of selections) {
-    if (!sel.effectName) continue
-    const effect = getEffectByName(sel.effectName)
-    if (!effect) continue
-
-    const { essence, gem, cell } = getTierIngredients(sel.tier, effect.essenceType, effect.gemType)
-
-    summary[essence] = (summary[essence] ?? 0) + INGREDIENTS_PER_TIER
-    summary[gem] = (summary[gem] ?? 0) + INGREDIENTS_PER_TIER
-    summary[cell] = (summary[cell] ?? 0) + 1
+    const selectionSummary = getGreenSteelIngredientSummaryForSelection(sel)
+    for (const [ingredient, required] of Object.entries(selectionSummary)) {
+      addIngredient(summary, ingredient, required)
+    }
   }
 
   return summary
