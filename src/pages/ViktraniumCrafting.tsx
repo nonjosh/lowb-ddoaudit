@@ -490,6 +490,17 @@ interface ViktraniumItemDialogProps {
 /** Separator prefix for weapon-type filter values (e.g. "weapon:Bastard Swords") */
 const WEAPON_TYPE_PREFIX = 'weapon:'
 
+function formatFilterCountLabel(label: string, count: number): string {
+  return `${label} (${count})`
+}
+
+function getSlotFilterDisplayLabel(value: string): string {
+  if (!value) return 'All slots'
+  if (value === 'Weapon') return 'Weapon (all types)'
+  if (value.startsWith(WEAPON_TYPE_PREFIX)) return value.slice(WEAPON_TYPE_PREFIX.length)
+  return value
+}
+
 function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCraftingData, mode, onAdd }: ViktraniumItemDialogProps) {
   const { hasItem } = useTrove()
   const [search, setSearch] = useState('')
@@ -517,27 +528,55 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
     return [...s].sort()
   }, [items])
 
-  const filtered = useMemo(() => {
+  const slotCountSourceItems = useMemo(() => {
     const lower = search.toLowerCase()
     return items.filter((i) => {
       const matchName = !search || i.name.toLowerCase().includes(lower)
-
-      let matchSlot = true
-      if (slotFilter) {
-        if (slotFilter === 'Weapon') {
-          matchSlot = i.slot === 'Weapon'
-        } else if (slotFilter.startsWith(WEAPON_TYPE_PREFIX)) {
-          matchSlot = i.slot === 'Weapon' && i.type === slotFilter.slice(WEAPON_TYPE_PREFIX.length)
-        } else {
-          matchSlot = i.slot === slotFilter
-        }
-      }
-
       const matchAvailable = !showOnlyAvailable || hasItem(i.name)
 
-      return matchName && matchSlot && matchAvailable
+      return matchName && matchAvailable
     })
-  }, [items, search, slotFilter, showOnlyAvailable, hasItem])
+  }, [items, search, showOnlyAvailable, hasItem])
+
+  const slotCounts = useMemo(() => {
+    const equipmentSlots = new Map<string, number>()
+    const weaponTypesMap = new Map<string, number>()
+    let weaponCount = 0
+
+    slotCountSourceItems.forEach((item) => {
+      if (item.slot === 'Weapon') {
+        weaponCount += 1
+        if (item.type) {
+          weaponTypesMap.set(item.type, (weaponTypesMap.get(item.type) ?? 0) + 1)
+        }
+        return
+      }
+
+      if (item.slot) {
+        equipmentSlots.set(item.slot, (equipmentSlots.get(item.slot) ?? 0) + 1)
+      }
+    })
+
+    return { equipmentSlots, weaponCount, weaponTypesMap }
+  }, [slotCountSourceItems])
+
+  const filtered = useMemo(() => {
+    return slotCountSourceItems.filter((item) => {
+      if (!slotFilter) {
+        return true
+      }
+
+      if (slotFilter === 'Weapon') {
+        return item.slot === 'Weapon'
+      }
+
+      if (slotFilter.startsWith(WEAPON_TYPE_PREFIX)) {
+        return item.slot === 'Weapon' && item.type === slotFilter.slice(WEAPON_TYPE_PREFIX.length)
+      }
+
+      return item.slot === slotFilter
+    })
+  }, [slotCountSourceItems, slotFilter])
 
   const currentPage = useMemo(
     () => Math.min(page, Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1)),
@@ -600,6 +639,7 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
                 value={slotFilter}
                 label="Filter by Slot"
                 displayEmpty
+                renderValue={(value) => getSlotFilterDisplayLabel(value)}
                 onChange={(e) => { setSlotFilter(e.target.value); setPage(0); }}
                 input={<OutlinedInput label="Filter by Slot" />}
                 endAdornment={slotFilter ? (
@@ -610,17 +650,17 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
                   </InputAdornment>
                 ) : null}
               >
-                <MenuItem value="">All slots</MenuItem>
+                <MenuItem value="">{formatFilterCountLabel('All slots', slotCountSourceItems.length)}</MenuItem>
                 {slots.map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                  <MenuItem key={s} value={s}>{formatFilterCountLabel(s, slotCounts.equipmentSlots.get(s) ?? 0)}</MenuItem>
                 ))}
                 <Divider />
                 <MenuItem value="Weapon" sx={{ fontWeight: 'bold' }}>
-                  Weapon (all types)
+                  {formatFilterCountLabel('Weapon (all types)', slotCounts.weaponCount)}
                 </MenuItem>
                 {weaponTypes.map((wt) => (
                   <MenuItem key={wt} value={`${WEAPON_TYPE_PREFIX}${wt}`} sx={{ pl: 4 }}>
-                    {wt}
+                    {formatFilterCountLabel(wt, slotCounts.weaponTypesMap.get(wt) ?? 0)}
                   </MenuItem>
                 ))}
               </Select>
