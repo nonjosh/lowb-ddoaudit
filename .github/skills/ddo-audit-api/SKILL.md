@@ -124,6 +124,7 @@ interface Quest {
 - **Race normalization**: New races may return as `"Unknown: {id}"` — normalized in code
 - **Character caching**: Responses cached in IndexedDB via Dexie
 - **LFM response format**: Can be `{data: Record<string, LfmItem>}` or array
+- **Temporary area fallbacks**: `src/api/ddoAudit/areas.ts` merges `HARDCODED_AREAS` into the API result for known in-game locations that are missing from the upstream areas payload (currently including `1879301916` / The Anniversary Celebration and `1879304731` / Eveningstar Crafting Hall)
 
 ## Related Files
 

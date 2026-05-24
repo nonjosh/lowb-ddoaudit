@@ -4,6 +4,7 @@ import { AREAS_JSON_URL, DDOAUDIT_JSON_CACHE_TTL_MS } from './constants'
 // Locations not present in the upstream areas payload but known from in-game observation.
 const HARDCODED_AREAS: { id: string; name: string; is_public: boolean; is_wilderness: boolean }[] = [
   { id: '1879301916', name: 'The Anniversary Celebration', is_public: true, is_wilderness: false },
+  { id: '1879304731', name: 'Eveningstar Crafting Hall', is_public: true, is_wilderness: false },
 ]
 
 const AREAS_CACHE_KEY = 'ddoaudit:areas'
