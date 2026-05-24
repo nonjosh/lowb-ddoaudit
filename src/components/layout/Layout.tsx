@@ -5,6 +5,7 @@ import { AppBar, Badge, Box, Button, Container, Dialog, DialogContent, DialogTit
 import { MouseEvent, ReactNode, useState } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 
+import { PUZZLE_NAV_ITEMS } from '@/config/puzzles'
 import TroveImportDialog from '@/components/shared/TroveImportDialog'
 import { useTrove } from '@/contexts/useTrove'
 
@@ -20,6 +21,7 @@ interface NavItem {
 interface NavGroup {
   label: string
   items: NavItem[]
+  preserveLabel?: boolean
 }
 
 type NavEntry = NavItem | NavGroup
@@ -38,6 +40,11 @@ export default function Layout({ children }: LayoutProps) {
 
   const navEntries: NavEntry[] = [
     { label: 'Raids', path: '/' },
+    {
+      label: 'Puzzle Solvers',
+      preserveLabel: true,
+      items: PUZZLE_NAV_ITEMS.map(({ label, path }) => ({ label, path })),
+    },
     {
       label: 'Gear',
       items: [
@@ -71,6 +78,10 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   const getActiveGroupLabel = (group: NavGroup) => {
+    if (group.preserveLabel) {
+      return group.label
+    }
+
     const active = group.items.find((item) => location.pathname === item.path)
     return active ? active.label : group.label
   }

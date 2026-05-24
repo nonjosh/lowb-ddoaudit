@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import Layout from '@/components/layout/Layout'
+import { DEFAULT_PUZZLE_PATH } from '@/config/puzzles'
 import { GearPlannerProvider } from '@/contexts/GearPlannerContext'
 import { LfmProvider } from '@/contexts/LfmContext'
 import { RansackProvider } from '@/contexts/RansackContext'
@@ -12,6 +13,7 @@ import GearPlanner from '@/pages/GearPlanner'
 import GreenSteelCrafting from '@/pages/GreenSteelCrafting'
 import LegendaryGreenSteelCrafting from '@/pages/LegendaryGreenSteelCrafting'
 import ItemWiki from '@/pages/ItemWiki'
+import PuzzleSolverPage from '@/pages/PuzzleSolverPage'
 import TRPlanner from '@/pages/TRPlanner'
 import ViktraniumCrafting from '@/pages/ViktraniumCrafting'
 
@@ -34,6 +36,9 @@ function App() {
                       <Route path="/crafting/viktranium" element={<ViktraniumCrafting />} />
                       <Route path="/crafting/greensteel" element={<GreenSteelCrafting />} />
                       <Route path="/crafting/lgs" element={<LegendaryGreenSteelCrafting />} />
+                      {/* Puzzle solvers */}
+                      <Route path="/puzzles" element={<Navigate to={DEFAULT_PUZZLE_PATH} replace />} />
+                      <Route path="/puzzles/:slug" element={<PuzzleSolverPage />} />
                       {/* Other tools */}
                       <Route path="/tr-planner" element={<TRPlanner />} />
                       {/* Redirects for backward compatibility */}
