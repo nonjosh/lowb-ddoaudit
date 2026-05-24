@@ -38,7 +38,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { CraftingData, CraftingOption, Item } from '@/api/ddoGearPlanner'
 import ItemTableRow from '@/components/items/ItemTableRow'
@@ -501,11 +501,20 @@ function getSlotFilterDisplayLabel(value: string): string {
   return value
 }
 
+function getItemQuestLabel(item: Item): string {
+  if (!item.quests || item.quests.length === 0) {
+    return 'Unknown quest'
+  }
+
+  return item.quests.join(' / ')
+}
+
 function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCraftingData, mode, onAdd }: ViktraniumItemDialogProps) {
   const { hasItem } = useTrove()
   const [search, setSearch] = useState('')
   const [slotFilter, setSlotFilter] = useState('')
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false)
+  const [groupByQuest, setGroupByQuest] = useState(false)
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -578,15 +587,61 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
     })
   }, [slotCountSourceItems, slotFilter])
 
+  const orderedItems = useMemo(() => {
+    if (!groupByQuest) {
+      return filtered
+    }
+
+    return [...filtered].sort((left, right) => {
+      const leftQuest = getItemQuestLabel(left)
+      const rightQuest = getItemQuestLabel(right)
+      return leftQuest.localeCompare(rightQuest) || left.name.localeCompare(right.name)
+    })
+  }, [filtered, groupByQuest])
+
+  const questCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    filtered.forEach((item) => {
+      const questLabel = getItemQuestLabel(item)
+      counts.set(questLabel, (counts.get(questLabel) ?? 0) + 1)
+    })
+
+    return counts
+  }, [filtered])
+
   const currentPage = useMemo(
-    () => Math.min(page, Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1)),
-    [filtered.length, page, rowsPerPage],
+    () => Math.min(page, Math.max(0, Math.ceil(orderedItems.length / rowsPerPage) - 1)),
+    [orderedItems.length, page, rowsPerPage],
   )
 
   const paginatedItems = useMemo(() => {
     const startIndex = currentPage * rowsPerPage
-    return filtered.slice(startIndex, startIndex + rowsPerPage)
-  }, [currentPage, filtered, rowsPerPage])
+    return orderedItems.slice(startIndex, startIndex + rowsPerPage)
+  }, [currentPage, orderedItems, rowsPerPage])
+
+  const paginatedQuestGroups = useMemo(() => {
+    if (!groupByQuest) {
+      return []
+    }
+
+    const groups = new Map<string, Item[]>()
+    paginatedItems.forEach((item) => {
+      const questLabel = getItemQuestLabel(item)
+      const existing = groups.get(questLabel)
+      if (existing) {
+        existing.push(item)
+      } else {
+        groups.set(questLabel, [item])
+      }
+    })
+
+    return Array.from(groups.entries()).map(([questLabel, groupedItems]) => ({
+      questLabel,
+      items: groupedItems,
+      count: questCounts.get(questLabel) ?? groupedItems.length,
+    }))
+  }, [groupByQuest, paginatedItems, questCounts])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
@@ -675,6 +730,17 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
                 <InventoryIcon sx={{ fontSize: 18, mr: 0.5 }} />
                 In Trove
               </ToggleButton>
+              <ToggleButton
+                value="quest"
+                selected={groupByQuest}
+                onChange={() => {
+                  setGroupByQuest((value) => !value)
+                  setPage(0)
+                }}
+                sx={{ textTransform: 'none', px: 1.5 }}
+              >
+                Group by Quest
+              </ToggleButton>
             </ToggleButtonGroup>
           </Stack>
         </Box>
@@ -701,6 +767,46 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
                     </Typography>
                   </TableCell>
                 </TableRow>
+              ) : groupByQuest ? (
+                paginatedQuestGroups.map((group) => (
+                  <Fragment key={group.questLabel}>
+                    <TableRow>
+                      <TableCell colSpan={6} sx={{ bgcolor: 'background.default', py: 0.75 }}>
+                        <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                          <Typography variant="subtitle2">{group.questLabel}</Typography>
+                          <Chip
+                            label={`${group.count} item${group.count === 1 ? '' : 's'}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                          {group.items[0]?.quests?.length === 1 ? (
+                            <DdoWikiLink questName={group.items[0].quests[0]} />
+                          ) : null}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                    {group.items.map((item) => (
+                      <ItemTableRow
+                        key={`${group.questLabel}-${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
+                        item={item}
+                        searchText={search}
+                        craftingData={dialogCraftingData}
+                        renderAction={(actionItem) => (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                              onAdd(actionItem.name)
+                              onClose()
+                            }}
+                          >
+                            Add
+                          </Button>
+                        )}
+                      />
+                    ))}
+                  </Fragment>
+                ))
               ) : (
                 paginatedItems.map((item) => (
                   <ItemTableRow
@@ -728,7 +834,7 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
         </TableContainer>
         <TablePagination
           component="div"
-          count={filtered.length}
+          count={orderedItems.length}
           page={currentPage}
           onPageChange={(_, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
