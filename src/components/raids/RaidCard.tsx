@@ -1,3 +1,4 @@
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import DiamondIcon from '@mui/icons-material/Diamond'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
@@ -81,6 +82,10 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
   }, [])
   const raidNotes = getRaidNotesForRaidName(g.raidName)
   const raidUpdate = getRaidUpdate(g.raidName)
+  const hasRaidNotesContent = Boolean(
+    raidNotes
+    && [raidNotes.augments, raidNotes.sets, raidNotes.notes].some((items) => (items ?? []).some(Boolean))
+  )
 
   const friendsInRaid = useMemo(() => {
     const present = new Set<string>((g.entries ?? []).filter((e: RaidEntry) => e?.isInRaid).map((e: RaidEntry) => String(e?.playerName ?? '')))
@@ -142,7 +147,12 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
     () => allEligibleEntries.length > 0 && allEligibleEntries.every((e) => isEntryAvailable(e, now)),
     [allEligibleEntries, now]
   )
+  const hasActiveTimer = useMemo(
+    () => allEligibleEntries.some((e) => !isEntryAvailable(e, now)),
+    [allEligibleEntries, now]
+  )
   const shouldShowTable = allEligibleEntries.length > 0 && (!allAvailable || hasPlayersInRaid || hasLfm)
+  const hasExpandableContent = shouldShowTable || hasRaidNotesContent
 
   const highlight = Boolean(hasFriendInside || hasLfm)
 
@@ -161,9 +171,9 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
       }}
     >
       <CardHeader
-        onClick={onToggleRaid}
-        sx={{ cursor: 'pointer' }}
-        action={
+        onClick={hasExpandableContent ? onToggleRaid : undefined}
+        sx={{ cursor: hasExpandableContent ? 'pointer' : 'default' }}
+        action={hasExpandableContent ? (
           <IconButton
             onClick={(e) => {
               e.stopPropagation()
@@ -174,7 +184,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
           >
             <ExpandMoreIcon />
           </IconButton>
-        }
+        ) : undefined}
         title={
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
@@ -191,6 +201,13 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
                   )}
                   {g.raidName}
                 </Typography>
+                {hasActiveTimer ? (
+                  <Tooltip title="Has active timers">
+                    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', color: 'warning.main' }}>
+                      <AccessTimeIcon sx={{ fontSize: 18 }} />
+                    </Box>
+                  </Tooltip>
+                ) : null}
                 {hasWishForQuestName(g.raidName) ? (
                   <Tooltip title="Contains an item in your wish list">
                     <Box component="span">
@@ -304,20 +321,22 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
         }
       />
 
-      <Collapse in={!isRaidCollapsed} timeout="auto" unmountOnExit>
-        <CardContent>
-          <RaidNotesDisplay raidNotes={raidNotes} />
+      {hasExpandableContent ? (
+        <Collapse in={!isRaidCollapsed} timeout="auto" unmountOnExit>
+          <CardContent>
+            <RaidNotesDisplay raidNotes={raidNotes} />
 
-          {shouldShowTable ? (
-            <RaidTimerTable
-              perPlayerEligible={perPlayerEligible}
-              isPlayerCollapsed={isPlayerCollapsed}
-              onTogglePlayer={onTogglePlayer}
-              questId={g.questId}
-            />
-          ) : null}
-        </CardContent>
-      </Collapse>
+            {shouldShowTable ? (
+              <RaidTimerTable
+                perPlayerEligible={perPlayerEligible}
+                isPlayerCollapsed={isPlayerCollapsed}
+                onTogglePlayer={onTogglePlayer}
+                questId={g.questId}
+              />
+            ) : null}
+          </CardContent>
+        </Collapse>
+      ) : null}
     </Card>
   )
 }
