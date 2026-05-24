@@ -18,6 +18,13 @@ export const VIKTRANIUM_SLOT_TYPES = [
 ] as const
 
 export type ViktraniumSlotType = (typeof VIKTRANIUM_SLOT_TYPES)[number]
+export type ViktraniumMode = 'heroic' | 'legendary'
+
+/** Heroic Viktranium items and augments are ML 8. */
+export const HEROIC_VIKTRANIUM_ML = 8
+
+/** Legendary Viktranium items and augments are ML 34. */
+export const LEGENDARY_VIKTRANIUM_ML = 34
 
 /** Heroic ingredients (ML 8 augments) */
 export const HEROIC_INGREDIENTS = [
@@ -47,9 +54,6 @@ export const ALL_VIKTRANIUM_INGREDIENTS = [
 
 export type ViktraniumIngredient = (typeof ALL_VIKTRANIUM_INGREDIENTS)[number]
 
-/** ML threshold separating heroic from legendary augments */
-export const LEGENDARY_ML_THRESHOLD = 20
-
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -58,8 +62,12 @@ export function isViktraniumSlot(slotType: string): slotType is ViktraniumSlotTy
   return VIKTRANIUM_SLOT_TYPES.includes(slotType as ViktraniumSlotType)
 }
 
+export function isHeroicAugment(ml: number | undefined): boolean {
+  return (ml ?? 0) === HEROIC_VIKTRANIUM_ML
+}
+
 export function isLegendaryAugment(ml: number | undefined): boolean {
-  return (ml ?? 0) > LEGENDARY_ML_THRESHOLD
+  return (ml ?? 0) === LEGENDARY_VIKTRANIUM_ML
 }
 
 export function isLegendaryOption(opt: CraftingOption): boolean {
@@ -75,6 +83,13 @@ export function isLegendaryOption(opt: CraftingOption): boolean {
     }
   }
   return isLegendaryAugment(opt.ml)
+}
+
+export function itemMatchesViktraniumMode(
+  item: Pick<Item, 'ml'>,
+  mode: ViktraniumMode,
+): boolean {
+  return mode === 'legendary' ? isLegendaryAugment(item.ml) : isHeroicAugment(item.ml)
 }
 
 /**
@@ -99,12 +114,10 @@ export function getViktraniumSlots(item: Item): ViktraniumSlotType[] {
  * Get all available augment options for a given Viktranium slot type.
  * Options are sourced from the global '*' key in crafting data.
  */
-export function getAugmentOptions(
-  slotType: ViktraniumSlotType,
-  craftingData: CraftingData,
+function filterViktraniumOptions(
+  options: CraftingOption[],
   heroic: boolean,
 ): CraftingOption[] {
-  const options = craftingData[slotType]?.['*'] ?? []
   return options
     .filter((opt) => {
       // Exclude Wicked augments from standard Viktranium planner UI as they are
@@ -118,6 +131,40 @@ export function getAugmentOptions(
       // across different levels of items to preserve selected state.
       name: opt.name?.replace(/ \((Heroic|Legendary)\)$/, ''),
     }))
+}
+
+export function getAugmentOptions(
+  slotType: ViktraniumSlotType,
+  craftingData: CraftingData,
+  heroic: boolean,
+): CraftingOption[] {
+  const options = craftingData[slotType]?.['*'] ?? []
+  return filterViktraniumOptions(options, heroic)
+}
+
+export function filterViktraniumCraftingData(
+  craftingData: CraftingData,
+  mode: ViktraniumMode,
+): CraftingData {
+  const heroic = mode === 'heroic'
+
+  return Object.fromEntries(
+    Object.entries(craftingData).map(([slotType, itemOptions]) => {
+      if (!isViktraniumSlot(slotType)) {
+        return [slotType, itemOptions]
+      }
+
+      return [
+        slotType,
+        Object.fromEntries(
+          Object.entries(itemOptions).map(([itemName, options]) => [
+            itemName,
+            filterViktraniumOptions(options, heroic),
+          ]),
+        ),
+      ]
+    }),
+  )
 }
 
 // ============================================================================
@@ -176,7 +223,7 @@ export const SLOT_INGREDIENT_CONFIGS: Record<ViktraniumSlotType, SlotIngredientC
 
 /**
  * Calculate total ingredient requirements for a list of selected augments.
- * Costs vary by slot type; ML determines heroic vs legendary ingredients.
+ * Costs vary by slot type; Viktranium ML 8 uses heroic ingredients and ML 34 uses legendary ingredients.
  */
 export function calculateViktraniumIngredients(
   selectedAugments: Array<{ slotType: ViktraniumSlotType; ml?: number; quests?: string[] }>,

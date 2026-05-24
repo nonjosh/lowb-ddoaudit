@@ -38,9 +38,9 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { CraftingOption } from '@/api/ddoGearPlanner'
+import type { CraftingData, CraftingOption, Item } from '@/api/ddoGearPlanner'
 import ItemTableRow from '@/components/items/ItemTableRow'
 import IngredientProgressList from '@/components/shared/IngredientProgressList'
 import type { IngredientGroup } from '@/components/shared/IngredientProgressList'
@@ -49,10 +49,14 @@ import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import {
   calculateViktraniumIngredients,
+  filterViktraniumCraftingData,
   getAugmentOptions,
   getViktraniumSlots,
   hasViktraniumSlots,
-  LEGENDARY_ML_THRESHOLD,
+  HEROIC_VIKTRANIUM_ML,
+  itemMatchesViktraniumMode,
+  LEGENDARY_VIKTRANIUM_ML,
+  ViktraniumMode,
   ViktraniumSlotType,
 } from '@/domains/crafting/viktraniumLogic'
 import InventoryBadge from '@/components/gearPlanner/InventoryBadge'
@@ -76,6 +80,11 @@ interface PlannedItem {
   slots: PlannedSlot[]
 }
 
+const LEGACY_PLANNED_ITEMS_STORAGE_KEY = 'crafting-viktranium-planned-items'
+const HEROIC_PLANNED_ITEMS_STORAGE_KEY = 'crafting-viktranium-planned-items-heroic'
+const LEGENDARY_PLANNED_ITEMS_STORAGE_KEY = 'crafting-viktranium-planned-items-legendary'
+const MODE_STORAGE_KEY = 'crafting-viktranium-mode'
+
 const VIKTRANIUM_INGREDIENT_GROUPS: IngredientGroup[] = [
   { label: 'Heroic Ingredients (ML 8)', filter: (name) => !name.startsWith('Legendary') },
   { label: 'Legendary Ingredients (ML 34)', filter: (name) => name.startsWith('Legendary') },
@@ -90,10 +99,16 @@ export default function ViktraniumCrafting() {
   const { inventoryMap, importedAt } = useTrove()
   const raidQuestNames = useRaidQuestNames()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [plannedItems, setPlannedItems] = useCraftingStorage<PlannedItem[]>(
-    'crafting-viktranium-planned-items',
+  const [mode, setMode] = useCraftingStorage<ViktraniumMode>(MODE_STORAGE_KEY, 'heroic')
+  const [heroicPlannedItems, setHeroicPlannedItems] = useCraftingStorage<PlannedItem[]>(
+    HEROIC_PLANNED_ITEMS_STORAGE_KEY,
     [],
   )
+  const [legendaryPlannedItems, setLegendaryPlannedItems] = useCraftingStorage<PlannedItem[]>(
+    LEGENDARY_PLANNED_ITEMS_STORAGE_KEY,
+    [],
+  )
+  const didMigrateLegacyItems = useRef(false)
 
   useEffect(() => {
     if (items.length === 0 && !loading && !error) {
@@ -106,8 +121,89 @@ export default function ViktraniumCrafting() {
     [items],
   )
 
+  const itemsByName = useMemo(
+    () => new Map(viktraniumItems.map((item) => [item.name, item] as const)),
+    [viktraniumItems],
+  )
+
+  useEffect(() => {
+    if (didMigrateLegacyItems.current || viktraniumItems.length === 0) {
+      return
+    }
+
+    const legacyValue = localStorage.getItem(LEGACY_PLANNED_ITEMS_STORAGE_KEY)
+    if (!legacyValue) {
+      didMigrateLegacyItems.current = true
+      return
+    }
+
+    if (heroicPlannedItems.length > 0 || legendaryPlannedItems.length > 0) {
+      localStorage.removeItem(LEGACY_PLANNED_ITEMS_STORAGE_KEY)
+      didMigrateLegacyItems.current = true
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(legacyValue) as unknown
+      if (Array.isArray(parsed)) {
+        const nextHeroicItems: PlannedItem[] = []
+        const nextLegendaryItems: PlannedItem[] = []
+
+        parsed.forEach((plannedItem) => {
+          if (!plannedItem || typeof plannedItem !== 'object') {
+            return
+          }
+
+          const candidate = plannedItem as PlannedItem
+          const item = itemsByName.get(candidate.itemName)
+          if (item && itemMatchesViktraniumMode(item, 'legendary')) {
+            nextLegendaryItems.push(candidate)
+            return
+          }
+
+          nextHeroicItems.push(candidate)
+        })
+
+        if (nextHeroicItems.length > 0) {
+          setHeroicPlannedItems(nextHeroicItems)
+        }
+        if (nextLegendaryItems.length > 0) {
+          setLegendaryPlannedItems(nextLegendaryItems)
+        }
+      }
+    } catch {
+      // Ignore invalid legacy storage payloads.
+    }
+
+    localStorage.removeItem(LEGACY_PLANNED_ITEMS_STORAGE_KEY)
+    didMigrateLegacyItems.current = true
+  }, [
+    heroicPlannedItems.length,
+    itemsByName,
+    legendaryPlannedItems.length,
+    setHeroicPlannedItems,
+    setLegendaryPlannedItems,
+    viktraniumItems.length,
+  ])
+
+  const plannedItems = mode === 'heroic' ? heroicPlannedItems : legendaryPlannedItems
+  const setPlannedItems = mode === 'heroic' ? setHeroicPlannedItems : setLegendaryPlannedItems
+  const filteredViktraniumItems = useMemo(
+    () => viktraniumItems.filter((item) => itemMatchesViktraniumMode(item, mode)),
+    [mode, viktraniumItems],
+  )
+  const filteredCraftingData = useMemo(
+    () => (craftingData ? filterViktraniumCraftingData(craftingData, mode) : null),
+    [craftingData, mode],
+  )
+  const modeLabel = mode === 'heroic' ? 'Heroic' : 'Legendary'
+  const modeMlLabel =
+    mode === 'heroic'
+      ? `Heroic (ML ${HEROIC_VIKTRANIUM_ML})`
+      : `Legendary (ML ${LEGENDARY_VIKTRANIUM_ML})`
+
   const addItem = (itemName: string) => {
-    const item = viktraniumItems.find((i) => i.name === itemName)
+    const item = filteredViktraniumItems.find((i) => i.name === itemName)
     if (!item) return
     const id = `${itemName}-${Date.now()}`
     const slots: PlannedSlot[] = getViktraniumSlots(item).map((slotType) => ({
@@ -139,7 +235,7 @@ export default function ViktraniumCrafting() {
     () =>
       plannedItems
         .flatMap((p) => {
-          const item = viktraniumItems.find((i) => i.name === p.itemName)
+          const item = itemsByName.get(p.itemName)
           return p.slots.map((s) => ({ ...s, itemMl: item?.ml ?? 0 }))
         })
         .filter((s) => s.selectedOption !== null)
@@ -148,7 +244,7 @@ export default function ViktraniumCrafting() {
           ml: s.itemMl,
           quests: s.selectedOption!.quests,
         })),
-    [plannedItems, viktraniumItems],
+    [itemsByName, plannedItems],
   )
 
   const ingredientSummary = useMemo(
@@ -186,9 +282,9 @@ export default function ViktraniumCrafting() {
           )}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Plan your Viktranium augment slots and calculate required ingredients. Costs vary by slot
-          type (Melancholic: 5/25×, Dolorous: 10/50×, Miserable/Woeful: varies). Items with ML ≤{' '}
-          {LEGENDARY_ML_THRESHOLD} use Heroic ingredients; higher ML uses Legendary.
+          Viktranium Experiment crafting is a Heroic (ML {HEROIC_VIKTRANIUM_ML}) and Legendary
+          {' '}(ML {LEGENDARY_VIKTRANIUM_ML}) crafting system introduced in Update 75: The Chill
+          of Ravenloft. Switch between modes to limit the planner to matching items and augments.
         </Typography>
       </Paper>
 
@@ -203,17 +299,45 @@ export default function ViktraniumCrafting() {
         <Typography variant="subtitle1" gutterBottom fontWeight="bold">
           Add Item to Plan
         </Typography>
+        <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap" sx={{ mb: 1.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            Crafting mode
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={mode}
+            onChange={(_, nextMode: ViktraniumMode | null) => {
+              if (nextMode) {
+                setMode(nextMode)
+              }
+            }}
+          >
+            <ToggleButton value="heroic">{`Heroic (ML ${HEROIC_VIKTRANIUM_ML})`}</ToggleButton>
+            <ToggleButton value="legendary">{`Legendary (ML ${LEGENDARY_VIKTRANIUM_ML})`}</ToggleButton>
+          </ToggleButtonGroup>
+          <Chip
+            label={
+              mode === 'heroic'
+                ? `Items and augments: ML ${HEROIC_VIKTRANIUM_ML}`
+                : `Items and augments: ML ${LEGENDARY_VIKTRANIUM_ML}`
+            }
+            size="small"
+            variant="outlined"
+            color={mode === 'heroic' ? 'default' : 'warning'}
+          />
+        </Stack>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
           <Button
             variant="outlined"
             startIcon={<SearchIcon />}
             onClick={() => setDialogOpen(true)}
-            disabled={items.length === 0}
+            disabled={filteredViktraniumItems.length === 0}
           >
-            Browse Viktranium Items
+            Browse {modeMlLabel} Viktranium Items
           </Button>
           <Typography variant="body2" color="text.secondary">
-            {viktraniumItems.length} items available
+            {filteredViktraniumItems.length} items available
           </Typography>
         </Box>
       </Paper>
@@ -222,8 +346,9 @@ export default function ViktraniumCrafting() {
       <ViktraniumItemDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        items={viktraniumItems}
-        craftingData={craftingData}
+        items={filteredViktraniumItems}
+        craftingData={filteredCraftingData}
+        mode={mode}
         onAdd={(name) => addItem(name)}
       />
 
@@ -235,8 +360,8 @@ export default function ViktraniumCrafting() {
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {plannedItems.map((planned) => {
-              const item = viktraniumItems.find((i) => i.name === planned.itemName)
-              const isLegendary = item ? item.ml > LEGENDARY_ML_THRESHOLD : false
+              const item = itemsByName.get(planned.itemName)
+              const isLegendary = item ? itemMatchesViktraniumMode(item, 'legendary') : mode === 'legendary'
               return (
                 <Paper key={planned.id} variant="outlined" sx={{ p: 2 }}>
                   {/* Header row */}
@@ -277,7 +402,11 @@ export default function ViktraniumCrafting() {
                       <Chip label={item.type} size="small" variant="outlined" color="secondary" />
                     )}
                     <Chip
-                      label={isLegendary ? 'Legendary' : 'Heroic'}
+                      label={
+                        isLegendary
+                          ? `Legendary (ML ${LEGENDARY_VIKTRANIUM_ML})`
+                          : `Heroic (ML ${HEROIC_VIKTRANIUM_ML})`
+                      }
                       size="small"
                       color={isLegendary ? 'warning' : 'default'}
                       variant="filled"
@@ -306,7 +435,7 @@ export default function ViktraniumCrafting() {
                         slotType={slot.slotType}
                         selectedOption={slot.selectedOption}
                         craftingData={craftingData}
-                        isLegendary={isLegendary}
+                        mode={mode}
                         onChange={(opt) => updateSlot(planned.id, slot.slotType, opt)}
                       />
                     ))}
@@ -322,7 +451,7 @@ export default function ViktraniumCrafting() {
         <Paper sx={{ p: 4, mb: 2, textAlign: 'center' }}>
           <AddIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
           <Typography variant="body1" color="text.secondary">
-            Browse and add a Viktranium item above to start planning your augments.
+            Browse and add a {modeLabel.toLowerCase()} Viktranium item above to start planning your augments.
           </Typography>
         </Paper>
       )}
@@ -352,15 +481,16 @@ export default function ViktraniumCrafting() {
 interface ViktraniumItemDialogProps {
   open: boolean
   onClose: () => void
-  items: import('@/api/ddoGearPlanner').Item[]
-  craftingData: import('@/api/ddoGearPlanner').CraftingData | null
+  items: Item[]
+  craftingData: CraftingData | null
+  mode: ViktraniumMode
   onAdd: (itemName: string) => void
 }
 
 /** Separator prefix for weapon-type filter values (e.g. "weapon:Bastard Swords") */
 const WEAPON_TYPE_PREFIX = 'weapon:'
 
-function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCraftingData, onAdd }: ViktraniumItemDialogProps) {
+function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCraftingData, mode, onAdd }: ViktraniumItemDialogProps) {
   const { hasItem } = useTrove()
   const [search, setSearch] = useState('')
   const [slotFilter, setSlotFilter] = useState('')
@@ -409,16 +539,23 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
     })
   }, [items, search, slotFilter, showOnlyAvailable, hasItem])
 
+  const currentPage = useMemo(
+    () => Math.min(page, Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1)),
+    [filtered.length, page, rowsPerPage],
+  )
+
   const paginatedItems = useMemo(() => {
-    const startIndex = page * rowsPerPage
+    const startIndex = currentPage * rowsPerPage
     return filtered.slice(startIndex, startIndex + rowsPerPage)
-  }, [filtered, page, rowsPerPage])
+  }, [currentPage, filtered, rowsPerPage])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Browse Viktranium Items</Typography>
+          <Typography variant="h6">
+            Browse {mode === 'heroic' ? `Heroic (ML ${HEROIC_VIKTRANIUM_ML})` : `Legendary (ML ${LEGENDARY_VIKTRANIUM_ML})`} Viktranium Items
+          </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="body2" color="text.secondary">
               {filtered.length} items
@@ -552,7 +689,7 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
         <TablePagination
           component="div"
           count={filtered.length}
-          page={page}
+          page={currentPage}
           onPageChange={(_, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(event) => {
@@ -577,8 +714,8 @@ function ViktraniumItemDialog({ open, onClose, items, craftingData: dialogCrafti
 interface SlotSelectorProps {
   slotType: ViktraniumSlotType
   selectedOption: CraftingOption | null
-  craftingData: import('@/api/ddoGearPlanner').CraftingData | null
-  isLegendary: boolean
+  craftingData: CraftingData | null
+  mode: ViktraniumMode
   onChange: (option: CraftingOption | null) => void
 }
 
@@ -597,11 +734,11 @@ function getSlotColor(slotType: string): string {
   return '#78909c'
 }
 
-function SlotSelector({ slotType, selectedOption, craftingData, isLegendary, onChange }: SlotSelectorProps) {
+function SlotSelector({ slotType, selectedOption, craftingData, mode, onChange }: SlotSelectorProps) {
   const options = useMemo(() => {
     if (!craftingData) return []
-    return getAugmentOptions(slotType, craftingData, !isLegendary)
-  }, [slotType, craftingData, isLegendary])
+    return getAugmentOptions(slotType, craftingData, mode === 'heroic')
+  }, [slotType, craftingData, mode])
 
   const selectedName = selectedOption?.name ?? ''
   const isSelectionValid = options.some((o) => o.name === selectedName)

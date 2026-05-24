@@ -1,9 +1,11 @@
 ---
 name: ddo-viktranium-crafting
-description: "DDO Viktranium Experiment crafting from Chill of Ravenloft (U75), slot types (Melancholic/Dolorous/Miserable/Woeful), ingredient costs, Bleak ingredients, Wicked variants, and heroic/legendary thresholds. Use when modifying Viktranium crafting logic, ingredient tracking, or the Viktranium crafting page."
+description: "DDO Viktranium Experiment crafting from Chill of Ravenloft (U75), slot types (Melancholic/Dolorous/Miserable/Woeful), ingredient costs, Bleak ingredients, Wicked variants, and explicit heroic ML 8 / legendary ML 34 rules. Use when modifying Viktranium crafting logic, ingredient tracking, or the Viktranium crafting page."
 ---
 
 # DDO Viktranium Experiment Crafting
+
+Viktranium Experiment crafting is a Heroic (ML 8) and Legendary (ML 34) crafting system introduced in Update 75: The Chill of Ravenloft.
 
 ## When to Use
 
@@ -42,11 +44,18 @@ All have Legendary counterparts prefixed with "Legendary ".
 | Miserable (Accessory/Weapon)   | 5× each × 4 + Wire×20            | 25× each × 4 + Wire×100 (+2× Mementos)          |
 | Woeful (all)                   | 10× each × 5 (incl. Transformer) | 50× each × 5 (incl. Transformer) (+5× Mementos) |
 
-## ML Threshold
+## ML Values
 
-- Heroic augments: ML ≤ 20
-- Legendary augments: ML > 20
-- Wicked augments: ML > 20 (uses Bleak Mementos + Legendary ingredients)
+- Heroic items and augments: ML 8
+- Legendary items and augments: ML 34
+- Wicked augments: ML 34 (uses Bleak Mementos + Legendary ingredients)
+
+## Planner Mode Filter
+
+- The Viktranium crafting page has a Heroic/Legendary mode toggle.
+- Heroic mode only shows ML 8 items and heroic augment options.
+- Legendary mode only shows ML 34 items and legendary augment options.
+- Heroic and Legendary planned item lists are stored separately so switching mode does not discard the other plan.
 
 ## Related Files
 
