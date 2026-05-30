@@ -53,6 +53,10 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
     }
     return new Set(accepted.map(normalizeClassName))
   }, [selectedLfm?.acceptedClasses])
+  const hasSkippedClassRestrictions = useMemo(
+    () => ALL_DDO_CLASSES.some((className) => !acceptedClassSet.has(normalizeClassName(className))),
+    [acceptedClassSet],
+  )
 
   const formatAcceptedLevelRange = (minLevel: number | null | undefined, maxLevel: number | null | undefined): string => {
     if (typeof minLevel === 'number' && typeof maxLevel === 'number') {
@@ -214,61 +218,63 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
               <Typography variant="body2" color="text.secondary">
                 {formatAcceptedLevelRange(selectedLfm?.minLevel, selectedLfm?.maxLevel)}
               </Typography>
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                <Typography variant="body2" color="text.secondary">Classes:</Typography>
-                <Box component="span" role="list" aria-label="Accepted classes" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap' }}>
-                  {ALL_DDO_CLASSES.map((className) => {
-                    const accepted = acceptedClassSet.has(normalizeClassName(className))
-                    return (
-                      <Tooltip key={className} title={`${className}${accepted ? '' : ' (excluded)'}`}>
-                        <Box
-                          component="span"
-                          role="listitem"
-                          aria-label={`${className} ${accepted ? 'accepted' : 'excluded'}`}
-                          sx={{
-                            position: 'relative',
-                            display: 'inline-flex',
-                            width: 20,
-                            height: 20,
-                            opacity: accepted ? 1 : 0.4,
-                            filter: accepted ? 'none' : 'grayscale(1)',
-                          }}
-                        >
+              {hasSkippedClassRestrictions ? (
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Typography variant="body2" color="text.secondary">Classes:</Typography>
+                  <Box component="span" role="list" aria-label="Accepted classes" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap' }}>
+                    {ALL_DDO_CLASSES.map((className) => {
+                      const accepted = acceptedClassSet.has(normalizeClassName(className))
+                      return (
+                        <Tooltip key={className} title={`${className}${accepted ? '' : ' (excluded)'}`}>
                           <Box
-                            component="img"
-                            src={`${import.meta.env.BASE_URL}class-icons/${className.toLowerCase().replace(/\s+/g, '-')}.png`}
-                            alt={className}
-                            sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none'
+                            component="span"
+                            role="listitem"
+                            aria-label={`${className} ${accepted ? 'accepted' : 'excluded'}`}
+                            sx={{
+                              position: 'relative',
+                              display: 'inline-flex',
+                              width: 20,
+                              height: 20,
+                              opacity: accepted ? 1 : 0.4,
+                              filter: accepted ? 'none' : 'grayscale(1)',
                             }}
-                          />
-                          {!accepted ? (
-                            <Typography
-                              component="span"
-                              aria-hidden="true"
-                              sx={{
-                                position: 'absolute',
-                                top: 0,
-                                right: 0,
-                                fontSize: 10,
-                                lineHeight: 1,
-                                fontWeight: 700,
-                                color: 'error.main',
-                                textShadow: '0 0 2px #fff',
-                                userSelect: 'none',
-                                pointerEvents: 'none',
+                          >
+                            <Box
+                              component="img"
+                              src={`${import.meta.env.BASE_URL}class-icons/${className.toLowerCase().replace(/\s+/g, '-')}.png`}
+                              alt={className}
+                              sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none'
                               }}
-                            >
-                              ×
-                            </Typography>
-                          ) : null}
-                        </Box>
-                      </Tooltip>
-                    )
-                  })}
-                </Box>
-              </Stack>
+                            />
+                            {!accepted ? (
+                              <Typography
+                                component="span"
+                                aria-hidden="true"
+                                sx={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  right: 0,
+                                  fontSize: 10,
+                                  lineHeight: 1,
+                                  fontWeight: 700,
+                                  color: 'error.main',
+                                  textShadow: '0 0 2px #fff',
+                                  userSelect: 'none',
+                                  pointerEvents: 'none',
+                                }}
+                              >
+                                ×
+                              </Typography>
+                            ) : null}
+                          </Box>
+                        </Tooltip>
+                      )
+                    })}
+                  </Box>
+                </Stack>
+              ) : null}
               {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
                 <Typography variant="body2" sx={{ color: 'info.main', fontWeight: 600 }}>
                   Active {formatDuration(selectedLfm.adventureActiveMinutes)}
