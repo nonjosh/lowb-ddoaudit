@@ -33,10 +33,26 @@ interface ExtendedLfmParticipantsDialogProps extends LfmParticipantsDialogProps 
   onGuildClick?: (guildName: string) => void
 }
 
+const ALL_DDO_CLASSES = [
+  'Alchemist', 'Artificer', 'Barbarian', 'Bard', 'Cleric', 'Druid',
+  'Favored Soul', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue',
+  'Sorcerer', 'Warlock', 'Wizard',
+]
+
+const normalizeClassName = (name: string): string => name.trim().toLowerCase().replace(/\s+/g, ' ')
+
 export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData, raidGroups, onGuildClick }: ExtendedLfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [now, setNow] = useState(() => new Date())
   const { inventoryMap } = useTrove()
+  const acceptedClassSet = useMemo(() => {
+    const accepted = selectedLfm?.acceptedClasses ?? []
+    if (!accepted.length) {
+      // Empty accepted_classes is treated as unrestricted.
+      return new Set(ALL_DDO_CLASSES.map(normalizeClassName))
+    }
+    return new Set(accepted.map(normalizeClassName))
+  }, [selectedLfm?.acceptedClasses])
 
   const formatAcceptedLevelRange = (minLevel: number | null | undefined, maxLevel: number | null | undefined): string => {
     if (typeof minLevel === 'number' && typeof maxLevel === 'number') {
@@ -133,11 +149,6 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
     return fromComment
   }, [selectedLfm?.comment, selectedLfm?.questId, raidGroups])
 
-  const acceptedClassesDisplay = useMemo(() => {
-    if (!selectedLfm?.acceptedClasses?.length) return null
-    return selectedLfm.acceptedClasses.join(', ')
-  }, [selectedLfm?.acceptedClasses])
-
   return (
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
@@ -203,11 +214,61 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
               <Typography variant="body2" color="text.secondary">
                 {formatAcceptedLevelRange(selectedLfm?.minLevel, selectedLfm?.maxLevel)}
               </Typography>
-              {acceptedClassesDisplay ? (
-                <Typography variant="body2" color="text.secondary">
-                  Classes: {acceptedClassesDisplay}
-                </Typography>
-              ) : null}
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">Classes:</Typography>
+                <Box component="span" role="list" aria-label="Accepted classes" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap' }}>
+                  {ALL_DDO_CLASSES.map((className) => {
+                    const accepted = acceptedClassSet.has(normalizeClassName(className))
+                    return (
+                      <Tooltip key={className} title={`${className}${accepted ? '' : ' (excluded)'}`}>
+                        <Box
+                          component="span"
+                          role="listitem"
+                          aria-label={`${className} ${accepted ? 'accepted' : 'excluded'}`}
+                          sx={{
+                            position: 'relative',
+                            display: 'inline-flex',
+                            width: 20,
+                            height: 20,
+                            opacity: accepted ? 1 : 0.4,
+                            filter: accepted ? 'none' : 'grayscale(1)',
+                          }}
+                        >
+                          <Box
+                            component="img"
+                            src={`${import.meta.env.BASE_URL}class-icons/${className.toLowerCase().replace(/\s+/g, '-')}.png`}
+                            alt={className}
+                            sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                          {!accepted ? (
+                            <Typography
+                              component="span"
+                              aria-hidden="true"
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                right: 0,
+                                fontSize: 10,
+                                lineHeight: 1,
+                                fontWeight: 700,
+                                color: 'error.main',
+                                textShadow: '0 0 2px #fff',
+                                userSelect: 'none',
+                                pointerEvents: 'none',
+                              }}
+                            >
+                              ×
+                            </Typography>
+                          ) : null}
+                        </Box>
+                      </Tooltip>
+                    )
+                  })}
+                </Box>
+              </Stack>
               {typeof selectedLfm?.adventureActiveMinutes === 'number' ? (
                 <Typography variant="body2" sx={{ color: 'info.main', fontWeight: 600 }}>
                   Active {formatDuration(selectedLfm.adventureActiveMinutes)}
