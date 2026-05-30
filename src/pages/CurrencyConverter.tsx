@@ -513,7 +513,7 @@ export default function CurrencyConverter() {
           sx={{ mb: 1 }}
         >
           <Typography variant="subtitle1" fontWeight="bold">
-            Starting Value
+            Convert between DP/Shard/Currencies
           </Typography>
         </Stack>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
@@ -605,7 +605,7 @@ export default function CurrencyConverter() {
         <Stack direction="row" useFlexGap flexWrap="wrap" justifyContent="space-between" alignItems="center" gap={1.5} sx={{ mb: 1.5 }}>
           <Box>
             <Typography variant="subtitle1" fontWeight="bold">
-              Relationship Chart
+              Convert Ratio Chart
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Compare quantity against total {selectedFiatMeta.label} cost, with guide lines for the current starting value.
@@ -613,7 +613,7 @@ export default function CurrencyConverter() {
           </Box>
 
           <IconButton
-            aria-label={isChartExpanded ? 'Collapse relationship chart' : 'Expand relationship chart'}
+            aria-label={isChartExpanded ? 'Collapse convert ratio chart' : 'Expand convert ratio chart'}
             onClick={() => setIsChartExpanded((current) => !current)}
             size="small"
           >
