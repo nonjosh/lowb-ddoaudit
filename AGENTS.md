@@ -144,13 +144,14 @@ src/
 
 ## Routes
 
-| Path             | Page         | Description                 |
-| ---------------- | ------------ | --------------------------- |
-| `/`              | Dashboard    | Raid timers & loot tracking |
-| `/gear/wiki`     | Wiki         | Browse/search all items     |
-| `/gear/wishlist` | Wishlist     | Track desired items         |
-| `/gear/planner`  | Gear Planner | Optimize gear sets          |
-| `/tr-planner`    | TR Planner   | TR progression planning     |
+| Path               | Page         | Description                 |
+| ------------------ | ------------ | --------------------------- |
+| `/`                | Dashboard    | Raid timers & loot tracking |
+| `/gear/wiki`       | Wiki         | Browse/search all items     |
+| `/gear/wishlist`   | Wishlist     | Track desired items         |
+| `/gear/planner`    | Gear Planner | Optimize gear sets          |
+| `/tools/converter` | Converter    | Convert Points, Shards, HKD |
+| `/tr-planner`      | TR Planner   | TR progression planning     |
 
 **Note**: Old routes (`/wiki`, `/wishlist`, `/planner`) redirect to new paths for backward compatibility.
 

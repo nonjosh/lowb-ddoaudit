@@ -12,6 +12,7 @@ Currently DDO Audit will only group the raid timers by character name. This web 
 - **Raids Section**: Groups raid timers by quest/raid name, providing a consolidated view of raid progress across all characters.
 - **LFM Section**: Shows active "Looking for More" posts from the Shadowdale server to find raid groups.
 - **Item Loot Dialogs**: For each quest, displays possible loot items with filters, crafting options, and set bonuses.
+- **Currency Converter**: Converts DDO Points, Astral Shards, and HKD using editable baseline rates.
 
 ## Running locally
 

@@ -63,6 +63,12 @@ export default function Layout({ children }: LayoutProps) {
     { label: 'TR Planner', path: '/tr-planner' },
   ]
 
+  const converterNav = {
+    label: 'DP/Shard Converter',
+    path: '/tools/converter',
+    tooltip: 'Estimate DDO Point, Astral Shard, and HKD values using store bundle ranges.',
+  }
+
   const handleMenuOpen = (event: MouseEvent<HTMLElement>, label: string) => {
     setAnchorEl(event.currentTarget)
     setOpenMenu(label)
@@ -181,6 +187,18 @@ export default function Layout({ children }: LayoutProps) {
                 )
               })}
             </Box>
+
+            <Tooltip title={converterNav.tooltip}>
+              <Button
+                component={RouterLink}
+                to={converterNav.path}
+                variant={location.pathname === converterNav.path ? 'contained' : 'text'}
+                color={location.pathname === converterNav.path ? 'primary' : 'inherit'}
+                sx={{ my: 2, mr: 1, textTransform: 'none' }}
+              >
+                {converterNav.label}
+              </Button>
+            </Tooltip>
 
             {/* Trove Import Button — right side of toolbar */}
             <Tooltip title="Import inventory data from DDO Helper Trove plugin">

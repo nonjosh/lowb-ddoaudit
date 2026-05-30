@@ -9,6 +9,7 @@ import { TRPlannerProvider } from '@/contexts/TRPlannerContext'
 import { TroveProvider } from '@/contexts/TroveContext'
 import { WishlistProvider } from '@/contexts/WishlistContext'
 import Dashboard from '@/pages/Dashboard'
+import CurrencyConverter from '@/pages/CurrencyConverter'
 import GearPlanner from '@/pages/GearPlanner'
 import GreenSteelCrafting from '@/pages/GreenSteelCrafting'
 import LegendaryGreenSteelCrafting from '@/pages/LegendaryGreenSteelCrafting'
@@ -40,6 +41,7 @@ function App() {
                       <Route path="/puzzles" element={<Navigate to={DEFAULT_PUZZLE_PATH} replace />} />
                       <Route path="/puzzles/:slug" element={<PuzzleSolverPage />} />
                       {/* Other tools */}
+                      <Route path="/tools/converter" element={<CurrencyConverter />} />
                       <Route path="/tr-planner" element={<TRPlanner />} />
                       {/* Redirects for backward compatibility */}
                       <Route path="/wiki" element={<Navigate to="/gear/wiki" replace />} />
