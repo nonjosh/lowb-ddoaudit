@@ -423,7 +423,12 @@ function AreaGroupsTable({
                       slotProps={{ tooltip: { sx: { maxWidth: 'none' } } }}
                       title={
                         <Stack spacing={1} sx={{ p: 0.5 }}>
-                          {g.characters.map((c) => (
+                          {[...g.characters].sort((a, b) => {
+                            const gA = a.guild_name ?? ''
+                            const gB = b.guild_name ?? ''
+                            if (gA !== gB) return gA.localeCompare(gB)
+                            return b.total_level - a.total_level
+                          }).map((c) => (
                             <Stack key={c.id} direction="row" spacing={1.5} alignItems="center">
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })}
