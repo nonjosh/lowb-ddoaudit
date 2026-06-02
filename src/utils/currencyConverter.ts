@@ -18,6 +18,8 @@ export interface ConverterValues {
   hkd: ValueRange
 }
 
+export type DdoPointBonusMode = 'normal' | 'double' | 'triple'
+
 export interface DdoPointBundle {
   label: string
   basePoints: number
@@ -33,14 +35,47 @@ export interface AstralShardStorePack {
   costDp: number
 }
 
-export const DDO_POINT_BUNDLES: DdoPointBundle[] = [
-  { label: '600 Points', basePoints: 500, bonusPoints: 100, points: 600, usd: 7.99, hkd: 62.3 },
-  { label: '1,550 Points', basePoints: 1250, bonusPoints: 300, points: 1550, usd: 19.99, hkd: 155.9 },
-  { label: '4,100 Points', basePoints: 3250, bonusPoints: 850, points: 4100, usd: 49.99, hkd: 389.9 },
-  { label: '6,300 Points', basePoints: 5000, bonusPoints: 1300, points: 6300, usd: 74.99, hkd: 584.9 },
-  { label: '11,500 Points', basePoints: 8750, bonusPoints: 2750, points: 11500, usd: 124.99, hkd: 974.9 },
-  { label: '23,000 Points', basePoints: 16500, bonusPoints: 6500, points: 23000, usd: 199.99, hkd: 1559.9 },
+interface DdoPointBundleTemplate {
+  basePoints: number
+  baseBonusPoints: number
+  usd: number
+  hkd: number
+}
+
+const DDO_POINT_BUNDLE_TEMPLATES: DdoPointBundleTemplate[] = [
+  { basePoints: 500, baseBonusPoints: 100, usd: 7.99, hkd: 62.3 },
+  { basePoints: 1250, baseBonusPoints: 300, usd: 19.99, hkd: 155.9 },
+  { basePoints: 3250, baseBonusPoints: 850, usd: 49.99, hkd: 389.9 },
+  { basePoints: 5000, baseBonusPoints: 1300, usd: 74.99, hkd: 584.9 },
+  { basePoints: 8750, baseBonusPoints: 2750, usd: 124.99, hkd: 974.9 },
+  { basePoints: 16500, baseBonusPoints: 6500, usd: 199.99, hkd: 1559.9 },
 ]
+
+const BONUS_POINT_MULTIPLIER: Record<DdoPointBonusMode, number> = {
+  normal: 1,
+  double: 2,
+  triple: 3,
+}
+
+export function getDdoPointBundles(bonusMode: DdoPointBonusMode): DdoPointBundle[] {
+  const bonusMultiplier = BONUS_POINT_MULTIPLIER[bonusMode]
+
+  return DDO_POINT_BUNDLE_TEMPLATES.map((bundle) => {
+    const bonusPoints = bundle.baseBonusPoints * bonusMultiplier
+    const points = bundle.basePoints + bonusPoints
+
+    return {
+      label: `${formatAmount(points, 0)} Points`,
+      basePoints: bundle.basePoints,
+      bonusPoints,
+      points,
+      usd: bundle.usd,
+      hkd: bundle.hkd,
+    }
+  })
+}
+
+export const DDO_POINT_BUNDLES: DdoPointBundle[] = getDdoPointBundles('normal')
 
 export const ASTRAL_SHARD_STORE_PACKS: AstralShardStorePack[] = [
   { label: '2000 Astral Shards', shards: 2000, costDp: 9995 },
@@ -89,19 +124,18 @@ function getDpPerShardRange(packs: AstralShardStorePack[]): ValueRange {
 
 const DEFAULT_DP_PER_SHARD_RANGE = getDpPerShardRange(ASTRAL_SHARD_STORE_PACKS)
 
-const DEFAULT_SHARDS_PER_HKD_RANGE: ValueRange = {
-  min: DEFAULT_POINTS_PER_HKD_RANGE.min / DEFAULT_DP_PER_SHARD_RANGE.max,
-  max: DEFAULT_POINTS_PER_HKD_RANGE.max / DEFAULT_DP_PER_SHARD_RANGE.min,
+export function getConverterRatesForBundles(bundles: DdoPointBundle[]): ConverterRates {
+  const pointsPerHkdRange = getBundlePointsRange(bundles)
+
+  return {
+    minPointsPerHkd: pointsPerHkdRange.min,
+    maxPointsPerHkd: pointsPerHkdRange.max,
+    minShardsPerHkd: pointsPerHkdRange.min / DEFAULT_DP_PER_SHARD_RANGE.max,
+    maxShardsPerHkd: pointsPerHkdRange.max / DEFAULT_DP_PER_SHARD_RANGE.min,
+  }
 }
 
-export const DEFAULT_CONVERTER_RATES: ConverterRates = {
-  // Derived from available DDO Point bundle tiers.
-  minPointsPerHkd: DEFAULT_POINTS_PER_HKD_RANGE.min,
-  maxPointsPerHkd: DEFAULT_POINTS_PER_HKD_RANGE.max,
-  // Derived using bundle Points/HKD range and Astral Shard store DP/Shard range.
-  minShardsPerHkd: DEFAULT_SHARDS_PER_HKD_RANGE.min,
-  maxShardsPerHkd: DEFAULT_SHARDS_PER_HKD_RANGE.max,
-}
+export const DEFAULT_CONVERTER_RATES: ConverterRates = getConverterRatesForBundles(DDO_POINT_BUNDLES)
 
 const MIN_RATE = 0.000001
 

@@ -20,6 +20,8 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -29,11 +31,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useCraftingStorage } from '@/hooks/useCraftingStorage'
 import {
   ASTRAL_SHARD_STORE_PACKS,
-  DDO_POINT_BUNDLES,
-  DEFAULT_CONVERTER_RATES,
+  type DdoPointBonusMode,
   convertFromSource,
   formatAmount,
   formatRange,
+  getConverterRatesForBundles,
+  getDdoPointBundles,
   getHkdPerPointRange,
   parseNonNegativeNumber,
 } from '@/utils/currencyConverter'
@@ -41,6 +44,7 @@ import {
 const SOURCE_UNIT_KEY = 'converter-source-unit'
 const SOURCE_AMOUNT_KEY = 'converter-source-amount'
 const SOURCE_FIAT_KEY = 'converter-source-fiat'
+const POINT_BONUS_MODE_KEY = 'converter-point-bonus-mode'
 
 type FiatSourceUnit = 'usd' | 'hkd' | 'cny' | 'gbp'
 type SourceUnitOption = 'points' | 'shards' | 'fiat'
@@ -89,6 +93,12 @@ const FIAT_META: Record<FiatCode, { label: string; symbol: string; flagUrl: stri
     flagUrl: 'https://cdn.jsdelivr.net/npm/flag-icons/flags/4x3/gb.svg',
     flagAlt: 'United Kingdom flag',
   },
+}
+
+const POINT_BONUS_MODE_META: Record<DdoPointBonusMode, { label: string; description: string }> = {
+  normal: { label: 'Normal', description: 'normal bonus points' },
+  double: { label: 'Double Bonus', description: 'double bonus points' },
+  triple: { label: 'Triple Bonus', description: 'triple bonus points' },
 }
 
 async function fetchUsdRates(
@@ -173,6 +183,7 @@ export default function CurrencyConverter() {
   const [sourceUnit, setSourceUnit] = useCraftingStorage<SourceUnitOption>(SOURCE_UNIT_KEY, 'points')
   const [sourceFiat, setSourceFiat] = useCraftingStorage<FiatSourceUnit>(SOURCE_FIAT_KEY, 'hkd')
   const [sourceAmountInput, setSourceAmountInput] = useCraftingStorage<string>(SOURCE_AMOUNT_KEY, '245')
+  const [pointBonusMode, setPointBonusMode] = useCraftingStorage<DdoPointBonusMode>(POINT_BONUS_MODE_KEY, 'normal')
   const [fiatRates, setFiatRates] = useState<FiatRates>(DEFAULT_FIAT_RATES)
   const [rateDate, setRateDate] = useState<string | null>(null)
   const [rateLoading, setRateLoading] = useState(true)
@@ -233,6 +244,9 @@ export default function CurrencyConverter() {
 
   const amountError = sourceAmountParsed === null ? 'Enter a valid non-negative number.' : null
   const selectedFiatMeta = FIAT_META[sourceFiat]
+  const selectedBonusModeMeta = POINT_BONUS_MODE_META[pointBonusMode]
+  const pointBundles = useMemo(() => getDdoPointBundles(pointBonusMode), [pointBonusMode])
+  const converterRates = useMemo(() => getConverterRatesForBundles(pointBundles), [pointBundles])
 
   const values = useMemo(() => {
     if (amountError) {
@@ -246,21 +260,11 @@ export default function CurrencyConverter() {
     const amount = sourceAmountParsed ?? 0
     if (sourceUnit === 'fiat') {
       const hkdPerSelectedFiat = fiatRates.hkd / fiatRates[sourceFiat]
-      return convertFromSource('hkd', amount * hkdPerSelectedFiat, {
-        minPointsPerHkd: DEFAULT_CONVERTER_RATES.minPointsPerHkd,
-        maxPointsPerHkd: DEFAULT_CONVERTER_RATES.maxPointsPerHkd,
-        minShardsPerHkd: DEFAULT_CONVERTER_RATES.minShardsPerHkd,
-        maxShardsPerHkd: DEFAULT_CONVERTER_RATES.maxShardsPerHkd,
-      })
+      return convertFromSource('hkd', amount * hkdPerSelectedFiat, converterRates)
     }
 
-    return convertFromSource(sourceUnit, sourceAmountParsed ?? 0, {
-      minPointsPerHkd: DEFAULT_CONVERTER_RATES.minPointsPerHkd,
-      maxPointsPerHkd: DEFAULT_CONVERTER_RATES.maxPointsPerHkd,
-      minShardsPerHkd: DEFAULT_CONVERTER_RATES.minShardsPerHkd,
-      maxShardsPerHkd: DEFAULT_CONVERTER_RATES.maxShardsPerHkd,
-    })
-  }, [amountError, fiatRates, sourceAmountParsed, sourceFiat, sourceUnit])
+    return convertFromSource(sourceUnit, sourceAmountParsed ?? 0, converterRates)
+  }, [amountError, converterRates, fiatRates, sourceAmountParsed, sourceFiat, sourceUnit])
 
   const usdValues = useMemo(() => {
     const usdPerHkd = fiatRates.usd / fiatRates.hkd
@@ -279,10 +283,10 @@ export default function CurrencyConverter() {
 
   const hkdPerPointRange = useMemo(() => {
     return getHkdPerPointRange({
-      min: DEFAULT_CONVERTER_RATES.minPointsPerHkd,
-      max: DEFAULT_CONVERTER_RATES.maxPointsPerHkd,
+      min: converterRates.minPointsPerHkd,
+      max: converterRates.maxPointsPerHkd,
     })
-  }, [])
+  }, [converterRates.maxPointsPerHkd, converterRates.minPointsPerHkd])
 
   const selectedPerHkd = useMemo(() => {
     return fiatRates[sourceFiat] / fiatRates.hkd
@@ -294,7 +298,7 @@ export default function CurrencyConverter() {
 
   const chartEntries = useMemo(() => {
     if (chartDataset === 'points') {
-      return DDO_POINT_BUNDLES.map((bundle) => {
+      return pointBundles.map((bundle) => {
         const selectedValue = bundle.usd * fiatRates[sourceFiat]
 
         return {
@@ -304,7 +308,7 @@ export default function CurrencyConverter() {
           yValue: bundle.points,
           xLabel: selectedFiatMeta.label,
           yLabel: 'DDO Points',
-          annotation: `${formatAmount(bundle.points, 0)} DP`,
+          annotation: `${formatAmount(bundle.basePoints, 0)} + ${formatAmount(bundle.bonusPoints, 0)} Points`,
         }
       }).sort((left, right) => left.yValue - right.yValue)
     }
@@ -330,7 +334,7 @@ export default function CurrencyConverter() {
         annotation: `${formatAmount(pack.costDp, 0)} DP`,
       }
     }).sort((left, right) => left.yValue - right.yValue)
-  }, [chartDataset, fiatRates, hkdPerPointRange.max, hkdPerPointRange.min, selectedFiatMeta.label, selectedPerHkd, sourceFiat])
+  }, [chartDataset, fiatRates, hkdPerPointRange.max, hkdPerPointRange.min, pointBundles, selectedFiatMeta.label, selectedPerHkd, sourceFiat])
 
   const chartSelection = useMemo(() => {
     return {
@@ -466,8 +470,8 @@ export default function CurrencyConverter() {
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h5">Currency Converter</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Convert between DDO Points, Astral Shards, and Hong Kong Dollars. Values are estimated using
-          fixed bundle-derived ratios plus live USD FX rates.
+          Convert between DDO Points, Astral Shards, and major store currencies. Values are estimated using
+          {` ${selectedBonusModeMeta.description}`} bundle ratios plus live USD FX rates.
         </Typography>
         {rateLoading && (
           <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -491,24 +495,49 @@ export default function CurrencyConverter() {
       </Paper>
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" useFlexGap flexWrap="wrap" alignItems="center" gap={1.5}>
-          <Typography variant="subtitle1" fontWeight="bold">
-            Currency
-          </Typography>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="converter-fiat-unit-label">Currency</InputLabel>
-            <Select
-              labelId="converter-fiat-unit-label"
-              value={sourceFiat}
-              label="Currency"
-              onChange={(event) => setSourceFiat(event.target.value as FiatSourceUnit)}
+        <Stack direction="row" useFlexGap flexWrap="wrap" justifyContent="space-between" alignItems="center" gap={2}>
+          <Stack direction="row" useFlexGap flexWrap="wrap" alignItems="center" gap={1.5}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              Currency
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="converter-fiat-unit-label">Currency</InputLabel>
+              <Select
+                labelId="converter-fiat-unit-label"
+                value={sourceFiat}
+                label="Currency"
+                onChange={(event) => setSourceFiat(event.target.value as FiatSourceUnit)}
+              >
+                <MenuItem value="usd"><FlagLabel code="usd" /></MenuItem>
+                <MenuItem value="hkd"><FlagLabel code="hkd" /></MenuItem>
+                <MenuItem value="cny"><FlagLabel code="cny" /></MenuItem>
+                <MenuItem value="gbp"><FlagLabel code="gbp" /></MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+
+          <Stack direction="row" useFlexGap flexWrap="wrap" alignItems="center" gap={1.5}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              Point Bonus Mode
+            </Typography>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={pointBonusMode}
+              aria-label="DDO point bonus mode"
+              onChange={(_, nextMode: DdoPointBonusMode | null) => {
+                if (nextMode) {
+                  setPointBonusMode(nextMode)
+                }
+              }}
             >
-              <MenuItem value="usd"><FlagLabel code="usd" /></MenuItem>
-              <MenuItem value="hkd"><FlagLabel code="hkd" /></MenuItem>
-              <MenuItem value="cny"><FlagLabel code="cny" /></MenuItem>
-              <MenuItem value="gbp"><FlagLabel code="gbp" /></MenuItem>
-            </Select>
-          </FormControl>
+              {Object.entries(POINT_BONUS_MODE_META).map(([mode, meta]) => (
+                <ToggleButton key={mode} value={mode} aria-label={meta.label}>
+                  {meta.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Stack>
         </Stack>
       </Paper>
 
@@ -849,7 +878,7 @@ export default function CurrencyConverter() {
           Available DDO Point Bundles
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Reference:{' '}
+          Bundle totals and rates below reflect {selectedBonusModeMeta.description}. Reference:{' '}
           <Link href="https://ddowiki.com/page/DDO_Point" target="_blank" rel="noopener noreferrer">
             DDO Point
           </Link>
@@ -868,7 +897,7 @@ export default function CurrencyConverter() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {DDO_POINT_BUNDLES.map((bundle) => {
+              {pointBundles.map((bundle) => {
                 const selectedValue = bundle.usd * fiatRates[sourceFiat]
                 const dpPerSelectedCurrency = {
                   min: bundle.points / selectedValue,
