@@ -881,7 +881,12 @@ export default function CurrencyConverter() {
                 return (
                   <TableRow key={bundle.label}>
                     <TableCell component="th" scope="row">
-                      {bundle.label}
+                      <Typography variant="body2" fontWeight={600}>
+                        {bundle.label}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatAmount(bundle.basePoints, 0)} + {formatAmount(bundle.bonusPoints, 0)} Points
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">${formatAmount(bundle.usd, 2)}</TableCell>
                     <TableCell align="right">{selectedFiatMeta.symbol}{formatAmount(selectedValue, 2)}</TableCell>

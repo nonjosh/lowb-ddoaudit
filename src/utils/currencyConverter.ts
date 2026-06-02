@@ -20,6 +20,8 @@ export interface ConverterValues {
 
 export interface DdoPointBundle {
   label: string
+  basePoints: number
+  bonusPoints: number
   points: number
   usd: number
   hkd: number
@@ -32,12 +34,12 @@ export interface AstralShardStorePack {
 }
 
 export const DDO_POINT_BUNDLES: DdoPointBundle[] = [
-  { label: '600 Points', points: 600, usd: 7.99, hkd: 62.3 },
-  { label: '1,550 Points', points: 1550, usd: 19.99, hkd: 155.9 },
-  { label: '4,100 Points', points: 4100, usd: 49.99, hkd: 389.9 },
-  { label: '6,300 Points', points: 6300, usd: 74.99, hkd: 584.9 },
-  { label: '11,500 Points', points: 11500, usd: 124.99, hkd: 974.9 },
-  { label: '23,000 Points', points: 23000, usd: 199.99, hkd: 1559.9 },
+  { label: '600 Points', basePoints: 500, bonusPoints: 100, points: 600, usd: 7.99, hkd: 62.3 },
+  { label: '1,550 Points', basePoints: 1250, bonusPoints: 300, points: 1550, usd: 19.99, hkd: 155.9 },
+  { label: '4,100 Points', basePoints: 3250, bonusPoints: 850, points: 4100, usd: 49.99, hkd: 389.9 },
+  { label: '6,300 Points', basePoints: 5000, bonusPoints: 1300, points: 6300, usd: 74.99, hkd: 584.9 },
+  { label: '11,500 Points', basePoints: 8750, bonusPoints: 2750, points: 11500, usd: 124.99, hkd: 974.9 },
+  { label: '23,000 Points', basePoints: 16500, bonusPoints: 6500, points: 23000, usd: 199.99, hkd: 1559.9 },
 ]
 
 export const ASTRAL_SHARD_STORE_PACKS: AstralShardStorePack[] = [
