@@ -245,6 +245,7 @@ export default function CurrencyConverter() {
   const amountError = sourceAmountParsed === null ? 'Enter a valid non-negative number.' : null
   const selectedFiatMeta = FIAT_META[sourceFiat]
   const selectedBonusModeMeta = POINT_BONUS_MODE_META[pointBonusMode]
+  const showSelectedBundleCurrencyColumn = sourceFiat !== 'usd'
   const pointBundles = useMemo(() => getDdoPointBundles(pointBonusMode), [pointBonusMode])
   const converterRates = useMemo(() => getConverterRatesForBundles(pointBundles), [pointBundles])
 
@@ -889,7 +890,7 @@ export default function CurrencyConverter() {
               <TableRow>
                 <TableCell>Bundle</TableCell>
                 <TableCell align="right">USD</TableCell>
-                <TableCell align="right">{selectedFiatMeta.label}</TableCell>
+                {showSelectedBundleCurrencyColumn && <TableCell align="right">{selectedFiatMeta.label}</TableCell>}
                 <TableCell align="right" sx={{ borderLeft: '1px solid', borderColor: 'divider' }}>
                   DP / {selectedFiatMeta.label}
                 </TableCell>
@@ -918,7 +919,7 @@ export default function CurrencyConverter() {
                       </Typography>
                     </TableCell>
                     <TableCell align="right">${formatAmount(bundle.usd, 2)}</TableCell>
-                    <TableCell align="right">{selectedFiatMeta.symbol}{formatAmount(selectedValue, 2)}</TableCell>
+                    {showSelectedBundleCurrencyColumn && <TableCell align="right">{selectedFiatMeta.symbol}{formatAmount(selectedValue, 2)}</TableCell>}
                     <TableCell align="right" sx={{ borderLeft: '1px solid', borderColor: 'divider' }}>
                       {formatRange(dpPerSelectedCurrency, 4)}
                     </TableCell>
