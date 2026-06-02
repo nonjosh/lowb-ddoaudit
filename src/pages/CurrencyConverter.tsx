@@ -42,27 +42,35 @@ const SOURCE_UNIT_KEY = 'converter-source-unit'
 const SOURCE_AMOUNT_KEY = 'converter-source-amount'
 const SOURCE_FIAT_KEY = 'converter-source-fiat'
 
-type FiatSourceUnit = 'hkd' | 'cny' | 'gbp'
+type FiatSourceUnit = 'usd' | 'hkd' | 'cny' | 'gbp'
 type SourceUnitOption = 'points' | 'shards' | 'fiat'
 type EditableUnit = 'points' | 'shards' | FiatSourceUnit
 type ChartDataset = 'points' | 'shards'
 
 interface FiatRates {
+  usd: number
   hkd: number
   cny: number
   gbp: number
   date?: string
 }
 
-type FiatCode = 'hkd' | 'cny' | 'gbp'
+type FiatCode = 'usd' | 'hkd' | 'cny' | 'gbp'
 
 const DEFAULT_FIAT_RATES: FiatRates = {
+  usd: 1,
   hkd: 7.8,
   cny: 7.2,
   gbp: 0.78,
 }
 
 const FIAT_META: Record<FiatCode, { label: string; symbol: string; flagUrl: string; flagAlt: string }> = {
+  usd: {
+    label: 'USD',
+    symbol: '$',
+    flagUrl: 'https://cdn.jsdelivr.net/npm/flag-icons/flags/4x3/us.svg',
+    flagAlt: 'United States flag',
+  },
   hkd: {
     label: 'HKD',
     symbol: '$',
@@ -85,7 +93,7 @@ const FIAT_META: Record<FiatCode, { label: string; symbol: string; flagUrl: stri
 
 async function fetchUsdRates(
   apiVersion: 'v1',
-): Promise<{ hkd: number; cny: number; gbp: number; date?: string }> {
+): Promise<{ usd: number; hkd: number; cny: number; gbp: number; date?: string }> {
   const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/${apiVersion}/currencies/usd.json`
   const response = await fetch(url)
   if (!response.ok) {
@@ -111,6 +119,7 @@ async function fetchUsdRates(
   }
 
   return {
+    usd: 1,
     hkd,
     cny,
     gbp,
@@ -197,6 +206,7 @@ export default function CurrencyConverter() {
         if (cancelled) return
 
         setFiatRates({
+          usd: rates.usd,
           hkd: rates.hkd,
           cny: rates.cny,
           gbp: rates.gbp,
@@ -234,11 +244,9 @@ export default function CurrencyConverter() {
     }
 
     const amount = sourceAmountParsed ?? 0
-    const hkdPerCny = fiatRates.hkd / fiatRates.cny
-    const hkdPerGbp = fiatRates.hkd / fiatRates.gbp
-
-    if (sourceUnit === 'fiat' && sourceFiat === 'cny') {
-      return convertFromSource('hkd', amount * hkdPerCny, {
+    if (sourceUnit === 'fiat') {
+      const hkdPerSelectedFiat = fiatRates.hkd / fiatRates[sourceFiat]
+      return convertFromSource('hkd', amount * hkdPerSelectedFiat, {
         minPointsPerHkd: DEFAULT_CONVERTER_RATES.minPointsPerHkd,
         maxPointsPerHkd: DEFAULT_CONVERTER_RATES.maxPointsPerHkd,
         minShardsPerHkd: DEFAULT_CONVERTER_RATES.minShardsPerHkd,
@@ -246,22 +254,18 @@ export default function CurrencyConverter() {
       })
     }
 
-    if (sourceUnit === 'fiat' && sourceFiat === 'gbp') {
-      return convertFromSource('hkd', amount * hkdPerGbp, {
-        minPointsPerHkd: DEFAULT_CONVERTER_RATES.minPointsPerHkd,
-        maxPointsPerHkd: DEFAULT_CONVERTER_RATES.maxPointsPerHkd,
-        minShardsPerHkd: DEFAULT_CONVERTER_RATES.minShardsPerHkd,
-        maxShardsPerHkd: DEFAULT_CONVERTER_RATES.maxShardsPerHkd,
-      })
-    }
-
-    return convertFromSource(sourceUnit === 'fiat' ? 'hkd' : sourceUnit, sourceAmountParsed ?? 0, {
+    return convertFromSource(sourceUnit, sourceAmountParsed ?? 0, {
       minPointsPerHkd: DEFAULT_CONVERTER_RATES.minPointsPerHkd,
       maxPointsPerHkd: DEFAULT_CONVERTER_RATES.maxPointsPerHkd,
       minShardsPerHkd: DEFAULT_CONVERTER_RATES.minShardsPerHkd,
       maxShardsPerHkd: DEFAULT_CONVERTER_RATES.maxShardsPerHkd,
     })
-  }, [amountError, fiatRates.cny, fiatRates.gbp, fiatRates.hkd, sourceAmountParsed, sourceFiat, sourceUnit])
+  }, [amountError, fiatRates, sourceAmountParsed, sourceFiat, sourceUnit])
+
+  const usdValues = useMemo(() => {
+    const usdPerHkd = fiatRates.usd / fiatRates.hkd
+    return scaleRange(values.hkd, usdPerHkd)
+  }, [fiatRates.hkd, fiatRates.usd, values.hkd])
 
   const cnyValues = useMemo(() => {
     const cnyPerHkd = fiatRates.cny / fiatRates.hkd
@@ -283,6 +287,10 @@ export default function CurrencyConverter() {
   const selectedPerHkd = useMemo(() => {
     return fiatRates[sourceFiat] / fiatRates.hkd
   }, [fiatRates, sourceFiat])
+
+  const selectedFiatValues = useMemo(() => {
+    return scaleRange(values.hkd, selectedPerHkd)
+  }, [selectedPerHkd, values.hkd])
 
   const chartEntries = useMemo(() => {
     if (chartDataset === 'points') {
@@ -326,10 +334,10 @@ export default function CurrencyConverter() {
 
   const chartSelection = useMemo(() => {
     return {
-      xRange: values.hkd,
+      xRange: selectedFiatValues,
       yLabel: chartDataset === 'points' ? 'DDO Points' : 'Astral Shards',
     }
-  }, [chartDataset, values.hkd])
+  }, [chartDataset, selectedFiatValues])
 
   const chartGeometry = useMemo(() => {
     const width = 760
@@ -403,13 +411,14 @@ export default function CurrencyConverter() {
     return {
       points: values.points,
       shards: values.shards,
+      usd: usdValues,
       hkd: values.hkd,
       cny: cnyValues,
       gbp: gbpValues,
     }
-  }, [cnyValues, gbpValues, values.hkd, values.points, values.shards])
+  }, [cnyValues, gbpValues, usdValues, values.hkd, values.points, values.shards])
 
-  const cardUnits: EditableUnit[] = ['points', 'shards', 'hkd', 'cny', 'gbp']
+  const cardUnits: EditableUnit[] = ['points', 'shards', 'usd', 'hkd', 'cny', 'gbp']
 
   const getRepresentativeValue = (unit: EditableUnit): number => {
     if (currentSourceUnit === unit) {
@@ -494,6 +503,7 @@ export default function CurrencyConverter() {
               label="Currency"
               onChange={(event) => setSourceFiat(event.target.value as FiatSourceUnit)}
             >
+              <MenuItem value="usd"><FlagLabel code="usd" /></MenuItem>
               <MenuItem value="hkd"><FlagLabel code="hkd" /></MenuItem>
               <MenuItem value="cny"><FlagLabel code="cny" /></MenuItem>
               <MenuItem value="gbp"><FlagLabel code="gbp" /></MenuItem>
