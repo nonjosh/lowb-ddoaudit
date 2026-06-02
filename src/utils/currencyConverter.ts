@@ -5,6 +5,8 @@ export interface ConverterRates {
   maxPointsPerHkd: number
   minShardsPerHkd: number
   maxShardsPerHkd: number
+  minDpPerShard: number
+  maxDpPerShard: number
 }
 
 export interface ValueRange {
@@ -108,8 +110,6 @@ function getBundlePointsRange(bundles: DdoPointBundle[]): ValueRange {
   }
 }
 
-const DEFAULT_POINTS_PER_HKD_RANGE = getBundlePointsRange(DDO_POINT_BUNDLES)
-
 function getDpPerShardRange(packs: AstralShardStorePack[]): ValueRange {
   if (packs.length === 0) {
     return { min: 1, max: 1 }
@@ -132,6 +132,8 @@ export function getConverterRatesForBundles(bundles: DdoPointBundle[]): Converte
     maxPointsPerHkd: pointsPerHkdRange.max,
     minShardsPerHkd: pointsPerHkdRange.min / DEFAULT_DP_PER_SHARD_RANGE.max,
     maxShardsPerHkd: pointsPerHkdRange.max / DEFAULT_DP_PER_SHARD_RANGE.min,
+    minDpPerShard: DEFAULT_DP_PER_SHARD_RANGE.min,
+    maxDpPerShard: DEFAULT_DP_PER_SHARD_RANGE.max,
   }
 }
 
@@ -168,6 +170,10 @@ export function convertFromSource(
     safeRate(rates.minPointsPerHkd),
     safeRate(rates.maxPointsPerHkd),
   )
+  const dpPerShardRange = makeRange(
+    safeRate(rates.minDpPerShard),
+    safeRate(rates.maxDpPerShard),
+  )
   const shardsPerHkdRange = makeRange(
     safeRate(rates.minShardsPerHkd),
     safeRate(rates.maxShardsPerHkd),
@@ -181,10 +187,7 @@ export function convertFromSource(
     return {
       points: toFixedRange(amount),
       hkd,
-      shards: makeRange(
-        hkd.min * shardsPerHkdRange.min,
-        hkd.max * shardsPerHkdRange.max,
-      ),
+      shards: makeRange(amount / dpPerShardRange.max, amount / dpPerShardRange.min),
     }
   }
 
@@ -194,10 +197,7 @@ export function convertFromSource(
       amount / shardsPerHkdRange.min,
     )
     return {
-      points: makeRange(
-        hkd.min * pointsPerHkdRange.min,
-        hkd.max * pointsPerHkdRange.max,
-      ),
+      points: makeRange(amount * dpPerShardRange.min, amount * dpPerShardRange.max),
       shards: toFixedRange(amount),
       hkd,
     }
