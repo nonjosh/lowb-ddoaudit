@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import CloseIcon from '@mui/icons-material/Close'
 import SearchIcon from '@mui/icons-material/Search'
@@ -15,16 +15,21 @@ import {
   ListItemButton,
   ListItemText,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from '@mui/material'
 
 import { CraftingData, CraftingOption } from '@/api/ddoGearPlanner'
-import { formatAffix } from '@/utils/affixHelpers'
+import { isLegendaryOption, isViktraniumSlot } from '@/domains/crafting/viktraniumLogic'
 import { generateCraftingOptionName } from '@/domains/gearPlanner/augmentHelpers'
+import { formatAffix } from '@/utils/affixHelpers'
 import {
   filterCraftingOptionsByML,
   getAvailableCraftingOptions
 } from '@/domains/gearPlanner/craftingHelpers'
+
+type ViktraniumTierFilter = 'heroic' | 'epic'
 
 interface AugmentSelectionDialogProps {
   open: boolean
@@ -48,11 +53,22 @@ export default function AugmentSelectionDialog({
   onSelect
 }: AugmentSelectionDialogProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [viktraniumTierFilter, setViktraniumTierFilter] = useState<ViktraniumTierFilter>('epic')
+
+  const isViktranium = useMemo(() => isViktraniumSlot(slotType), [slotType])
 
   const availableOptions = useMemo(() => {
     const options = getAvailableCraftingOptions(craftingData, slotType, itemName)
-    return filterCraftingOptionsByML(options, itemML)
-  }, [craftingData, slotType, itemName, itemML])
+    const mlFilteredOptions = filterCraftingOptionsByML(options, itemML)
+
+    if (!isViktranium) {
+      return mlFilteredOptions
+    }
+
+    return mlFilteredOptions.filter((opt) =>
+      viktraniumTierFilter === 'heroic' ? !isLegendaryOption(opt) : isLegendaryOption(opt)
+    )
+  }, [craftingData, slotType, itemName, itemML, isViktranium, viktraniumTierFilter])
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm.trim()) return availableOptions
@@ -81,6 +97,21 @@ export default function AugmentSelectionDialog({
         </IconButton>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 1 }}>
+        {isViktranium && (
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            value={viktraniumTierFilter}
+            onChange={(_, value: ViktraniumTierFilter | null) => {
+              if (value) setViktraniumTierFilter(value)
+            }}
+            size="small"
+            sx={{ mb: 1 }}
+          >
+            <ToggleButton value="heroic">Heroic</ToggleButton>
+            <ToggleButton value="epic">Epic</ToggleButton>
+          </ToggleButtonGroup>
+        )}
         <TextField
           fullWidth
           size="small"
