@@ -1,4 +1,6 @@
 import CloseIcon from '@mui/icons-material/Close'
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined'
+import ViewListOutlinedIcon from '@mui/icons-material/ViewListOutlined'
 import {
   Box,
   Chip,
@@ -8,11 +10,14 @@ import {
   DialogTitle,
   IconButton,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
+import QuestLocationPlayersPanel from '@/components/characters/dialogs/QuestLocationPlayersPanel'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
@@ -25,54 +30,119 @@ interface ItemLootDialogProps {
   open: boolean
   onClose: () => void
   questName: string
+  questId?: string | null
+  areaId?: string | null
+  locationIds?: string[]
+  showLocationPlayersToggle?: boolean
 }
 
-export default function ItemLootDialog({ open, onClose, questName }: ItemLootDialogProps) {
-  const [questInfo, setQuestInfo] = useState<Quest | null>(null)
-  const [areaName, setAreaName] = useState<string | null>(null)
-  const [prevQuestName, setPrevQuestName] = useState<string>(questName)
-  const [prevOpen, setPrevOpen] = useState<boolean>(open)
+type DialogView = 'loot' | 'players'
 
-  if (open && (questName !== prevQuestName || open !== prevOpen)) {
-    setPrevQuestName(questName)
-    setPrevOpen(open)
-    setQuestInfo(null)
-    setAreaName(null)
-  }
+interface QuestMetadataState {
+  requestKey: string
+  questInfo: Quest | null
+  areaName: string | null
+  loading: boolean
+}
+
+function normalizeQuestDisplayName(name: string): string {
+  return name.replace(/ \((Heroic|Epic)\)$/, '')
+}
+
+function buildQuestMetadataRequestKey(questName: string, questId?: string | null, areaId?: string | null, locationIds: string[] = []): string {
+  return [questName, questId ?? '', areaId ?? '', ...locationIds].join('|')
+}
+
+export default function ItemLootDialog({ open, onClose, questName, questId, areaId, locationIds, showLocationPlayersToggle = false }: ItemLootDialogProps) {
+  const normalizedQuestName = useMemo(() => normalizeQuestDisplayName(questName), [questName])
+  const normalizedLocationIds = useMemo(
+    () => Array.from(new Set((locationIds ?? []).map((id) => String(id)))).sort(),
+    [locationIds],
+  )
+  const metadataRequestKey = useMemo(
+    () => buildQuestMetadataRequestKey(questName, questId, areaId, normalizedLocationIds),
+    [areaId, normalizedLocationIds, questId, questName],
+  )
+  const [questMetadata, setQuestMetadata] = useState<QuestMetadataState>({
+    requestKey: '',
+    questInfo: null,
+    areaName: null,
+    loading: false,
+  })
+  const [dialogView, setDialogView] = useState<DialogView>('loot')
 
   const { items, craftingData, setsData, loading, updatedAt, stale, error, refresh } = useGearPlanner()
+
+  const activeQuestMetadata = open && questMetadata.requestKey === metadataRequestKey ? questMetadata : null
+  const questInfo = activeQuestMetadata?.questInfo ?? null
+  const areaName = activeQuestMetadata?.areaName ?? null
+  const questInfoLoading = activeQuestMetadata?.loading ?? false
+
+  const handleClose = () => {
+    setDialogView('loot')
+    onClose()
+  }
 
   useEffect(() => {
     if (!open || !questName) return
 
     let cancelled = false
 
-    fetchQuestsById()
-      .then((quests) => {
+    const loadQuestMetadata = async () => {
+      setQuestMetadata({
+        requestKey: metadataRequestKey,
+        questInfo: null,
+        areaName: null,
+        loading: true,
+      })
+
+      try {
+        const quests = await fetchQuestsById()
         if (cancelled) return
 
-        const found = Object.values(quests).find(q => q.name === questName)
-        if (found) {
-          setQuestInfo(found)
+        const questByQuestId = questId ? quests[String(questId)] ?? null : null
+        const questByAreaId = areaId ? quests[String(areaId)] ?? null : null
+        const questByLocationHint = normalizedLocationIds
+          .map((id) => quests[String(id)] ?? null)
+          .find((quest) => quest && normalizeQuestDisplayName(quest.name) === normalizedQuestName) ?? null
+        const found = questByQuestId
+          ?? questByAreaId
+          ?? questByLocationHint
+          ?? Object.values(quests).find((q) => normalizeQuestDisplayName(q.name) === normalizedQuestName)
+          ?? null
 
-          if (found.areaId) {
-            fetchAreasById()
-              .then((areas) => {
-                if (cancelled) return
-                if (areas[found.areaId!]) {
-                  setAreaName(areas[found.areaId!].name)
-                }
-              })
-              .catch(console.error)
-          }
+        let nextAreaName: string | null = null
+        if (found?.areaId) {
+          const areas = await fetchAreasById()
+          if (cancelled) return
+          nextAreaName = areas[found.areaId]?.name ?? null
         }
-      })
-      .catch(console.error)
+
+        setQuestMetadata({
+          requestKey: metadataRequestKey,
+          questInfo: found,
+          areaName: nextAreaName,
+          loading: false,
+        })
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error)
+          setQuestMetadata({
+            requestKey: metadataRequestKey,
+            questInfo: null,
+            areaName: null,
+            loading: false,
+          })
+        }
+      }
+    }
+
+    void loadQuestMetadata()
 
     return () => {
       cancelled = true
     }
-  }, [open, questName])
+  }, [areaId, metadataRequestKey, normalizedLocationIds, normalizedQuestName, open, questId, questName])
 
   useEffect(() => {
     if (!open) return
@@ -90,7 +160,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="lg"
       fullWidth
       onClick={(e) => e.stopPropagation()}
@@ -118,7 +188,7 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             )}
             <IconButton
               aria-label="close"
-              onClick={onClose}
+              onClick={handleClose}
               sx={{ color: 'grey.500' }}
             >
               <CloseIcon />
@@ -127,14 +197,37 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
         </Box>
       </DialogTitle>
       <DialogContent dividers sx={dialogContentSx}>
-        {loading ? (
+        {showLocationPlayersToggle && (
+          <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
+            <ToggleButtonGroup
+              value={dialogView}
+              exclusive
+              size="small"
+              onChange={(_, nextView: DialogView | null) => {
+                if (!nextView) return
+                setDialogView(nextView)
+              }}
+            >
+              <ToggleButton value="loot" aria-label="show quest loot">
+                <ViewListOutlinedIcon fontSize="small" sx={{ mr: 0.75 }} />
+                Loot
+              </ToggleButton>
+              <ToggleButton value="players" aria-label="show players in location">
+                <PeopleAltOutlinedIcon fontSize="small" sx={{ mr: 0.75 }} />
+                Players Here
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
+        )}
+
+        {dialogView === 'loot' && loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
             <CircularProgress />
             <Typography variant="body2" sx={{ ml: 2 }}>
               Loading item data...
             </Typography>
           </Box>
-        ) : (
+        ) : dialogView === 'loot' ? (
           <>
             <RaidNotesDisplay raidNotes={raidNotes} />
             {(error || updatedAt) && (
@@ -157,6 +250,13 @@ export default function ItemLootDialog({ open, onClose, questName }: ItemLootDia
             )}
             <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} questLevel={questInfo?.level ?? undefined} />
           </>
+        ) : (
+          <QuestLocationPlayersPanel
+            questInfo={questInfo}
+            areaName={areaName}
+            questInfoLoading={questInfoLoading}
+            active={open && dialogView === 'players'}
+          />
         )}
       </DialogContent>
     </Dialog>

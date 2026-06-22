@@ -1,11 +1,11 @@
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import { Box, List, ListSubheader, Paper, Typography } from '@mui/material'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Quest } from '@/api/ddoAudit'
 import ItemLootDialog from '@/components/items/ItemLootDialog'
-import { LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 import { PlayerGroup } from '@/contexts/useCharacter'
+import { LfmDisplayData } from '@/domains/lfm/lfmHelpers'
 
 import PlayerRow from './PlayerRow'
 
@@ -39,6 +39,25 @@ export default function QuestGroupCard({
 }: QuestGroupCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const showPackLine = !!packName || !!levelInfo
+  const normalizedQuestName = questName.replace(/ \((Heroic|Epic)\)$/, '')
+  const locationIds = useMemo(
+    () => Array.from(
+      new Set(
+        groups.flatMap((group) =>
+          group.chars
+            .filter((character) => character?.is_online && character.location_id)
+            .map((character) => String(character.location_id)),
+        ),
+      ),
+    ),
+    [groups],
+  )
+  const matchingQuestInfo = useMemo(
+    () => locationIds
+      .map((locationId) => quests[locationId])
+      .find((quest) => quest?.name === normalizedQuestName) ?? null,
+    [locationIds, normalizedQuestName, quests],
+  )
 
   return (
     <Paper variant="outlined" sx={{ mb: 2, overflow: 'hidden', borderColor: 'info.main' }}>
@@ -82,7 +101,11 @@ export default function QuestGroupCard({
       <ItemLootDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        questName={questName.replace(/ \((Heroic|Epic)\)$/, '')}
+        questName={normalizedQuestName}
+        questId={matchingQuestInfo?.id ?? null}
+        areaId={matchingQuestInfo?.areaId ?? null}
+        locationIds={locationIds}
+        showLocationPlayersToggle={true}
       />
     </Paper>
   )
