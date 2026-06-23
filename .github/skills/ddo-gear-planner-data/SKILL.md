@@ -38,6 +38,12 @@ URLs defined in `src/api/ddoGearPlanner/constants.ts`.
 - **Deduplication**: In-flight requests deduplicated (returns same promise)
 - **Fallback**: Stale cache served on network errors
 
+## Supported Item Level Cap
+
+- Item-level UI filters and exported ddo-gear-planner URLs use `ITEM_MAX_LEVEL` in `src/api/ddoGearPlanner/constants.ts`.
+- Current supported cap: **36**.
+- When upstream data adds lv40 items, update that constant first, then audit any remaining explicit level bins or docs that still mention the old cap.
+
 ## Key Data Structures
 
 ### Item

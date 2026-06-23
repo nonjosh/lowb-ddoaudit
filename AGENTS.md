@@ -101,6 +101,7 @@ src/
 - **Props**: Define TypeScript interfaces for all component props
 - **Computed values**: Use `useMemo` for derived state
 - **Responsive Layout**: For horizontal arrays of controls or filters, use MUI `<Stack direction="row" useFlexGap flexWrap="wrap">` instead of strict `<Stack direction={{ xs: 'column', md: 'row' }}>` to prevent layout breaks and horizontally overflowing items on vertical or intermediate width displays.
+- **Item level cap**: Item-level selectors and exported gear-planner URLs must use `ITEM_MAX_LEVEL` from `src/api/ddoGearPlanner/constants.ts` instead of hardcoded values. The current cap is 36; when lv40 gear arrives, update that constant first and then audit any remaining explicit level bins or documentation.
 
 ### Error Handling
 
@@ -240,6 +241,7 @@ Update the corresponding skill when you:
 
 | Constant          | Value              | Location                                     |
 | ----------------- | ------------------ | -------------------------------------------- |
+| `ITEM_MAX_LEVEL`  | 36 (plan for 40)   | `src/api/ddoGearPlanner/constants.ts`        |
 | `RAID_LOCKOUT_MS` | 66 hours (2d 18h)  | `src/api/ddoAudit/constants.ts`              |
 | Ransack Duration  | 168 hours (7 days) | `src/storage/ransackDb.ts`                   |
 | TR Multipliers    | 1x / 1.5x / 2x     | `src/domains/trPlanner/levelRequirements.ts` |
