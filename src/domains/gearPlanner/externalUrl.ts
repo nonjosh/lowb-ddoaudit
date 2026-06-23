@@ -1,4 +1,5 @@
 import { CraftingData, CraftingOption } from '@/api/ddoGearPlanner/crafting'
+import { ITEM_MAX_LEVEL } from '@/api/ddoGearPlanner/constants'
 import { Item } from '@/api/ddoGearPlanner/items'
 
 import { GearCraftingSelections } from './craftingHelpers'
@@ -328,7 +329,7 @@ export function exportToExternalUrl(
   const params = new URLSearchParams()
 
   // Level range
-  params.set('levelrange', `1,${maxML ?? 34}`)
+  params.set('levelrange', `1,${maxML ?? ITEM_MAX_LEVEL}`)
   params.set('raids', 'true')
   params.set('hiddentypes', '')
 
