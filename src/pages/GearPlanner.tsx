@@ -30,7 +30,7 @@ import {
   Typography
 } from '@mui/material'
 
-import { CraftingOption, Item } from '@/api/ddoGearPlanner'
+import { CraftingOption, Item, ITEM_MAX_LEVEL } from '@/api/ddoGearPlanner'
 import ExternalUrlDialog from '@/components/gearPlanner/ExternalUrlDialog'
 import GearDisplay from '@/components/gearPlanner/GearDisplay'
 import GearSetupTabs from '@/components/gearPlanner/GearSetupTabs'
@@ -286,7 +286,7 @@ export default function GearPlanner() {
 
   // Item filter state (persisted to localStorage)
   const [itemFilterMinLevel, setItemFilterMinLevel] = useState(() => loadItemFilterNumber(ITEM_FILTER_MIN_LEVEL_KEY, 1))
-  const [itemFilterMaxLevel, setItemFilterMaxLevel] = useState(() => loadItemFilterNumber(ITEM_FILTER_MAX_LEVEL_KEY, 34))
+  const [itemFilterMaxLevel, setItemFilterMaxLevel] = useState(() => loadItemFilterNumber(ITEM_FILTER_MAX_LEVEL_KEY, ITEM_MAX_LEVEL))
   const [itemFilterArmorTypes, setItemFilterArmorTypes] = useState<string[]>(() => loadItemFilterStringArray(ITEM_FILTER_ARMOR_TYPES_KEY))
   const [itemFilterMainHandTypes, setItemFilterMainHandTypes] = useState<string[]>(() => loadItemFilterStringArray(ITEM_FILTER_MAIN_HAND_TYPES_KEY))
   const [itemFilterOffHandTypes, setItemFilterOffHandTypes] = useState<string[]>(() => loadItemFilterStringArray(ITEM_FILTER_OFF_HAND_TYPES_KEY))
@@ -935,7 +935,7 @@ export default function GearPlanner() {
                   }}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  {Array.from({ length: 34 }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                  {Array.from({ length: ITEM_MAX_LEVEL }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
                 </Select>
               </FormControl>
               <Typography variant="caption">-</Typography>
@@ -950,7 +950,7 @@ export default function GearPlanner() {
                   }}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  {Array.from({ length: 34 }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                  {Array.from({ length: ITEM_MAX_LEVEL }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
                 </Select>
               </FormControl>
             </Stack>
@@ -964,7 +964,7 @@ export default function GearPlanner() {
               }}
               valueLabelDisplay="auto"
               min={1}
-              max={34}
+              max={ITEM_MAX_LEVEL}
               size="small"
             />
           </Box>
@@ -1092,7 +1092,7 @@ export default function GearPlanner() {
           )}
 
           {/* Active filter indicator */}
-          {(itemFilterMinLevel > 1 || itemFilterMaxLevel < 34 || itemFilterArmorTypes.length > 0 || itemFilterMainHandTypes.length > 0 || itemFilterOffHandTypes.length > 0 || itemFilterPacks.length > 0) && (
+          {(itemFilterMinLevel > 1 || itemFilterMaxLevel < ITEM_MAX_LEVEL || itemFilterArmorTypes.length > 0 || itemFilterMainHandTypes.length > 0 || itemFilterOffHandTypes.length > 0 || itemFilterPacks.length > 0) && (
             <Chip
               label="Filters active"
               size="small"

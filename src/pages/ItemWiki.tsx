@@ -24,7 +24,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
-import { Item } from '@/api/ddoGearPlanner'
+import { Item, ITEM_MAX_LEVEL } from '@/api/ddoGearPlanner'
 import ItemTable from '@/components/items/ItemTable'
 import ItemTableFilters from '@/components/items/ItemTableFilters'
 import ItemTableRow from '@/components/items/ItemTableRow'
@@ -135,7 +135,7 @@ export default function ItemWiki() {
   const [effectFilter, setEffectFilter] = useState<string[]>([])
   const [craftingFilter, setCraftingFilter] = useState<string[]>([])
   const [minMl, setMinMl] = useState(1)
-  const [maxMl, setMaxMl] = useState(34)
+  const [maxMl, setMaxMl] = useState(ITEM_MAX_LEVEL)
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
   const [showWishlistOnly, setShowWishlistOnly] = useState(false)
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
@@ -336,7 +336,7 @@ export default function ItemWiki() {
     if (!allItems.length) return []
 
     // If no search and no filters, prevent rendering thousands of items
-    const hasFilters = searchText !== '' || packFilter.length > 0 || questFilter.length > 0 || typeFilter.length > 0 || effectFilter.length > 0 || craftingFilter.length > 0 || minMl !== 1 || maxMl !== 34 || showAvailableOnly || showWishlistOnly
+    const hasFilters = searchText !== '' || packFilter.length > 0 || questFilter.length > 0 || typeFilter.length > 0 || effectFilter.length > 0 || craftingFilter.length > 0 || minMl !== 1 || maxMl !== ITEM_MAX_LEVEL || showAvailableOnly || showWishlistOnly
     if (!hasFilters) {
       return []
     }
@@ -514,7 +514,7 @@ export default function ItemWiki() {
     })
   }, [filteredItems, groupingMode, questNameToPackFuzzy, questByName, wildernessAreaIds])
 
-  const showInitialState = searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && craftingFilter.length === 0 && minMl === 1 && maxMl === 34 && !showAvailableOnly && !showWishlistOnly
+  const showInitialState = searchText === '' && packFilter.length === 0 && questFilter.length === 0 && typeFilter.length === 0 && effectFilter.length === 0 && craftingFilter.length === 0 && minMl === 1 && maxMl === ITEM_MAX_LEVEL && !showAvailableOnly && !showWishlistOnly
   const maxDisplayed = 100
   const isTruncated = filteredItems.length > maxDisplayed
   const displayedItems = isTruncated ? filteredItems.slice(0, maxDisplayed) : filteredItems

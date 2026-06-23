@@ -22,6 +22,8 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 import InventoryIcon from '@mui/icons-material/Inventory'
 import { forwardRef } from 'react'
 
+import { ITEM_MAX_LEVEL } from '@/api/ddoGearPlanner'
+
 interface ItemTableFiltersProps {
   mode?: 'default' | 'wiki'
   searchText: string
@@ -74,7 +76,7 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
   setMlFilter,
   uniqueMLs = [],
   minMl = 1,
-  maxMl = 34,
+  maxMl = ITEM_MAX_LEVEL,
   setMinMl,
   setMaxMl,
   packFilter = [],
@@ -335,11 +337,11 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
                     value={minMl ?? 1}
                     onChange={(e) => {
                       const val = Number(e.target.value)
-                      if (val <= (maxMl ?? 34)) setMinMl(val)
+                      if (val <= (maxMl ?? ITEM_MAX_LEVEL)) setMinMl(val)
                     }}
                     sx={{ fontSize: '0.875rem' }}
                   >
-                    {[...Array(34).keys()].map(i => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                    {Array.from({ length: ITEM_MAX_LEVEL }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
                   </Select>
                 </FormControl>
                 <Typography variant="caption">-</Typography>
@@ -347,19 +349,19 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
                   <Select
                     variant="standard"
                     disableUnderline
-                    value={maxMl ?? 34}
+                    value={maxMl ?? ITEM_MAX_LEVEL}
                     onChange={(e) => {
                       const val = Number(e.target.value)
                       if (val >= (minMl ?? 1)) setMaxMl(val)
                     }}
                     sx={{ fontSize: '0.875rem' }}
                   >
-                    {[...Array(34).keys()].map(i => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                    {Array.from({ length: ITEM_MAX_LEVEL }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
                   </Select>
                 </FormControl>
               </Stack>
               <Slider
-                value={[minMl ?? 1, maxMl ?? 34]}
+                value={[minMl ?? 1, maxMl ?? ITEM_MAX_LEVEL]}
                 onChange={(_, newValue) => {
                   if (Array.isArray(newValue)) {
                     setMinMl(newValue[0])
@@ -368,7 +370,7 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
                 }}
                 valueLabelDisplay="auto"
                 min={1}
-                max={34}
+                max={ITEM_MAX_LEVEL}
                 size="small"
               />
             </Box>

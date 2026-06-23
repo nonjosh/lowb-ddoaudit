@@ -31,7 +31,7 @@ import {
   Typography
 } from '@mui/material'
 
-import { Item } from '@/api/ddoGearPlanner'
+import { Item, ITEM_MAX_LEVEL } from '@/api/ddoGearPlanner'
 import type { CraftingData, SetsData } from '@/api/ddoGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 import { useQuestNameToPack } from '@/hooks/useQuestNameToPack'
@@ -72,7 +72,7 @@ export default function ItemSelectionDialog({
   const [searchTerm, setSearchTerm] = useState('')
   const [showOwnedOnly, setShowOwnedOnly] = useState(false)
   const [minLevel, setMinLevel] = useState<number>(defaultMinLevel ?? 1)
-  const [maxLevel, setMaxLevel] = useState<number>(defaultMaxLevel ?? 34)
+  const [maxLevel, setMaxLevel] = useState<number>(defaultMaxLevel ?? ITEM_MAX_LEVEL)
   const [packFilter, setPackFilter] = useState<string[]>(defaultPackFilter ?? [])
   const { isItemAvailableForCharacters, inventoryMap } = useTrove()
   const questNameToPack = useQuestNameToPack()
@@ -141,13 +141,13 @@ export default function ItemSelectionDialog({
       setSearchTerm('')
       setShowOwnedOnly(false)
       setMinLevel(defaultMinLevel ?? 1)
-      setMaxLevel(defaultMaxLevel ?? 34)
+      setMaxLevel(defaultMaxLevel ?? ITEM_MAX_LEVEL)
       setPackFilter(defaultPackFilter ?? [])
     }
   }, [open, defaultMinLevel, defaultMaxLevel, defaultPackFilter])
 
   const hasActiveFilters = searchTerm !== '' || showOwnedOnly ||
-    minLevel !== (defaultMinLevel ?? 1) || maxLevel !== (defaultMaxLevel ?? 34) ||
+    minLevel !== (defaultMinLevel ?? 1) || maxLevel !== (defaultMaxLevel ?? ITEM_MAX_LEVEL) ||
     packFilter.length !== (defaultPackFilter ?? []).length ||
     packFilter.some((p, i) => p !== (defaultPackFilter ?? [])[i]) ||
     (typeFilter.length > 0 && (typeFilter.length !== defaultTypeFilter.length ||
@@ -157,7 +157,7 @@ export default function ItemSelectionDialog({
     setSearchTerm('')
     setShowOwnedOnly(false)
     setMinLevel(defaultMinLevel ?? 1)
-    setMaxLevel(defaultMaxLevel ?? 34)
+    setMaxLevel(defaultMaxLevel ?? ITEM_MAX_LEVEL)
     setTypeFilter(defaultTypeFilter)
     setPackFilter(defaultPackFilter ?? [])
   }, [defaultTypeFilter, defaultMinLevel, defaultMaxLevel, defaultPackFilter])
@@ -276,7 +276,7 @@ export default function ItemSelectionDialog({
                   }}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  {Array.from({ length: 34 }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                  {Array.from({ length: ITEM_MAX_LEVEL }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
                 </Select>
               </FormControl>
               <Typography variant="caption">-</Typography>
@@ -291,7 +291,7 @@ export default function ItemSelectionDialog({
                   }}
                   sx={{ fontSize: '0.875rem' }}
                 >
-                  {Array.from({ length: 34 }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
+                  {Array.from({ length: ITEM_MAX_LEVEL }, (_, i) => i + 1).map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)}
                 </Select>
               </FormControl>
             </Stack>
@@ -305,7 +305,7 @@ export default function ItemSelectionDialog({
               }}
               valueLabelDisplay="auto"
               min={1}
-              max={34}
+              max={ITEM_MAX_LEVEL}
               size="small"
             />
           </Box>
