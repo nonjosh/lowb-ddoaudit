@@ -16,7 +16,7 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchServerCharacters, getCharacterDisplayName, Quest, ServerCharacter } from '@/api/ddoAudit'
+import { fetchServerCharacters, formatLocalDateTime, getCharacterDisplayName, Quest, ServerCharacter } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { useConfig } from '@/contexts/useConfig'
 import {
@@ -30,14 +30,64 @@ import {
 
 interface QuestLocationPlayersPanelProps {
   questInfo: Quest | null
-  areaName: string | null
   questInfoLoading: boolean
   active: boolean
 }
 
-export default function QuestLocationPlayersPanel({ questInfo, areaName, questInfoLoading, active }: QuestLocationPlayersPanelProps) {
+const DEFAULT_PLAYER_SORT_KEY: PlayerSortKey = 'party'
+const DEFAULT_PLAYER_SORT_DIRECTION: SortDirection = 'desc'
+
+function haveSameCharacterClasses(
+  current: ServerCharacter['classes'],
+  next: ServerCharacter['classes'],
+): boolean {
+  if (current.length !== next.length) return false
+
+  for (let index = 0; index < current.length; index += 1) {
+    const currentClass = current[index]
+    const nextClass = next[index]
+
+    if (currentClass.name !== nextClass.name || currentClass.level !== nextClass.level) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function sortOnlineCharacters(characters: ServerCharacter[]): ServerCharacter[] {
+  return [...characters].sort((a, b) => a.id - b.id)
+}
+
+function haveSameOnlineCharacters(current: ServerCharacter[], next: ServerCharacter[]): boolean {
+  if (current.length !== next.length) return false
+
+  for (let index = 0; index < current.length; index += 1) {
+    const currentCharacter = current[index]
+    const nextCharacter = next[index]
+
+    if (
+      currentCharacter.id !== nextCharacter.id ||
+      currentCharacter.name !== nextCharacter.name ||
+      currentCharacter.race !== nextCharacter.race ||
+      currentCharacter.total_level !== nextCharacter.total_level ||
+      currentCharacter.location_id !== nextCharacter.location_id ||
+      currentCharacter.guild_name !== nextCharacter.guild_name ||
+      currentCharacter.is_in_party !== nextCharacter.is_in_party ||
+      currentCharacter.is_anonymous !== nextCharacter.is_anonymous ||
+      !haveSameCharacterClasses(currentCharacter.classes, nextCharacter.classes)
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+export default function QuestLocationPlayersPanel({ questInfo, questInfoLoading, active }: QuestLocationPlayersPanelProps) {
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playersError, setPlayersError] = useState<string | null>(null)
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
   const [onlineCharacters, setOnlineCharacters] = useState<ServerCharacter[]>([])
   const [reloadToken, setReloadToken] = useState(0)
   const [sortState, setSortState] = useState<{
@@ -46,15 +96,16 @@ export default function QuestLocationPlayersPanel({ questInfo, areaName, questIn
     direction: SortDirection
   }>({
     locationKey: '',
-    key: 'guild',
-    direction: 'asc',
+    key: DEFAULT_PLAYER_SORT_KEY,
+    direction: DEFAULT_PLAYER_SORT_DIRECTION,
   })
   const { showClassIcons } = useConfig()
   const locationKey = `${questInfo?.id ?? ''}:${questInfo?.areaId ?? ''}`
   const questLocationId = questInfo?.id ?? ''
   const areaLocationId = questInfo?.areaId ?? ''
-  const playerSortKey = sortState.locationKey === locationKey ? sortState.key : 'guild'
-  const playerSortDirection = sortState.locationKey === locationKey ? sortState.direction : 'asc'
+  const playerSortKey = sortState.locationKey === locationKey ? sortState.key : DEFAULT_PLAYER_SORT_KEY
+  const playerSortDirection = sortState.locationKey === locationKey ? sortState.direction : DEFAULT_PLAYER_SORT_DIRECTION
+  const hasLoadedPlayers = lastUpdatedAt !== null
 
   useEffect(() => {
     if (!active || !questInfo) return
@@ -69,7 +120,9 @@ export default function QuestLocationPlayersPanel({ questInfo, areaName, questIn
       try {
         const characters = await fetchServerCharacters('shadowdale', { signal: controller.signal })
         if (cancelled) return
-        setOnlineCharacters(characters.filter((character) => character.is_online))
+        const nextOnlineCharacters = sortOnlineCharacters(characters.filter((character) => character.is_online))
+        setOnlineCharacters((current) => (haveSameOnlineCharacters(current, nextOnlineCharacters) ? current : nextOnlineCharacters))
+        setLastUpdatedAt(new Date())
       } catch (error: unknown) {
         if (cancelled) return
         if (error instanceof DOMException && error.name === 'AbortError') return
@@ -141,20 +194,25 @@ export default function QuestLocationPlayersPanel({ questInfo, areaName, questIn
           {playersError}
         </Alert>
       )}
-      {!playersLoading && !playersError && (
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          <Chip
-            size="small"
-            color="primary"
-            variant="outlined"
-            label={`${playersInLocation.length} in location`}
-          />
-          <Chip
-            size="small"
-            variant="outlined"
-            label={`${onlineCharacters.length} online server-wide`}
-          />
-          {areaName && <Chip size="small" variant="outlined" label={areaName} />}
+      {hasLoadedPlayers && (
+        <Stack spacing={0.75}>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Chip
+              size="small"
+              color="primary"
+              variant="outlined"
+              label={`${playersInLocation.length} in location`}
+            />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`${onlineCharacters.length} online server-wide`}
+            />
+            {playersLoading && <Chip size="small" color="info" variant="outlined" label="Refreshing..." />}
+          </Stack>
+          <Typography variant="caption" color="text.secondary">
+            Last updated: {formatLocalDateTime(lastUpdatedAt, { includeSeconds: true })}
+          </Typography>
         </Stack>
       )}
       {questInfoLoading ? (
@@ -168,13 +226,15 @@ export default function QuestLocationPlayersPanel({ questInfo, areaName, questIn
         <Alert severity="info">
           Quest location data is unavailable for this quest.
         </Alert>
-      ) : playersLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
-          <CircularProgress size={24} />
-          <Typography variant="body2" sx={{ ml: 2 }}>
-            Loading server player data...
-          </Typography>
-        </Box>
+      ) : !hasLoadedPlayers ? (
+        playersError ? null : (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+            <CircularProgress size={24} />
+            <Typography variant="body2" sx={{ ml: 2 }}>
+              Loading server player data...
+            </Typography>
+          </Box>
+        )
       ) : sortedPlayersInLocation.length === 0 ? (
         <Alert severity="info">
           No online players are currently in this location.
@@ -216,7 +276,7 @@ export default function QuestLocationPlayersPanel({ questInfo, areaName, questIn
                 <TableCell sortDirection={playerSortKey === 'party' ? playerSortDirection : false}>
                   <TableSortLabel
                     active={playerSortKey === 'party'}
-                    direction={playerSortKey === 'party' ? playerSortDirection : 'asc'}
+                    direction={playerSortKey === 'party' ? playerSortDirection : 'desc'}
                     onClick={() => handleSortRequest('party')}
                   >
                     Party

@@ -253,7 +253,6 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
         ) : (
           <QuestLocationPlayersPanel
             questInfo={questInfo}
-            areaName={areaName}
             questInfoLoading={questInfoLoading}
             active={open && dialogView === 'players'}
           />
