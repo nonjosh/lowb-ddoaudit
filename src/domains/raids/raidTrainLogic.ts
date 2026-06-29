@@ -52,6 +52,19 @@ function normalizeRaidSearchText(value: string): string {
     .replace(/\s+/g, ' ')
 }
 
+function buildRaidNameCandidates(raidName: string): Set<string> {
+  const words = normalizeRaidSearchText(raidName).split(' ').filter(Boolean)
+  const candidates = new Set<string>()
+
+  for (let length = words.length; length >= 1; length -= 1) {
+    for (let start = 0; start <= words.length - length; start += 1) {
+      candidates.add(words.slice(start, start + length).join(' '))
+    }
+  }
+
+  return candidates
+}
+
 function findRaidByCandidate(candidate: string, raidGroups: RaidGroup[]): RaidGroup | null {
   const expanded = RAID_ABBREVIATIONS[candidate]
   if (expanded) {
@@ -69,10 +82,9 @@ function findRaidByCandidate(candidate: string, raidGroups: RaidGroup[]): RaidGr
     }
   }
 
-  if (candidate.length >= 3) {
-    const matches = raidGroups.filter(
-      (g) => normalizeRaidSearchText(g.raidName).includes(candidate),
-    )
+  const candidateWords = candidate.split(' ').filter(Boolean)
+  if (candidateWords.length > 1 || candidate.length >= 5) {
+    const matches = raidGroups.filter((g) => buildRaidNameCandidates(g.raidName).has(candidate))
     if (matches.length === 1) return matches[0]
   }
 

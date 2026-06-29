@@ -8,9 +8,12 @@ import ItemLootDialog from './ItemLootDialog'
 
 interface ItemLootButtonProps {
   questName: string
+  questId?: string | null
+  areaId?: string | null
+  questLevelHint?: number | null
 }
 
-export default function ItemLootButton({ questName }: ItemLootButtonProps) {
+export default function ItemLootButton({ questName, questId, areaId, questLevelHint }: ItemLootButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const handleClick = (e: MouseEvent) => {
@@ -43,6 +46,9 @@ export default function ItemLootButton({ questName }: ItemLootButtonProps) {
         open={dialogOpen}
         onClose={handleClose}
         questName={questName}
+        questId={questId}
+        areaId={areaId}
+        questLevelHint={questLevelHint}
       />
     </>
   )

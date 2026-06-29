@@ -231,7 +231,12 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
                                 <FavoriteIcon sx={{ width: 16, height: 16, color: 'error.main' }} />
                               </Tooltip>
                             ) : null}
-                            <ItemLootButton questName={l.questName} />
+                            <ItemLootButton
+                              questName={l.questName}
+                              questId={l.questId}
+                              areaId={l.areaId}
+                              questLevelHint={l.questLevel}
+                            />
                           </Box>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Typography variant="caption" color="text.secondary">

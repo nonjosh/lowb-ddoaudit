@@ -101,7 +101,7 @@ export default function QuestGroupCard({
       <ItemLootDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        questName={normalizedQuestName}
+        questName={questName}
         questId={matchingQuestInfo?.id ?? null}
         areaId={matchingQuestInfo?.areaId ?? null}
         locationIds={locationIds}

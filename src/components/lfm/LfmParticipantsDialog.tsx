@@ -167,7 +167,14 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
                   </Typography>
                 )}
               </Typography>
-              {selectedLfm?.questName && <ItemLootButton questName={selectedLfm.questName} />}
+              {selectedLfm?.questName && (
+                <ItemLootButton
+                  questName={selectedLfm.questName}
+                  questId={selectedLfm.questId}
+                  areaId={selectedLfm.areaId}
+                  questLevelHint={selectedLfm.questLevel}
+                />
+              )}
               {selectedLfm?.questName && <DdoWikiLink questName={selectedLfm.questName} />}
               {runeInfo && runeInfo.map(({ name, count, iconSource }) => (
                 <Tooltip key={name} title={name}>

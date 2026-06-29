@@ -22,7 +22,7 @@ import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
-import { getItemsForQuest } from '@/utils/itemLootHelpers'
+import { getItemsForQuest, getRequestedQuestTier, stripQuestTierSuffix } from '@/utils/itemLootHelpers'
 
 import ItemLootTable from './ItemLootTable'
 
@@ -32,6 +32,7 @@ interface ItemLootDialogProps {
   questName: string
   questId?: string | null
   areaId?: string | null
+  questLevelHint?: number | null
   locationIds?: string[]
   showLocationPlayersToggle?: boolean
 }
@@ -46,14 +47,14 @@ interface QuestMetadataState {
 }
 
 function normalizeQuestDisplayName(name: string): string {
-  return name.replace(/ \((Heroic|Epic)\)$/, '')
+  return stripQuestTierSuffix(name)
 }
 
 function buildQuestMetadataRequestKey(questName: string, questId?: string | null, areaId?: string | null, locationIds: string[] = []): string {
   return [questName, questId ?? '', areaId ?? '', ...locationIds].join('|')
 }
 
-export default function ItemLootDialog({ open, onClose, questName, questId, areaId, locationIds, showLocationPlayersToggle = false }: ItemLootDialogProps) {
+export default function ItemLootDialog({ open, onClose, questName, questId, areaId, questLevelHint, locationIds, showLocationPlayersToggle = false }: ItemLootDialogProps) {
   const normalizedQuestName = useMemo(() => normalizeQuestDisplayName(questName), [questName])
   const normalizedLocationIds = useMemo(
     () => Array.from(new Set((locationIds ?? []).map((id) => String(id)))).sort(),
@@ -77,6 +78,19 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
   const questInfo = activeQuestMetadata?.questInfo ?? null
   const areaName = activeQuestMetadata?.areaName ?? null
   const questInfoLoading = activeQuestMetadata?.loading ?? false
+  const requestedQuestTier = useMemo(
+    () => getRequestedQuestTier(questName, questLevelHint, questInfo),
+    [questInfo, questLevelHint, questName],
+  )
+  const displayQuestName = questInfo?.name ?? normalizedQuestName
+  const displayQuestLevel = useMemo(() => {
+    if (typeof questLevelHint === 'number') return questLevelHint
+    if (requestedQuestTier === 'heroic') return questInfo?.heroicLevel ?? questInfo?.level ?? null
+    if (requestedQuestTier === 'epic' || requestedQuestTier === 'legendary') {
+      return questInfo?.epicLevel ?? questInfo?.level ?? null
+    }
+    return questInfo?.level ?? null
+  }, [questInfo, questLevelHint, requestedQuestTier])
 
   const handleClose = () => {
     setDialogView('loot')
@@ -151,7 +165,10 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
     }
   }, [open, items.length, loading, refresh])
 
-  const questItems = useMemo(() => getItemsForQuest(items, questName, craftingData), [items, questName, craftingData])
+  const questItems = useMemo(() => getItemsForQuest(items, questName, craftingData, {
+    questInfo,
+    questLevelHint,
+  }), [craftingData, items, questInfo, questLevelHint, questName])
 
   const raidNotes = getRaidNotesForRaidName(questName)
 
@@ -170,13 +187,14 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Typography variant="h6" component="div">
-                {questName}
+                {displayQuestName}
               </Typography>
+              {requestedQuestTier && <Chip label={requestedQuestTier} size="small" variant="outlined" sx={{ ml: 1, textTransform: 'capitalize' }} />}
               {questInfo?.type === 'Raid' && <Chip label="Raid" size="small" variant="outlined" sx={{ ml: 1 }} />}
-              <DdoWikiLink questName={questName} />
+              <DdoWikiLink questName={displayQuestName} />
             </Box>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-              {questInfo?.level && <Chip label={`Level ${questInfo.level}`} size="small" color="primary" variant="outlined" />}
+              {displayQuestLevel && <Chip label={`Level ${displayQuestLevel}`} size="small" color="primary" variant="outlined" />}
               {areaName && <Typography variant="caption" color="text.secondary">{areaName}</Typography>}
             </Stack>
           </Box>
@@ -248,7 +266,7 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
                 )}
               </Box>
             )}
-            <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} questLevel={questInfo?.level ?? undefined} />
+            <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} questLevel={displayQuestLevel ?? undefined} />
           </>
         ) : (
           <QuestLocationPlayersPanel
