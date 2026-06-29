@@ -60,6 +60,7 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
     () => Array.from(new Set((locationIds ?? []).map((id) => String(id)))).sort(),
     [locationIds],
   )
+  const normalizedLocationIdsKey = useMemo(() => normalizedLocationIds.join('|'), [normalizedLocationIds])
   const metadataRequestKey = useMemo(
     () => buildQuestMetadataRequestKey(questName, questId, areaId, normalizedLocationIds),
     [areaId, normalizedLocationIds, questId, questName],
@@ -103,6 +104,8 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
     let cancelled = false
 
     const loadQuestMetadata = async () => {
+      const locationHintIds = normalizedLocationIdsKey ? normalizedLocationIdsKey.split('|') : []
+
       setQuestMetadata({
         requestKey: metadataRequestKey,
         questInfo: null,
@@ -116,7 +119,7 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
 
         const questByQuestId = questId ? quests[String(questId)] ?? null : null
         const questByAreaId = areaId ? quests[String(areaId)] ?? null : null
-        const questByLocationHint = normalizedLocationIds
+        const questByLocationHint = locationHintIds
           .map((id) => quests[String(id)] ?? null)
           .find((quest) => quest && normalizeQuestDisplayName(quest.name) === normalizedQuestName) ?? null
         const found = questByQuestId
@@ -156,7 +159,7 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
     return () => {
       cancelled = true
     }
-  }, [areaId, metadataRequestKey, normalizedLocationIds, normalizedQuestName, open, questId, questName])
+  }, [areaId, metadataRequestKey, normalizedLocationIdsKey, normalizedQuestName, open, questId, questName])
 
   useEffect(() => {
     if (!open) return

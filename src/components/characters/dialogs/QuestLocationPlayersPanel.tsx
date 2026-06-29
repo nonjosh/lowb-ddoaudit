@@ -14,7 +14,7 @@ import {
   TableSortLabel,
   Typography,
 } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 
 import { fetchServerCharacters, formatLocalDateTime, getCharacterDisplayName, Quest, ServerCharacter } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
@@ -84,7 +84,19 @@ function haveSameOnlineCharacters(current: ServerCharacter[], next: ServerCharac
   return true
 }
 
-export default function QuestLocationPlayersPanel({ questInfo, questInfoLoading, active }: QuestLocationPlayersPanelProps) {
+function areQuestLocationPlayersPanelPropsEqual(
+  prev: QuestLocationPlayersPanelProps,
+  next: QuestLocationPlayersPanelProps,
+): boolean {
+  return (
+    prev.active === next.active
+    && prev.questInfoLoading === next.questInfoLoading
+    && prev.questInfo?.id === next.questInfo?.id
+    && prev.questInfo?.areaId === next.questInfo?.areaId
+  )
+}
+
+function QuestLocationPlayersPanel({ questInfo, questInfoLoading, active }: QuestLocationPlayersPanelProps) {
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playersError, setPlayersError] = useState<string | null>(null)
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
@@ -327,3 +339,5 @@ export default function QuestLocationPlayersPanel({ questInfo, questInfoLoading,
     </Stack>
   )
 }
+
+export default memo(QuestLocationPlayersPanel, areQuestLocationPlayersPanelPropsEqual)
