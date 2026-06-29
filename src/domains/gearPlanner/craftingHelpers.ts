@@ -245,8 +245,13 @@ export function getAvailableCraftingOptions(
  */
 export function filterCraftingOptionsByML(
   options: CraftingOption[],
-  maxML: number
+  maxML: number,
+  slotType?: string,
 ): CraftingOption[] {
+  if (slotType && isAugmentSlot(slotType)) {
+    return options
+  }
+
   return options.filter(option => {
     // Options without ML requirement are always available
     if (option.ml === undefined) return true
@@ -260,12 +265,13 @@ export function filterCraftingOptionsByML(
  */
 function filterValidCraftingOptions(
   options: CraftingOption[],
+  slotType: string,
   itemML: number,
   excludeSetAugments: boolean,
   excludedAugments: string[],
   excludedPacks: string[]
 ): CraftingOption[] {
-  let validOptions = filterCraftingOptionsByML(options, itemML)
+  let validOptions = filterCraftingOptionsByML(options, itemML, slotType)
 
   if (excludeSetAugments) {
     validOptions = validOptions.filter(option => !option.set)
@@ -349,7 +355,7 @@ export function findBestCraftingOption(
   }
 
   const options = getAvailableCraftingOptions(craftingData, slotType, itemName)
-  const validOptions = filterValidCraftingOptions(options, itemML, excludeSetAugments, excludedAugments, excludedPacks)
+  const validOptions = filterValidCraftingOptions(options, slotType, itemML, excludeSetAugments, excludedAugments, excludedPacks)
 
   if (validOptions.length === 0) {
     return null
@@ -727,7 +733,7 @@ export function autoSelectCraftingOptionsForGearSetup(
       // and set bonus value (for pure-set options like Random set 1/2 on Gem of Many Facets)
       if (isSetBonusSlot(slotType)) {
         const options = getAvailableCraftingOptions(craftingData, slotType, item.name)
-        const validOptions = filterValidCraftingOptions(options, item.ml, excludeSetAugments, excludedAugments, excludedPacks)
+        const validOptions = filterValidCraftingOptions(options, slotType, item.ml, excludeSetAugments, excludedAugments, excludedPacks)
 
         // Score options using both affix scoring and set bonus scoring
         let bestOption: CraftingOption | null = null
@@ -767,7 +773,7 @@ export function autoSelectCraftingOptionsForGearSetup(
       // For augment slots AND affix selection slots, collect as candidates
       // This ensures we don't slot multiple Dolorous/Melancholic with same bonus type
       const options = getAvailableCraftingOptions(craftingData, slotType, item.name)
-      const validOptions = filterValidCraftingOptions(options, item.ml, false, excludedAugments, excludedPacks)
+      const validOptions = filterValidCraftingOptions(options, slotType, item.ml, false, excludedAugments, excludedPacks)
 
       for (const option of validOptions) {
         // Check if this is a Set Augment (has a set property)

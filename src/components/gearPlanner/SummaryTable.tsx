@@ -540,6 +540,7 @@ export default function SummaryTable({
                       <Tooltip title={tooltipContent} arrow>
                         <span style={{ color: canBeImproved ? '#ff9800' : undefined }}>
                           +{displayValue}
+                          {canBeImproved ? `/${maxForBonusType}` : ''}
                         </span>
                       </Tooltip>
                     </TableCell>

@@ -32,6 +32,12 @@ Blue, Red, Yellow, Green, Purple, Orange, Colorless, Moon, Sun
 | Moon          | Moon only                                |
 | Sun           | Sun only                                 |
 
+## ML Filtering Rule
+
+- **Augment slots are not capped by the parent item's ML** in this planner.
+- The item ML cap still applies to non-augment crafting options and affix-selection slots.
+- This distinction matters in both manual augment selection dialogs and auto-selection logic.
+
 ## Crafting Slot Categories
 
 ```typescript

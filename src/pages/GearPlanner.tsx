@@ -76,6 +76,12 @@ interface HoveredBonusSource {
   augmentNames?: string[]
 }
 
+interface EvaluationOverrides {
+  excludeSetAugments?: boolean
+  excludedAugments?: string[]
+  excludedPacks?: string[]
+}
+
 function loadSelectedProperties(): string[] {
   try {
     const stored = localStorage.getItem(SELECTED_PROPERTIES_KEY)
@@ -424,16 +430,57 @@ export default function GearPlanner() {
     localStorage.setItem(ITEM_FILTER_PACKS_KEY, JSON.stringify(v))
   }, [])
 
+  const sanitizeCraftingSelections = useCallback((
+    selections: GearCraftingSelections | undefined,
+    overrides: EvaluationOverrides = {},
+  ): GearCraftingSelections | undefined => {
+    if (!selections) return undefined
+
+    const nextExcludeSetAugments = overrides.excludeSetAugments ?? excludeSetAugments
+    const nextExcludedAugments = overrides.excludedAugments ?? excludedAugments
+    const nextExcludedPacks = overrides.excludedPacks ?? excludedPacks
+    let changed = false
+
+    const sanitized: GearCraftingSelections = Object.fromEntries(
+      Object.entries(selections).map(([gearSlot, slotSelections]) => [
+        gearSlot,
+        slotSelections.map((selection) => {
+          const option = selection.option
+          if (!option) return selection
+
+          const isExcludedByName = option.name ? nextExcludedAugments.includes(option.name) : false
+          const isExcludedBySet = nextExcludeSetAugments && Boolean(option.set)
+          const isExcludedByPack = option.quests?.some((quest) => nextExcludedPacks.includes(quest)) ?? false
+
+          if (!isExcludedByName && !isExcludedBySet && !isExcludedByPack) {
+            return selection
+          }
+
+          changed = true
+          return { ...selection, option: null }
+        }),
+      ]),
+    )
+
+    return changed ? sanitized : selections
+  }, [excludeSetAugments, excludedAugments, excludedPacks])
+
   // Helper to evaluate a gear setup and build an EvaluatedGearSetup
   const buildEvaluatedSetup = useCallback((
     setup: GearSetup,
     properties: string[],
-    existingCraftingSelections?: Parameters<typeof evaluateGearSetup>[7]
+    existingCraftingSelections?: Parameters<typeof evaluateGearSetup>[7],
+    overrides: EvaluationOverrides = {},
   ): EvaluatedGearSetup => {
+    const resolvedExcludeSetAugments = overrides.excludeSetAugments ?? excludeSetAugments
+    const resolvedExcludedAugments = overrides.excludedAugments ?? excludedAugments
+    const resolvedExcludedPacks = overrides.excludedPacks ?? excludedPacks
+    const sanitizedSelections = sanitizeCraftingSelections(existingCraftingSelections, overrides)
+
     const result = evaluateGearSetup(
-      setup, properties, setsData, craftingData, excludeSetAugments,
-      excludedAugments, excludedPacks,
-      existingCraftingSelections
+      setup, properties, setsData, craftingData, resolvedExcludeSetAugments,
+      resolvedExcludedAugments, resolvedExcludedPacks,
+      sanitizedSelections
     )
     return {
       setup,
@@ -444,9 +491,9 @@ export default function GearPlanner() {
       extraProperties: result.extraProperties,
       otherEffects: result.otherEffects,
       activeSets: result.activeSets,
-      craftingSelections: existingCraftingSelections ?? result.craftingSelections
+      craftingSelections: sanitizedSelections ?? result.craftingSelections
     }
-  }, [setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks])
+  }, [setsData, craftingData, excludeSetAugments, excludedAugments, excludedPacks, sanitizeCraftingSelections])
 
   // Helper: load a saved gear setup by ID and apply it to the current state
   const applyLoadedSetup = useCallback(async (id: number) => {
@@ -606,12 +653,56 @@ export default function GearPlanner() {
   const handleExcludedPacksChange = useCallback((packs: string[]) => {
     setExcludedPacks(packs)
     saveExcludedPacks(packs)
-  }, [])
+    if (!currentSetup) return
+
+    const existingSelections = autoOptimize
+      ? undefined
+      : sanitizeCraftingSelections(currentSetup.craftingSelections, { excludedPacks: packs })
+    const evaluated = buildEvaluatedSetup(
+      currentSetup.setup,
+      selectedProperties,
+      existingSelections,
+      { excludedPacks: packs },
+    )
+    setCurrentSetup(evaluated)
+    setIsDirty(true)
+  }, [autoOptimize, buildEvaluatedSetup, currentSetup, sanitizeCraftingSelections, selectedProperties])
 
   const handleExcludedAugmentsChange = useCallback((augments: string[]) => {
     setExcludedAugments(augments)
     saveExcludedAugments(augments)
-  }, [])
+    if (!currentSetup) return
+
+    const existingSelections = autoOptimize
+      ? undefined
+      : sanitizeCraftingSelections(currentSetup.craftingSelections, { excludedAugments: augments })
+    const evaluated = buildEvaluatedSetup(
+      currentSetup.setup,
+      selectedProperties,
+      existingSelections,
+      { excludedAugments: augments },
+    )
+    setCurrentSetup(evaluated)
+    setIsDirty(true)
+  }, [autoOptimize, buildEvaluatedSetup, currentSetup, sanitizeCraftingSelections, selectedProperties])
+
+  const handleExcludeSetAugmentsChange = useCallback((exclude: boolean) => {
+    setExcludeSetAugments(exclude)
+    saveExcludeSetAugments(exclude)
+    if (!currentSetup) return
+
+    const existingSelections = autoOptimize
+      ? undefined
+      : sanitizeCraftingSelections(currentSetup.craftingSelections, { excludeSetAugments: exclude })
+    const evaluated = buildEvaluatedSetup(
+      currentSetup.setup,
+      selectedProperties,
+      existingSelections,
+      { excludeSetAugments: exclude },
+    )
+    setCurrentSetup(evaluated)
+    setIsDirty(true)
+  }, [autoOptimize, buildEvaluatedSetup, currentSetup, sanitizeCraftingSelections, selectedProperties])
 
   const handleExcludedItemsChange = useCallback((newItems: string[]) => {
     setExcludedItems(newItems)
@@ -799,6 +890,13 @@ export default function GearPlanner() {
     setCurrentSetup(evaluated)
     setIsDirty(true)
   }, [currentSetup, selectedProperties, buildEvaluatedSetup])
+
+  const handleCraftingSelectionsChange = useCallback((selections: GearCraftingSelections) => {
+    const setupToUse = currentSetup?.setup ?? {}
+    const evaluated = buildEvaluatedSetup(setupToUse, selectedProperties, selections)
+    setCurrentSetup(evaluated)
+    setIsDirty(true)
+  }, [buildEvaluatedSetup, currentSetup, selectedProperties])
 
   if (loading && items.length === 0) {
     return (
@@ -1121,10 +1219,7 @@ export default function GearPlanner() {
             onApplySetup={handleApplySetup}
             ownedItemNames={ownedItemNames}
             hasTroveData={hasTroveData}
-            onExcludeSetAugmentsChange={(exclude) => {
-              setExcludeSetAugments(exclude)
-              saveExcludeSetAugments(exclude)
-            }}
+            onExcludeSetAugmentsChange={handleExcludeSetAugmentsChange}
             itemFilters={itemFilters}
           />
         </Paper>
@@ -1165,6 +1260,7 @@ export default function GearPlanner() {
             excludedAugments={excludedAugments}
             onExcludedAugmentsChange={handleExcludedAugmentsChange}
             onCraftingChange={handleCraftingChange}
+            onCraftingSelectionsChange={handleCraftingSelectionsChange}
             itemFilters={itemFilters}
             headerSlot={
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

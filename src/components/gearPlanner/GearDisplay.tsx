@@ -4,14 +4,19 @@ import { useState, useMemo } from 'react'
 
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import BlockIcon from '@mui/icons-material/Block'
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
+import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined'
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import LaunchIcon from '@mui/icons-material/Launch'
 import PushPinIcon from '@mui/icons-material/PushPin'
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
+import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined'
 import {
   Box,
   Card,
@@ -31,6 +36,17 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  MouseSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 
 import { Item, ItemAffix, SetsData, CraftingData, CraftingOption } from '@/api/ddoGearPlanner'
 import { artifactBorderLabelSx } from '@/components/shared/artifactStyles'
@@ -39,10 +55,14 @@ import { isRaidItem } from '@/domains/quests/questHelpers'
 import type { ItemFilterState } from '@/pages/GearPlanner'
 import { useRaidQuestNames } from '@/hooks/useRaidQuestNames'
 import {
+  canAugmentFitInSlot,
   GearCraftingSelections,
   GearSetup,
+  getAugmentColorFromName,
+  getAugmentSlotColor,
   getCraftingSetMemberships,
   getOffHandWarning,
+  isAugmentSlot,
   isOffHandBlocked,
   isOffHandRuneArmOnly,
   isRuneArm,
@@ -89,10 +109,28 @@ interface GearDisplayProps {
   excludedAugments?: string[]
   onExcludedAugmentsChange?: (augments: string[]) => void
   onCraftingChange?: (gearSlot: string, slotIndex: number, option: CraftingOption | null) => void
+  onCraftingSelectionsChange?: (selections: GearCraftingSelections) => void
   /** Optional content rendered beside the "Selected Gear Setup" title (e.g. tabs) */
   headerSlot?: ReactNode
   /** Page-level item filters (passed as defaults to item selection dialogs) */
   itemFilters?: ItemFilterState
+}
+
+interface AugmentSlotReference {
+  gearSlot: string
+  slotIndex: number
+}
+
+function getAugmentSlotId(reference: AugmentSlotReference): string {
+  return `${reference.gearSlot}:${reference.slotIndex}`
+}
+
+function parseAugmentSlotId(value: string): AugmentSlotReference | null {
+  const [gearSlot, indexValue] = value.split(':')
+  if (!gearSlot || indexValue === undefined) return null
+  const slotIndex = Number(indexValue)
+  if (Number.isNaN(slotIndex)) return null
+  return { gearSlot, slotIndex }
 }
 
 const slotDisplayNames: Record<string, string> = {
@@ -129,7 +167,118 @@ function getAugmentColor(text: string): string | undefined {
   if (lower.includes('purple augment slot')) return '#9c27b0'
   if (lower.includes('orange augment slot')) return '#ff9800'
   if (lower.includes('colorless augment slot')) return '#e0e0e0'
+  if (lower.includes('moon augment slot')) return '#607d8b'
+  if (lower.includes('sun augment slot')) return '#fbc02d'
   return undefined
+}
+
+function renderAugmentMarker(text: string): ReactNode | null {
+  const lower = text.toLowerCase()
+  const iconSx = { fontSize: 13 }
+
+  if (lower.includes('colorless augment') || lower.includes('diamond') || lower.includes('set augment')) {
+    return <DiamondOutlinedIcon sx={iconSx} />
+  }
+
+  if (/\bmoon\b/.test(lower)) {
+    return <DarkModeOutlinedIcon sx={iconSx} />
+  }
+
+  if (/\bsun\b/.test(lower)) {
+    return <WbSunnyOutlinedIcon sx={iconSx} />
+  }
+
+  const color = getAugmentColor(text)
+  if (!color) return null
+
+  return <FiberManualRecordIcon sx={{ fontSize: 10, color }} />
+}
+
+function getCraftingOptionTooltipContent(option: CraftingOption | null | undefined): ReactNode | null {
+  if (!option) return null
+
+  const affixes = option.affixes ?? []
+  if (affixes.length === 0 && !option.set) return null
+
+  return (
+    <Box>
+      {affixes.map((affix, idx) => (
+        <Typography key={`${affix.name}-${idx}`} variant="caption" display="block">
+          {formatAffix(affix)}
+        </Typography>
+      ))}
+      {option.set && (
+        <Typography variant="caption" display="block" color="secondary.light">
+          Set: {option.set}
+        </Typography>
+      )}
+    </Box>
+  )
+}
+
+function AugmentDropSlot({
+  slotId,
+  slotType,
+  activeDragAugmentId,
+  isFilled,
+  isCompatible,
+  children,
+}: {
+  slotId: string
+  slotType: string
+  activeDragAugmentId: string | null
+  isFilled: boolean
+  isCompatible: boolean
+  children: ReactNode
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: slotId,
+    disabled: !isAugmentSlot(slotType),
+  })
+
+  return (
+    <Box
+      ref={setNodeRef}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        borderRadius: 0.5,
+        outline: isOver && activeDragAugmentId ? '2px solid' : undefined,
+        outlineColor: isOver ? (isCompatible ? 'success.main' : 'warning.main') : undefined,
+        backgroundColor: isOver && !isCompatible ? 'action.hover' : 'transparent',
+        opacity: activeDragAugmentId === slotId && isFilled ? 0.45 : 1,
+      }}
+    >
+      {children}
+    </Box>
+  )
+}
+
+function DraggableAugmentHandle({ slotId, children }: { slotId: string; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useDraggable({ id: slotId })
+
+  return (
+    <Box
+      ref={setNodeRef}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+      }}
+    >
+      <IconButton
+        size="small"
+        sx={{ p: 0.25, cursor: isDragging ? 'grabbing' : 'grab' }}
+        {...listeners}
+        {...attributes}
+      >
+        <DragIndicatorIcon sx={{ fontSize: 14 }} />
+      </IconButton>
+      {children}
+    </Box>
+  )
 }
 
 // Convert augment name to ddowiki URL format
@@ -617,8 +766,11 @@ function GearSlotCard({
                 const selectedOptionName = selection?.option
                   ? generateCraftingOptionName(selection.option)
                   : null
+                const selectedOptionTooltip = getCraftingOptionTooltipContent(selection?.option)
                 const canEdit = !!onCraftingChange && !!craftingData
                 const augmentAffixes = selection?.option?.affixes ?? []
+                const slotMarker = renderAugmentMarker(craftingSlot)
+                const selectedOptionMarker = selectedOptionName ? renderAugmentMarker(selectedOptionName) : null
                 return (
                   <Box key={idx} sx={{ mb: 0.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, flexWrap: 'wrap' }}>
@@ -631,19 +783,28 @@ function GearSlotCard({
                           py: 0.25,
                           borderRadius: 0.5,
                           fontSize: '0.7rem',
-                          display: 'inline-block',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.5,
                           lineHeight: 1.2,
                           flexShrink: 0
                         }}
                       >
+                        {slotMarker}
                         {craftingSlot}
                       </Box>
                       {canEdit ? (
-                        <Tooltip title="Click to change augment / crafting option">
+                        <Tooltip
+                          title={selectedOptionTooltip ?? 'Click to change augment / crafting option'}
+                          disableHoverListener={!selectedOptionTooltip}
+                        >
                           <Box
                             component="span"
                             onClick={() => setAugmentDialogIndex(idx)}
                             sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.5,
                               fontSize: '0.7rem',
                               color: selectedOptionName ? 'text.primary' : 'text.disabled',
                               cursor: 'pointer',
@@ -653,13 +814,17 @@ function GearSlotCard({
                               '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
                             }}
                           >
+                            {selectedOptionMarker}
                             {selectedOptionName ?? '(empty)'}
                           </Box>
                         </Tooltip>
                       ) : selectedOptionName ? (
-                        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
-                          {selectedOptionName}
-                        </Typography>
+                        <Tooltip title={selectedOptionTooltip ?? ''} disableHoverListener={!selectedOptionTooltip}>
+                          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4, display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                            {selectedOptionMarker}
+                            {selectedOptionName}
+                          </Typography>
+                        </Tooltip>
                       ) : null}
                     </Box>
                     {/* Augment affixes with strikethrough for non-stacking */}
@@ -768,6 +933,7 @@ export default function GearDisplay({
   excludedAugments = [],
   onExcludedAugmentsChange,
   onCraftingChange,
+  onCraftingSelectionsChange,
   headerSlot,
   itemFilters,
 }: GearDisplayProps) {
@@ -776,6 +942,7 @@ export default function GearDisplay({
   const [craftingExpanded, setCraftingExpanded] = useState(() => !!onCraftingChange)
   const [setDialogOpen, setSetDialogOpen] = useState(false)
   const [selectedSetName, setSelectedSetName] = useState<string>('')
+  const [activeDragAugmentId, setActiveDragAugmentId] = useState<string | null>(null)
   const [summaryAugmentDialog, setSummaryAugmentDialog] = useState<{
     slotType: string
     gearSlot: string
@@ -785,6 +952,7 @@ export default function GearDisplay({
     currentOption: CraftingOption | null
   } | null>(null)
   const slots = gearSlots
+  const dragSensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 6 } }))
 
   // Show all slots, not just equipped ones
   const allSlots = slots
@@ -994,6 +1162,76 @@ export default function GearDisplay({
 
     return map
   }, [availableItems, setup.mainHand])
+
+  const getResolvedCraftingSelections = (gearSlot: string): SelectedCraftingOption[] => {
+    const existingSelections = craftingSelections?.[gearSlot]
+    if (existingSelections) return existingSelections.map((selection) => ({ ...selection }))
+
+    const item = getItemForSlot(setup, gearSlot)
+    return item?.crafting?.map((slotType) => ({ slotType, option: null })) ?? []
+  }
+
+  const canDropAugmentIntoSlot = (option: CraftingOption | null | undefined, targetSlotType: string): boolean => {
+    if (!option || !isAugmentSlot(targetSlotType)) return false
+
+    const augmentColor = getAugmentColorFromName(generateCraftingOptionName(option))
+    const targetSlotColor = getAugmentSlotColor(targetSlotType)
+    if (!augmentColor || !targetSlotColor) return false
+
+    return canAugmentFitInSlot(augmentColor, targetSlotColor)
+  }
+
+  const handleAugmentDragStart = (event: DragStartEvent) => {
+    setActiveDragAugmentId(String(event.active.id))
+  }
+
+  const handleAugmentDragEnd = (event: DragEndEvent) => {
+    setActiveDragAugmentId(null)
+
+    if (!onCraftingSelectionsChange || !event.over) return
+
+    const sourceRef = parseAugmentSlotId(String(event.active.id))
+    const targetRef = parseAugmentSlotId(String(event.over.id))
+    if (!sourceRef || !targetRef) return
+    if (sourceRef.gearSlot === targetRef.gearSlot && sourceRef.slotIndex === targetRef.slotIndex) return
+
+    const sourceItem = getItemForSlot(setup, sourceRef.gearSlot)
+    const targetItem = getItemForSlot(setup, targetRef.gearSlot)
+    const sourceSlotType = sourceItem?.crafting?.[sourceRef.slotIndex]
+    const targetSlotType = targetItem?.crafting?.[targetRef.slotIndex]
+    if (!sourceItem || !targetItem || !sourceSlotType || !targetSlotType) return
+    if (!isAugmentSlot(sourceSlotType) || !isAugmentSlot(targetSlotType)) return
+
+    const nextSelections: GearCraftingSelections = {
+      ...(craftingSelections ?? {}),
+      [sourceRef.gearSlot]: getResolvedCraftingSelections(sourceRef.gearSlot),
+      [targetRef.gearSlot]: sourceRef.gearSlot === targetRef.gearSlot
+        ? getResolvedCraftingSelections(sourceRef.gearSlot)
+        : getResolvedCraftingSelections(targetRef.gearSlot),
+    }
+
+    const sourceSelections = nextSelections[sourceRef.gearSlot]
+    const targetSelections = sourceRef.gearSlot === targetRef.gearSlot
+      ? sourceSelections
+      : nextSelections[targetRef.gearSlot]
+
+    const sourceOption = sourceSelections[sourceRef.slotIndex]?.option ?? null
+    const targetOption = targetSelections[targetRef.slotIndex]?.option ?? null
+    if (!sourceOption) return
+    if (!canDropAugmentIntoSlot(sourceOption, targetSlotType)) return
+    if (targetOption && !canDropAugmentIntoSlot(targetOption, sourceSlotType)) return
+
+    sourceSelections[sourceRef.slotIndex] = {
+      ...sourceSelections[sourceRef.slotIndex],
+      option: targetOption,
+    }
+    targetSelections[targetRef.slotIndex] = {
+      ...targetSelections[targetRef.slotIndex],
+      option: sourceOption,
+    }
+
+    onCraftingSelectionsChange(nextSelections)
+  }
 
   return (
     <Box sx={{ p: 2 }}>
@@ -1241,7 +1479,8 @@ export default function GearDisplay({
               </IconButton>
             </Box>
             <Collapse in={craftingExpanded}>
-              <TableContainer component={Paper} variant="outlined" sx={{ mt: 1 }}>
+              <DndContext sensors={dragSensors} onDragStart={handleAugmentDragStart} onDragEnd={handleAugmentDragEnd}>
+                <TableContainer component={Paper} variant="outlined" sx={{ mt: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -1254,6 +1493,7 @@ export default function GearDisplay({
                       const groupedSlotted = groupSlottedByName(data.slotted)
                       const bgColor = getAugmentColor(slotType)
                       const canEditAugments = !!onCraftingChange && !!craftingData
+                      const dragEnabled = canEditAugments && !!onCraftingSelectionsChange && isAugmentSlot(slotType)
                       const getHighlight = (name: string, set?: string) => {
                         return !!(hoveredAugment === name || (set && hoveredSetAugment === set) || hoveredBonusSource?.augmentNames?.includes(name))
                       }
@@ -1280,6 +1520,11 @@ export default function GearDisplay({
                               <Typography variant="body2" color="text.secondary">
                                 ({data.slotted.length}/{data.total})
                               </Typography>
+                              {dragEnabled && (
+                                <Typography variant="caption" color="text.secondary">
+                                  Drag handle to move
+                                </Typography>
+                              )}
                             </Box>
                           </TableCell>
                           <TableCell>
@@ -1289,51 +1534,111 @@ export default function GearDisplay({
                                 {/* Filled slots */}
                                 {data.slotted.map((s, idx) => {
                                   const shouldHighlight = getHighlight(s.name, s.set)
+                                  const slotId = getAugmentSlotId({ gearSlot: s.slot, slotIndex: s.slotIndex })
+                                  const currentOption = craftingSelections?.[s.slot]?.[s.slotIndex]?.option ?? null
+                                  const dragSourceRef = activeDragAugmentId ? parseAugmentSlotId(activeDragAugmentId) : null
+                                  const draggedOption = dragSourceRef
+                                    ? craftingSelections?.[dragSourceRef.gearSlot]?.[dragSourceRef.slotIndex]?.option ?? null
+                                    : null
+                                  const isCompatible = !activeDragAugmentId || canDropAugmentIntoSlot(draggedOption, slotType)
 
                                   return (
                                     <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                       <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
                                         {slotDisplayNames[s.slot] ?? s.slot}:
                                       </Typography>
-                                      <Tooltip title="Click to change augment / crafting option">
-                                        <Box
-                                          component="span"
-                                          onClick={() => {
-                                            const currentOption = craftingSelections?.[s.slot]?.[s.slotIndex]?.option ?? null
-                                            setSummaryAugmentDialog({
-                                              slotType,
-                                              gearSlot: s.slot,
-                                              slotIndex: s.slotIndex,
-                                              itemName: s.itemName,
-                                              itemML: s.itemML,
-                                              currentOption
-                                            })
-                                          }}
-                                          onMouseEnter={() => {
-                                            onAugmentHover?.(s.name)
-                                            if (s.set) onSetAugmentHover?.(s.set)
-                                          }}
-                                          onMouseLeave={() => {
-                                            onAugmentHover?.(null)
-                                            onSetAugmentHover?.(null)
-                                          }}
-                                          sx={{
-                                            fontSize: '0.75rem',
-                                            color: 'text.primary',
-                                            cursor: 'pointer',
-                                            borderBottom: '1px dashed',
-                                            borderColor: 'text.secondary',
-                                            lineHeight: 1.4,
-                                            backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
-                                            px: shouldHighlight ? 0.25 : 0,
-                                            borderRadius: shouldHighlight ? 0.5 : 0,
-                                            transition: 'all 0.2s',
-                                            '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
-                                          }}
+                                      <AugmentDropSlot slotId={slotId} slotType={slotType} activeDragAugmentId={activeDragAugmentId} isFilled={true} isCompatible={isCompatible}>
+                                        <Tooltip
+                                          title={getCraftingOptionTooltipContent(currentOption) ?? 'Click to change augment / crafting option'}
+                                          disableHoverListener={!getCraftingOptionTooltipContent(currentOption)}
                                         >
-                                          {s.name}
-                                        </Box>
-                                      </Tooltip>
+                                          {dragEnabled ? (
+                                            <DraggableAugmentHandle slotId={slotId}>
+                                              <Box
+                                                component="span"
+                                                onClick={() => {
+                                                  setSummaryAugmentDialog({
+                                                    slotType,
+                                                    gearSlot: s.slot,
+                                                    slotIndex: s.slotIndex,
+                                                    itemName: s.itemName,
+                                                    itemML: s.itemML,
+                                                    currentOption,
+                                                  })
+                                                }}
+                                                onMouseEnter={() => {
+                                                  onAugmentHover?.(s.name)
+                                                  if (s.set) onSetAugmentHover?.(s.set)
+                                                }}
+                                                onMouseLeave={() => {
+                                                  onAugmentHover?.(null)
+                                                  onSetAugmentHover?.(null)
+                                                }}
+                                                sx={{
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 0.5,
+                                                  fontSize: '0.75rem',
+                                                  color: 'text.primary',
+                                                  cursor: 'pointer',
+                                                  borderBottom: '1px dashed',
+                                                  borderColor: 'text.secondary',
+                                                  lineHeight: 1.4,
+                                                  backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                                  px: shouldHighlight ? 0.25 : 0,
+                                                  borderRadius: shouldHighlight ? 0.5 : 0,
+                                                  transition: 'all 0.2s',
+                                                  '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                                                }}
+                                              >
+                                                {renderAugmentMarker(s.name)}
+                                                {s.name}
+                                              </Box>
+                                            </DraggableAugmentHandle>
+                                          ) : (
+                                            <Box
+                                              component="span"
+                                              onClick={() => {
+                                                setSummaryAugmentDialog({
+                                                  slotType,
+                                                  gearSlot: s.slot,
+                                                  slotIndex: s.slotIndex,
+                                                  itemName: s.itemName,
+                                                  itemML: s.itemML,
+                                                  currentOption,
+                                                })
+                                              }}
+                                              onMouseEnter={() => {
+                                                onAugmentHover?.(s.name)
+                                                if (s.set) onSetAugmentHover?.(s.set)
+                                              }}
+                                              onMouseLeave={() => {
+                                                onAugmentHover?.(null)
+                                                onSetAugmentHover?.(null)
+                                              }}
+                                              sx={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 0.5,
+                                                fontSize: '0.75rem',
+                                                color: 'text.primary',
+                                                cursor: 'pointer',
+                                                borderBottom: '1px dashed',
+                                                borderColor: 'text.secondary',
+                                                lineHeight: 1.4,
+                                                backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                                px: shouldHighlight ? 0.25 : 0,
+                                                borderRadius: shouldHighlight ? 0.5 : 0,
+                                                transition: 'all 0.2s',
+                                                '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                                              }}
+                                            >
+                                              {renderAugmentMarker(s.name)}
+                                              {s.name}
+                                            </Box>
+                                          )}
+                                        </Tooltip>
+                                      </AugmentDropSlot>
                                       <Tooltip title="View on DDO Wiki">
                                         <IconButton
                                           size="small"
@@ -1392,30 +1697,45 @@ export default function GearDisplay({
                                     <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
                                       {slotDisplayNames[e.gearSlot] ?? e.gearSlot}:
                                     </Typography>
-                                    <Tooltip title="Click to add augment / crafting option">
-                                      <Box
-                                        component="span"
-                                        onClick={() => setSummaryAugmentDialog({
-                                          slotType,
-                                          gearSlot: e.gearSlot,
-                                          slotIndex: e.slotIndex,
-                                          itemName: e.itemName,
-                                          itemML: e.itemML,
-                                          currentOption: null
-                                        })}
-                                        sx={{
-                                          fontSize: '0.75rem',
-                                          color: 'text.disabled',
-                                          cursor: 'pointer',
-                                          borderBottom: '1px dashed',
-                                          borderColor: 'text.disabled',
-                                          lineHeight: 1.4,
-                                          '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
-                                        }}
-                                      >
-                                        (empty)
-                                      </Box>
-                                    </Tooltip>
+                                    <AugmentDropSlot
+                                      slotId={getAugmentSlotId({ gearSlot: e.gearSlot, slotIndex: e.slotIndex })}
+                                      slotType={slotType}
+                                      activeDragAugmentId={activeDragAugmentId}
+                                      isFilled={false}
+                                      isCompatible={!activeDragAugmentId || (() => {
+                                        const dragRef = parseAugmentSlotId(activeDragAugmentId)
+                                        if (!dragRef) return false
+                                        const option = craftingSelections?.[dragRef.gearSlot]?.[dragRef.slotIndex]?.option ?? null
+                                        return canDropAugmentIntoSlot(option, slotType)
+                                      })()}
+                                    >
+                                      <Tooltip title={dragEnabled ? 'Drop a compatible augment here or click to add one' : 'Click to add augment / crafting option'}>
+                                        <Box
+                                          component="span"
+                                          onClick={() => setSummaryAugmentDialog({
+                                            slotType,
+                                            gearSlot: e.gearSlot,
+                                            slotIndex: e.slotIndex,
+                                            itemName: e.itemName,
+                                            itemML: e.itemML,
+                                            currentOption: null
+                                          })}
+                                          sx={{
+                                            fontSize: '0.75rem',
+                                            color: 'text.disabled',
+                                            cursor: 'pointer',
+                                            borderBottom: '1px dashed',
+                                            borderColor: 'text.disabled',
+                                            lineHeight: 1.4,
+                                            px: 0.25,
+                                            borderRadius: 0.5,
+                                            '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                                          }}
+                                        >
+                                          (empty)
+                                        </Box>
+                                      </Tooltip>
+                                    </AugmentDropSlot>
                                   </Box>
                                 ))}
                               </Box>
@@ -1456,6 +1776,9 @@ export default function GearDisplay({
                                             onSetAugmentHover?.(null)
                                           }}
                                           sx={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 0.5,
                                             cursor: 'help',
                                             backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
                                             px: shouldHighlight ? 0.5 : 0,
@@ -1464,6 +1787,7 @@ export default function GearDisplay({
                                             '&:hover': { color: 'primary.main' }
                                           }}
                                         >
+                                          {renderAugmentMarker(aug.name)}
                                           {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
                                         </Typography>
                                       </Tooltip>
@@ -1532,7 +1856,8 @@ export default function GearDisplay({
                     })}
                   </TableBody>
                 </Table>
-              </TableContainer>
+                </TableContainer>
+              </DndContext>
             </Collapse>
           </CardContent>
         </Card>
