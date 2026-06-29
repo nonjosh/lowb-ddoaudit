@@ -1481,79 +1481,121 @@ export default function GearDisplay({
             <Collapse in={craftingExpanded}>
               <DndContext sensors={dragSensors} onDragStart={handleAugmentDragStart} onDragEnd={handleAugmentDragEnd}>
                 <TableContainer component={Paper} variant="outlined" sx={{ mt: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Slot Type</TableCell>
-                      <TableCell>Slotted Options</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {sortedCraftingTypes.map(([slotType, data]) => {
-                      const groupedSlotted = groupSlottedByName(data.slotted)
-                      const bgColor = getAugmentColor(slotType)
-                      const canEditAugments = !!onCraftingChange && !!craftingData
-                      const dragEnabled = canEditAugments && !!onCraftingSelectionsChange && isAugmentSlot(slotType)
-                      const getHighlight = (name: string, set?: string) => {
-                        return !!(hoveredAugment === name || (set && hoveredSetAugment === set) || hoveredBonusSource?.augmentNames?.includes(name))
-                      }
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Slot Type</TableCell>
+                        <TableCell>Slotted Options</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {sortedCraftingTypes.map(([slotType, data]) => {
+                        const groupedSlotted = groupSlottedByName(data.slotted)
+                        const bgColor = getAugmentColor(slotType)
+                        const canEditAugments = !!onCraftingChange && !!craftingData
+                        const dragEnabled = canEditAugments && !!onCraftingSelectionsChange && isAugmentSlot(slotType)
+                        const getHighlight = (name: string, set?: string) => {
+                          return !!(hoveredAugment === name || (set && hoveredSetAugment === set) || hoveredBonusSource?.augmentNames?.includes(name))
+                        }
 
-                      return (
-                        <TableRow key={slotType}>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box
-                                component="span"
-                                sx={{
-                                  bgcolor: bgColor || 'grey.700',
-                                  color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
-                                  px: 0.5,
-                                  py: 0.25,
-                                  borderRadius: 0.5,
-                                  fontSize: '0.75rem',
-                                  display: 'inline-block',
-                                  lineHeight: 1.2
-                                }}
-                              >
-                                {slotType}
-                              </Box>
-                              <Typography variant="body2" color="text.secondary">
-                                ({data.slotted.length}/{data.total})
-                              </Typography>
-                              {dragEnabled && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Drag handle to move
+                        return (
+                          <TableRow key={slotType}>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    bgcolor: bgColor || 'grey.700',
+                                    color: bgColor === '#ffeb3b' || bgColor === '#e0e0e0' ? 'black' : 'white',
+                                    px: 0.5,
+                                    py: 0.25,
+                                    borderRadius: 0.5,
+                                    fontSize: '0.75rem',
+                                    display: 'inline-block',
+                                    lineHeight: 1.2
+                                  }}
+                                >
+                                  {slotType}
+                                </Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  ({data.slotted.length}/{data.total})
                                 </Typography>
-                              )}
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            {canEditAugments ? (
-                              /* Editable mode: show all slots individually (filled + empty) */
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                                {/* Filled slots */}
-                                {data.slotted.map((s, idx) => {
-                                  const shouldHighlight = getHighlight(s.name, s.set)
-                                  const slotId = getAugmentSlotId({ gearSlot: s.slot, slotIndex: s.slotIndex })
-                                  const currentOption = craftingSelections?.[s.slot]?.[s.slotIndex]?.option ?? null
-                                  const dragSourceRef = activeDragAugmentId ? parseAugmentSlotId(activeDragAugmentId) : null
-                                  const draggedOption = dragSourceRef
-                                    ? craftingSelections?.[dragSourceRef.gearSlot]?.[dragSourceRef.slotIndex]?.option ?? null
-                                    : null
-                                  const isCompatible = !activeDragAugmentId || canDropAugmentIntoSlot(draggedOption, slotType)
+                                {dragEnabled && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    Drag handle to move
+                                  </Typography>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              {canEditAugments ? (
+                                /* Editable mode: show all slots individually (filled + empty) */
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                  {/* Filled slots */}
+                                  {data.slotted.map((s, idx) => {
+                                    const shouldHighlight = getHighlight(s.name, s.set)
+                                    const slotId = getAugmentSlotId({ gearSlot: s.slot, slotIndex: s.slotIndex })
+                                    const currentOption = craftingSelections?.[s.slot]?.[s.slotIndex]?.option ?? null
+                                    const dragSourceRef = activeDragAugmentId ? parseAugmentSlotId(activeDragAugmentId) : null
+                                    const draggedOption = dragSourceRef
+                                      ? craftingSelections?.[dragSourceRef.gearSlot]?.[dragSourceRef.slotIndex]?.option ?? null
+                                      : null
+                                    const isCompatible = !activeDragAugmentId || canDropAugmentIntoSlot(draggedOption, slotType)
 
-                                  return (
-                                    <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                      <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
-                                        {slotDisplayNames[s.slot] ?? s.slot}:
-                                      </Typography>
-                                      <AugmentDropSlot slotId={slotId} slotType={slotType} activeDragAugmentId={activeDragAugmentId} isFilled={true} isCompatible={isCompatible}>
-                                        <Tooltip
-                                          title={getCraftingOptionTooltipContent(currentOption) ?? 'Click to change augment / crafting option'}
-                                          disableHoverListener={!getCraftingOptionTooltipContent(currentOption)}
-                                        >
-                                          {dragEnabled ? (
-                                            <DraggableAugmentHandle slotId={slotId}>
+                                    return (
+                                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
+                                          {slotDisplayNames[s.slot] ?? s.slot}:
+                                        </Typography>
+                                        <AugmentDropSlot slotId={slotId} slotType={slotType} activeDragAugmentId={activeDragAugmentId} isFilled={true} isCompatible={isCompatible}>
+                                          <Tooltip
+                                            title={getCraftingOptionTooltipContent(currentOption) ?? 'Click to change augment / crafting option'}
+                                            disableHoverListener={!getCraftingOptionTooltipContent(currentOption)}
+                                          >
+                                            {dragEnabled ? (
+                                              <DraggableAugmentHandle slotId={slotId}>
+                                                <Box
+                                                  component="span"
+                                                  onClick={() => {
+                                                    setSummaryAugmentDialog({
+                                                      slotType,
+                                                      gearSlot: s.slot,
+                                                      slotIndex: s.slotIndex,
+                                                      itemName: s.itemName,
+                                                      itemML: s.itemML,
+                                                      currentOption,
+                                                    })
+                                                  }}
+                                                  onMouseEnter={() => {
+                                                    onAugmentHover?.(s.name)
+                                                    if (s.set) onSetAugmentHover?.(s.set)
+                                                  }}
+                                                  onMouseLeave={() => {
+                                                    onAugmentHover?.(null)
+                                                    onSetAugmentHover?.(null)
+                                                  }}
+                                                  sx={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: 0.5,
+                                                    fontSize: '0.75rem',
+                                                    color: 'text.primary',
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px dashed',
+                                                    borderColor: 'text.secondary',
+                                                    lineHeight: 1.4,
+                                                    backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                                    px: shouldHighlight ? 0.25 : 0,
+                                                    borderRadius: shouldHighlight ? 0.5 : 0,
+                                                    transition: 'all 0.2s',
+                                                    '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                                                  }}
+                                                >
+                                                  {renderAugmentMarker(s.name)}
+                                                  {s.name}
+                                                </Box>
+                                              </DraggableAugmentHandle>
+                                            ) : (
                                               <Box
                                                 component="span"
                                                 onClick={() => {
@@ -1594,268 +1636,226 @@ export default function GearDisplay({
                                                 {renderAugmentMarker(s.name)}
                                                 {s.name}
                                               </Box>
-                                            </DraggableAugmentHandle>
-                                          ) : (
-                                            <Box
-                                              component="span"
+                                            )}
+                                          </Tooltip>
+                                        </AugmentDropSlot>
+                                        <Tooltip title="View on DDO Wiki">
+                                          <IconButton
+                                            size="small"
+                                            component="a"
+                                            href={getAugmentWikiUrl(s.name)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            sx={{ p: 0.25 }}
+                                          >
+                                            <LaunchIcon sx={{ fontSize: 14 }} />
+                                          </IconButton>
+                                        </Tooltip>
+                                        <InventoryBadge itemName={s.name} variant="icon" size="small" />
+                                        {(() => {
+                                          const augmentItem = { name: s.name, ml: 0, isAugment: true as const, affixes: s.affixes }
+                                          const wished = isWished(augmentItem)
+                                          return (
+                                            <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => toggleWish(augmentItem)}
+                                                sx={{ p: 0.25 }}
+                                              >
+                                                {wished ? (
+                                                  <FavoriteIcon sx={{ fontSize: 14 }} color="error" />
+                                                ) : (
+                                                  <FavoriteBorderIcon sx={{ fontSize: 14 }} />
+                                                )}
+                                              </IconButton>
+                                            </Tooltip>
+                                          )
+                                        })()}
+                                        {onExcludedAugmentsChange && (
+                                          <Tooltip title={excludedAugments.includes(s.name) ? "Remove from ignore list" : "Ignore this augment"}>
+                                            <IconButton
+                                              size="small"
                                               onClick={() => {
-                                                setSummaryAugmentDialog({
-                                                  slotType,
-                                                  gearSlot: s.slot,
-                                                  slotIndex: s.slotIndex,
-                                                  itemName: s.itemName,
-                                                  itemML: s.itemML,
-                                                  currentOption,
-                                                })
+                                                const newList = excludedAugments.includes(s.name)
+                                                  ? excludedAugments.filter(name => name !== s.name)
+                                                  : [...excludedAugments, s.name]
+                                                onExcludedAugmentsChange(newList)
                                               }}
-                                              onMouseEnter={() => {
-                                                onAugmentHover?.(s.name)
-                                                if (s.set) onSetAugmentHover?.(s.set)
-                                              }}
-                                              onMouseLeave={() => {
-                                                onAugmentHover?.(null)
-                                                onSetAugmentHover?.(null)
-                                              }}
-                                              sx={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: 0.5,
-                                                fontSize: '0.75rem',
-                                                color: 'text.primary',
-                                                cursor: 'pointer',
-                                                borderBottom: '1px dashed',
-                                                borderColor: 'text.secondary',
-                                                lineHeight: 1.4,
-                                                backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
-                                                px: shouldHighlight ? 0.25 : 0,
-                                                borderRadius: shouldHighlight ? 0.5 : 0,
-                                                transition: 'all 0.2s',
-                                                '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
-                                              }}
+                                              sx={{ p: 0.25 }}
+                                              color={excludedAugments.includes(s.name) ? "warning" : "default"}
                                             >
-                                              {renderAugmentMarker(s.name)}
-                                              {s.name}
-                                            </Box>
-                                          )}
+                                              <BlockIcon sx={{ fontSize: 14 }} />
+                                            </IconButton>
+                                          </Tooltip>
+                                        )}
+                                      </Box>
+                                    )
+                                  })}
+                                  {/* Empty slots */}
+                                  {data.emptySlots.map((e, idx) => (
+                                    <Box key={`empty-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
+                                        {slotDisplayNames[e.gearSlot] ?? e.gearSlot}:
+                                      </Typography>
+                                      <AugmentDropSlot
+                                        slotId={getAugmentSlotId({ gearSlot: e.gearSlot, slotIndex: e.slotIndex })}
+                                        slotType={slotType}
+                                        activeDragAugmentId={activeDragAugmentId}
+                                        isFilled={false}
+                                        isCompatible={!activeDragAugmentId || (() => {
+                                          const dragRef = parseAugmentSlotId(activeDragAugmentId)
+                                          if (!dragRef) return false
+                                          const option = craftingSelections?.[dragRef.gearSlot]?.[dragRef.slotIndex]?.option ?? null
+                                          return canDropAugmentIntoSlot(option, slotType)
+                                        })()}
+                                      >
+                                        <Tooltip title={dragEnabled ? 'Drop a compatible augment here or click to add one' : 'Click to add augment / crafting option'}>
+                                          <Box
+                                            component="span"
+                                            onClick={() => setSummaryAugmentDialog({
+                                              slotType,
+                                              gearSlot: e.gearSlot,
+                                              slotIndex: e.slotIndex,
+                                              itemName: e.itemName,
+                                              itemML: e.itemML,
+                                              currentOption: null
+                                            })}
+                                            sx={{
+                                              fontSize: '0.75rem',
+                                              color: 'text.disabled',
+                                              cursor: 'pointer',
+                                              borderBottom: '1px dashed',
+                                              borderColor: 'text.disabled',
+                                              lineHeight: 1.4,
+                                              px: 0.25,
+                                              borderRadius: 0.5,
+                                              '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
+                                            }}
+                                          >
+                                            (empty)
+                                          </Box>
                                         </Tooltip>
                                       </AugmentDropSlot>
-                                      <Tooltip title="View on DDO Wiki">
-                                        <IconButton
-                                          size="small"
-                                          component="a"
-                                          href={getAugmentWikiUrl(s.name)}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          sx={{ p: 0.25 }}
-                                        >
-                                          <LaunchIcon sx={{ fontSize: 14 }} />
-                                        </IconButton>
-                                      </Tooltip>
-                                      <InventoryBadge itemName={s.name} variant="icon" size="small" />
-                                      {(() => {
-                                        const augmentItem = { name: s.name, ml: 0, isAugment: true as const, affixes: s.affixes }
-                                        const wished = isWished(augmentItem)
-                                        return (
-                                          <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => toggleWish(augmentItem)}
-                                              sx={{ p: 0.25 }}
-                                            >
-                                              {wished ? (
-                                                <FavoriteIcon sx={{ fontSize: 14 }} color="error" />
-                                              ) : (
-                                                <FavoriteBorderIcon sx={{ fontSize: 14 }} />
-                                              )}
-                                            </IconButton>
-                                          </Tooltip>
-                                        )
-                                      })()}
-                                      {onExcludedAugmentsChange && (
-                                        <Tooltip title={excludedAugments.includes(s.name) ? "Remove from ignore list" : "Ignore this augment"}>
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => {
-                                              const newList = excludedAugments.includes(s.name)
-                                                ? excludedAugments.filter(name => name !== s.name)
-                                                : [...excludedAugments, s.name]
-                                              onExcludedAugmentsChange(newList)
-                                            }}
-                                            sx={{ p: 0.25 }}
-                                            color={excludedAugments.includes(s.name) ? "warning" : "default"}
-                                          >
-                                            <BlockIcon sx={{ fontSize: 14 }} />
-                                          </IconButton>
-                                        </Tooltip>
-                                      )}
                                     </Box>
-                                  )
-                                })}
-                                {/* Empty slots */}
-                                {data.emptySlots.map((e, idx) => (
-                                  <Box key={`empty-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Typography variant="caption" color="text.disabled" sx={{ minWidth: 70, flexShrink: 0 }}>
-                                      {slotDisplayNames[e.gearSlot] ?? e.gearSlot}:
-                                    </Typography>
-                                    <AugmentDropSlot
-                                      slotId={getAugmentSlotId({ gearSlot: e.gearSlot, slotIndex: e.slotIndex })}
-                                      slotType={slotType}
-                                      activeDragAugmentId={activeDragAugmentId}
-                                      isFilled={false}
-                                      isCompatible={!activeDragAugmentId || (() => {
-                                        const dragRef = parseAugmentSlotId(activeDragAugmentId)
-                                        if (!dragRef) return false
-                                        const option = craftingSelections?.[dragRef.gearSlot]?.[dragRef.slotIndex]?.option ?? null
-                                        return canDropAugmentIntoSlot(option, slotType)
-                                      })()}
-                                    >
-                                      <Tooltip title={dragEnabled ? 'Drop a compatible augment here or click to add one' : 'Click to add augment / crafting option'}>
-                                        <Box
-                                          component="span"
-                                          onClick={() => setSummaryAugmentDialog({
-                                            slotType,
-                                            gearSlot: e.gearSlot,
-                                            slotIndex: e.slotIndex,
-                                            itemName: e.itemName,
-                                            itemML: e.itemML,
-                                            currentOption: null
-                                          })}
-                                          sx={{
-                                            fontSize: '0.75rem',
-                                            color: 'text.disabled',
-                                            cursor: 'pointer',
-                                            borderBottom: '1px dashed',
-                                            borderColor: 'text.disabled',
-                                            lineHeight: 1.4,
-                                            px: 0.25,
-                                            borderRadius: 0.5,
-                                            '&:hover': { color: 'primary.main', borderColor: 'primary.main' }
-                                          }}
-                                        >
-                                          (empty)
-                                        </Box>
-                                      </Tooltip>
-                                    </AugmentDropSlot>
-                                  </Box>
-                                ))}
-                              </Box>
-                            ) : (
-                              /* Read-only mode: grouped display */
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                {groupedSlotted.map((aug, idx) => {
-                                  const shouldHighlight = getHighlight(aug.name, aug.set)
+                                  ))}
+                                </Box>
+                              ) : (
+                                /* Read-only mode: grouped display */
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  {groupedSlotted.map((aug, idx) => {
+                                    const shouldHighlight = getHighlight(aug.name, aug.set)
 
-                                  return (
-                                    <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Tooltip
-                                        title={
-                                          <Box>
-                                            {aug.affixes.map((affix, i) => (
-                                              <Typography key={i} variant="caption" display="block">
-                                                {formatAffix(affix)}
-                                              </Typography>
-                                            ))}
-                                            {aug.set && (
-                                              <Typography variant="caption" display="block" color="secondary.light">
-                                                Set: {aug.set}
-                                              </Typography>
-                                            )}
-                                          </Box>
-                                        }
-                                      >
-                                        <Typography
-                                          variant="body2"
-                                          onMouseEnter={() => {
-                                            onAugmentHover?.(aug.name)
-                                            if (aug.set) {
-                                              onSetAugmentHover?.(aug.set)
-                                            }
-                                          }}
-                                          onMouseLeave={() => {
-                                            onAugmentHover?.(null)
-                                            onSetAugmentHover?.(null)
-                                          }}
-                                          sx={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 0.5,
-                                            cursor: 'help',
-                                            backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
-                                            px: shouldHighlight ? 0.5 : 0,
-                                            borderRadius: shouldHighlight ? 0.5 : 0,
-                                            transition: 'all 0.2s',
-                                            '&:hover': { color: 'primary.main' }
-                                          }}
-                                        >
-                                          {renderAugmentMarker(aug.name)}
-                                          {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
-                                        </Typography>
-                                      </Tooltip>
-                                      <Tooltip title="View on DDO Wiki">
-                                        <IconButton
-                                          size="small"
-                                          component="a"
-                                          href={getAugmentWikiUrl(aug.name)}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          sx={{ p: 0.25 }}
-                                        >
-                                          <LaunchIcon sx={{ fontSize: 14 }} />
-                                        </IconButton>
-                                      </Tooltip>
-                                      <InventoryBadge itemName={aug.name} variant="icon" size="small" />
-                                      {(() => {
-                                        const augmentItem = { name: aug.name, ml: 0, isAugment: true as const, affixes: aug.affixes }
-                                        const wished = isWished(augmentItem)
-                                        return (
-                                          <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => toggleWish(augmentItem)}
-                                              sx={{ p: 0.25 }}
-                                            >
-                                              {wished ? (
-                                                <FavoriteIcon sx={{ fontSize: 14 }} color="error" />
-                                              ) : (
-                                                <FavoriteBorderIcon sx={{ fontSize: 14 }} />
+                                    return (
+                                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Tooltip
+                                          title={
+                                            <Box>
+                                              {aug.affixes.map((affix, i) => (
+                                                <Typography key={i} variant="caption" display="block">
+                                                  {formatAffix(affix)}
+                                                </Typography>
+                                              ))}
+                                              {aug.set && (
+                                                <Typography variant="caption" display="block" color="secondary.light">
+                                                  Set: {aug.set}
+                                                </Typography>
                                               )}
-                                            </IconButton>
-                                          </Tooltip>
-                                        )
-                                      })()}
-                                      {onExcludedAugmentsChange && (
-                                        <Tooltip title={excludedAugments.includes(aug.name) ? "Remove from ignore list" : "Ignore this augment"}>
+                                            </Box>
+                                          }
+                                        >
+                                          <Typography
+                                            variant="body2"
+                                            onMouseEnter={() => {
+                                              onAugmentHover?.(aug.name)
+                                              if (aug.set) {
+                                                onSetAugmentHover?.(aug.set)
+                                              }
+                                            }}
+                                            onMouseLeave={() => {
+                                              onAugmentHover?.(null)
+                                              onSetAugmentHover?.(null)
+                                            }}
+                                            sx={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 0.5,
+                                              cursor: 'help',
+                                              backgroundColor: shouldHighlight ? 'action.selected' : 'transparent',
+                                              px: shouldHighlight ? 0.5 : 0,
+                                              borderRadius: shouldHighlight ? 0.5 : 0,
+                                              transition: 'all 0.2s',
+                                              '&:hover': { color: 'primary.main' }
+                                            }}
+                                          >
+                                            {renderAugmentMarker(aug.name)}
+                                            {aug.count > 1 ? `${aug.name} x${aug.count}` : aug.name}
+                                          </Typography>
+                                        </Tooltip>
+                                        <Tooltip title="View on DDO Wiki">
                                           <IconButton
                                             size="small"
-                                            onClick={() => {
-                                              const newList = excludedAugments.includes(aug.name)
-                                                ? excludedAugments.filter(name => name !== aug.name)
-                                                : [...excludedAugments, aug.name]
-                                              onExcludedAugmentsChange(newList)
-                                            }}
+                                            component="a"
+                                            href={getAugmentWikiUrl(aug.name)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             sx={{ p: 0.25 }}
-                                            color={excludedAugments.includes(aug.name) ? "warning" : "default"}
                                           >
-                                            <BlockIcon sx={{ fontSize: 14 }} />
+                                            <LaunchIcon sx={{ fontSize: 14 }} />
                                           </IconButton>
                                         </Tooltip>
-                                      )}
-                                    </Box>
-                                  )
-                                })}
-                                {groupedSlotted.length === 0 && (
-                                  <Typography variant="body2" color="text.secondary">
-                                    —
-                                  </Typography>
-                                )}
-                              </Box>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+                                        <InventoryBadge itemName={aug.name} variant="icon" size="small" />
+                                        {(() => {
+                                          const augmentItem = { name: aug.name, ml: 0, isAugment: true as const, affixes: aug.affixes }
+                                          const wished = isWished(augmentItem)
+                                          return (
+                                            <Tooltip title={wished ? "Remove from wishlist" : "Add to wishlist"}>
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => toggleWish(augmentItem)}
+                                                sx={{ p: 0.25 }}
+                                              >
+                                                {wished ? (
+                                                  <FavoriteIcon sx={{ fontSize: 14 }} color="error" />
+                                                ) : (
+                                                  <FavoriteBorderIcon sx={{ fontSize: 14 }} />
+                                                )}
+                                              </IconButton>
+                                            </Tooltip>
+                                          )
+                                        })()}
+                                        {onExcludedAugmentsChange && (
+                                          <Tooltip title={excludedAugments.includes(aug.name) ? "Remove from ignore list" : "Ignore this augment"}>
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => {
+                                                const newList = excludedAugments.includes(aug.name)
+                                                  ? excludedAugments.filter(name => name !== aug.name)
+                                                  : [...excludedAugments, aug.name]
+                                                onExcludedAugmentsChange(newList)
+                                              }}
+                                              sx={{ p: 0.25 }}
+                                              color={excludedAugments.includes(aug.name) ? "warning" : "default"}
+                                            >
+                                              <BlockIcon sx={{ fontSize: 14 }} />
+                                            </IconButton>
+                                          </Tooltip>
+                                        )}
+                                      </Box>
+                                    )
+                                  })}
+                                  {groupedSlotted.length === 0 && (
+                                    <Typography variant="body2" color="text.secondary">
+                                      —
+                                    </Typography>
+                                  )}
+                                </Box>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
                 </TableContainer>
               </DndContext>
             </Collapse>
