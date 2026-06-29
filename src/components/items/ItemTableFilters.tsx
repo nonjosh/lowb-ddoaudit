@@ -33,7 +33,7 @@ interface ItemTableFiltersProps {
   effectFilter: string[]
   setEffectFilter: (value: string[]) => void
   uniqueTypes: Array<{ type: string; count: number; display: string; category: number }>
-  uniqueEffects: Array<{ effect: string; count: number }>
+  uniqueEffects: Array<{ effect: string; count: number; bonusType?: string; key?: string }>
   // Default ML Filter
   mlFilter?: string[]
   setMlFilter?: (value: string[]) => void
@@ -94,6 +94,12 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
   setShowWishlistOnly,
   hasTroveData = false,
 }, ref) => {
+  const getEffectOptionKey = (option: { effect: string; bonusType?: string; key?: string }): string => option.key ?? option.effect
+  const getEffectOptionLabel = (option: { effect: string; bonusType?: string; key?: string } | string): string => {
+    if (typeof option === 'string') return option
+    return option.bonusType ? `${option.effect} [${option.bonusType}]` : option.effect
+  }
+
   return (
     <Box ref={ref} sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.paper', mb: 0, pt: 1.5, px: 1, borderBottom: 1, borderColor: 'divider', pb: 2 }}>
       <Stack spacing={1.5}>
@@ -287,11 +293,11 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
             size="small"
             limitTags={2}
             options={uniqueEffects}
-            getOptionLabel={(option) => option.effect}
+            getOptionLabel={getEffectOptionLabel}
             sx={{ flex: 1, minWidth: 200 }}
-            value={uniqueEffects.filter(e => effectFilter.includes(e.effect))}
+            value={uniqueEffects.filter((effect) => effectFilter.includes(getEffectOptionKey(effect)))}
             onChange={(_, newValue) => {
-              setEffectFilter(newValue.map(v => v.effect))
+              setEffectFilter(newValue.map((value) => typeof value === 'string' ? value : getEffectOptionKey(value)))
             }}
             renderInput={(params) => (
               <TextField {...params} label="Filter by Effect" placeholder="Search effects..." />
@@ -300,7 +306,7 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
               const { key, ...otherProps } = props;
               return (
                 <li key={key} {...otherProps}>
-                  {option.effect} ({option.count})
+                  {getEffectOptionLabel(option)} ({option.count})
                 </li>
               )
             }}

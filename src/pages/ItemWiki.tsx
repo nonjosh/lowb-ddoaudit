@@ -45,6 +45,31 @@ interface GroupedItems {
   items: Item[]
 }
 
+const EFFECT_FILTER_SEPARATOR = '::'
+
+function encodeEffectFilter(effect: string, bonusType?: string): string {
+  return bonusType ? `${effect}${EFFECT_FILTER_SEPARATOR}${bonusType}` : effect
+}
+
+function decodeEffectFilter(filterValue: string): { effect: string; bonusType?: string } {
+  const separatorIndex = filterValue.indexOf(EFFECT_FILTER_SEPARATOR)
+  if (separatorIndex === -1) {
+    return { effect: filterValue }
+  }
+
+  return {
+    effect: filterValue.slice(0, separatorIndex),
+    bonusType: filterValue.slice(separatorIndex + EFFECT_FILTER_SEPARATOR.length),
+  }
+}
+
+function matchesEffectFilter(filterValue: string, affix: { name: string; type?: string }): boolean {
+  const { effect, bonusType } = decodeEffectFilter(filterValue)
+  if (affix.name !== effect) return false
+  if (!bonusType) return true
+  return (affix.type || 'Untyped') === bonusType
+}
+
 const SLOT_ORDER: string[] = [
   'Head', 'Eyes', 'Neck', 'Trinket', 'Cloak', 'Belt',
   'Ring', 'Gloves', 'Bracers', 'Boots', 'Armor',
@@ -205,7 +230,7 @@ export default function ItemWiki() {
     }
     const matchEffect = (item: Item) => {
       if (effectFilter.length === 0) return true
-      return item.affixes.some(a => effectFilter.includes(a.name))
+      return item.affixes.some((affix) => effectFilter.some((filterValue) => matchesEffectFilter(filterValue, affix)))
     }
     const matchCrafting = (item: Item) => {
       if (craftingFilter.length === 0) return true
@@ -324,11 +349,34 @@ export default function ItemWiki() {
     const relevantItems = crossFilterItems('effect')
     const effectCount = new Map<string, number>()
     relevantItems.forEach(item => {
+      const seenEffectKeys = new Set<string>()
       item.affixes.forEach(affix => {
-        effectCount.set(affix.name, (effectCount.get(affix.name) || 0) + 1)
+        const broadKey = encodeEffectFilter(affix.name)
+        const typedKey = encodeEffectFilter(affix.name, affix.type || 'Untyped')
+
+        if (!seenEffectKeys.has(broadKey)) {
+          effectCount.set(broadKey, (effectCount.get(broadKey) || 0) + 1)
+          seenEffectKeys.add(broadKey)
+        }
+
+        if (!seenEffectKeys.has(typedKey)) {
+          effectCount.set(typedKey, (effectCount.get(typedKey) || 0) + 1)
+          seenEffectKeys.add(typedKey)
+        }
       })
     })
-    return Array.from(effectCount.entries()).map(([effect, count]) => ({ effect, count })).sort((a, b) => a.effect.localeCompare(b.effect))
+    return Array.from(effectCount.entries())
+      .map(([key, count]) => {
+        const { effect, bonusType } = decodeEffectFilter(key)
+        return { effect, bonusType, key, count }
+      })
+      .sort((a, b) => {
+        const effectComparison = a.effect.localeCompare(b.effect)
+        if (effectComparison !== 0) return effectComparison
+        if (!a.bonusType && b.bonusType) return -1
+        if (a.bonusType && !b.bonusType) return 1
+        return (a.bonusType ?? '').localeCompare(b.bonusType ?? '')
+      })
   }, [crossFilterItems])
 
   const filteredItems = useMemo(() => {
@@ -364,7 +412,8 @@ export default function ItemWiki() {
         }
         return item.type && typeFilter.includes(item.type)
       })()
-      const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
+      const matchesEffect = effectFilter.length === 0
+        || item.affixes.some((affix) => effectFilter.some((filterValue) => matchesEffectFilter(filterValue, affix)))
       const matchesCrafting = craftingFilter.length === 0 || (item.crafting && item.crafting.some(c => craftingFilter.includes(c)))
       const matchesML = item.ml >= minMl && item.ml <= maxMl
       const matchesAvailable = !showAvailableOnly || hasItem(item.name)
