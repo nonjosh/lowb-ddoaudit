@@ -255,7 +255,7 @@ function AugmentDropSlot({
 }
 
 function DraggableAugmentHandle({ slotId, children }: { slotId: string; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useDraggable({ id: slotId })
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: slotId })
 
   return (
     <Box
@@ -264,7 +264,6 @@ function DraggableAugmentHandle({ slotId, children }: { slotId: string; children
         display: 'inline-flex',
         alignItems: 'center',
         transform: CSS.Translate.toString(transform),
-        transition,
         opacity: isDragging ? 0.45 : 1,
       }}
     >

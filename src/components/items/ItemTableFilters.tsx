@@ -62,6 +62,8 @@ interface ItemTableFiltersProps {
   hasTroveData?: boolean
 }
 
+type EffectFilterOption = { effect: string; count: number; bonusType?: string; key?: string }
+
 const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
   mode = 'default',
   searchText,
@@ -94,8 +96,8 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
   setShowWishlistOnly,
   hasTroveData = false,
 }, ref) => {
-  const getEffectOptionKey = (option: { effect: string; bonusType?: string; key?: string }): string => option.key ?? option.effect
-  const getEffectOptionLabel = (option: { effect: string; bonusType?: string; key?: string } | string): string => {
+  const getEffectOptionKey = (option: EffectFilterOption): string => option.key ?? option.effect
+  const getEffectOptionLabel = (option: EffectFilterOption | string): string => {
     if (typeof option === 'string') return option
     return option.bonusType ? `${option.effect} [${option.bonusType}]` : option.effect
   }
@@ -288,7 +290,7 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
             </FormControl>
           )}
 
-          <Autocomplete
+          <Autocomplete<EffectFilterOption, true, false, false>
             multiple
             size="small"
             limitTags={2}
@@ -303,10 +305,11 @@ const ItemTableFilters = forwardRef<HTMLDivElement, ItemTableFiltersProps>(({
               <TextField {...params} label="Filter by Effect" placeholder="Search effects..." />
             )}
             renderOption={(props, option) => {
-              const { key, ...otherProps } = props;
+              const { key, ...otherProps } = props
+              const count = typeof option === 'string' ? null : option.count
               return (
                 <li key={key} {...otherProps}>
-                  {getEffectOptionLabel(option)} ({option.count})
+                  {getEffectOptionLabel(option)}{count !== null ? ` (${count})` : ''}
                 </li>
               )
             }}
