@@ -74,6 +74,8 @@ export default function TroveImportDialog({
   const [localError, setLocalError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const visibleCharacters = characters.filter((char) => !hiddenCharacterIds.includes(char.id))
+
   // Reset state when dialog opens
   const handleEnter = useCallback(() => {
     if (inventoryMap.size > 0) {
@@ -297,7 +299,7 @@ export default function TroveImportDialog({
               <strong>Unique items indexed:</strong> {inventoryMap.size}
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              <strong>Characters:</strong> {characters.length}
+              <strong>Characters:</strong> {visibleCharacters.length} visible / {characters.length} total
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               <strong>Unique BTA items:</strong> {stats.uniqueBTA}
