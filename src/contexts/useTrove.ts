@@ -1,6 +1,13 @@
 import { createContext, useContext } from 'react'
 
-import type { TroveAugmentSlot, TroveCharacter, TroveItemLocation } from '@/api/trove/types'
+import type {
+  TroveAccountData,
+  TroveAugmentSlot,
+  TroveCharacter,
+  TroveCharacterBank,
+  TroveCharacterInventory,
+  TroveItemLocation
+} from '@/api/trove/types'
 
 // ============================================================================
 // Context Types
@@ -13,6 +20,9 @@ export interface EquippedItemInfo {
 
 export interface TroveContextValue {
   // State
+  accountData: TroveAccountData | null
+  characterBanks: TroveCharacterBank[]
+  characterInventories: TroveCharacterInventory[]
   inventoryMap: Map<string, TroveItemLocation[]>
   characters: TroveCharacter[]
   selectedCharacterId: number | null
@@ -38,6 +48,9 @@ export interface TroveContextValue {
 }
 
 const defaultContext: TroveContextValue = {
+  accountData: null,
+  characterBanks: [],
+  characterInventories: [],
   inventoryMap: new Map(),
   characters: [],
   selectedCharacterId: null,

@@ -1,14 +1,27 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { parseMultipleTroveFiles } from '@/api/trove/parser'
-import type { TroveAugmentSlot, TroveCharacter, TroveItemLocation } from '@/api/trove/types'
+import type {
+  TroveAccountData,
+  TroveAugmentSlot,
+  TroveCharacter,
+  TroveCharacterBank,
+  TroveCharacterInventory,
+  TroveItemLocation
+} from '@/api/trove/types'
 import {
   clearTroveData,
+  loadTroveAccountData,
+  loadTroveCharacterBanks,
+  loadTroveCharacterInventories,
   loadTroveCharacters,
   loadTroveHiddenCharacters,
   loadTroveImportTime,
   loadTroveInventory,
   loadTroveSelectedCharacters,
+  saveTroveAccountData,
+  saveTroveCharacterBanks,
+  saveTroveCharacterInventories,
   saveTroveCharacters,
   saveTroveHiddenCharacters,
   saveTroveImportTime,
@@ -49,6 +62,9 @@ interface TroveProviderProps {
 }
 
 export function TroveProvider({ children }: TroveProviderProps) {
+  const [accountData, setAccountData] = useState<TroveAccountData | null>(null)
+  const [characterBanks, setCharacterBanks] = useState<TroveCharacterBank[]>([])
+  const [characterInventories, setCharacterInventories] = useState<TroveCharacterInventory[]>([])
   const [inventoryMap, setInventoryMap] = useState<
     Map<string, TroveItemLocation[]>
   >(new Map())
@@ -63,7 +79,19 @@ export function TroveProvider({ children }: TroveProviderProps) {
   useEffect(() => {
     async function loadSavedData() {
       try {
-        const [inventory, chars, time, selected, hidden] = await Promise.all([
+        const [
+          account,
+          banks,
+          inventories,
+          inventory,
+          chars,
+          time,
+          selected,
+          hidden
+        ] = await Promise.all([
+          loadTroveAccountData(),
+          loadTroveCharacterBanks(),
+          loadTroveCharacterInventories(),
           loadTroveInventory(),
           loadTroveCharacters(),
           loadTroveImportTime(),
@@ -71,6 +99,9 @@ export function TroveProvider({ children }: TroveProviderProps) {
           loadTroveHiddenCharacters()
         ])
 
+        setAccountData(account)
+        setCharacterBanks(banks)
+        setCharacterInventories(inventories)
         setInventoryMap(inventory)
         setCharacters(chars)
         setImportedAt(time)
@@ -94,12 +125,18 @@ export function TroveProvider({ children }: TroveProviderProps) {
       const data = await parseMultipleTroveFiles(files)
 
       // Update state first to ensure immediate UI update
+      setAccountData(data.accountData)
+      setCharacterBanks(data.characterBanks)
+      setCharacterInventories(data.characterInventories)
       setInventoryMap(new Map(data.inventoryMap))
       setCharacters(data.characters)
       setImportedAt(data.importedAt)
       setSelectedCharacterId(null)
 
       // Then persist to IndexedDB
+      await saveTroveAccountData(data.accountData)
+      await saveTroveCharacterBanks(data.characterBanks)
+      await saveTroveCharacterInventories(data.characterInventories)
       await saveTroveInventory(data.inventoryMap)
       await saveTroveCharacters(data.characters)
       await saveTroveImportTime(data.importedAt)
@@ -116,6 +153,9 @@ export function TroveProvider({ children }: TroveProviderProps) {
   const clearData = useCallback(async () => {
     try {
       await clearTroveData()
+      setAccountData(null)
+      setCharacterBanks([])
+      setCharacterInventories([])
       setInventoryMap(new Map())
       setCharacters([])
       setSelectedCharacterId(null)
@@ -329,6 +369,9 @@ export function TroveProvider({ children }: TroveProviderProps) {
   }, [inventoryMap])
 
   const value: TroveContextValue = {
+    accountData,
+    characterBanks,
+    characterInventories,
     inventoryMap,
     characters,
     selectedCharacterId,
