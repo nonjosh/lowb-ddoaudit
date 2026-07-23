@@ -1,5 +1,6 @@
 import { Quest } from '@/api/ddoAudit'
 import { PlayerGroup } from '@/contexts/useCharacter'
+import { getBestQuestVersionForLevel } from '@/domains/quests/questHelpers'
 import { getPlayerDisplayName } from '@/domains/raids/raidLogic'
 
 export interface GroupedCharacters {
@@ -50,8 +51,11 @@ export function groupCharactersByLocation({
     const onlineChar = (group.chars ?? []).find((c) => c?.is_online)
     if (onlineChar) {
       const locId = String(onlineChar.location_id ?? '')
+      const characterLevel = onlineChar.total_level
+        ?? (onlineChar.classes || []).reduce((sum: number, cls) => sum + (cls.level || 0), 0)
       const area = areas[locId]
-      const quest = quests[locId]
+      const questVersion = getBestQuestVersionForLevel(locId, quests, characterLevel)
+      const quest = questVersion?.quest ?? quests[locId]
 
       // Public areas first
       if (area && area.is_public) {
@@ -75,23 +79,8 @@ export function groupCharactersByLocation({
       }
 
       // Quests (one group per quest)
-      if (quest?.name) {
-        let groupKey = quest.name
-        let isHeroic = false
-        let isEpic = false
-
-        if (quest.heroicLevel && quest.epicLevel) {
-          const charLevel = (onlineChar.classes || []).reduce((sum: number, cls) => sum + (cls.level || 0), 0)
-          const distHeroic = Math.abs(charLevel - quest.heroicLevel)
-          const distEpic = Math.abs(charLevel - quest.epicLevel)
-          if (distHeroic <= distEpic) {
-            groupKey = `${quest.name} (Heroic)`
-            isHeroic = true
-          } else {
-            groupKey = `${quest.name} (Epic)`
-            isEpic = true
-          }
-        }
+      if (questVersion?.quest?.name) {
+        const groupKey = questVersion.name
 
         if (!questsMap[groupKey]) questsMap[groupKey] = []
         questsMap[groupKey].push(group)
@@ -102,13 +91,7 @@ export function groupCharactersByLocation({
           questMeta[groupKey] = typeof pack === 'string' && pack.trim() ? pack.trim() : null
         }
         if (levels[groupKey] == null) {
-          let levelStr = ''
-          if (isHeroic) levelStr = `Level ${quest.heroicLevel}`
-          else if (isEpic) levelStr = `Level ${quest.epicLevel}`
-          else if (quest.level) levelStr = `Level ${quest.level}`
-          else if (quest.heroicLevel) levelStr = `Level ${quest.heroicLevel}`
-          else if (quest.epicLevel) levelStr = `Level ${quest.epicLevel}`
-          levels[groupKey] = levelStr || null
+          levels[groupKey] = questVersion.level > 0 ? `Level ${questVersion.level}` : null
         }
 
         return
