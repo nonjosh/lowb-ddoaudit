@@ -151,6 +151,7 @@ src/
 | `/gear/wiki`       | Wiki         | Browse/search all items     |
 | `/gear/wishlist`   | Wishlist     | Track desired items         |
 | `/gear/planner`    | Gear Planner | Optimize gear sets          |
+| `/trove/explorer`  | Trove Explorer | Browse imported shared bank, personal bank, and inventory snapshots |
 | `/tools/converter` | Converter    | Convert Points, Shards, HKD |
 | `/tr-planner`      | TR Planner   | TR progression planning     |
 

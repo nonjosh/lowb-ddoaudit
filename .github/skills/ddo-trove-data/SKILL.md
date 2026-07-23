@@ -46,6 +46,9 @@ Users export Trove JSON files and import them into this app via a file picker di
 
 Shared bank data. Structure: `{ SharedBank: { BankType: 3, Tabs: {...} } }`
 
+- May also include `CraftingBank`, which should be treated as a distinct storage pane from the shared bank.
+- Shared-bank tabs are keyed by the raw `Tabs` object key; tab names and indexes are not guaranteed unique.
+
 ### 2. Character Inventory (`{CharacterId}-inventory.json`)
 
 ```typescript
@@ -57,6 +60,9 @@ interface TroveCharacterInventory {
 }
 ```
 
+- Inventory exports mix `Equipped` and `Inventory` containers in a single flat array.
+- Inventory coordinates use `Row` and `Column`, but bag membership is only loosely represented by `Tab` and optional `TabName`; do not assume they behave like bank pages.
+
 ### 3. Character Bank (`{CharacterName}-{CharacterId}-bank.json`)
 
 ```typescript
@@ -67,6 +73,9 @@ interface TroveCharacterBank {
   PersonalBank: { BankType: 1, Tabs: {...} };
 }
 ```
+
+- Personal bank tabs may have empty `Pages` objects; the UI should tolerate that and surface an empty page instead of crashing.
+- In observed exports, bank items use `Row` as an ordered slot index while `Column` stays `0`; render them as ordered rows unless a future export proves otherwise.
 
 ## TroveItem Key Fields
 
@@ -91,6 +100,12 @@ interface TroveItem {
 }
 ```
 
+Additional fields that matter for explorer UIs:
+
+- `IconSource`: base64 data URI for the exact in-game item icon.
+- `Tab`, `TabName`, `Row`, `Column`: storage metadata needed to rebuild bank and inventory views.
+- `Quantity`: stack counts for ingredients and consumables.
+
 ## Item Matching
 
 Primary matching by exact name:
@@ -108,6 +123,25 @@ const match = items.find((item) => item.name === troveItem.Name);
 
 - `BoundToCharacter`: Only usable by specific character
 - `BoundToAccount` or no binding: Can be shared
+
+## Snapshot Retention
+
+`buildTroveData()` should preserve both the flattened `inventoryMap` and the raw imported snapshots:
+
+- `accountData`
+- `characterInventories`
+- `characterBanks`
+
+The flattened map powers availability checks, but explorer-style pages must read the raw snapshots so they can retain tab/page structure, item ordering, and tooltip fidelity.
+
+When duplicate character inventory or bank files are imported, prefer the newest snapshot by `LastUpdated` when it parses as a valid timestamp.
+
+## Explorer UI Guidance
+
+- Shared bank, crafting storage, and personal bank should be treated as tabbed banks, with page navigation derived from `Tabs[tabKey].Pages`.
+- Use the raw tab object key as the stable selection key; names like `Main`, `Set`, or `Tab 8` may repeat.
+- Prefer rendering item details directly from `Hover` with preserved newlines instead of reconstructing the tooltip from partial structured fields.
+- Trove does not currently expose reincarnation cache as a separate file type in this app; if a three-pane UI is needed, use character inventory or equipped items for the third pane rather than inventing a fake cache model.
 
 ## Related Files
 
