@@ -11,12 +11,9 @@ import {
   DialogTitle,
   IconButton,
   InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  List,
+  ListItemButton,
+  ListItemText,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -79,7 +76,7 @@ export default function AugmentSelectionDialog({
     return availableOptions.filter(opt => {
       const name = generateCraftingOptionName(opt).toLowerCase()
       if (name.includes(term)) return true
-      if (opt.affixes?.some((affix) => formatAffix(affix).toLowerCase().includes(term))) return true
+      if (opt.affixes?.some((affix) => formatAffix(affix).toString().toLowerCase().includes(term))) return true
       if (opt.set?.toLowerCase().includes(term)) return true
       if (opt.ml !== undefined && `ml ${opt.ml}`.includes(term)) return true
       return false
@@ -91,14 +88,6 @@ export default function AugmentSelectionDialog({
   function handleSelect(option: CraftingOption | null) {
     onSelect(option)
     onClose()
-  }
-
-  function formatEffectText(option: CraftingOption): string {
-    const effectParts = option.affixes?.map((affix) => formatAffix(affix)) ?? []
-    if (option.set) {
-      effectParts.push(`Set: ${option.set}`)
-    }
-    return effectParts.join(', ')
   }
 
   return (
@@ -143,72 +132,70 @@ export default function AugmentSelectionDialog({
           sx={{ mb: 1 }}
           autoFocus
         />
-        <Button
-          variant={!currentOption ? 'contained' : 'text'}
-          color={!currentOption ? 'primary' : 'inherit'}
-          size="small"
-          onClick={() => handleSelect(null)}
-          sx={{ mb: 1 }}
-        >
-          (None)
-        </Button>
-        <TableContainer sx={{ maxHeight: 400, overflowY: 'auto' }}>
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: '38%' }}>Augment</TableCell>
-                <TableCell>Effect</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredOptions.map((opt, idx) => {
-                const name = generateCraftingOptionName(opt)
-                const isSelected = currentName === name
-                const effectText = formatEffectText(opt)
+        <List dense disablePadding sx={{ maxHeight: 400, overflowY: 'auto' }}>
+          {/* None option */}
+          <ListItemButton
+            selected={!currentOption}
+            onClick={() => handleSelect(null)}
+          >
+            <ListItemText
+              primary={<Typography variant="body2" color="text.secondary">(None)</Typography>}
+            />
+          </ListItemButton>
 
-                return (
-                  <TableRow
-                    key={idx}
-                    hover
-                    onClick={() => handleSelect(opt)}
-                    sx={{
-                      cursor: 'pointer',
-                      backgroundColor: isSelected ? 'action.selected' : 'inherit',
-                    }}
-                  >
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={isSelected ? 'bold' : 'normal'}>
-                        {name}
-                      </Typography>
+          {filteredOptions.map((opt, idx) => {
+            const name = generateCraftingOptionName(opt)
+            const isSelected = currentName === name
+            return (
+              <ListItemButton
+                key={idx}
+                selected={isSelected}
+                onClick={() => handleSelect(opt)}
+              >
+                <ListItemText
+                  primary={
+                    <Typography variant="body2" fontWeight={isSelected ? 'bold' : 'normal'}>
+                      {name}
                       {opt.ml !== undefined && (
-                        <Typography variant="caption" color="text.secondary">
-                          ML {opt.ml}
+                        <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                          (ML {opt.ml})
                         </Typography>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color={opt.set ? 'secondary.main' : 'text.secondary'}>
-                        {effectText || '—'}
+                    </Typography>
+                  }
+                  secondary={
+                    opt.affixes && opt.affixes.length > 0 ? (
+                      <Box component="span" sx={{ display: 'flex', flexDirection: 'column' }}>
+                        {opt.affixes.map((affix, i) => (
+                          <Typography key={i} variant="caption" color="text.secondary" component="span" display="block">
+                            {formatAffix(affix)}
+                          </Typography>
+                        ))}
+                        {opt.set && (
+                          <Typography variant="caption" color="secondary.main" component="span" display="block">
+                            Set: {opt.set}
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : opt.set ? (
+                      <Typography variant="caption" color="secondary.main" component="span" display="block">
+                        Set: {opt.set}
                       </Typography>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                    ) : undefined
+                  }
+                />
+              </ListItemButton>
+            )
+          })}
 
-              {filteredOptions.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={2}>
-                    <Box sx={{ py: 2, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No augments found
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+          {filteredOptions.length === 0 && (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                No augments found
+              </Typography>
+            </Box>
+          )}
+        </List>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
