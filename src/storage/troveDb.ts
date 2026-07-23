@@ -1,6 +1,12 @@
 import Dexie, { Table } from 'dexie'
 
-import type { TroveCharacter, TroveItemLocation } from '@/api/trove/types'
+import type {
+  TroveAccountData,
+  TroveCharacter,
+  TroveCharacterBank,
+  TroveCharacterInventory,
+  TroveItemLocation
+} from '@/api/trove/types'
 
 // ============================================================================
 // Database Types
@@ -12,7 +18,14 @@ export interface TroveInventoryRecord {
 }
 
 export interface TroveMetaRecord {
-  key: 'characters' | 'importedAt' | 'selectedCharacters' | 'hiddenCharacters'
+  key:
+  | 'accountData'
+  | 'characterBanks'
+  | 'characterInventories'
+  | 'characters'
+  | 'hiddenCharacters'
+  | 'importedAt'
+  | 'selectedCharacters'
   value: unknown
 }
 
@@ -76,6 +89,33 @@ export async function saveTroveCharacters(
 }
 
 /**
+ * Save shared account Trove data
+ */
+export async function saveTroveAccountData(
+  accountData: TroveAccountData | null
+): Promise<void> {
+  await troveDb.meta.put({ key: 'accountData', value: accountData })
+}
+
+/**
+ * Save character inventory snapshots
+ */
+export async function saveTroveCharacterInventories(
+  characterInventories: TroveCharacterInventory[]
+): Promise<void> {
+  await troveDb.meta.put({ key: 'characterInventories', value: characterInventories })
+}
+
+/**
+ * Save character bank snapshots
+ */
+export async function saveTroveCharacterBanks(
+  characterBanks: TroveCharacterBank[]
+): Promise<void> {
+  await troveDb.meta.put({ key: 'characterBanks', value: characterBanks })
+}
+
+/**
  * Save import timestamp
  */
 export async function saveTroveImportTime(timestamp: number): Promise<void> {
@@ -111,6 +151,30 @@ export async function loadTroveInventory(): Promise<Map<string, TroveItemLocatio
 export async function loadTroveCharacters(): Promise<TroveCharacter[]> {
   const record = await troveDb.meta.get('characters')
   return (record?.value as TroveCharacter[]) || []
+}
+
+/**
+ * Load shared account Trove data
+ */
+export async function loadTroveAccountData(): Promise<TroveAccountData | null> {
+  const record = await troveDb.meta.get('accountData')
+  return (record?.value as TroveAccountData | null) || null
+}
+
+/**
+ * Load character inventory snapshots
+ */
+export async function loadTroveCharacterInventories(): Promise<TroveCharacterInventory[]> {
+  const record = await troveDb.meta.get('characterInventories')
+  return (record?.value as TroveCharacterInventory[]) || []
+}
+
+/**
+ * Load character bank snapshots
+ */
+export async function loadTroveCharacterBanks(): Promise<TroveCharacterBank[]> {
+  const record = await troveDb.meta.get('characterBanks')
+  return (record?.value as TroveCharacterBank[]) || []
 }
 
 /**

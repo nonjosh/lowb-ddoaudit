@@ -134,6 +134,12 @@ export interface TroveAccountData {
   CraftingBank?: TroveBank
 }
 
+export interface TroveImportedSnapshots {
+  accountData: TroveAccountData | null
+  characterInventories: TroveCharacterInventory[]
+  characterBanks: TroveCharacterBank[]
+}
+
 // ============================================================================
 // Processed Data Types
 // ============================================================================
@@ -173,4 +179,7 @@ export interface TroveData {
   inventoryMap: TroveInventoryMap
   characters: TroveCharacter[]
   importedAt: number
+  accountData: TroveAccountData | null
+  characterInventories: TroveCharacterInventory[]
+  characterBanks: TroveCharacterBank[]
 }
