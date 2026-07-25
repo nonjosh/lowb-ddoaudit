@@ -1,0 +1,3 @@
+
+- 2026-07-25T15:55:00+08:00: Browser QA blocker for compact-header task: Playwright MCP failed with `Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome`; `npx playwright install chrome` failed because sudo/password is unavailable; local dev server check `curl http://127.0.0.1:5173/trove/explorer` returned connection refused; AGENTS.md forbids manually starting `npm run dev`.
+- 2026-07-25T16:02:29+08:00: Equipped-cosmetic item tagging depends on exported Trove item strings rather than a guaranteed boolean flag; implementation uses conservative string matching on existing fields and only renders the Equipped Cosmetics tab when matching equipped items are present.

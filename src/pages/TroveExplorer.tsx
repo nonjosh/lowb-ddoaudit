@@ -28,8 +28,6 @@ import {
   Select,
   Stack,
   Switch,
-  Tab,
-  Tabs,
   TextField,
   Typography,
   useMediaQuery
@@ -49,7 +47,6 @@ import { useTrove } from '@/contexts/useTrove'
 import { getAugmentColor, getWikiUrl } from '@/utils/affixHelpers'
 
 type AccountPaneMode = 'crafting' | 'shared'
-type InventoryPaneMode = 'equipped' | 'inventory'
 type PaneSortOrder = 'ml' | 'name' | 'stored'
 
 interface ExplorerPageData {
@@ -91,6 +88,7 @@ interface TroveStoragePaneProps {
   tabs: ExplorerTabData[]
   title: string
   wikiUrlResolver: (item: TroveItem) => string | null
+  showTabNavigation?: boolean
   sidebarFooterContent?: ReactNode
 }
 
@@ -184,6 +182,29 @@ function getPrimaryEquipSlot(item: TroveItem): string {
   return item.EquipsTo?.[0] || item.ItemType || 'Other'
 }
 
+function sortEquippedItems(items: TroveItem[]): TroveItem[] {
+  return [...items].sort((left, right) => {
+    const leftSlot = EQUIPPED_SLOT_ORDER.indexOf(getPrimaryEquipSlot(left))
+    const rightSlot = EQUIPPED_SLOT_ORDER.indexOf(getPrimaryEquipSlot(right))
+    const slotDelta = (leftSlot === -1 ? Number.MAX_SAFE_INTEGER : leftSlot)
+      - (rightSlot === -1 ? Number.MAX_SAFE_INTEGER : rightSlot)
+
+    if (slotDelta !== 0) return slotDelta
+    return compareAlphabetically(left, right)
+  })
+}
+
+function isCosmeticEquippedItem(item: TroveItem): boolean {
+  const cosmeticFields = [
+    item.ItemType,
+    item.ItemSubType,
+    item.WeaponType,
+    ...(item.EquipsTo || [])
+  ]
+
+  return cosmeticFields.some((value) => value?.toLowerCase().includes('cosmetic'))
+}
+
 function normalizeBankTabs(bank: TroveBank | undefined): ExplorerTabData[] {
   if (!bank) return []
 
@@ -217,31 +238,8 @@ function normalizeBankTabs(bank: TroveBank | undefined): ExplorerTabData[] {
     })
 }
 
-function normalizeInventoryTabs(
-  inventory: TroveCharacterInventory | undefined,
-  mode: InventoryPaneMode
-): ExplorerTabData[] {
+function normalizeInventoryTabs(inventory: TroveCharacterInventory | undefined): ExplorerTabData[] {
   if (!inventory) return []
-
-  if (mode === 'equipped') {
-    const items = inventory.Inventory
-      .filter((item) => item.Container === 'Equipped')
-      .sort((left, right) => {
-        const leftSlot = EQUIPPED_SLOT_ORDER.indexOf(getPrimaryEquipSlot(left))
-        const rightSlot = EQUIPPED_SLOT_ORDER.indexOf(getPrimaryEquipSlot(right))
-        const slotDelta = (leftSlot === -1 ? Number.MAX_SAFE_INTEGER : leftSlot)
-          - (rightSlot === -1 ? Number.MAX_SAFE_INTEGER : rightSlot)
-
-        if (slotDelta !== 0) return slotDelta
-        return compareAlphabetically(left, right)
-      })
-
-    return [{
-      key: 'equipped',
-      label: 'Equipped',
-      pages: [{ key: 'equipped', label: 'Equipped', items }]
-    }]
-  }
 
   const grouped = new Map<string, { items: TroveItem[]; label: string; order: number }>()
 
@@ -264,20 +262,69 @@ function normalizeInventoryTabs(
     })
   }
 
-  return Array.from(grouped.entries())
+  const bagTabs = Array.from(grouped.entries())
     .sort(([, left], [, right]) => {
       if (left.order !== right.order) return left.order - right.order
       return left.label.localeCompare(right.label)
     })
     .map(([key, group]) => ({
       key,
-      label: group.label,
-      pages: [{
-        key,
         label: group.label,
-        items: [...group.items].sort(compareStoredItems)
-      }]
+        pages: [{
+          key,
+          label: group.label,
+          items: [...group.items].sort(compareStoredItems)
+        }]
     }))
+
+  const equippedItems = sortEquippedItems(
+    inventory.Inventory.filter((item) => item.Container === 'Equipped')
+  )
+
+  const equippedTabs: ExplorerTabData[] = []
+
+  if (equippedItems.length > 0) {
+    equippedTabs.push({
+      key: 'equipped',
+      label: 'Equipped',
+      pages: [{ key: 'equipped', label: 'Equipped', items: equippedItems }]
+    })
+
+    const cosmeticEquippedItems = equippedItems.filter(isCosmeticEquippedItem)
+    if (cosmeticEquippedItems.length > 0) {
+      equippedTabs.push({
+        key: 'equipped-cosmetic',
+        label: 'Equipped Cosmetics',
+        pages: [{ key: 'equipped-cosmetic', label: 'Equipped Cosmetics', items: cosmeticEquippedItems }]
+      })
+    }
+  }
+
+  return [...bagTabs, ...equippedTabs]
+}
+
+function normalizeStorageItems(bank: TroveBank | undefined): ExplorerTabData[] {
+  if (!bank) return []
+
+  const allItems = Object.values(bank.Tabs || {})
+    .sort((left, right) => {
+      const leftIndex = typeof left.Index === 'number' ? left.Index : Number.MAX_SAFE_INTEGER
+      const rightIndex = typeof right.Index === 'number' ? right.Index : Number.MAX_SAFE_INTEGER
+      if (leftIndex !== rightIndex) return leftIndex - rightIndex
+
+      return normalizeLabel(left.Name, '').localeCompare(normalizeLabel(right.Name, ''))
+    })
+    .flatMap((tab) => Object.entries(tab.Pages || {})
+      .sort(([left], [right]) => Number(left) - Number(right))
+      .flatMap(([, page]) => page.Items || []))
+
+  if (allItems.length === 0) return []
+
+  return [{
+    key: 'all-items',
+    label: 'All Items',
+    pages: [{ key: 'all-items', label: 'All Items', items: [...allItems] }]
+  }]
 }
 
 function getTypeOptions(items: TroveItem[]): string[] {
@@ -451,7 +498,7 @@ function TroveItemDetails({ item, wikiUrl }: { item: TroveItem; wikiUrl: string 
         borderRadius: 2,
         boxShadow: '0 18px 36px rgba(0, 0, 0, 0.55)',
         color: 'rgba(247, 231, 192, 0.96)',
-        maxWidth: 460,
+        maxWidth: 'calc(100vw - 24px)',
         p: 2
       }}
     >
@@ -467,7 +514,7 @@ function TroveItemDetails({ item, wikiUrl }: { item: TroveItem; wikiUrl: string 
             width: 46
           }}
         />
-        <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, width: 'min(460px, calc(100vw - 56px))' }}>
           {wikiUrl ? (
             <Typography
               component="a"
@@ -552,6 +599,20 @@ function TroveItemRow({
     : item.Binding === 'BoundToAccount'
       ? 'BTA'
       : null
+  const compactSubline = [
+    contextLabel,
+    item.MinimumLevel !== undefined ? `ML ${item.MinimumLevel}` : null,
+    getItemType(item),
+    bindingLabel
+  ].filter((value): value is string => Boolean(value)).join(' • ')
+  const slotLabel = typeof item.Row === 'number' && typeof item.Column === 'number'
+    ? `R${item.Row + 1} C${item.Column + 1}`
+    : null
+
+  const handleMouseEnter = (event: Parameters<NonNullable<ButtonBaseProps['onMouseEnter']>>[0]) => {
+    const preferredAnchor = event.currentTarget.querySelector<HTMLElement>('[data-trove-hover-anchor="true"]')
+    onHoverItem(match, preferredAnchor ?? event.currentTarget)
+  }
 
   return (
     <ButtonBase
@@ -560,7 +621,7 @@ function TroveItemRow({
       target={wikiUrl ? '_blank' : undefined}
       rel={wikiUrl ? 'noopener noreferrer' : undefined}
       onClick={() => onInspectItem(match)}
-      onMouseEnter={(event: Parameters<NonNullable<ButtonBaseProps['onMouseEnter']>>[0]) => onHoverItem(match, event.currentTarget)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={onLeaveItem}
       sx={{
         alignItems: 'stretch',
@@ -569,7 +630,7 @@ function TroveItemRow({
         display: 'flex',
         justifyContent: 'space-between',
         px: 1.1,
-        py: 0.8,
+        py: 0.58,
         textAlign: 'left',
         transition: 'background-color 120ms ease, box-shadow 120ms ease',
         width: '100%',
@@ -578,51 +639,50 @@ function TroveItemRow({
           boxShadow: `inset 2px 0 0 ${accentColor}`
         }
       }}
-    >
-      <Stack alignItems="center" direction="row" spacing={1.2} sx={{ minWidth: 0 }}>
-        <Avatar
-          alt={item.Name}
-          src={item.IconSource}
-          variant="rounded"
-          sx={{
-            bgcolor: 'rgba(20, 16, 15, 0.95)',
-            border: '1px solid rgba(184, 139, 90, 0.36)',
-            color: 'rgba(230, 212, 171, 0.92)',
-            fontSize: '0.72rem',
-            height: 28,
-            width: 28
-          }}
-        >
-          {item.Name.charAt(0)}
-        </Avatar>
+      >
+      <Stack alignItems="center" direction="row" spacing={1} sx={{ minWidth: 0 }}>
+        <Box data-trove-hover-anchor="true" sx={{ alignItems: 'center', display: 'flex' }}>
+          <Avatar
+            alt={item.Name}
+            src={item.IconSource}
+            variant="rounded"
+            sx={{
+              bgcolor: 'rgba(20, 16, 15, 0.95)',
+              border: '1px solid rgba(184, 139, 90, 0.36)',
+              color: 'rgba(230, 212, 171, 0.92)',
+              fontSize: '0.68rem',
+              height: 24,
+              width: 24
+            }}
+          >
+            {item.Name.charAt(0)}
+          </Avatar>
+        </Box>
         <Box sx={{ minWidth: 0 }}>
-          <Typography noWrap sx={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
+          <Typography noWrap sx={{ fontSize: '0.82rem', lineHeight: 1.2 }}>
             {item.Name}
           </Typography>
-          {contextLabel && (
-            <Typography noWrap sx={{ color: 'rgba(214, 194, 154, 0.76)', fontSize: '0.68rem', mt: 0.2 }}>
-              {contextLabel}
+          {compactSubline && (
+            <Typography
+              sx={{
+                color: 'rgba(204, 185, 145, 0.76)',
+                display: '-webkit-box',
+                fontSize: '0.66rem',
+                lineHeight: 1.25,
+                mt: 0.15,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: 2
+              }}
+            >
+              {compactSubline}
             </Typography>
           )}
-          <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 0.4 }}>
-            {item.MinimumLevel !== undefined && (
-              <Typography sx={{ color: 'rgba(196, 178, 138, 0.72)', fontSize: '0.68rem' }}>
-                ML {item.MinimumLevel}
-              </Typography>
-            )}
-            <Typography sx={{ color: 'rgba(196, 178, 138, 0.72)', fontSize: '0.68rem' }}>
-              {getItemType(item)}
-            </Typography>
-            {bindingLabel && (
-              <Typography sx={{ color: 'rgba(226, 181, 115, 0.82)', fontSize: '0.68rem' }}>
-                {bindingLabel}
-              </Typography>
-            )}
-          </Stack>
         </Box>
       </Stack>
 
-      <Stack alignItems="flex-end" spacing={0.4} sx={{ flexShrink: 0, ml: 1.2 }}>
+      <Stack alignItems="center" direction="row" spacing={0.7} sx={{ flexShrink: 0, ml: 1 }}>
         {item.Quantity && item.Quantity > 1 && (
           <Chip
             label={`x${item.Quantity}`}
@@ -630,16 +690,18 @@ function TroveItemRow({
             sx={{
               bgcolor: 'rgba(53, 42, 27, 0.95)',
               color: 'rgba(239, 219, 176, 0.92)',
-              height: 18,
+              height: 17,
               '& .MuiChip-label': {
-                px: 0.8
+                px: 0.72
               }
             }}
           />
         )}
-        <Typography sx={{ color: 'rgba(178, 159, 118, 0.68)', fontSize: '0.68rem' }}>
-          {item.Row + 1}
-        </Typography>
+        {slotLabel && (
+          <Typography sx={{ color: 'rgba(178, 159, 118, 0.68)', fontSize: '0.64rem', letterSpacing: '0.01em' }}>
+            {slotLabel}
+          </Typography>
+        )}
       </Stack>
     </ButtonBase>
   )
@@ -656,7 +718,8 @@ function TroveStoragePane({
   subtitle,
   tabs,
   title,
-  wikiUrlResolver
+  wikiUrlResolver,
+  showTabNavigation = true
 }: TroveStoragePaneProps) {
   const [activePageKeyState, setActivePageKey] = useState(tabs[0]?.pages[0]?.key ?? '')
   const [activeTabKeyState, setActiveTabKey] = useState(tabs[0]?.key ?? '')
@@ -770,29 +833,24 @@ function TroveStoragePane({
       )}
 
       <Box sx={{ borderBottom: '1px solid rgba(192, 141, 89, 0.18)', px: 1.5, py: 1.2 }}>
-        <Typography sx={{ color: 'rgba(212, 193, 156, 0.78)', fontSize: '0.72rem', mb: 0.75 }}>
-          Search
-        </Typography>
-        <TextField
-          fullWidth
-          size="small"
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Find an item in this pane"
-          sx={{
-            ...filterControlSx,
-            '& .MuiInputBase-root': {
-              ...filterControlSx['& .MuiInputBase-root'],
-              fontSize: '0.82rem'
-            }
-          }}
-        />
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+          <TextField
+            size="small"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Find an item in this pane"
+            sx={{
+              ...filterControlSx,
+              flex: '1 1 220px',
+              minWidth: { xs: '100%', sm: 220 },
+              '& .MuiInputBase-root': {
+                ...filterControlSx['& .MuiInputBase-root'],
+                fontSize: '0.82rem'
+              }
+            }}
+          />
 
-        <Typography sx={{ color: 'rgba(212, 193, 156, 0.78)', fontSize: '0.72rem', mb: 0.75, mt: 1.2 }}>
-          Filtering
-        </Typography>
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          <FormControl size="small" sx={filterControlSx}>
+          <FormControl size="small" sx={{ ...filterControlSx, minWidth: 80 }}>
             <InputLabel>Min</InputLabel>
             <Select
               label="Min"
@@ -811,7 +869,7 @@ function TroveStoragePane({
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={filterControlSx}>
+          <FormControl size="small" sx={{ ...filterControlSx, minWidth: 80 }}>
             <InputLabel>Max</InputLabel>
             <Select
               label="Max"
@@ -830,7 +888,7 @@ function TroveStoragePane({
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ ...filterControlSx, minWidth: 124 }}>
+          <FormControl size="small" sx={{ ...filterControlSx, minWidth: 132 }}>
             <InputLabel>Type</InputLabel>
             <Select
               label="Type"
@@ -845,23 +903,20 @@ function TroveStoragePane({
               ))}
             </Select>
           </FormControl>
-        </Stack>
 
-        <Typography sx={{ color: 'rgba(212, 193, 156, 0.78)', fontSize: '0.72rem', mb: 0.75, mt: 1.2 }}>
-          Sorting
-        </Typography>
-        <FormControl size="small" sx={{ ...filterControlSx, minWidth: 188 }}>
-          <InputLabel>Order</InputLabel>
-          <Select
-            label="Order"
-            value={sortOrder}
-            onChange={(event) => setSortOrder(event.target.value as PaneSortOrder)}
-          >
-            <MenuItem value="stored">Stored Order</MenuItem>
-            <MenuItem value="name">Name</MenuItem>
-            <MenuItem value="ml">Minimum Level</MenuItem>
-          </Select>
-        </FormControl>
+          <FormControl size="small" sx={{ ...filterControlSx, minWidth: 188 }}>
+            <InputLabel>Order</InputLabel>
+            <Select
+              label="Order"
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value as PaneSortOrder)}
+            >
+              <MenuItem value="stored">Stored Order</MenuItem>
+              <MenuItem value="name">Name</MenuItem>
+              <MenuItem value="ml">Minimum Level</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
       </Box>
 
       <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
@@ -910,105 +965,111 @@ function TroveStoragePane({
             ))}
           </Box>
 
-          <Box
-            sx={{
-              borderTop: '1px solid rgba(153, 110, 68, 0.16)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              px: 1.1,
-              py: 0.8
-            }}
-          >
-            <Typography sx={{ color: 'rgba(212, 193, 156, 0.72)', fontSize: '0.72rem' }}>
-              Page {pageCount > 0 ? pageIndex + 1 : 0} of {pageCount}
-            </Typography>
-            <Stack direction="row" spacing={0.5}>
-              <IconButton
-                size="small"
-                onClick={() => handlePageChange('previous')}
-                disabled={pageIndex === 0 || pageCount <= 1}
-                sx={{ color: 'rgba(222, 192, 139, 0.78)' }}
-              >
-                <ChevronLeftIcon fontSize="small" />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={() => handlePageChange('next')}
-                disabled={pageIndex >= pageCount - 1 || pageCount <= 1}
-                sx={{ color: 'rgba(222, 192, 139, 0.78)' }}
-              >
-                <ChevronRightIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-          </Box>
-        </Box>
-
-        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(153, 110, 68, 0.18)' }} />
-
-        <Box
-          sx={{
-            bgcolor: 'rgba(17, 13, 11, 0.72)',
-            display: 'flex',
-            flexDirection: 'column',
-            minWidth: 116,
-            width: 116
-          }}
-        >
-          <Box sx={{ borderBottom: '1px solid rgba(153, 110, 68, 0.18)', px: 1.1, py: 0.9 }}>
-            <Typography sx={{ color: 'rgba(212, 193, 156, 0.72)', fontSize: '0.72rem' }}>
-              Tabs
-            </Typography>
-          </Box>
-
-          <Box sx={{ flex: 1, overflowY: 'auto', p: 0.75 }}>
-            <Stack spacing={0.75}>
-              {tabs.map((tab) => {
-                const isActive = tab.key === activeTab?.key
-                const tabItemCount = getTabItemCount(tab)
-
-                return (
-                  <ButtonBase
-                    key={tab.key}
-                    onClick={() => {
-                      setActiveTabKey(tab.key)
-                      setActivePageKey(tab.pages[0]?.key ?? '')
-                    }}
-                    sx={{
-                      alignItems: 'stretch',
-                      bgcolor: isActive ? 'rgba(182, 130, 71, 0.2)' : 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid',
-                      borderColor: isActive ? accentColor : 'rgba(150, 110, 72, 0.16)',
-                      borderRadius: 1,
-                      color: 'inherit',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      px: 0.9,
-                      py: 0.6,
-                      textAlign: 'left',
-                      width: '100%',
-                      '&:hover': {
-                        bgcolor: isActive ? 'rgba(182, 130, 71, 0.24)' : 'rgba(205, 153, 89, 0.09)'
-                      }
-                    }}
-                  >
-                    <Typography noWrap sx={{ fontSize: '0.76rem', lineHeight: 1.15, maxWidth: 70 }}>
-                      {tab.label}
-                    </Typography>
-                    <Typography sx={{ color: 'rgba(212, 193, 156, 0.72)', fontSize: '0.72rem', ml: 0.8 }}>
-                      {tabItemCount}
-                    </Typography>
-                  </ButtonBase>
-                )
-              })}
-            </Stack>
-          </Box>
-
-          {sidebarFooterContent && (
-            <Box sx={{ borderTop: '1px solid rgba(153, 110, 68, 0.18)', p: 0.75 }}>
-              {sidebarFooterContent}
+          {showTabNavigation && (
+            <Box
+              sx={{
+                borderTop: '1px solid rgba(153, 110, 68, 0.16)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                px: 1.1,
+                py: 0.8
+              }}
+            >
+              <Typography sx={{ color: 'rgba(212, 193, 156, 0.72)', fontSize: '0.72rem' }}>
+                Page {pageCount > 0 ? pageIndex + 1 : 0} of {pageCount}
+              </Typography>
+              <Stack direction="row" spacing={0.5}>
+                <IconButton
+                  size="small"
+                  onClick={() => handlePageChange('previous')}
+                  disabled={pageIndex === 0 || pageCount <= 1}
+                  sx={{ color: 'rgba(222, 192, 139, 0.78)' }}
+                >
+                  <ChevronLeftIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => handlePageChange('next')}
+                  disabled={pageIndex >= pageCount - 1 || pageCount <= 1}
+                  sx={{ color: 'rgba(222, 192, 139, 0.78)' }}
+                >
+                  <ChevronRightIcon fontSize="small" />
+                </IconButton>
+              </Stack>
             </Box>
           )}
         </Box>
+
+        {showTabNavigation && (
+          <>
+            <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(153, 110, 68, 0.18)' }} />
+
+            <Box
+              sx={{
+                bgcolor: 'rgba(17, 13, 11, 0.72)',
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: 116,
+                width: 116
+              }}
+            >
+              <Box sx={{ borderBottom: '1px solid rgba(153, 110, 68, 0.18)', px: 1.1, py: 0.9 }}>
+                <Typography sx={{ color: 'rgba(212, 193, 156, 0.72)', fontSize: '0.72rem' }}>
+                  Tabs
+                </Typography>
+              </Box>
+
+              <Box sx={{ flex: 1, overflowY: 'auto', p: 0.75 }}>
+                <Stack spacing={0.75}>
+                  {tabs.map((tab) => {
+                    const isActive = tab.key === activeTab?.key
+                    const tabItemCount = getTabItemCount(tab)
+
+                    return (
+                      <ButtonBase
+                        key={tab.key}
+                        onClick={() => {
+                          setActiveTabKey(tab.key)
+                          setActivePageKey(tab.pages[0]?.key ?? '')
+                        }}
+                        sx={{
+                          alignItems: 'stretch',
+                          bgcolor: isActive ? 'rgba(182, 130, 71, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid',
+                          borderColor: isActive ? accentColor : 'rgba(150, 110, 72, 0.16)',
+                          borderRadius: 1,
+                          color: 'inherit',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          px: 0.9,
+                          py: 0.6,
+                          textAlign: 'left',
+                          width: '100%',
+                          '&:hover': {
+                            bgcolor: isActive ? 'rgba(182, 130, 71, 0.24)' : 'rgba(205, 153, 89, 0.09)'
+                          }
+                        }}
+                      >
+                        <Typography noWrap sx={{ fontSize: '0.76rem', lineHeight: 1.15, maxWidth: 70 }}>
+                          {tab.label}
+                        </Typography>
+                        <Typography sx={{ color: 'rgba(212, 193, 156, 0.72)', fontSize: '0.72rem', ml: 0.8 }}>
+                          {tabItemCount}
+                        </Typography>
+                      </ButtonBase>
+                    )
+                  })}
+                </Stack>
+              </Box>
+
+              {sidebarFooterContent && (
+                <Box sx={{ borderTop: '1px solid rgba(153, 110, 68, 0.18)', p: 0.75 }}>
+                  {sidebarFooterContent}
+                </Box>
+              )}
+            </Box>
+          </>
+        )}
       </Box>
     </Paper>
   )
@@ -1028,7 +1089,6 @@ export default function TroveExplorer() {
 
   const [accountMode, setAccountMode] = useState<AccountPaneMode>('shared')
   const [globalSearchInput, setGlobalSearchInput] = useState('')
-  const [inventoryMode, setInventoryMode] = useState<InventoryPaneMode>('inventory')
   const [hoveredItem, setHoveredItem] = useState<HoveredItemState | null>(null)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [selectedCharacterIdState, setSelectedCharacterId] = useState<number | null>(null)
@@ -1133,9 +1193,19 @@ export default function TroveExplorer() {
     [explorerCharacters, selectedCharacterId]
   )
 
+  const activeAccountMode = useMemo<AccountPaneMode>(() => {
+    if (accountMode === 'crafting' && !accountData?.CraftingBank) {
+      return 'shared'
+    }
+
+    return accountMode
+  }, [accountData?.CraftingBank, accountMode])
+
   const accountTabs = useMemo(
-    () => normalizeBankTabs(accountMode === 'shared' ? accountData?.SharedBank : accountData?.CraftingBank),
-    [accountData?.CraftingBank, accountData?.SharedBank, accountMode]
+    () => activeAccountMode === 'shared'
+      ? normalizeBankTabs(accountData?.SharedBank)
+      : normalizeStorageItems(accountData?.CraftingBank),
+    [accountData?.CraftingBank, accountData?.SharedBank, activeAccountMode]
   )
 
   const characterBankTabs = useMemo(
@@ -1145,10 +1215,9 @@ export default function TroveExplorer() {
 
   const inventoryTabs = useMemo(
     () => normalizeInventoryTabs(
-      selectedCharacterId !== null ? inventoryByCharacterId.get(selectedCharacterId) : undefined,
-      inventoryMode
+      selectedCharacterId !== null ? inventoryByCharacterId.get(selectedCharacterId) : undefined
     ),
-    [inventoryByCharacterId, inventoryMode, selectedCharacterId]
+    [inventoryByCharacterId, selectedCharacterId]
   )
 
   const globalSearchResults = useMemo(() => {
@@ -1269,108 +1338,81 @@ export default function TroveExplorer() {
 
   return (
     <Container maxWidth={false} sx={{ px: { xs: 1.5, md: 2.5 }, py: 3 }}>
-      <Stack spacing={2.5}>
+      <Stack spacing={2.25}>
         <Paper
           sx={{
-            background: 'radial-gradient(circle at top left, rgba(136, 59, 36, 0.26), rgba(23, 20, 18, 0.96) 55%)',
+            background: 'radial-gradient(circle at top left, rgba(136, 59, 36, 0.24), rgba(24, 20, 17, 0.97) 56%)',
             border: '1px solid rgba(176, 123, 76, 0.45)',
             borderRadius: 2.5,
-            boxShadow: '0 18px 36px rgba(0, 0, 0, 0.28)',
-            px: { xs: 2, md: 3 },
-            py: { xs: 2, md: 2.5 }
+            boxShadow: '0 14px 30px rgba(0, 0, 0, 0.28)',
+            px: { xs: 1.75, md: 2.25 },
+            py: { xs: 1.5, md: 1.75 }
           }}
         >
-          <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" justifyContent="space-between">
-            <Box sx={{ maxWidth: 900 }}>
-              <Typography
-                sx={{
-                  color: 'rgba(255, 230, 175, 0.98)',
-                  fontFamily: 'Georgia, "Times New Roman", serif',
-                  fontSize: { xs: '1.5rem', md: '1.9rem' },
-                  fontWeight: 700,
-                  letterSpacing: '0.02em'
-                }}
-              >
-                Trove Data Explorer
-              </Typography>
-              <Typography sx={{ color: 'rgba(222, 211, 186, 0.8)', maxWidth: 860, mt: 0.8 }}>
-                Browse shared storage, personal bank tabs, and carried inventory with the same dense pane layout Trove captures from the game client.
-              </Typography>
-              <Typography sx={{ color: 'rgba(187, 174, 148, 0.72)', fontSize: '0.78rem', mt: 1.1 }}>
-                The right pane mirrors character inventory and equipped items because Trove exports do not include reincarnation cache as a separate snapshot.
-              </Typography>
-            </Box>
-
-            <Stack alignItems={{ xs: 'stretch', sm: 'flex-end' }} spacing={1.2} sx={{ minWidth: { xs: '100%', sm: 280 } }}>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}>
-                {importedAtLabel && <Chip label={`Imported ${importedAtLabel}`} />}
-                {accountData && <Chip icon={<WarehouseIcon />} label="Shared storage ready" />}
-                {characterBanks.length > 0 && <Chip icon={<StorageIcon />} label={`${characterBanks.length} personal bank${characterBanks.length === 1 ? '' : 's'}`} />}
-                {characterInventories.length > 0 && <Chip icon={<InventoryIcon />} label={`${characterInventories.length} character inventor${characterInventories.length === 1 ? 'y' : 'ies'}`} />}
-              </Stack>
-
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}>
-                <Button variant="contained" onClick={() => setImportDialogOpen(true)}>
-                  Import Trove Data
-                </Button>
-              </Stack>
-            </Stack>
-          </Stack>
-        </Paper>
-
-        {!hasSnapshotData && (
-          <Paper
-            sx={{
-              background: 'linear-gradient(180deg, rgba(43, 30, 23, 0.96), rgba(21, 18, 16, 0.98))',
-              border: '1px solid rgba(176, 123, 76, 0.42)',
-              borderRadius: 2,
-              p: 3
-            }}
-          >
-            <Typography sx={{ color: 'rgba(242, 223, 184, 0.94)', fontSize: '1rem', fontWeight: 600 }}>
-              {needsReimport ? 'Reimport required for explorer mode' : 'No Trove snapshots loaded yet'}
-            </Typography>
-            <Typography sx={{ color: 'rgba(209, 194, 164, 0.78)', mt: 0.9 }}>
-              {needsReimport
-                ? 'Older imports only stored the flattened availability map. Reimport the same Trove JSON files once to unlock shared-bank, personal-bank, and inventory browsing.'
-                : 'Import your DDO Helper Trove JSON files to inspect shared storage, personal bank tabs, and per-character inventory with hoverable item descriptions.'}
-            </Typography>
-            <Button sx={{ mt: 2 }} variant="contained" onClick={() => setImportDialogOpen(true)}>
-              Open Trove Import
-            </Button>
-          </Paper>
-        )}
-
-        <Paper
-          sx={{
-            background: 'linear-gradient(180deg, rgba(43, 30, 23, 0.96), rgba(21, 18, 16, 0.98))',
-            border: '1px solid rgba(176, 123, 76, 0.42)',
-            borderRadius: 2,
-            p: 2
-          }}
-        >
-          <Stack spacing={1.4}>
-            <Stack direction="row" spacing={1.5} useFlexGap flexWrap="wrap" alignItems="center" justifyContent="space-between">
-              <Box>
-                <Typography sx={{ color: 'rgba(255, 226, 163, 0.96)', fontSize: '0.95rem', fontWeight: 700 }}>
+          <Stack spacing={1.15}>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              useFlexGap
+              flexWrap="wrap"
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+            >
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    color: 'rgba(222, 203, 163, 0.82)',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Trove Data Explorer
+                </Typography>
+                <Typography
+                  sx={{
+                    color: 'rgba(255, 226, 163, 0.96)',
+                    fontFamily: 'Georgia, "Times New Roman", serif',
+                    fontSize: { xs: '1.08rem', md: '1.2rem' },
+                    fontWeight: 700,
+                    letterSpacing: '0.01em',
+                    mt: 0.15
+                  }}
+                >
                   Cross-Pane Search
                 </Typography>
-                <Typography sx={{ color: 'rgba(212, 193, 156, 0.72)', fontSize: '0.78rem' }}>
-                  Search across shared storage, all visible character banks, carried inventory, and equipped gear.
+                <Typography sx={{ color: 'rgba(212, 193, 156, 0.74)', fontSize: '0.78rem', mt: 0.35 }}>
+                  Search shared storage, visible personal banks, carried inventory, and equipped gear in one pass.
                 </Typography>
               </Box>
 
-              <FormControlLabel
-                control={(
-                  <Switch
-                    checked={showHiddenCharacters}
-                    onChange={(event) => setShowHiddenCharacters(event.target.checked)}
-                    size="small"
+              <Stack alignItems={{ xs: 'stretch', sm: 'flex-end' }} spacing={0.9} sx={{ minWidth: { xs: '100%', sm: 320 } }}>
+                <Stack direction="row" spacing={0.9} useFlexGap flexWrap="wrap" justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}>
+                  {importedAtLabel && <Chip label={`Imported ${importedAtLabel}`} />}
+                  {accountData && <Chip icon={<WarehouseIcon />} label="Shared storage ready" />}
+                  {characterBanks.length > 0 && <Chip icon={<StorageIcon />} label={`${characterBanks.length} personal bank${characterBanks.length === 1 ? '' : 's'}`} />}
+                  {characterInventories.length > 0 && <Chip icon={<InventoryIcon />} label={`${characterInventories.length} character inventor${characterInventories.length === 1 ? 'y' : 'ies'}`} />}
+                </Stack>
+
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center" justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}>
+                  <FormControlLabel
+                    control={(
+                      <Switch
+                        checked={showHiddenCharacters}
+                        onChange={(event) => setShowHiddenCharacters(event.target.checked)}
+                        size="small"
+                      />
+                    )}
+                    label={<Typography sx={{ color: 'rgba(231, 222, 196, 0.88)', fontSize: '0.8rem' }}>Show hidden characters</Typography>}
+                    sx={{ m: 0 }}
                   />
-                )}
-                label={<Typography sx={{ color: 'rgba(231, 222, 196, 0.88)', fontSize: '0.82rem' }}>Show hidden characters</Typography>}
-                sx={{ m: 0 }}
-              />
+
+                  <Button size="small" variant="contained" onClick={() => setImportDialogOpen(true)}>
+                    Import Trove Data
+                  </Button>
+                </Stack>
+              </Stack>
             </Stack>
 
             <TextField
@@ -1393,7 +1435,7 @@ export default function TroveExplorer() {
                 sx={{
                   border: '1px solid rgba(153, 110, 68, 0.18)',
                   borderRadius: 1.5,
-                  maxHeight: 360,
+                  maxHeight: 340,
                   overflowY: 'auto'
                 }}
               >
@@ -1430,133 +1472,185 @@ export default function TroveExplorer() {
           </Stack>
         </Paper>
 
+        {!hasSnapshotData && (
+          <Paper
+            sx={{
+              background: 'linear-gradient(180deg, rgba(43, 30, 23, 0.96), rgba(21, 18, 16, 0.98))',
+              border: '1px solid rgba(176, 123, 76, 0.42)',
+              borderRadius: 2,
+              p: 3
+            }}
+          >
+            <Typography sx={{ color: 'rgba(242, 223, 184, 0.94)', fontSize: '1rem', fontWeight: 600 }}>
+              {needsReimport ? 'Reimport required for explorer mode' : 'No Trove snapshots loaded yet'}
+            </Typography>
+            <Typography sx={{ color: 'rgba(209, 194, 164, 0.78)', mt: 0.9 }}>
+              {needsReimport
+                ? 'Older imports only stored the flattened availability map. Reimport the same Trove JSON files once to unlock shared-bank, personal-bank, and inventory browsing.'
+                : 'Import your DDO Helper Trove JSON files to inspect shared storage, personal bank tabs, and per-character inventory with hoverable item descriptions.'}
+            </Typography>
+            <Button sx={{ mt: 2 }} variant="contained" onClick={() => setImportDialogOpen(true)}>
+              Open Trove Import
+            </Button>
+          </Paper>
+        )}
+
         <Box
           sx={{
             display: 'grid',
             gap: 2,
             gridTemplateColumns: {
               xs: '1fr',
-              lg: 'repeat(2, minmax(0, 1fr))',
-              xl: '1.08fr 1fr 1fr'
+              xl: '1.08fr minmax(0, 1.92fr)'
             }
           }}
         >
           <TroveStoragePane
             accentColor="rgba(224, 167, 99, 0.96)"
-            emptyMessage={accountMode === 'shared'
+            emptyMessage={activeAccountMode === 'shared'
               ? 'No shared-bank snapshot is available in the current import.'
               : 'No crafting-storage snapshot is available in the current import.'}
             headerContent={
-              <Tabs
-                value={accountMode}
-                onChange={(_, value) => setAccountMode(value as AccountPaneMode)}
-                variant="fullWidth"
-                sx={{
-                  minHeight: 40,
-                  '& .MuiTab-root': {
-                    color: 'rgba(227, 210, 174, 0.82)',
-                    minHeight: 40,
-                    textTransform: 'none'
-                  },
-                  '& .Mui-selected': {
-                    color: 'rgba(255, 234, 187, 0.98)'
-                  },
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: 'rgba(224, 167, 99, 0.96)'
-                  }
-                }}
-              >
-                <Tab label="Shared Account Bank" value="shared" />
-                <Tab label="Crafting Storage" value="crafting" disabled={!accountData?.CraftingBank} />
-              </Tabs>
-            }
-            onHoverItem={handleHoverItem}
-            onInspectItem={handleInspectItem}
-            onLeaveItem={handleLeaveItem}
-            subtitle={accountMode === 'shared' ? 'Shared account storage' : 'Crafting ingredient storage'}
-            tabs={accountTabs}
-            title={accountMode === 'shared' ? 'Shared Account Bank' : 'Crafting Storage'}
-            wikiUrlResolver={resolveWikiUrl}
-          />
-
-          <TroveStoragePane
-            accentColor="rgba(147, 196, 255, 0.96)"
-            emptyMessage={selectedCharacter
-              ? `${selectedCharacter.name} does not have a personal bank snapshot in the current import.`
-              : 'Select a character to inspect a personal bank snapshot.'}
-            headerContent={
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center" justifyContent="space-between">
-                <FormControl size="small" sx={{ ...filterControlSx, minWidth: 220 }}>
-                  <InputLabel>Character</InputLabel>
+                <FormControl size="small" sx={{ ...filterControlSx, minWidth: { xs: '100%', sm: 238 } }}>
+                  <InputLabel>Storage</InputLabel>
                   <Select
-                    label="Character"
-                    value={selectedCharacterId !== null ? String(selectedCharacterId) : ''}
-                    onChange={(event) => setSelectedCharacterId(event.target.value ? Number(event.target.value) : null)}
+                    label="Storage"
+                    value={activeAccountMode}
+                    onChange={(event) => setAccountMode(event.target.value as AccountPaneMode)}
                   >
-                    {characterMenuItems}
+                    <MenuItem value="shared">Shared Account Bank</MenuItem>
+                    <MenuItem value="crafting" disabled={!accountData?.CraftingBank}>Crafting Storage</MenuItem>
                   </Select>
                 </FormControl>
-                <Chip icon={<PersonIcon />} label={selectedCharacter ? selectedCharacter.name : 'No character selected'} />
               </Stack>
             }
             onHoverItem={handleHoverItem}
             onInspectItem={handleInspectItem}
             onLeaveItem={handleLeaveItem}
-            subtitle={selectedCharacter ? `${selectedCharacter.name}'s personal bank tabs` : 'Character bank'}
-            tabs={characterBankTabs}
-            title="Character Bank"
+            subtitle={activeAccountMode === 'shared' ? 'Shared account storage' : 'Crafting ingredient storage'}
+            showTabNavigation={activeAccountMode === 'shared'}
+            tabs={accountTabs}
+            title={activeAccountMode === 'shared' ? 'Shared Account Bank' : 'Crafting Storage'}
             wikiUrlResolver={resolveWikiUrl}
           />
 
-          <TroveStoragePane
-            accentColor="rgba(177, 223, 144, 0.96)"
-            emptyMessage={selectedCharacter
-              ? `${selectedCharacter.name} does not have an inventory snapshot in the current import.`
-              : 'Select a character to inspect inventory and equipped items.'}
-            headerContent={
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center" justifyContent="space-between">
-                <Chip icon={<ViewCarouselIcon />} label={selectedCharacter ? selectedCharacter.name : 'No character selected'} />
+          <Paper
+            sx={{
+              background: 'radial-gradient(circle at top left, rgba(54, 44, 29, 0.42), rgba(12, 11, 10, 0.97) 64%)',
+              border: '1px solid rgba(176, 123, 76, 0.4)',
+              borderRadius: 2,
+              boxShadow: '0 14px 30px rgba(0, 0, 0, 0.24)',
+              overflow: 'hidden',
+              p: { xs: 1.2, md: 1.5 }
+            }}
+          >
+            <Box
+              sx={{
+                background: 'linear-gradient(180deg, rgba(85, 39, 26, 0.58), rgba(23, 17, 14, 0.72))',
+                border: '1px solid rgba(176, 123, 76, 0.28)',
+                borderRadius: 1.6,
+                mb: 1.5,
+                px: { xs: 1.1, md: 1.35 },
+                py: 1
+              }}
+            >
+              <Stack spacing={0.9}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  flexWrap="wrap"
+                  alignItems="center"
+                  justifyContent="space-between"
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        color: 'rgba(222, 203, 163, 0.82)',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Character Workspace
+                    </Typography>
+                    <Typography sx={{ color: 'rgba(212, 193, 156, 0.74)', fontSize: '0.76rem', mt: 0.2 }}>
+                      One selected character drives both Character Bank and Character Inventory.
+                    </Typography>
+                  </Box>
+
+                  <FormControl size="small" sx={{ ...filterControlSx, minWidth: { xs: '100%', sm: 230 } }}>
+                    <InputLabel>Character</InputLabel>
+                    <Select
+                      label="Character"
+                      value={selectedCharacterId !== null ? String(selectedCharacterId) : ''}
+                      onChange={(event) => setSelectedCharacterId(event.target.value ? Number(event.target.value) : null)}
+                    >
+                      {characterMenuItems}
+                    </Select>
+                  </FormControl>
+                </Stack>
+
+                <Stack direction="row" spacing={0.8} useFlexGap flexWrap="wrap">
+                  <Chip icon={<PersonIcon />} label={`Bank · ${selectedCharacter ? selectedCharacter.name : 'No character selected'}`} size="small" />
+                  <Chip icon={<ViewCarouselIcon />} label={`Inventory · ${selectedCharacter ? selectedCharacter.name : 'No character selected'}`} size="small" />
+                </Stack>
               </Stack>
-            }
-            onHoverItem={handleHoverItem}
-            onInspectItem={handleInspectItem}
-            onLeaveItem={handleLeaveItem}
-            sidebarFooterContent={(
-              <Tabs
-                orientation="vertical"
-                value={inventoryMode}
-                onChange={(_, value) => setInventoryMode(value as InventoryPaneMode)}
-                variant="fullWidth"
-                sx={{
-                  minHeight: 0,
-                  '& .MuiTab-root': {
-                    alignItems: 'flex-start',
-                    color: 'rgba(227, 210, 174, 0.82)',
-                    minHeight: 34,
-                    px: 0.9,
-                    textTransform: 'none'
-                  },
-                  '& .Mui-selected': {
-                    color: 'rgba(255, 234, 187, 0.98)'
-                  },
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: 'rgba(177, 223, 144, 0.96)',
-                    left: 0,
-                    width: 3
-                  }
-                }}
-              >
-                <Tab label="Inventory" value="inventory" />
-                <Tab label="Equipped" value="equipped" />
-              </Tabs>
-            )}
-            subtitle={selectedCharacter
-              ? `${selectedCharacter.name}'s ${inventoryMode === 'inventory' ? 'bag tabs' : 'equipped gear'}`
-              : 'Character inventory'}
-            tabs={inventoryTabs}
-            title={inventoryMode === 'inventory' ? 'Character Inventory' : 'Equipped Gear'}
-            wikiUrlResolver={resolveWikiUrl}
-          />
+            </Box>
+
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 1.5,
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  lg: 'repeat(2, minmax(0, 1fr))'
+                }
+              }}
+            >
+              <TroveStoragePane
+                accentColor="rgba(147, 196, 255, 0.96)"
+                emptyMessage={selectedCharacter
+                  ? `${selectedCharacter.name} does not have a personal bank snapshot in the current import.`
+                  : 'Select a character to inspect a personal bank snapshot.'}
+                headerContent={
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center" justifyContent="space-between">
+                    <Chip icon={<PersonIcon />} label={selectedCharacter ? selectedCharacter.name : 'No character selected'} size="small" />
+                  </Stack>
+                }
+                onHoverItem={handleHoverItem}
+                onInspectItem={handleInspectItem}
+                onLeaveItem={handleLeaveItem}
+                subtitle={selectedCharacter ? `${selectedCharacter.name}'s personal bank tabs` : 'Character bank'}
+                tabs={characterBankTabs}
+                title="Character Bank"
+                wikiUrlResolver={resolveWikiUrl}
+              />
+
+              <TroveStoragePane
+                accentColor="rgba(177, 223, 144, 0.96)"
+                emptyMessage={selectedCharacter
+                  ? `${selectedCharacter.name} does not have an inventory snapshot in the current import.`
+                  : 'Select a character to inspect inventory and equipped items.'}
+                headerContent={
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center" justifyContent="space-between">
+                    <Chip icon={<ViewCarouselIcon />} label={selectedCharacter ? selectedCharacter.name : 'No character selected'} size="small" />
+                  </Stack>
+                }
+                onHoverItem={handleHoverItem}
+                onInspectItem={handleInspectItem}
+                onLeaveItem={handleLeaveItem}
+                subtitle={selectedCharacter
+                  ? `${selectedCharacter.name}'s bag tabs, equipped gear, and equipped cosmetics`
+                  : 'Character inventory'}
+                tabs={inventoryTabs}
+                title="Character Inventory"
+                wikiUrlResolver={resolveWikiUrl}
+              />
+            </Box>
+          </Paper>
         </Box>
       </Stack>
 
@@ -1568,19 +1662,22 @@ export default function TroveExplorer() {
           {
             name: 'offset',
             options: {
-              offset: [12, 0]
+              offset: [10, 4]
             }
           },
           {
             name: 'flip',
             options: {
-              fallbackPlacements: ['left-start', 'right-end', 'left-end']
+              fallbackPlacements: ['left-start', 'left', 'bottom-start', 'top-start']
             }
           },
           {
             name: 'preventOverflow',
             options: {
-              padding: 12
+              altAxis: true,
+              padding: 10,
+              rootBoundary: 'viewport',
+              tether: true
             }
           }
         ]}
