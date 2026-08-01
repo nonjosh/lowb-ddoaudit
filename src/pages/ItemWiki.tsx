@@ -22,6 +22,7 @@ import {
   Button
 } from '@mui/material'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
 import { Item, ITEM_MAX_LEVEL } from '@/api/ddoGearPlanner'
@@ -149,6 +150,8 @@ function CollapsibleGroup({ group, defaultExpanded = true, isQuestGroup = false,
 }
 
 export default function ItemWiki() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const { items, augmentItems, craftingData, setsData, loading, refresh, error } = useGearPlanner()
   const { isWished } = useWishlist()
   const { hasItem, importedAt } = useTrove()
@@ -162,7 +165,6 @@ export default function ItemWiki() {
   const [minMl, setMinMl] = useState(1)
   const [maxMl, setMaxMl] = useState(ITEM_MAX_LEVEL)
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
-  const [showWishlistOnly, setShowWishlistOnly] = useState(false)
   const [questsById, setQuestsById] = useState<Record<string, Quest>>({})
   const [groupingMode, setGroupingMode] = useState<GroupingMode>('none')
   const [wildernessAreaIds, setWildernessAreaIds] = useState<Set<string>>(new Set())
@@ -188,6 +190,28 @@ export default function ItemWiki() {
       void refresh(false)
     }
   }, [items.length, loading, error, refresh])
+
+  const showWishlistOnly = useMemo(
+    () => new URLSearchParams(location.search).get('wishlist') === '1',
+    [location.search],
+  )
+
+  const setShowWishlistOnly = (value: boolean) => {
+    const params = new URLSearchParams(location.search)
+    if (value) {
+      params.set('wishlist', '1')
+    } else {
+      params.delete('wishlist')
+    }
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString() ? `?${params.toString()}` : '',
+      },
+      { replace: true },
+    )
+  }
 
   const questNameToPack = useMemo(() => {
     const map = new Map<string, string>()

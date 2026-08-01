@@ -6,6 +6,7 @@ import { Quest } from '@/api/ddoAudit'
 import ItemLootDialog from '@/components/items/ItemLootDialog'
 import { PlayerGroup } from '@/contexts/useCharacter'
 import { LfmDisplayData } from '@/domains/lfm/lfmHelpers'
+import { getQuestVersionsForLocation } from '@/domains/quests/questHelpers'
 
 import PlayerRow from './PlayerRow'
 
@@ -39,7 +40,7 @@ export default function QuestGroupCard({
 }: QuestGroupCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const showPackLine = !!packName || !!levelInfo
-  const normalizedQuestName = questName.replace(/ \((Heroic|Epic)\)$/, '')
+  const normalizedQuestName = questName.replace(/ \((Heroic|Epic|Legendary)\)$/, '')
   const locationIds = useMemo(
     () => Array.from(
       new Set(
@@ -52,12 +53,24 @@ export default function QuestGroupCard({
     ),
     [groups],
   )
-  const matchingQuestInfo = useMemo(
-    () => locationIds
-      .map((locationId) => quests[locationId])
-      .find((quest) => quest?.name === normalizedQuestName) ?? null,
-    [locationIds, normalizedQuestName, quests],
-  )
+  const matchingQuestInfo = useMemo(() => {
+    for (const locationId of locationIds) {
+      const versions = getQuestVersionsForLocation(locationId, quests)
+      const matchingVersion = versions.find((version) => version.name === questName)
+        ?? versions.find((version) => version.quest?.name === normalizedQuestName)
+
+      if (matchingVersion?.quest) {
+        return matchingVersion.quest
+      }
+
+      const directQuest = quests[locationId]
+      if (directQuest?.name === normalizedQuestName) {
+        return directQuest
+      }
+    }
+
+    return Object.values(quests).find((quest) => quest.name === normalizedQuestName) ?? null
+  }, [locationIds, normalizedQuestName, questName, quests])
 
   return (
     <Paper variant="outlined" sx={{ mb: 2, overflow: 'hidden', borderColor: 'info.main' }}>
@@ -67,7 +80,7 @@ export default function QuestGroupCard({
           <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Typography variant="subtitle2" sx={{ lineHeight: 1.2 }}>
-                {questName.replace(/ \((Heroic|Epic)\)$/, '')}
+                {questName.replace(/ \((Heroic|Epic|Legendary)\)$/, '')}
               </Typography>
             </Box>
             {levelInfo && (

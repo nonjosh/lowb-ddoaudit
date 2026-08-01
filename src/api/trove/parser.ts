@@ -137,6 +137,33 @@ function extractItemsFromBank(bank: TroveBank): TroveItem[] {
   return items
 }
 
+function parseSnapshotTimestamp(value: string | null | undefined): number | null {
+  if (!value) return null
+
+  const timestamp = Date.parse(value)
+  return Number.isNaN(timestamp) ? null : timestamp
+}
+
+function shouldReplaceSnapshot<T extends { LastUpdated: string | null }>(
+  existing: T | undefined,
+  candidate: T
+): boolean {
+  if (!existing) return true
+
+  const existingTimestamp = parseSnapshotTimestamp(existing.LastUpdated)
+  const candidateTimestamp = parseSnapshotTimestamp(candidate.LastUpdated)
+
+  if (candidateTimestamp === null) {
+    return existingTimestamp === null
+  }
+
+  if (existingTimestamp === null) {
+    return true
+  }
+
+  return candidateTimestamp >= existingTimestamp
+}
+
 /**
  * Add items to the inventory map with their locations.
  * Also adds entries for slotted augments (from AugmentSlots with an Effect).
@@ -247,6 +274,9 @@ export function parseTroveFile(
 export function buildTroveData(parsedFiles: ParsedTroveFile[]): TroveData {
   const inventoryMap: TroveInventoryMap = new Map()
   const charactersMap = new Map<number, TroveCharacter>()
+  const characterInventories = new Map<number, TroveCharacterInventory>()
+  const characterBanks = new Map<number, TroveCharacterBank>()
+  let accountData: TroveAccountData | null = null
 
   for (const file of parsedFiles) {
     if (!file.data) continue
@@ -254,54 +284,69 @@ export function buildTroveData(parsedFiles: ParsedTroveFile[]): TroveData {
     switch (file.type) {
       case 'inventory': {
         const inv = file.data as TroveCharacterInventory
-        // Add character
-        if (!charactersMap.has(inv.CharacterId)) {
-          charactersMap.set(inv.CharacterId, {
-            id: inv.CharacterId,
-            name: inv.Name
-          })
+        const existingInventory = characterInventories.get(inv.CharacterId)
+        if (shouldReplaceSnapshot(existingInventory, inv)) {
+          characterInventories.set(inv.CharacterId, inv)
         }
-        // Add items
-        addItemsToMap(inventoryMap, inv.Inventory, inv.Name, inv.CharacterId)
         break
       }
 
       case 'bank': {
         const bank = file.data as TroveCharacterBank
-        // Add character
-        if (!charactersMap.has(bank.CharacterId)) {
-          charactersMap.set(bank.CharacterId, {
-            id: bank.CharacterId,
-            name: bank.Name
-          })
+        const existingBank = characterBanks.get(bank.CharacterId)
+        if (shouldReplaceSnapshot(existingBank, bank)) {
+          characterBanks.set(bank.CharacterId, bank)
         }
-        // Extract and add items from bank
-        const bankItems = extractItemsFromBank(bank.PersonalBank)
-        addItemsToMap(inventoryMap, bankItems, bank.Name, bank.CharacterId)
         break
       }
 
       case 'account': {
-        const account = file.data as TroveAccountData
-        // Extract items from shared bank
-        const sharedItems = extractItemsFromBank(account.SharedBank)
-        // Use a special "Shared Bank" character entry
-        addItemsToMap(inventoryMap, sharedItems, 'Shared Bank', 0)
-
-        // Extract items from crafting storage (if present)
-        if (account.CraftingBank) {
-          const craftingItems = extractItemsFromBank(account.CraftingBank)
-          addItemsToMap(inventoryMap, craftingItems, 'Crafting Storage', 0)
-        }
+        accountData = file.data as TroveAccountData
         break
       }
+    }
+  }
+
+  for (const inv of characterInventories.values()) {
+    if (!charactersMap.has(inv.CharacterId)) {
+      charactersMap.set(inv.CharacterId, {
+        id: inv.CharacterId,
+        name: inv.Name
+      })
+    }
+
+    addItemsToMap(inventoryMap, inv.Inventory, inv.Name, inv.CharacterId)
+  }
+
+  for (const bank of characterBanks.values()) {
+    if (!charactersMap.has(bank.CharacterId)) {
+      charactersMap.set(bank.CharacterId, {
+        id: bank.CharacterId,
+        name: bank.Name
+      })
+    }
+
+    const bankItems = extractItemsFromBank(bank.PersonalBank)
+    addItemsToMap(inventoryMap, bankItems, bank.Name, bank.CharacterId)
+  }
+
+  if (accountData) {
+    const sharedItems = extractItemsFromBank(accountData.SharedBank)
+    addItemsToMap(inventoryMap, sharedItems, 'Shared Bank', 0)
+
+    if (accountData.CraftingBank) {
+      const craftingItems = extractItemsFromBank(accountData.CraftingBank)
+      addItemsToMap(inventoryMap, craftingItems, 'Crafting Storage', 0)
     }
   }
 
   return {
     inventoryMap,
     characters: Array.from(charactersMap.values()),
-    importedAt: Date.now()
+    importedAt: Date.now(),
+    accountData,
+    characterInventories: Array.from(characterInventories.values()),
+    characterBanks: Array.from(characterBanks.values())
   }
 }
 

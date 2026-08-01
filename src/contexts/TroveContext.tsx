@@ -1,18 +1,19 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { parseMultipleTroveFiles } from '@/api/trove/parser'
-import type { TroveAugmentSlot, TroveCharacter, TroveItemLocation } from '@/api/trove/types'
+import type {
+  TroveAccountData,
+  TroveAugmentSlot,
+  TroveCharacter,
+  TroveCharacterBank,
+  TroveCharacterInventory,
+  TroveItemLocation
+} from '@/api/trove/types'
 import {
   clearTroveData,
-  loadTroveCharacters,
-  loadTroveHiddenCharacters,
-  loadTroveImportTime,
-  loadTroveInventory,
-  loadTroveSelectedCharacters,
-  saveTroveCharacters,
+  loadTroveSnapshot,
   saveTroveHiddenCharacters,
-  saveTroveImportTime,
-  saveTroveInventory,
+  saveTroveSnapshot,
   saveTroveSelectedCharacters
 } from '@/storage/troveDb'
 
@@ -49,6 +50,9 @@ interface TroveProviderProps {
 }
 
 export function TroveProvider({ children }: TroveProviderProps) {
+  const [accountData, setAccountData] = useState<TroveAccountData | null>(null)
+  const [characterBanks, setCharacterBanks] = useState<TroveCharacterBank[]>([])
+  const [characterInventories, setCharacterInventories] = useState<TroveCharacterInventory[]>([])
   const [inventoryMap, setInventoryMap] = useState<
     Map<string, TroveItemLocation[]>
   >(new Map())
@@ -58,69 +62,102 @@ export function TroveProvider({ children }: TroveProviderProps) {
   const [importedAt, setImportedAt] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const snapshotRequestIdRef = useRef(0)
+
+  const applySnapshot = useCallback((snapshot: {
+    accountData: TroveAccountData | null
+    characterBanks: TroveCharacterBank[]
+    characterInventories: TroveCharacterInventory[]
+    inventoryMap: Map<string, TroveItemLocation[]>
+    characters: TroveCharacter[]
+    hiddenCharacterIds: number[]
+    importedAt: number | null
+    selectedCharacterIds: number[]
+  }) => {
+    setAccountData(snapshot.accountData)
+    setCharacterBanks(snapshot.characterBanks)
+    setCharacterInventories(snapshot.characterInventories)
+    setInventoryMap(snapshot.inventoryMap)
+    setCharacters(snapshot.characters)
+    setImportedAt(snapshot.importedAt)
+    setHiddenCharacterIds(snapshot.hiddenCharacterIds)
+    setSelectedCharacterId(snapshot.selectedCharacterIds.length > 0 ? snapshot.selectedCharacterIds[0] : null)
+  }, [])
 
   // Load saved data on mount
   useEffect(() => {
+    let cancelled = false
+    const requestId = ++snapshotRequestIdRef.current
+
     async function loadSavedData() {
       try {
-        const [inventory, chars, time, selected, hidden] = await Promise.all([
-          loadTroveInventory(),
-          loadTroveCharacters(),
-          loadTroveImportTime(),
-          loadTroveSelectedCharacters(),
-          loadTroveHiddenCharacters()
-        ])
-
-        setInventoryMap(inventory)
-        setCharacters(chars)
-        setImportedAt(time)
-        setHiddenCharacterIds(hidden)
-        // Convert array to single value (use first if exists)
-        setSelectedCharacterId(selected.length > 0 ? selected[0] : null)
+        const snapshot = await loadTroveSnapshot()
+        if (cancelled || snapshotRequestIdRef.current !== requestId) return
+        applySnapshot(snapshot)
       } catch (err) {
         console.error('Failed to load Trove data:', err)
       }
     }
 
     void loadSavedData()
-  }, [])
+
+    return () => {
+      cancelled = true
+    }
+  }, [applySnapshot])
 
   // Import files
   const importFiles = useCallback(async (files: File[]) => {
+    const requestId = ++snapshotRequestIdRef.current
     setLoading(true)
     setError(null)
 
     try {
       const data = await parseMultipleTroveFiles(files)
+      if (snapshotRequestIdRef.current !== requestId) return
+
+      const snapshot = {
+        accountData: data.accountData,
+        characterBanks: data.characterBanks,
+        characterInventories: data.characterInventories,
+        inventoryMap: new Map(data.inventoryMap),
+        characters: data.characters,
+        hiddenCharacterIds: [],
+        importedAt: data.importedAt,
+        selectedCharacterIds: [],
+      }
 
       // Update state first to ensure immediate UI update
-      setInventoryMap(new Map(data.inventoryMap))
-      setCharacters(data.characters)
-      setImportedAt(data.importedAt)
-      setSelectedCharacterId(null)
+      applySnapshot(snapshot)
 
       // Then persist to IndexedDB
-      await saveTroveInventory(data.inventoryMap)
-      await saveTroveCharacters(data.characters)
-      await saveTroveImportTime(data.importedAt)
-      await saveTroveSelectedCharacters([])
+      await saveTroveSnapshot(snapshot)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to import files')
+      if (snapshotRequestIdRef.current === requestId) {
+        setError(err instanceof Error ? err.message : 'Failed to import files')
+      }
       throw err
     } finally {
-      setLoading(false)
+      if (snapshotRequestIdRef.current === requestId) {
+        setLoading(false)
+      }
     }
-  }, [])
+  }, [applySnapshot])
 
   // Clear all data
   const clearData = useCallback(async () => {
     try {
+      snapshotRequestIdRef.current++
       await clearTroveData()
+      setAccountData(null)
+      setCharacterBanks([])
+      setCharacterInventories([])
       setInventoryMap(new Map())
       setCharacters([])
       setSelectedCharacterId(null)
       setHiddenCharacterIds([])
       setImportedAt(null)
+      setError(null)
     } catch (err) {
       console.error('Failed to clear Trove data:', err)
     }
@@ -329,6 +366,9 @@ export function TroveProvider({ children }: TroveProviderProps) {
   }, [inventoryMap])
 
   const value: TroveContextValue = {
+    accountData,
+    characterBanks,
+    characterInventories,
     inventoryMap,
     characters,
     selectedCharacterId,

@@ -1,6 +1,7 @@
 import {
   ChangeEvent,
   DragEvent,
+  KeyboardEvent,
   useCallback,
   useRef,
   useState
@@ -74,6 +75,8 @@ export default function TroveImportDialog({
   const [localError, setLocalError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const visibleCharacters = characters.filter((char) => !hiddenCharacterIds.includes(char.id))
+
   // Reset state when dialog opens
   const handleEnter = useCallback(() => {
     if (inventoryMap.size > 0) {
@@ -132,6 +135,12 @@ export default function TroveImportDialog({
   const handleClickUpload = useCallback(() => {
     fileInputRef.current?.click()
   }, [])
+
+  const handleDropZoneKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    handleClickUpload()
+  }, [handleClickUpload])
 
   // Import files
   const handleImport = useCallback(async () => {
@@ -217,6 +226,10 @@ export default function TroveImportDialog({
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={handleClickUpload}
+              onKeyDown={handleDropZoneKeyDown}
+              role="button"
+              tabIndex={0}
+              aria-label="Select Trove JSON files"
               sx={{
                 border: '2px dashed',
                 borderColor: dragActive ? 'primary.main' : 'divider',
@@ -297,7 +310,7 @@ export default function TroveImportDialog({
               <strong>Unique items indexed:</strong> {inventoryMap.size}
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              <strong>Characters:</strong> {characters.length}
+              <strong>Characters:</strong> {visibleCharacters.length} visible / {characters.length} total
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               <strong>Unique BTA items:</strong> {stats.uniqueBTA}

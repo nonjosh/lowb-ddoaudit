@@ -16,6 +16,7 @@ import LegendaryGreenSteelCrafting from '@/pages/LegendaryGreenSteelCrafting'
 import ItemWiki from '@/pages/ItemWiki'
 import PuzzleSolverPage from '@/pages/PuzzleSolverPage'
 import TRPlanner from '@/pages/TRPlanner'
+import TroveExplorer from '@/pages/TroveExplorer'
 import ViktraniumCrafting from '@/pages/ViktraniumCrafting'
 
 function App() {
@@ -42,11 +43,12 @@ function App() {
                       <Route path="/puzzles/:slug" element={<PuzzleSolverPage />} />
                       {/* Other tools */}
                       <Route path="/tools/converter" element={<CurrencyConverter />} />
+                      <Route path="/trove/explorer" element={<TroveExplorer />} />
                       <Route path="/tr-planner" element={<TRPlanner />} />
                       {/* Redirects for backward compatibility */}
                       <Route path="/wiki" element={<Navigate to="/gear/wiki" replace />} />
-                      <Route path="/wishlist" element={<Navigate to="/gear/wiki" replace />} />
-                      <Route path="/gear/wishlist" element={<Navigate to="/gear/wiki" replace />} />
+                      <Route path="/wishlist" element={<Navigate to="/gear/wiki?wishlist=1" replace />} />
+                      <Route path="/gear/wishlist" element={<Navigate to="/gear/wiki?wishlist=1" replace />} />
                       <Route path="/planner" element={<Navigate to="/gear/planner" replace />} />
                     </Routes>
                   </Layout>

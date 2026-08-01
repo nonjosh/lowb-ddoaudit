@@ -1,6 +1,12 @@
 import Dexie, { Table } from 'dexie'
 
-import type { TroveCharacter, TroveItemLocation } from '@/api/trove/types'
+import type {
+  TroveAccountData,
+  TroveCharacter,
+  TroveCharacterBank,
+  TroveCharacterInventory,
+  TroveItemLocation
+} from '@/api/trove/types'
 
 // ============================================================================
 // Database Types
@@ -12,8 +18,26 @@ export interface TroveInventoryRecord {
 }
 
 export interface TroveMetaRecord {
-  key: 'characters' | 'importedAt' | 'selectedCharacters' | 'hiddenCharacters'
+  key:
+  | 'accountData'
+  | 'characterBanks'
+  | 'characterInventories'
+  | 'characters'
+  | 'hiddenCharacters'
+  | 'importedAt'
+  | 'selectedCharacters'
   value: unknown
+}
+
+export interface TroveSnapshot {
+  accountData: TroveAccountData | null
+  characterBanks: TroveCharacterBank[]
+  characterInventories: TroveCharacterInventory[]
+  inventoryMap: Map<string, TroveItemLocation[]>
+  characters: TroveCharacter[]
+  hiddenCharacterIds: number[]
+  importedAt: number | null
+  selectedCharacterIds: number[]
 }
 
 // ============================================================================
@@ -35,6 +59,16 @@ class TroveDatabase extends Dexie {
 
 export const troveDb = new TroveDatabase()
 
+function buildInventoryRecords(inventoryMap: Map<string, TroveItemLocation[]>): TroveInventoryRecord[] {
+  const records: TroveInventoryRecord[] = []
+
+  for (const [itemName, locations] of inventoryMap) {
+    records.push({ itemName, locations })
+  }
+
+  return records
+}
+
 // ============================================================================
 // Storage Functions
 // ============================================================================
@@ -43,8 +77,10 @@ export const troveDb = new TroveDatabase()
  * Clear all Trove data
  */
 export async function clearTroveData(): Promise<void> {
-  await troveDb.inventory.clear()
-  await troveDb.meta.clear()
+  await troveDb.transaction('rw', troveDb.inventory, troveDb.meta, async () => {
+    await troveDb.inventory.clear()
+    await troveDb.meta.clear()
+  })
 }
 
 /**
@@ -54,15 +90,63 @@ export async function clearTroveData(): Promise<void> {
 export async function saveTroveInventory(
   inventoryMap: Map<string, TroveItemLocation[]>
 ): Promise<void> {
-  const records: TroveInventoryRecord[] = []
-
-  for (const [itemName, locations] of inventoryMap) {
-    records.push({ itemName, locations })
-  }
+  const records = buildInventoryRecords(inventoryMap)
 
   await troveDb.transaction('rw', troveDb.inventory, async () => {
     await troveDb.inventory.clear()
     await troveDb.inventory.bulkPut(records)
+  })
+}
+
+/**
+ * Save a complete Trove snapshot atomically so reloads never see half-written state.
+ */
+export async function saveTroveSnapshot(snapshot: TroveSnapshot): Promise<void> {
+  const inventoryRecords = buildInventoryRecords(snapshot.inventoryMap)
+  const metaRecords: TroveMetaRecord[] = [
+    { key: 'accountData', value: snapshot.accountData },
+    { key: 'characterBanks', value: snapshot.characterBanks },
+    { key: 'characterInventories', value: snapshot.characterInventories },
+    { key: 'characters', value: snapshot.characters },
+    { key: 'hiddenCharacters', value: snapshot.hiddenCharacterIds },
+    { key: 'importedAt', value: snapshot.importedAt },
+    { key: 'selectedCharacters', value: snapshot.selectedCharacterIds },
+  ]
+
+  await troveDb.transaction('rw', troveDb.inventory, troveDb.meta, async () => {
+    await troveDb.inventory.clear()
+    await troveDb.inventory.bulkPut(inventoryRecords)
+    await troveDb.meta.bulkPut(metaRecords)
+  })
+}
+
+/**
+ * Load the full Trove snapshot in one read transaction.
+ */
+export async function loadTroveSnapshot(): Promise<TroveSnapshot> {
+  return troveDb.transaction('r', troveDb.inventory, troveDb.meta, async () => {
+    const [inventoryRecords, metaRecords] = await Promise.all([
+      troveDb.inventory.toArray(),
+      troveDb.meta.toArray(),
+    ])
+
+    const inventoryMap = new Map<string, TroveItemLocation[]>()
+    for (const record of inventoryRecords) {
+      inventoryMap.set(record.itemName, record.locations)
+    }
+
+    const metaByKey = new Map(metaRecords.map((record) => [record.key, record.value]))
+
+    return {
+      accountData: (metaByKey.get('accountData') as TroveAccountData | null) ?? null,
+      characterBanks: (metaByKey.get('characterBanks') as TroveCharacterBank[]) ?? [],
+      characterInventories: (metaByKey.get('characterInventories') as TroveCharacterInventory[]) ?? [],
+      inventoryMap,
+      characters: (metaByKey.get('characters') as TroveCharacter[]) ?? [],
+      hiddenCharacterIds: (metaByKey.get('hiddenCharacters') as number[]) ?? [],
+      importedAt: (metaByKey.get('importedAt') as number | null) ?? null,
+      selectedCharacterIds: (metaByKey.get('selectedCharacters') as number[]) ?? [],
+    }
   })
 }
 
@@ -73,6 +157,33 @@ export async function saveTroveCharacters(
   characters: TroveCharacter[]
 ): Promise<void> {
   await troveDb.meta.put({ key: 'characters', value: characters })
+}
+
+/**
+ * Save shared account Trove data
+ */
+export async function saveTroveAccountData(
+  accountData: TroveAccountData | null
+): Promise<void> {
+  await troveDb.meta.put({ key: 'accountData', value: accountData })
+}
+
+/**
+ * Save character inventory snapshots
+ */
+export async function saveTroveCharacterInventories(
+  characterInventories: TroveCharacterInventory[]
+): Promise<void> {
+  await troveDb.meta.put({ key: 'characterInventories', value: characterInventories })
+}
+
+/**
+ * Save character bank snapshots
+ */
+export async function saveTroveCharacterBanks(
+  characterBanks: TroveCharacterBank[]
+): Promise<void> {
+  await troveDb.meta.put({ key: 'characterBanks', value: characterBanks })
 }
 
 /**
@@ -111,6 +222,30 @@ export async function loadTroveInventory(): Promise<Map<string, TroveItemLocatio
 export async function loadTroveCharacters(): Promise<TroveCharacter[]> {
   const record = await troveDb.meta.get('characters')
   return (record?.value as TroveCharacter[]) || []
+}
+
+/**
+ * Load shared account Trove data
+ */
+export async function loadTroveAccountData(): Promise<TroveAccountData | null> {
+  const record = await troveDb.meta.get('accountData')
+  return (record?.value as TroveAccountData | null) || null
+}
+
+/**
+ * Load character inventory snapshots
+ */
+export async function loadTroveCharacterInventories(): Promise<TroveCharacterInventory[]> {
+  const record = await troveDb.meta.get('characterInventories')
+  return (record?.value as TroveCharacterInventory[]) || []
+}
+
+/**
+ * Load character bank snapshots
+ */
+export async function loadTroveCharacterBanks(): Promise<TroveCharacterBank[]> {
+  const record = await troveDb.meta.get('characterBanks')
+  return (record?.value as TroveCharacterBank[]) || []
 }
 
 /**

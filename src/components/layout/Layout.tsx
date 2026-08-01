@@ -60,6 +60,7 @@ export default function Layout({ children }: LayoutProps) {
         { label: 'Legendary Green Steel', path: '/crafting/lgs' },
       ],
     },
+    { label: 'Trove Explorer', path: '/trove/explorer' },
     { label: 'TR Planner', path: '/tr-planner' },
   ]
 
