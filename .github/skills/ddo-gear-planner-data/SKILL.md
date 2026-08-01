@@ -34,9 +34,11 @@ URLs defined in `src/api/ddoGearPlanner/constants.ts`.
 **File**: `src/api/ddoGearPlanner/cache.ts`
 
 - **Storage**: Dexie IndexedDB (`gearPlannerDb.datasets`)
-- **TTL**: Configurable via `GEAR_PLANNER_CACHE_TTL_MS`
+- **TTL**: `GEAR_PLANNER_CACHE_TTL_MS` currently keeps datasets fresh for 6 hours
+- **Versioning**: `GEAR_PLANNER_CACHE_VERSION` invalidates older cached records after cache-policy changes
 - **Deduplication**: In-flight requests deduplicated (returns same promise)
 - **Fallback**: Stale cache served on network errors
+- **Network fetches**: Dataset requests use `fetch(..., { cache: 'no-cache' })` so revalidation goes back to the upstream GitHub raw source when the app decides to refresh
 
 ## Supported Item Level Cap
 

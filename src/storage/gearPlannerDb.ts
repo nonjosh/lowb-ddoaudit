@@ -2,10 +2,13 @@ import Dexie, { Table } from 'dexie'
 
 export type GearPlannerDatasetKey = 'items' | 'crafting' | 'sets'
 
+export const GEAR_PLANNER_CACHE_VERSION = 1
+
 export interface GearPlannerDatasetRecord<TData = unknown> {
   key: GearPlannerDatasetKey
   updatedAt: number
   data: TData
+  version?: number
 }
 
 /**
@@ -56,7 +59,7 @@ class GearPlannerDatabase extends Dexie {
 
 export const gearPlannerDb = new GearPlannerDatabase()
 
-export const GEAR_PLANNER_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
+export const GEAR_PLANNER_CACHE_TTL_MS = 1000 * 60 * 60 * 6
 
 export type GearPlannerDatasetInfo = {
   key: GearPlannerDatasetKey

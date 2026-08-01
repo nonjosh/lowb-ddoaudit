@@ -38,7 +38,7 @@ export type CraftingData = Record<string, Record<string, CraftingOption[]>>
 const DATASET_KEY = 'crafting'
 
 async function requestCrafting(): Promise<CraftingData> {
-  const resp = await fetch(CRAFTING_JSON_URL)
+  const resp = await fetch(CRAFTING_JSON_URL, { cache: 'no-cache' })
   if (!resp.ok) {
     throw new Error(`Failed to fetch crafting.json (${resp.status})`)
   }

@@ -12,7 +12,7 @@ export type SetsData = Record<string, SetBonus[]>
 const DATASET_KEY = 'sets'
 
 async function requestSets(): Promise<SetsData> {
-  const resp = await fetch(SETS_JSON_URL)
+  const resp = await fetch(SETS_JSON_URL, { cache: 'no-cache' })
   if (!resp.ok) {
     throw new Error(`Failed to fetch sets.json (${resp.status})`)
   }

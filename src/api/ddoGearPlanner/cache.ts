@@ -1,4 +1,5 @@
 import {
+  GEAR_PLANNER_CACHE_VERSION,
   gearPlannerDb,
   GearPlannerDatasetKey,
   GearPlannerDatasetRecord,
@@ -26,13 +27,14 @@ export async function fetchDatasetWithCache<TData>(
 ): Promise<GearPlannerCacheResult<TData>> {
   const { forceRefresh = false, ttlMs = GEAR_PLANNER_CACHE_TTL_MS } = options
   const cachedRecord = await gearPlannerDb.datasets.get(key) as GearPlannerDatasetRecord<TData> | undefined
+  const freshCachedRecord = cachedRecord?.version === GEAR_PLANNER_CACHE_VERSION ? cachedRecord : undefined
 
-  if (!forceRefresh && cachedRecord) {
-    const age = Date.now() - cachedRecord.updatedAt
+  if (!forceRefresh && freshCachedRecord) {
+    const age = Date.now() - freshCachedRecord.updatedAt
     if (age <= ttlMs) {
       return {
-        data: cachedRecord.data,
-        updatedAt: cachedRecord.updatedAt,
+        data: freshCachedRecord.data,
+        updatedAt: freshCachedRecord.updatedAt,
         fromCache: true,
         stale: false
       }
@@ -50,7 +52,7 @@ export async function fetchDatasetWithCache<TData>(
     try {
       const data = await request()
       const updatedAt = Date.now()
-      await gearPlannerDb.datasets.put({ key, data, updatedAt })
+      await gearPlannerDb.datasets.put({ key, data, updatedAt, version: GEAR_PLANNER_CACHE_VERSION })
 
       return { data, updatedAt, fromCache: false, stale: false }
     } catch (error) {
@@ -76,7 +78,7 @@ export async function fetchDatasetWithCache<TData>(
 
 export async function getDatasetMetadata(key: GearPlannerDatasetKey) {
   const record = await gearPlannerDb.datasets.get(key)
-  if (!record) return null
+  if (!record || record.version !== GEAR_PLANNER_CACHE_VERSION) return null
 
   return { updatedAt: record.updatedAt }
 }

@@ -23,7 +23,7 @@ export interface Item {
 const DATASET_KEY = 'items'
 
 async function requestItems(): Promise<Item[]> {
-  const resp = await fetch(ITEMS_JSON_URL)
+  const resp = await fetch(ITEMS_JSON_URL, { cache: 'no-cache' })
   if (!resp.ok) {
     throw new Error(`Failed to fetch items.json (${resp.status})`)
   }
