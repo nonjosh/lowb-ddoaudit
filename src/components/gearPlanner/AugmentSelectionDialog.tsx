@@ -21,7 +21,7 @@ import {
 } from '@mui/material'
 
 import { CraftingData, CraftingOption } from '@/api/ddoGearPlanner'
-import { isLegendaryOption, isViktraniumSlot } from '@/domains/crafting/viktraniumLogic'
+import { isLegendaryAugment, isLegendaryOption, isViktraniumSlot } from '@/domains/crafting/viktraniumLogic'
 import { generateCraftingOptionName } from '@/domains/gearPlanner/augmentHelpers'
 import { formatAffix } from '@/utils/affixHelpers'
 import {
@@ -30,6 +30,10 @@ import {
 } from '@/domains/gearPlanner/craftingHelpers'
 
 type ViktraniumTierFilter = 'heroic' | 'epic'
+
+function getDefaultViktraniumTierFilter(itemML: number): ViktraniumTierFilter {
+  return isLegendaryAugment(itemML) ? 'epic' : 'heroic'
+}
 
 interface AugmentSelectionDialogProps {
   open: boolean
@@ -53,9 +57,15 @@ export default function AugmentSelectionDialog({
   onSelect
 }: AugmentSelectionDialogProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [viktraniumTierFilter, setViktraniumTierFilter] = useState<ViktraniumTierFilter>('epic')
+  const [viktraniumTierSelection, setViktraniumTierSelection] = useState<{
+    key: string
+    value: ViktraniumTierFilter | null
+  }>({ key: '', value: null })
 
   const isViktranium = useMemo(() => isViktraniumSlot(slotType), [slotType])
+  const viktraniumTierKey = `${open ? 'open' : 'closed'}|${slotType}|${itemName}|${itemML}`
+  const viktraniumTierFilter = (viktraniumTierSelection.key === viktraniumTierKey ? viktraniumTierSelection.value : null)
+    ?? getDefaultViktraniumTierFilter(itemML)
 
   const availableOptions = useMemo(() => {
     const options = getAvailableCraftingOptions(craftingData, slotType, itemName)
@@ -105,7 +115,7 @@ export default function AugmentSelectionDialog({
             fullWidth
             value={viktraniumTierFilter}
             onChange={(_, value: ViktraniumTierFilter | null) => {
-              if (value) setViktraniumTierFilter(value)
+              if (value) setViktraniumTierSelection({ key: viktraniumTierKey, value })
             }}
             size="small"
             sx={{ mb: 1 }}

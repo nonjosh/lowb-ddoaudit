@@ -1,6 +1,7 @@
 import {
   ChangeEvent,
   DragEvent,
+  KeyboardEvent,
   useCallback,
   useRef,
   useState
@@ -135,6 +136,12 @@ export default function TroveImportDialog({
     fileInputRef.current?.click()
   }, [])
 
+  const handleDropZoneKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    handleClickUpload()
+  }, [handleClickUpload])
+
   // Import files
   const handleImport = useCallback(async () => {
     if (selectedFiles.length === 0) return
@@ -219,6 +226,10 @@ export default function TroveImportDialog({
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={handleClickUpload}
+              onKeyDown={handleDropZoneKeyDown}
+              role="button"
+              tabIndex={0}
+              aria-label="Select Trove JSON files"
               sx={{
                 border: '2px dashed',
                 borderColor: dragActive ? 'primary.main' : 'divider',

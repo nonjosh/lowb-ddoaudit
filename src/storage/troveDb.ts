@@ -29,6 +29,17 @@ export interface TroveMetaRecord {
   value: unknown
 }
 
+export interface TroveSnapshot {
+  accountData: TroveAccountData | null
+  characterBanks: TroveCharacterBank[]
+  characterInventories: TroveCharacterInventory[]
+  inventoryMap: Map<string, TroveItemLocation[]>
+  characters: TroveCharacter[]
+  hiddenCharacterIds: number[]
+  importedAt: number | null
+  selectedCharacterIds: number[]
+}
+
 // ============================================================================
 // Database Class
 // ============================================================================
@@ -48,6 +59,16 @@ class TroveDatabase extends Dexie {
 
 export const troveDb = new TroveDatabase()
 
+function buildInventoryRecords(inventoryMap: Map<string, TroveItemLocation[]>): TroveInventoryRecord[] {
+  const records: TroveInventoryRecord[] = []
+
+  for (const [itemName, locations] of inventoryMap) {
+    records.push({ itemName, locations })
+  }
+
+  return records
+}
+
 // ============================================================================
 // Storage Functions
 // ============================================================================
@@ -56,8 +77,10 @@ export const troveDb = new TroveDatabase()
  * Clear all Trove data
  */
 export async function clearTroveData(): Promise<void> {
-  await troveDb.inventory.clear()
-  await troveDb.meta.clear()
+  await troveDb.transaction('rw', troveDb.inventory, troveDb.meta, async () => {
+    await troveDb.inventory.clear()
+    await troveDb.meta.clear()
+  })
 }
 
 /**
@@ -67,15 +90,63 @@ export async function clearTroveData(): Promise<void> {
 export async function saveTroveInventory(
   inventoryMap: Map<string, TroveItemLocation[]>
 ): Promise<void> {
-  const records: TroveInventoryRecord[] = []
-
-  for (const [itemName, locations] of inventoryMap) {
-    records.push({ itemName, locations })
-  }
+  const records = buildInventoryRecords(inventoryMap)
 
   await troveDb.transaction('rw', troveDb.inventory, async () => {
     await troveDb.inventory.clear()
     await troveDb.inventory.bulkPut(records)
+  })
+}
+
+/**
+ * Save a complete Trove snapshot atomically so reloads never see half-written state.
+ */
+export async function saveTroveSnapshot(snapshot: TroveSnapshot): Promise<void> {
+  const inventoryRecords = buildInventoryRecords(snapshot.inventoryMap)
+  const metaRecords: TroveMetaRecord[] = [
+    { key: 'accountData', value: snapshot.accountData },
+    { key: 'characterBanks', value: snapshot.characterBanks },
+    { key: 'characterInventories', value: snapshot.characterInventories },
+    { key: 'characters', value: snapshot.characters },
+    { key: 'hiddenCharacters', value: snapshot.hiddenCharacterIds },
+    { key: 'importedAt', value: snapshot.importedAt },
+    { key: 'selectedCharacters', value: snapshot.selectedCharacterIds },
+  ]
+
+  await troveDb.transaction('rw', troveDb.inventory, troveDb.meta, async () => {
+    await troveDb.inventory.clear()
+    await troveDb.inventory.bulkPut(inventoryRecords)
+    await troveDb.meta.bulkPut(metaRecords)
+  })
+}
+
+/**
+ * Load the full Trove snapshot in one read transaction.
+ */
+export async function loadTroveSnapshot(): Promise<TroveSnapshot> {
+  return troveDb.transaction('r', troveDb.inventory, troveDb.meta, async () => {
+    const [inventoryRecords, metaRecords] = await Promise.all([
+      troveDb.inventory.toArray(),
+      troveDb.meta.toArray(),
+    ])
+
+    const inventoryMap = new Map<string, TroveItemLocation[]>()
+    for (const record of inventoryRecords) {
+      inventoryMap.set(record.itemName, record.locations)
+    }
+
+    const metaByKey = new Map(metaRecords.map((record) => [record.key, record.value]))
+
+    return {
+      accountData: (metaByKey.get('accountData') as TroveAccountData | null) ?? null,
+      characterBanks: (metaByKey.get('characterBanks') as TroveCharacterBank[]) ?? [],
+      characterInventories: (metaByKey.get('characterInventories') as TroveCharacterInventory[]) ?? [],
+      inventoryMap,
+      characters: (metaByKey.get('characters') as TroveCharacter[]) ?? [],
+      hiddenCharacterIds: (metaByKey.get('hiddenCharacters') as number[]) ?? [],
+      importedAt: (metaByKey.get('importedAt') as number | null) ?? null,
+      selectedCharacterIds: (metaByKey.get('selectedCharacters') as number[]) ?? [],
+    }
   })
 }
 

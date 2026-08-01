@@ -7,6 +7,66 @@ export interface QuestVersion {
   quest: Quest | null
 }
 
+interface QuestVersionCandidate {
+  baseName: string
+  level: number
+  tierLabel: string | null
+  type: string | null
+  quest: Quest | null
+  matchPriority: number
+}
+
+function getQuestTierLabel(level: number): string | null {
+  if (level >= 30) return 'Legendary'
+  if (level >= 20) return 'Epic'
+  return 'Heroic'
+}
+
+function buildQuestVersionCandidates(quest: Quest, locationId: string): QuestVersionCandidate[] {
+  const matchPriority = quest.id === locationId ? 2 : 1
+
+  if (
+    typeof quest.heroicLevel === 'number'
+    && typeof quest.epicLevel === 'number'
+    && quest.heroicLevel !== quest.epicLevel
+  ) {
+    return [
+      {
+        baseName: quest.name,
+        level: quest.heroicLevel,
+        tierLabel: 'Heroic',
+        type: quest.type,
+        quest,
+        matchPriority,
+      },
+      {
+        baseName: quest.name,
+        level: quest.epicLevel,
+        tierLabel: getQuestTierLabel(quest.epicLevel),
+        type: quest.type,
+        quest,
+        matchPriority,
+      },
+    ]
+  }
+
+  const level = Math.max(quest.heroicLevel ?? 0, quest.epicLevel ?? 0, quest.level ?? 0)
+  return [{
+    baseName: quest.name,
+    level,
+    tierLabel: level > 0 ? (typeof quest.heroicLevel === 'number' ? 'Heroic' : getQuestTierLabel(level)) : null,
+    type: quest.type,
+    quest,
+    matchPriority,
+  }]
+}
+
+function buildQuestVersionName(candidate: QuestVersionCandidate, needsSuffix: boolean): string {
+  if (!needsSuffix) return candidate.baseName
+  if (candidate.tierLabel) return `${candidate.baseName} (${candidate.tierLabel})`
+  return `${candidate.baseName} (Level ${candidate.level})`
+}
+
 /**
  * Parses reaper skull count from LFM comment text.
  * Looks for patterns like "R10", "R 5", "Reaper1", "Reaper 3", etc.
@@ -51,8 +111,6 @@ export function buildRaidQuestNames(questsById: Record<string, Quest>): Set<stri
  * records with the same area id, so a direct map lookup can pick the wrong one.
  */
 export function getQuestVersionsForLocation(locationId: string, quests: Record<string, Quest>): QuestVersion[] {
-  const versions: QuestVersion[] = []
-  const seenNames = new Set<string>()
   const matchedQuests = new Set<Quest>()
 
   for (const quest of Object.values(quests)) {
@@ -63,63 +121,33 @@ export function getQuestVersionsForLocation(locationId: string, quests: Record<s
 
   if (matchedQuests.size === 0) {
     const fallback = quests[locationId]
-    if (fallback) {
-      versions.push({
-        name: fallback.name,
-        level: Math.max(fallback.heroicLevel ?? 0, fallback.epicLevel ?? 0, fallback.level ?? 0),
-        type: fallback.type,
-        quest: fallback,
-      })
-    }
-    return versions
+    return fallback ? [{
+      name: fallback.name,
+      level: Math.max(fallback.heroicLevel ?? 0, fallback.epicLevel ?? 0, fallback.level ?? 0),
+      type: fallback.type,
+      quest: fallback,
+    }] : []
   }
 
-  for (const quest of matchedQuests) {
-    if (
-      typeof quest.heroicLevel === 'number'
-      && typeof quest.epicLevel === 'number'
-      && quest.heroicLevel !== quest.epicLevel
-    ) {
-      const heroicName = `${quest.name} (Heroic)`
-      const epicLabel = quest.epicLevel >= 30 ? 'Legendary' : 'Epic'
-      const epicName = `${quest.name} (${epicLabel})`
+  const candidates = Array.from(matchedQuests).flatMap((quest) => buildQuestVersionCandidates(quest, locationId))
+  const candidateCounts = new Map<string, number>()
+  for (const candidate of candidates) {
+    candidateCounts.set(candidate.baseName, (candidateCounts.get(candidate.baseName) || 0) + 1)
+  }
 
-      if (!seenNames.has(heroicName)) {
-        seenNames.add(heroicName)
-        versions.push({
-          name: heroicName,
-          level: quest.heroicLevel,
-          type: quest.type,
-          quest,
-        })
-      }
-
-      if (!seenNames.has(epicName)) {
-        seenNames.add(epicName)
-        versions.push({
-          name: epicName,
-          level: quest.epicLevel,
-          type: quest.type,
-          quest,
-        })
-      }
-
-      continue
-    }
-
-    const level = Math.max(quest.heroicLevel ?? 0, quest.epicLevel ?? 0, quest.level ?? 0)
-    if (!seenNames.has(quest.name)) {
-      seenNames.add(quest.name)
-      versions.push({
-        name: quest.name,
-        level,
-        type: quest.type,
-        quest,
-      })
+  const versionsByKey = new Map<string, QuestVersionCandidate & { name: string }>()
+  for (const candidate of candidates) {
+    const name = buildQuestVersionName(candidate, (candidateCounts.get(candidate.baseName) || 0) > 1)
+    const key = `${name}|${candidate.level}`
+    const existing = versionsByKey.get(key)
+    if (!existing || candidate.matchPriority > existing.matchPriority) {
+      versionsByKey.set(key, { ...candidate, name })
     }
   }
 
-  return versions.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+  return Array.from(versionsByKey.values())
+    .map(({ name, level, type, quest }) => ({ name, level, type, quest }))
+    .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
 }
 
 export function getBestQuestVersionForLevel(
@@ -136,7 +164,16 @@ export function getBestQuestVersionForLevel(
 
   for (const version of versions) {
     const diff = Math.abs(characterLevel - version.level)
-    if (diff < minDiff) {
+    if (
+      diff < minDiff
+      || (
+        diff === minDiff
+        && (
+          (characterLevel >= 20 && version.level > bestVersion.level)
+          || (characterLevel < 20 && version.level < bestVersion.level)
+        )
+      )
+    ) {
       bestVersion = version
       minDiff = diff
     }

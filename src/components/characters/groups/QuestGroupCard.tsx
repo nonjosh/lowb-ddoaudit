@@ -55,8 +55,9 @@ export default function QuestGroupCard({
   )
   const matchingQuestInfo = useMemo(() => {
     for (const locationId of locationIds) {
-      const matchingVersion = getQuestVersionsForLocation(locationId, quests)
-        .find((version) => version.name === questName || version.quest?.name === normalizedQuestName)
+      const versions = getQuestVersionsForLocation(locationId, quests)
+      const matchingVersion = versions.find((version) => version.name === questName)
+        ?? versions.find((version) => version.quest?.name === normalizedQuestName)
 
       if (matchingVersion?.quest) {
         return matchingVersion.quest

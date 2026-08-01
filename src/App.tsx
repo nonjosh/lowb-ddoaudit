@@ -47,8 +47,8 @@ function App() {
                       <Route path="/tr-planner" element={<TRPlanner />} />
                       {/* Redirects for backward compatibility */}
                       <Route path="/wiki" element={<Navigate to="/gear/wiki" replace />} />
-                      <Route path="/wishlist" element={<Navigate to="/gear/wiki" replace />} />
-                      <Route path="/gear/wishlist" element={<Navigate to="/gear/wiki" replace />} />
+                      <Route path="/wishlist" element={<Navigate to="/gear/wiki?wishlist=1" replace />} />
+                      <Route path="/gear/wishlist" element={<Navigate to="/gear/wiki?wishlist=1" replace />} />
                       <Route path="/planner" element={<Navigate to="/gear/planner" replace />} />
                     </Routes>
                   </Layout>
