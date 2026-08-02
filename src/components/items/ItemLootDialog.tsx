@@ -172,6 +172,7 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
     questInfo,
     questLevelHint,
   }), [craftingData, items, questInfo, questLevelHint, questName])
+  const lootTableQuestLevel = requestedQuestTier ? (displayQuestLevel ?? undefined) : undefined
 
   const raidNotes = getRaidNotesForRaidName(questName)
 
@@ -269,7 +270,7 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
                 )}
               </Box>
             )}
-            <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} questLevel={displayQuestLevel ?? undefined} />
+            <ItemLootTable questItems={questItems} setsData={setsData} craftingData={craftingData} raidNotes={raidNotes} questLevel={lootTableQuestLevel} />
           </>
         ) : (
           <QuestLocationPlayersPanel

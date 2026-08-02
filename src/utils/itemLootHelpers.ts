@@ -59,10 +59,14 @@ export function getRequestedQuestTier(
 
 function isQuestTierCompatible(requestedTier: QuestTier | null, sourceTier: QuestTier | null): boolean {
   if (!requestedTier) return true
-  if (requestedTier === 'heroic') {
-    return sourceTier === null || sourceTier === 'heroic'
-  }
+  if (sourceTier === null) return true
   return sourceTier === requestedTier
+}
+
+function getItemQuestTier(item: Pick<Item, 'ml' | 'name'>): QuestTier {
+  if (/^legendary\b/i.test(item.name) || item.ml >= 29) return 'legendary'
+  if (/^epic\b/i.test(item.name) || item.ml >= 20) return 'epic'
+  return 'heroic'
 }
 
 function matchesQuestSource(
@@ -137,9 +141,12 @@ export function getItemsForQuest(
   }
 
   const allMatches = [...matches, ...craftingMatches]
+  const tierFilteredMatches = requestedTier
+    ? allMatches.filter((item) => getItemQuestTier(item) === requestedTier)
+    : allMatches
 
   // Sort: exact matches first, then by minimum level descending, then by name
-  return allMatches.sort((a, b) => {
+  return tierFilteredMatches.sort((a, b) => {
     // Check if either has an exact match
     const aExact = (a.quests ?? []).some((q) => matchesQuestSource(q, normalizedQuestName, requestedTier))
     const bExact = (b.quests ?? []).some((q) => matchesQuestSource(q, normalizedQuestName, requestedTier))
