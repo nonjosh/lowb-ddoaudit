@@ -1,0 +1,324 @@
+{
+  "A Blood Pact": [
+    {
+      "baseItem": "Bow of Sinew",
+      "heroicVariant": "Demon's Arc",
+      "legendaryVariant": "Legendary Demon's Arc",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Long Bow)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Planar Gird",
+      "heroicVariant": "Planar Lariat",
+      "legendaryVariant": "Legendary Planar Lariat",
+      "catalystType": "Abyssal",
+      "equipmentType": "Belt",
+      "dropSource": "end chest"
+    }
+  ],
+  "A Long Way to Mushrooms": [
+    {
+      "baseItem": "Drow Bastard Sword of the Weapon Master",
+      "heroicVariant": "Perfected Bastard Sword of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Bastard Sword of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Bastard Sword)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Dagger of the Weapon Master",
+      "heroicVariant": "Perfected Dagger of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Dagger of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Dagger)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Greataxe of the Weapon Master",
+      "heroicVariant": "Perfected Greataxe of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Greataxe of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Greataxe)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Khopesh of the Weapon Master",
+      "heroicVariant": "Perfected Khopesh of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Khopesh of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Khopesh)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Light Mace of the Weapon Master",
+      "heroicVariant": "Perfected Light Mace of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Light Mace of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Light Mace)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Longsword of the Weapon Master",
+      "heroicVariant": "Perfected Longsword of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Longsword of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Long Sword)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Maul of the Weapon Master",
+      "heroicVariant": "Perfected Maul of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Maul of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Maul)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Quarterstaff of the Weapon Master",
+      "heroicVariant": "Perfected Quarterstaff of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Quarterstaff of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Quarterstaff)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Rapier of the Weapon Master",
+      "heroicVariant": "Perfected Rapier of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Rapier of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Rapier)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Scimitar of the Weapon Master",
+      "heroicVariant": "Perfected Scimitar of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Scimitar of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Scimitar)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Shortsword of the Weapon Master",
+      "heroicVariant": "Perfected Shortsword of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Shortsword of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Short Sword)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Drow Warhammer of the Weapon Master",
+      "heroicVariant": "Perfected Warhammer of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Warhammer of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (War Hammer)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Duergar Waraxe of the Weapon Master",
+      "heroicVariant": "Perfected Dwarven Waraxe of the Weapon Master",
+      "legendaryVariant": "Legendary Perfected Dwarven Waraxe of the Weapon Master",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Dwarven Waraxe)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Staff of the Necromancer",
+      "heroicVariant": "Staff of the Demonic Resurrector",
+      "legendaryVariant": "Legendary Staff of the Demonic Resurrector",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Quarterstaff)",
+      "dropSource": "end chest"
+    }
+  ],
+  "Back to the Abyss": [
+    {
+      "baseItem": "Lantern Ring",
+      "heroicVariant": "Lantern of the Abyss",
+      "legendaryVariant": "Legendary Lantern of the Abyss",
+      "catalystType": "Abyssal",
+      "equipmentType": "Ring",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Sun Blade",
+      "heroicVariant": "Null Blade",
+      "legendaryVariant": "Legendary Null Blade",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Shortsword)",
+      "dropSource": "end chest"
+    }
+  ],
+  "Demon in the Rough": [
+    {
+      "baseItem": "Cowl of the Devotee",
+      "heroicVariant": "Cowl of the Drow Devotee",
+      "legendaryVariant": "Legendary Cowl of the Drow Devotee",
+      "catalystType": "Deep",
+      "equipmentType": "Headgear",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Royal Guard Mask",
+      "heroicVariant": "Drow Captain's Mask",
+      "legendaryVariant": "Legendary Drow Captain's Mask",
+      "catalystType": "Deep",
+      "equipmentType": "Headgear",
+      "dropSource": "end chest"
+    }
+  ],
+  "Flocked Together": [
+    {
+      "baseItem": "The Blood Stone",
+      "heroicVariant": "The Bloody Boulder",
+      "legendaryVariant": "Legendary The Bloody Boulder",
+      "catalystType": "Abyssal",
+      "equipmentType": "Trinket",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Hide of the Goristro",
+      "heroicVariant": "Baphomet's Brutality",
+      "legendaryVariant": "Legendary Baphomet's Brutality",
+      "catalystType": "Abyssal",
+      "equipmentType": "Armor (Medium)",
+      "dropSource": "end chest"
+    }
+  ],
+  "For Want of a Heart": [
+    {
+      "baseItem": "Demon Scale Armor",
+      "heroicVariant": "Scales of Demogorgon",
+      "legendaryVariant": "Legendary Scales of Demogorgon",
+      "catalystType": "Abyssal",
+      "equipmentType": "Armor (Heavy)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Planar Compass",
+      "heroicVariant": "Abyssal Compass",
+      "legendaryVariant": "Legendary Abyssal Compass",
+      "catalystType": "Abyssal",
+      "equipmentType": "Trinket",
+      "dropSource": "end chest"
+    }
+  ],
+  "Hideous to Behold": [
+    {
+      "baseItem": "Drow Piwafwi",
+      "heroicVariant": "Piwafwi of the Drow Assassin",
+      "legendaryVariant": "Legendary Piwafwi of the Drow Assassin",
+      "catalystType": "Deep",
+      "equipmentType": "Cloak",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Mantle of the Worldshaper",
+      "heroicVariant": "Dream of the Worldshaper",
+      "legendaryVariant": "Legendary Dream of the Worldshaper",
+      "catalystType": "Deep",
+      "equipmentType": "Cloak",
+      "dropSource": "end chest"
+    }
+  ],
+  "If It Wasn't For Bad Luck": [
+    {
+      "baseItem": "Death's Door",
+      "heroicVariant": "Demon's Door",
+      "legendaryVariant": "Legendary Demon's Door",
+      "catalystType": "Abyssal",
+      "equipmentType": "Shield (Large)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Ultimatum",
+      "heroicVariant": "Fiendish Requisition",
+      "legendaryVariant": "Legendary Fiendish Requisition",
+      "catalystType": "Abyssal",
+      "equipmentType": "Shield (Tower)",
+      "dropSource": "end chest"
+    }
+  ],
+  "Stealing from Sorcere": [
+    {
+      "baseItem": "Graz'zt's Habiliment",
+      "heroicVariant": "The Shadow King's Cruelty",
+      "legendaryVariant": "Legendary The Shadow King's Cruelty",
+      "catalystType": "Abyssal",
+      "equipmentType": "Armor (Light)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Seraphim",
+      "heroicVariant": "Lolth's Protection",
+      "legendaryVariant": "Legendary Lolth's Protection",
+      "catalystType": "Abyssal",
+      "equipmentType": "Headgear",
+      "dropSource": "end chest"
+    }
+  ],
+  "The Darklake": [
+    {
+      "baseItem": "Cannith Boots of Propulsion",
+      "heroicVariant": "Demonic Rush",
+      "legendaryVariant": "Legendary Demonic Rush",
+      "catalystType": "Abyssal",
+      "equipmentType": "Boots",
+      "dropSource": "rare encounter chests"
+    }
+  ],
+  "The Fetid Wedding": [
+    {
+      "baseItem": "Spidersilk Robes",
+      "heroicVariant": "Drow Priestess' Mantle",
+      "legendaryVariant": "Legendary Drow Priestess' Mantle",
+      "catalystType": "Deep",
+      "equipmentType": "Armor (Cloth)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Spider-spun Caparison",
+      "heroicVariant": "Webs of the Drow Penitent",
+      "legendaryVariant": "Legendary Webs of the Drow Penitent",
+      "catalystType": "Deep",
+      "equipmentType": "Armor (Cloth)",
+      "dropSource": "end chest"
+    }
+  ],
+  "The Price of an Egg": [
+    {
+      "baseItem": "Insanity",
+      "heroicVariant": "Madness of the Demon Lords",
+      "legendaryVariant": "Legendary Madness of the Demon Lords",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Greatsword)",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "Muck's Doom",
+      "heroicVariant": "Muck's Ascension",
+      "legendaryVariant": "Legendary Muck's Ascension",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Club)",
+      "dropSource": "end chest"
+    }
+  ],
+  "Tower of Vengeance": [
+    {
+      "baseItem": "Elemental Victory",
+      "heroicVariant": "Crown of Ioun",
+      "legendaryVariant": "Legendary Crown of Ioun",
+      "catalystType": "Deep",
+      "equipmentType": "Headgear",
+      "dropSource": "end chest"
+    },
+    {
+      "baseItem": "The Mad Lute",
+      "heroicVariant": "The Wicked Pull",
+      "legendaryVariant": "Legendary The Wicked Pull",
+      "catalystType": "Abyssal",
+      "equipmentType": "Weapon (Greatclub)",
+      "dropSource": "end chest"
+    }
+  ]
+}

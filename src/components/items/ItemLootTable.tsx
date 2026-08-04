@@ -96,7 +96,10 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
 
   const filteredItems = useMemo(() => {
     return questItems.filter(item => {
-      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
+      const catalystSearchString = item.catalystInfo
+        ? `${item.catalystInfo.catalystType} ${item.catalystInfo.equipmentType} ${item.catalystInfo.dropSource} ${item.catalystInfo.heroicVariant || ''} ${item.catalystInfo.legendaryVariant || ''}`
+        : ''
+      const searchString = `${item.name} ${item.type || ''} ${item.affixes.map(formatAffixPlain).join(' ')} ${item.crafting?.join(' ') || ''} ${catalystSearchString} ${item.artifact ? 'artifact' : ''}`.toLowerCase()
       const matchesSearch = searchText === '' || searchString.includes(searchText.toLowerCase())
       const matchesType = typeFilter.length === 0 || (() => {
         if (item.slot === 'Augment') {
@@ -137,7 +140,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
   return (
     <>
       <Typography variant="h6" sx={{ mb: 1, px: 1 }}>
-        {filteredItems.length} Available Loots (equipments and augments, excluding misc items)
+        {filteredItems.length} Available Loot Entries (equipment, augments, and catalysts)
       </Typography>
       <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '60vh', overflow: 'auto' }}>
         <ItemTableFilters

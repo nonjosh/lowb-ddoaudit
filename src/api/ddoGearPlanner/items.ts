@@ -7,6 +7,16 @@ export interface ItemAffix {
   value: string | number
 }
 
+export interface CatalystInfo {
+  catalystType: string
+  equipmentType: string
+  dropSource: string
+  heroicVariant?: string | null
+  legendaryVariant?: string | null
+  heroicVariantUrl?: string | null
+  legendaryVariantUrl?: string | null
+}
+
 export interface Item {
   name: string
   ml: number
@@ -18,6 +28,7 @@ export interface Item {
   url?: string
   sets?: string[]
   artifact?: boolean
+  catalystInfo?: CatalystInfo
 }
 
 const DATASET_KEY = 'items'

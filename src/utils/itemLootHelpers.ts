@@ -1,6 +1,16 @@
 import { CraftingData, Item } from '@/api/ddoGearPlanner'
+import questCatalystsData from '@/assets/questCatalysts.json'
 
 export type QuestTier = 'heroic' | 'epic' | 'legendary'
+
+interface QuestCatalystDefinition {
+  baseItem: string
+  heroicVariant: string | null
+  legendaryVariant: string | null
+  catalystType: string
+  equipmentType: string
+  dropSource: string
+}
 
 export interface QuestLootLookupOptions {
   questInfo?: {
@@ -23,6 +33,11 @@ function normalizeQuestLookupName(questName: string): string {
     .replace(/\s+/g, ' ')
     .trim()
 }
+
+const QUEST_CATALYSTS_BY_NAME = Object.fromEntries(
+  Object.entries(questCatalystsData as Record<string, QuestCatalystDefinition[]>)
+    .map(([questName, catalysts]) => [normalizeQuestLookupName(questName), catalysts]),
+) as Record<string, QuestCatalystDefinition[]>
 
 function getSourceQuestTier(questName: string): QuestTier | null {
   const match = questName.match(QUEST_TIER_SUFFIX_RE)
@@ -67,6 +82,82 @@ function getItemQuestTier(item: Pick<Item, 'ml' | 'name'>): QuestTier {
   if (/^legendary\b/i.test(item.name) || item.ml >= 29) return 'legendary'
   if (/^epic\b/i.test(item.name) || item.ml >= 20) return 'epic'
   return 'heroic'
+}
+
+function getQuestLootLevel(requestedTier: QuestTier | null, options: QuestLootLookupOptions): number | null {
+  if (typeof options.questLevelHint === 'number') return options.questLevelHint
+
+  if (requestedTier === 'heroic') {
+    return options.questInfo?.heroicLevel ?? options.questInfo?.level ?? null
+  }
+
+  if (requestedTier === 'epic' || requestedTier === 'legendary') {
+    return options.questInfo?.epicLevel ?? options.questInfo?.level ?? null
+  }
+
+  return options.questInfo?.level ?? null
+}
+
+function shouldUseLegendaryCatalystName(requestedTier: QuestTier | null, questLevel: number | null): boolean {
+  if (requestedTier === 'epic' || requestedTier === 'legendary') return true
+  if (requestedTier === 'heroic') return false
+  return typeof questLevel === 'number' && questLevel >= 20
+}
+
+function buildItemWikiUrl(itemName: string): string {
+  const pageName = `Item:${itemName}`.replace(/\s+/g, '_')
+  return `/page/${encodeURIComponent(pageName).replace(/%3A/g, ':')}`
+}
+
+function buildCatalystCraftingWikiUrl(baseItem: string, questName: string): string {
+  return `/page/Catalyst_Crafting#:~:text=${encodeURIComponent(baseItem)},${encodeURIComponent(questName)}`
+}
+
+function isCatalystItem(item: Pick<Item, 'slot'>): boolean {
+  return item.slot === 'Catalyst'
+}
+
+function isCatalystTierCompatible(requestedTier: QuestTier, item: Pick<Item, 'name'>): boolean {
+  const isLegendaryCatalyst = /^legendary\b/i.test(item.name)
+  if (requestedTier === 'heroic') return !isLegendaryCatalyst
+  return isLegendaryCatalyst
+}
+
+function getCatalystItemsForQuest(
+  questName: string,
+  requestedTier: QuestTier | null,
+  options: QuestLootLookupOptions,
+): Item[] {
+  const catalysts = QUEST_CATALYSTS_BY_NAME[normalizeQuestLookupName(questName)] ?? []
+  if (catalysts.length === 0) return []
+
+  const questLevel = getQuestLootLevel(requestedTier, options)
+  const useLegendaryName = shouldUseLegendaryCatalystName(requestedTier, questLevel)
+
+  return catalysts
+    .map(({ baseItem, heroicVariant, legendaryVariant, catalystType, equipmentType, dropSource }) => {
+      const prefix = useLegendaryName ? 'Legendary ' : ''
+      const name = `${prefix}${catalystType} Catalyst: ${baseItem}`
+
+      return {
+        name,
+        ml: questLevel ?? (useLegendaryName ? 20 : 1),
+        slot: 'Catalyst',
+        type: 'Catalyst',
+        affixes: [],
+        catalystInfo: {
+          catalystType,
+          equipmentType,
+          dropSource,
+          heroicVariant,
+          legendaryVariant,
+          heroicVariantUrl: heroicVariant ? buildItemWikiUrl(heroicVariant) : null,
+          legendaryVariantUrl: legendaryVariant ? buildItemWikiUrl(legendaryVariant) : null,
+        },
+        url: buildCatalystCraftingWikiUrl(baseItem, questName),
+      }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 function matchesQuestSource(
@@ -140,9 +231,17 @@ export function getItemsForQuest(
     }
   }
 
-  const allMatches = [...matches, ...craftingMatches]
+  const catalystMatches = getCatalystItemsForQuest(questName, requestedTier, options)
+
+  const allMatches = [...matches, ...craftingMatches, ...catalystMatches]
   const tierFilteredMatches = requestedTier
-    ? allMatches.filter((item) => getItemQuestTier(item) === requestedTier)
+    ? allMatches.filter((item) => {
+      if (isCatalystItem(item)) {
+        return isCatalystTierCompatible(requestedTier, item)
+      }
+
+      return getItemQuestTier(item) === requestedTier
+    })
     : allMatches
 
   // Sort: exact matches first, then by minimum level descending, then by name

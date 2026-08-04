@@ -81,6 +81,83 @@ export default function ItemTableRow({
 
   const augmentColor = item.slot === 'Augment' ? getAugmentColor(item.type || '') : undefined
 
+  const catalystInfo = item.catalystInfo
+
+  const renderCatalystVariantLink = (label: string, variantName?: string | null, variantUrl?: string | null) => {
+    if (!variantName) return null
+
+    const wikiVariantUrl = variantUrl ? getWikiUrl(variantUrl) : null
+
+    return (
+      <li key={label}>
+        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+          {label}: {' '}
+          {wikiVariantUrl ? (
+            <Link
+              href={wikiVariantUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              sx={{
+                color: 'inherit',
+                fontSize: 'inherit',
+                textDecoration: 'none',
+                '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+              }}
+            >
+              {highlightText(variantName, searchText)}
+            </Link>
+          ) : (
+            highlightText(variantName, searchText)
+          )}
+        </Typography>
+      </li>
+    )
+  }
+
+  const renderProperties = () => {
+    if (catalystInfo) {
+      return (
+        <ul style={{ margin: 0, paddingLeft: 20 }}>
+          {renderCatalystVariantLink('Heroic variant', catalystInfo.heroicVariant, catalystInfo.heroicVariantUrl)}
+          {renderCatalystVariantLink('Legendary variant', catalystInfo.legendaryVariant, catalystInfo.legendaryVariantUrl)}
+        </ul>
+      )
+    }
+
+    return (
+      <ul style={{ margin: 0, paddingLeft: 20 }}>
+        {item.affixes.map((affix, idx) => (
+          <li key={idx}>
+            <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+              {isBooleanAffixType(affix.type) ? (
+                <Link
+                  href={getAffixWikiUrl(affix.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  sx={{
+                    color: 'inherit',
+                    fontSize: 'inherit',
+                    textDecoration: 'none',
+                    '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+                  }}
+                >
+                  {highlightText(affix.name, searchText)}
+                </Link>
+              ) : formatAffix(affix, searchText)}
+            </Typography>
+          </li>
+        ))}
+        {item.sets?.[0] && (
+          <li>
+            <ItemSetTooltip setName={item.sets[0]} setsData={setsData} formatAffix={formatAffix} />
+          </li>
+        )}
+      </ul>
+    )
+  }
+
   return (
     <TableRow
       key={itemKey}
@@ -188,35 +265,7 @@ export default function ItemTableRow({
       </TableCell>
       <TableCell>{highlightText((item.slot && item.slot !== 'Weapon' && item.slot !== 'Offhand') ? (item.slot === 'Augment' ? `Augment (${item.type})` : (item.slot === 'Armor' && item.type ? item.type : item.slot)) : (item.type || ''), searchText)}</TableCell>
       <TableCell>
-        <ul style={{ margin: 0, paddingLeft: 20 }}>
-          {item.affixes.map((affix, idx) => (
-            <li key={idx}>
-              <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-                {isBooleanAffixType(affix.type) ? (
-                  <Link
-                    href={getAffixWikiUrl(affix.name)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                    sx={{
-                      color: 'inherit',
-                      fontSize: 'inherit',
-                      textDecoration: 'none',
-                      '&:hover': { color: 'primary.main', textDecoration: 'underline' },
-                    }}
-                  >
-                    {highlightText(affix.name, searchText)}
-                  </Link>
-                ) : formatAffix(affix, searchText)}
-              </Typography>
-            </li>
-          ))}
-          {item.sets?.[0] && (
-            <li>
-              <ItemSetTooltip setName={item.sets[0]} setsData={setsData} formatAffix={formatAffix} />
-            </li>
-          )}
-        </ul>
+        {renderProperties()}
       </TableCell>
       <TableCell>
         {item.crafting && (
