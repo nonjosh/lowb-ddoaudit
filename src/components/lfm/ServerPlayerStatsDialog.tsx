@@ -302,7 +302,7 @@ function LevelDistributionChart({
                 '&:hover .bar-label': { opacity: 1 }
               }}
             >
-              <Typography variant="caption" sx={{ width: 40, textAlign: 'right', flexShrink: 0 }}>
+              <Typography variant="caption" color="text.primary" sx={{ width: 40, textAlign: 'right', flexShrink: 0 }}>
                 {bin.label}
               </Typography>
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
