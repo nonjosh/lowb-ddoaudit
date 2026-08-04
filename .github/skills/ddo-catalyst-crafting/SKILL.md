@@ -128,10 +128,10 @@ Current catalyst row behavior:
 
 ## Related Files
 
-| File                                   | Purpose                                         |
-| -------------------------------------- | ----------------------------------------------- |
-| `src/assets/questCatalysts.json`       | Static quest-to-catalyst mapping and ML metadata |
-| `src/utils/itemLootHelpers.ts`         | Catalyst row generation and ML derivation       |
-| `src/components/items/ItemTableRow.tsx`| Catalyst property rendering                     |
-| `src/components/items/ItemLootTable.tsx` | Catalyst search/filter participation          |
-| `src/utils/affixHelpers.tsx`           | Wiki URL expansion                              |
+| File                                     | Purpose                                          |
+| ---------------------------------------- | ------------------------------------------------ |
+| `src/assets/questCatalysts.json`         | Static quest-to-catalyst mapping and ML metadata |
+| `src/utils/itemLootHelpers.ts`           | Catalyst row generation and ML derivation        |
+| `src/components/items/ItemTableRow.tsx`  | Catalyst property rendering                      |
+| `src/components/items/ItemLootTable.tsx` | Catalyst search/filter participation             |
+| `src/utils/affixHelpers.tsx`             | Wiki URL expansion                               |
