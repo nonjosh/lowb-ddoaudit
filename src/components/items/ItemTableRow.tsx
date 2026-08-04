@@ -166,7 +166,7 @@ export default function ItemTableRow({
       onClick={rowProps?.onClick}
       onMouseEnter={rowProps?.onMouseEnter}
     >
-      <TableCell>{item.ml}</TableCell>
+      <TableCell>{catalystInfo ? null : item.ml}</TableCell>
       <TableCell>
         <Box sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.5 }}>
           {wikiUrl ? (

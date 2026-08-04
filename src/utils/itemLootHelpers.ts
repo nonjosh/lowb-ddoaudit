@@ -12,6 +12,10 @@ interface QuestCatalystDefinition {
   dropSource: string
 }
 
+function isQuestCatalystDefinitionArray(value: unknown): value is QuestCatalystDefinition[] {
+  return Array.isArray(value)
+}
+
 export interface QuestLootLookupOptions {
   questInfo?: {
     heroicLevel?: number | null
@@ -22,6 +26,10 @@ export interface QuestLootLookupOptions {
 }
 
 const QUEST_TIER_SUFFIX_RE = /\s+\((heroic|epic|legendary)\)$/i
+
+const questCatalystsFile = questCatalystsData as Record<string, unknown>
+
+const QUEST_CATALYST_VARIANT_MLS = (questCatalystsFile._variantMinimumLevels as Record<string, number> | undefined) ?? {}
 
 export function stripQuestTierSuffix(questName: string): string {
   return questName.replace(QUEST_TIER_SUFFIX_RE, '').trim()
@@ -35,7 +43,8 @@ function normalizeQuestLookupName(questName: string): string {
 }
 
 const QUEST_CATALYSTS_BY_NAME = Object.fromEntries(
-  Object.entries(questCatalystsData as Record<string, QuestCatalystDefinition[]>)
+  Object.entries(questCatalystsFile)
+    .filter(([questName, value]) => questName !== '_variantMinimumLevels' && isQuestCatalystDefinitionArray(value))
     .map(([questName, catalysts]) => [normalizeQuestLookupName(questName), catalysts]),
 ) as Record<string, QuestCatalystDefinition[]>
 
@@ -104,13 +113,23 @@ function shouldUseLegendaryCatalystName(requestedTier: QuestTier | null, questLe
   return typeof questLevel === 'number' && questLevel >= 20
 }
 
+function getCatalystVariantMl(variantName?: string | null): number | null {
+  if (!variantName) return null
+  return QUEST_CATALYST_VARIANT_MLS[variantName] ?? null
+}
+
 function buildItemWikiUrl(itemName: string): string {
   const pageName = `Item:${itemName}`.replace(/\s+/g, '_')
   return `/page/${encodeURIComponent(pageName).replace(/%3A/g, ':')}`
 }
 
-function buildCatalystCraftingWikiUrl(baseItem: string, questName: string): string {
-  return `/page/Catalyst_Crafting#:~:text=${encodeURIComponent(baseItem)},${encodeURIComponent(questName)}`
+function encodeTextFragment(text: string): string {
+  return encodeURIComponent(text)
+    .replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+}
+
+function buildCatalystCraftingWikiUrl(baseItem: string): string {
+  return `/page/Catalyst_Crafting#:~:text=${encodeTextFragment(baseItem)}`
 }
 
 function isCatalystItem(item: Pick<Item, 'slot'>): boolean {
@@ -138,10 +157,13 @@ function getCatalystItemsForQuest(
     .map(({ baseItem, heroicVariant, legendaryVariant, catalystType, equipmentType, dropSource }) => {
       const prefix = useLegendaryName ? 'Legendary ' : ''
       const name = `${prefix}${catalystType} Catalyst: ${baseItem}`
+      const heroicVariantMl = getCatalystVariantMl(heroicVariant)
+      const legendaryVariantMl = getCatalystVariantMl(legendaryVariant)
+      const highestVariantMl = Math.max(heroicVariantMl ?? 0, legendaryVariantMl ?? 0) || null
 
       return {
         name,
-        ml: questLevel ?? (useLegendaryName ? 20 : 1),
+        ml: highestVariantMl ?? questLevel ?? (useLegendaryName ? 20 : 1),
         slot: 'Catalyst',
         type: 'Catalyst',
         affixes: [],
@@ -154,7 +176,7 @@ function getCatalystItemsForQuest(
           heroicVariantUrl: heroicVariant ? buildItemWikiUrl(heroicVariant) : null,
           legendaryVariantUrl: legendaryVariant ? buildItemWikiUrl(legendaryVariant) : null,
         },
-        url: buildCatalystCraftingWikiUrl(baseItem, questName),
+        url: buildCatalystCraftingWikiUrl(baseItem),
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name))

@@ -31,7 +31,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
     if (!questLevel) return []
     const minML = questLevel - 6
     return questItems
-      .filter(item => item.ml > minML)
+      .filter(item => !item.catalystInfo && item.ml > minML)
       .map(item => item.ml.toString())
       .filter((value, index, self) => self.indexOf(value) === index) // unique
   })
@@ -89,6 +89,7 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
   const uniqueMLs = useMemo(() => {
     const mlCount = new Map<number, number>()
     questItems.forEach(item => {
+      if (item.catalystInfo) return
       mlCount.set(item.ml, (mlCount.get(item.ml) || 0) + 1)
     })
     return Array.from(mlCount.entries()).map(([ml, count]) => ({ ml, count })).sort((a, b) => a.ml - b.ml)
@@ -108,15 +109,20 @@ export default function ItemLootTable({ questItems, setsData, craftingData, raid
         return item.type && typeFilter.includes(item.type)
       })()
       const matchesEffect = effectFilter.length === 0 || item.affixes.some(a => effectFilter.includes(a.name))
-      const matchesML = mlFilter.length === 0 || mlFilter.includes(item.ml.toString())
+      const matchesML = item.catalystInfo ? true : (mlFilter.length === 0 || mlFilter.includes(item.ml.toString()))
       return matchesSearch && matchesType && matchesEffect && matchesML
     }).sort((a, b) => {
+      const aCatalyst = !!a.catalystInfo
+      const bCatalyst = !!b.catalystInfo
+      if (aCatalyst !== bCatalyst) return aCatalyst ? -1 : 1
+
       const aWished = isWished(a)
       const bWished = isWished(b)
       if (aWished !== bWished) return aWished ? -1 : 1
 
-      // Define category: augments (-2), armors (-1), accessories (0), offhand (1), weapons (2)
+      // Define category: catalysts (-3), augments (-2), armors (-1), accessories (0), offhand (1), weapons (2)
       const getCategory = (item: Item) => {
+        if (item.catalystInfo) return -3
         if (item.slot === 'Augment') return -2
         if (item.slot === 'Armor') return -1
         if (item.slot === 'Offhand') return 1

@@ -69,6 +69,7 @@ src/
     ├── ddo-xp-leveling/     # XP calculation and leveling
     ├── ddo-gear-affixes/    # Gear and affix stacking
     ├── ddo-augments-crafting/ # Augments and crafting slots
+   ├── ddo-catalyst-crafting/ # Catalyst loot mapping and variant ML refresh
     ├── ddo-set-bonuses/     # Set item bonuses
     ├── ddo-ransack/         # Chest ransack timers
     ├── ddo-green-steel/     # Green Steel crafting
@@ -78,7 +79,7 @@ src/
     ├── ddo-trove-data/      # Trove inventory data format
     ├── ddo-audit-api/       # DDO Audit REST API integration
     ├── ddo-gear-planner-data/ # DDO Gear Planner data source
-    └── ddo-wiki/            # DDO Wiki URL patterns and linking
+   └── ddo-wiki/            # DDO Wiki URL patterns and linking
 ```
 
 ## Key Patterns
@@ -217,6 +218,7 @@ DDO game mechanics are documented as Copilot agent skills that are automatically
 | `ddo-xp-leveling`           | XP calculation, bonuses, penalties, TR scaling          | `src/domains/trPlanner/`                     |
 | `ddo-gear-affixes`          | Affix stacking rules, gear evaluation                   | `src/domains/gearPlanner/affixStacking.ts`   |
 | `ddo-augments-crafting`     | Augment slots, crafting options, color compatibility    | `src/domains/gearPlanner/craftingHelpers.ts` |
+| `ddo-catalyst-crafting`     | Deep/Abyssal catalyst loot mapping, wiki ML refresh, quest-loot ML derivation | `src/utils/itemLootHelpers.ts`, `src/assets/questCatalysts.json` |
 | `ddo-set-bonuses`           | Set thresholds, Set Augments                            | `src/api/ddoGearPlanner/sets.ts`             |
 | `ddo-ransack`               | Chest ransack timers (168h)                             | `src/storage/ransackDb.ts`                   |
 | `ddo-green-steel`           | Heroic Green Steel crafting                             | `src/domains/crafting/greenSteelLogic.ts`    |
