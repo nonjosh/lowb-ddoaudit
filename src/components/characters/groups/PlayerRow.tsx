@@ -2,7 +2,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import GroupsIcon from '@mui/icons-material/Groups'
 import ListAltIcon from '@mui/icons-material/ListAlt'
-import { Box, ListItem, ListItemButton, ListItemText, Tooltip, Typography } from '@mui/material'
+import { Box, IconButton, ListItem, ListItemButton, ListItemText, Tooltip, Typography } from '@mui/material'
 import { ReactNode } from 'react'
 
 import { getCharacterDisplayName, Quest } from '@/api/ddoAudit'
@@ -85,9 +85,10 @@ export default function PlayerRow({
 
     onlineInfo = onlineChars.map((c, idx) => {
       const characterDisplayName = getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })
+      const levelSuffix = typeof c.total_level === 'number' ? ` Lv${c.total_level}` : ''
       return (
         <span key={c.id}>
-          {characterDisplayName} (<ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={20} />){c.total_level !== 34 ? ` Lv${c.total_level}` : ''}
+          {characterDisplayName} (<ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={20} />){levelSuffix}
           {idx < onlineChars.length - 1 ? ', ' : ''}
         </span>
       )
@@ -115,14 +116,17 @@ export default function PlayerRow({
                 )}
                 {isInLfm && (
                   <Tooltip title="In LFM (Click to view)">
-                    <ListAltIcon
-                      color="action"
-                      sx={{ width: 16, height: 16, cursor: 'pointer' }}
+                    <IconButton
+                      size="small"
+                      aria-label="View LFM details"
                       onClick={(e) => {
                         e.stopPropagation()
                         if (lfmForCharacter) onLfmClick(lfmForCharacter)
                       }}
-                    />
+                      sx={{ p: 0.25 }}
+                    >
+                      <ListAltIcon color="action" sx={{ width: 16, height: 16 }} />
+                    </IconButton>
                   </Tooltip>
                 )}
                 {durationDisplay}

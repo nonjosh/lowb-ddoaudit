@@ -22,7 +22,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, fetchServerCharacters, getCharacterDisplayName, Quest, ServerCharacter } from '@/api/ddoAudit'
 import ClassDisplay from '@/components/shared/ClassDisplay'
@@ -30,7 +30,28 @@ import { useConfig } from '@/contexts/useConfig'
 
 const AUTO_REFRESH_INTERVAL_MS = 10_000
 
+interface LevelBinDefinition {
+  id: string
+  label: string
+  min: number
+  max: number
+}
+
+const LEVEL_DISTRIBUTION_BINS = [
+  { id: 'levels-1-4', label: '1-4', min: 1, max: 4 },
+  { id: 'levels-5-9', label: '5-9', min: 5, max: 9 },
+  { id: 'levels-10-14', label: '10-14', min: 10, max: 14 },
+  { id: 'levels-15-19', label: '15-19', min: 15, max: 19 },
+  { id: 'levels-20-24', label: '20-24', min: 20, max: 24 },
+  { id: 'levels-25-29', label: '25-29', min: 25, max: 29 },
+  { id: 'levels-30-34', label: '30-34', min: 30, max: 34 },
+  { id: 'levels-35-36', label: '35-36', min: 35, max: 36 },
+] as const satisfies readonly LevelBinDefinition[]
+
+type LevelBinId = (typeof LEVEL_DISTRIBUTION_BINS)[number]['id']
+
 interface LevelBin {
+  id: LevelBinId
   label: string
   min: number
   max: number
@@ -201,23 +222,18 @@ function LevelDistributionChart({
   characters,
   selectedBins,
   onToggleBin,
+  onClearBins,
 }: {
   characters: ServerCharacter[]
-  selectedBins: Set<string>
-  onToggleBin: (label: string) => void
+  selectedBins: Set<LevelBinId>
+  onToggleBin: (binId: LevelBinId) => void
+  onClearBins: () => void
 }) {
   const buckets = useMemo(() => {
-    const bins: LevelBin[] = [
-      { label: '1-4', min: 1, max: 4, count: 0, inPartyCount: 0 },
-      { label: '5-9', min: 5, max: 9, count: 0, inPartyCount: 0 },
-      { label: '10-14', min: 10, max: 14, count: 0, inPartyCount: 0 },
-      { label: '15-19', min: 15, max: 19, count: 0, inPartyCount: 0 },
-      { label: '20-24', min: 20, max: 24, count: 0, inPartyCount: 0 },
-      { label: '25-29', min: 25, max: 29, count: 0, inPartyCount: 0 },
-      { label: '30-34', min: 30, max: 34, count: 0, inPartyCount: 0 },
-    ]
+    const bins: LevelBin[] = LEVEL_DISTRIBUTION_BINS.map((bin) => ({ ...bin, count: 0, inPartyCount: 0 }))
     for (const c of characters) {
       const lvl = c.total_level
+      if (typeof lvl !== 'number') continue
       for (const bin of bins) {
         if (lvl >= bin.min && lvl <= bin.max) {
           bin.count++
@@ -256,20 +272,33 @@ function LevelDistributionChart({
       </Typography>
       <Stack spacing={0.5}>
         {buckets.map((bin) => {
-          const isSelected = selectedBins.has(bin.label)
+          const isSelected = selectedBins.has(bin.id)
           const dimmed = hasFilter && !isSelected
           return (
             <Stack
-              key={bin.label}
+              key={bin.id}
+              component="button"
+              type="button"
               direction="row"
               alignItems="center"
               spacing={1}
-              onClick={() => onToggleBin(bin.label)}
+              onClick={() => onToggleBin(bin.id)}
+              aria-pressed={isSelected}
               sx={{
+                width: '100%',
+                p: 0,
+                border: 0,
+                bgcolor: 'transparent',
                 cursor: 'pointer',
                 userSelect: 'none',
+                textAlign: 'left',
                 opacity: dimmed ? 0.35 : 1,
                 transition: 'opacity 0.2s',
+                '&:focus-visible': {
+                  outline: '2px solid',
+                  outlineColor: 'primary.main',
+                  outlineOffset: 2,
+                },
                 '&:hover .bar-label': { opacity: 1 }
               }}
             >
@@ -284,7 +313,7 @@ function LevelDistributionChart({
                       <Typography variant="caption" sx={{ display: 'block' }}>{bin.inPartyCount} In Party ({Math.round(bin.inPartyCount / Math.max(bin.count, 1) * 100)}%)</Typography>
                       <Typography variant="caption" sx={{ display: 'block' }}>{bin.count - bin.inPartyCount} Solo</Typography>
                       <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic', opacity: 0.8 }}>
-                        click to {isSelected ? 'deselect' : 'select'}
+                        {isSelected ? 'selected' : 'click to select'}
                       </Typography>
                     </Box>
                   }
@@ -353,8 +382,22 @@ function LevelDistributionChart({
         <Typography
           variant="caption"
           color="primary.main"
-          onClick={() => { for (const label of selectedBins) onToggleBin(label) }}
-          sx={{ cursor: 'pointer', mt: 0.5, display: 'inline-block' }}
+          component="button"
+          type="button"
+          onClick={onClearBins}
+          sx={{
+            mt: 0.5,
+            display: 'inline-block',
+            border: 0,
+            p: 0,
+            bgcolor: 'transparent',
+            cursor: 'pointer',
+            '&:focus-visible': {
+              outline: '2px solid',
+              outlineColor: 'primary.main',
+              outlineOffset: 2,
+            },
+          }}
         >
           Clear filter
         </Typography>
@@ -374,6 +417,7 @@ function AreaGroupsTable({
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const { showClassIcons } = useConfig()
+  const contentId = useId()
 
   const totalPlayers = useMemo(() => groups.reduce((sum, g) => sum + g.count, 0), [groups])
 
@@ -388,12 +432,19 @@ function AreaGroupsTable({
         onClick={() => setExpanded(!expanded)}
         sx={{ cursor: 'pointer', userSelect: 'none' }}
       >
-        <IconButton size="small">{expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton>
+        <IconButton
+          size="small"
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
+          aria-expanded={expanded}
+          aria-controls={contentId}
+        >
+          {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </IconButton>
         <Typography variant="subtitle2">
           {title} ({groups.length} areas, {totalPlayers} players)
         </Typography>
       </Stack>
-      <Collapse in={expanded}>
+      <Collapse in={expanded} id={contentId}>
         <TableContainer component={Box} sx={{ mt: 0.5 }}>
           <Table size="small">
             <TableHead>
@@ -476,7 +527,7 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
     error: null,
     lastUpdated: null,
   })
-  const [selectedBins, setSelectedBins] = useState<Set<string>>(new Set())
+  const [selectedBins, setSelectedBins] = useState<Set<LevelBinId>>(new Set())
   const [showSoloOnly, setShowSoloOnly] = useState(false)
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -507,13 +558,17 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
     }
   }, [open, fetchData])
 
-  const handleToggleBin = useCallback((label: string) => {
+  const handleToggleBin = useCallback((binId: LevelBinId) => {
     setSelectedBins((prev) => {
       const next = new Set(prev)
-      if (next.has(label)) next.delete(label)
-      else next.add(label)
+      if (next.has(binId)) next.delete(binId)
+      else next.add(binId)
       return next
     })
+  }, [])
+
+  const handleClearBins = useCallback(() => {
+    setSelectedBins(new Set())
   }, [])
 
   const visibleCharacters = useMemo(
@@ -524,16 +579,7 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
   // Build the selected level ranges from bin labels for filtering
   const selectedLevelRanges = useMemo(() => {
     if (selectedBins.size === 0) return null
-    const LEVEL_BINS: LevelBin[] = [
-      { label: '1-4', min: 1, max: 4, count: 0, inPartyCount: 0 },
-      { label: '5-9', min: 5, max: 9, count: 0, inPartyCount: 0 },
-      { label: '10-14', min: 10, max: 14, count: 0, inPartyCount: 0 },
-      { label: '15-19', min: 15, max: 19, count: 0, inPartyCount: 0 },
-      { label: '20-24', min: 20, max: 24, count: 0, inPartyCount: 0 },
-      { label: '25-29', min: 25, max: 29, count: 0, inPartyCount: 0 },
-      { label: '30-34', min: 30, max: 34, count: 0, inPartyCount: 0 },
-    ]
-    return LEVEL_BINS.filter((b) => selectedBins.has(b.label))
+    return LEVEL_DISTRIBUTION_BINS.filter((bin) => selectedBins.has(bin.id))
   }, [selectedBins])
 
   const allAreaGroups = useMemo(
@@ -569,8 +615,8 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
 
   const questGroups = useMemo(
     () => filteredAreaGroups.filter((g) => g.questType && g.questType.toLowerCase() !== 'raid').sort((a, b) => {
-      const aLevel = typeof a.quest?.level === 'number' ? a.quest.level : -1
-      const bLevel = typeof b.quest?.level === 'number' ? b.quest.level : -1
+      const aLevel = typeof a.level === 'number' ? a.level : -1
+      const bLevel = typeof b.level === 'number' ? b.level : -1
       if (aLevel !== bLevel) return bLevel - aLevel // descending level
       return b.count - a.count // tie break by count
     }),
@@ -643,6 +689,7 @@ export default function ServerPlayerStatsDialog({ open, onClose }: ServerPlayerS
               characters={visibleCharacters}
               selectedBins={selectedBins}
               onToggleBin={handleToggleBin}
+              onClearBins={handleClearBins}
             />
             <AreaGroupsTable title="Raid Areas" groups={raidGroups} defaultExpanded />
             <AreaGroupsTable title="Quest Areas" groups={questGroups} defaultExpanded={false} />

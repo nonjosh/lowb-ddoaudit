@@ -239,7 +239,7 @@ export function filterAndSortLfms(normalized: LfmDisplayData[], questFilter: str
   }
 
   // Filter by tier based on quest level.
-  // heroic: <20, epic: 20-29, legendary: >30
+  // heroic: <20, epic: 20-29, legendary: >=30
   if (typeof tierFilter === 'string' && tierFilter !== 'all') {
     filtered = filtered.filter((x) => isLevelInTier(typeof x.questLevel === 'number' ? x.questLevel : null, tierFilter))
   }
