@@ -112,6 +112,7 @@ function FormContent({
       questName: selectedQuest.name,
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
+      isRansacked: false,
       playerName,
     })
 

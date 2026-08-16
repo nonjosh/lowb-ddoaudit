@@ -1,11 +1,13 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   addRansackTimer,
+  clearAllRansackTimers,
   deleteExpiredTimers,
   deleteRansackTimer,
   getAllRansackTimers,
   RansackTimer,
+  setRansackTimerChecked,
 } from '@/storage/ransackDb'
 
 import { RansackContext, RansackContextValue } from './useRansack'
@@ -14,13 +16,102 @@ interface RansackProviderProps {
   children: ReactNode
 }
 
+const DEMO_SEED_QUERY_PARAM = 'seedRansackDemo'
+
+function buildDemoRansackTimers(now: Date): Omit<RansackTimer, 'id'>[] {
+  const buildExpiry = (days: number, hours: number) => {
+    return new Date(now.getTime() + (((days * 24) + hours) * 60 * 60 * 1000)).toISOString()
+  }
+
+  return [
+    {
+      characterId: '81612811713',
+      characterName: 'Garei',
+      questId: 'demo-stealing-from-sorcere',
+      questName: 'Stealing from Sorcere',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(5, 22),
+      isRansacked: false,
+      playerName: 'Michael',
+    },
+    {
+      characterId: '81612811713',
+      characterName: 'Garei',
+      questId: 'demo-isle-of-dread',
+      questName: 'The Isle of Dread',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(6, 10),
+      isRansacked: true,
+      playerName: 'Michael',
+    },
+    {
+      characterId: '111670702832',
+      characterName: 'Kayos',
+      questId: 'demo-stealing-from-sorcere',
+      questName: 'Stealing from Sorcere',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(3, 9),
+      isRansacked: false,
+      playerName: 'Michael',
+    },
+    {
+      characterId: '81612782737',
+      characterName: 'Tareos',
+      questId: 'demo-stealing-from-sorcere',
+      questName: 'Stealing from Sorcere',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(1, 9),
+      isRansacked: false,
+      playerName: 'Michael',
+    },
+    {
+      characterId: '81612782737',
+      characterName: 'Tareos',
+      questId: 'demo-isle-of-dread',
+      questName: 'The Isle of Dread',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(3, 9),
+      isRansacked: true,
+      playerName: 'Michael',
+    },
+    {
+      characterId: '81612801618',
+      characterName: 'Warkon',
+      questId: 'demo-stealing-from-sorcere',
+      questName: 'Stealing from Sorcere',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(1, 10),
+      isRansacked: false,
+      playerName: 'Michael',
+    },
+  ]
+}
+
 export function RansackProvider({ children }: RansackProviderProps) {
   const [timers, setTimers] = useState<RansackTimer[]>([])
   const [loading, setLoading] = useState(true)
+  const hasAttemptedDemoSeed = useRef(false)
 
   const refreshTimers = useCallback(async () => {
     try {
       await deleteExpiredTimers()
+
+      // Dev-only shortcut so the loot-ransack UI can be checked without manual setup.
+      if (!hasAttemptedDemoSeed.current && import.meta.env.DEV && typeof window !== 'undefined') {
+        hasAttemptedDemoSeed.current = true
+        const searchParams = new URLSearchParams(window.location.search)
+
+        if (searchParams.has(DEMO_SEED_QUERY_PARAM)) {
+          const demoTimers = buildDemoRansackTimers(new Date())
+
+          await clearAllRansackTimers()
+
+          for (const timer of demoTimers) {
+            await addRansackTimer(timer)
+          }
+        }
+      }
+
       const allTimers = await getAllRansackTimers()
       setTimers(allTimers)
     } catch (error) {
@@ -68,6 +159,14 @@ export function RansackProvider({ children }: RansackProviderProps) {
     [refreshTimers]
   )
 
+  const setTimerChecked = useCallback<RansackContextValue['setTimerChecked']>(
+    async (id, isRansacked) => {
+      await setRansackTimerChecked(id, isRansacked)
+      await refreshTimers()
+    },
+    [refreshTimers]
+  )
+
   const getTimersForPlayer = useCallback<RansackContextValue['getTimersForPlayer']>(
     (playerName) => {
       return timersByPlayer[playerName] ?? []
@@ -82,10 +181,11 @@ export function RansackProvider({ children }: RansackProviderProps) {
       loading,
       addTimer,
       deleteTimer,
+      setTimerChecked,
       refreshTimers,
       getTimersForPlayer,
     }),
-    [timers, timersByPlayer, loading, addTimer, deleteTimer, refreshTimers, getTimersForPlayer]
+    [timers, timersByPlayer, loading, addTimer, deleteTimer, setTimerChecked, refreshTimers, getTimersForPlayer]
   )
 
   return <RansackContext.Provider value={value}>{children}</RansackContext.Provider>

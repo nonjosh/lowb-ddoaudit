@@ -14,7 +14,7 @@ interface RansackTimerViewProps {
 }
 
 export default function RansackTimerView({ playerName, characters }: RansackTimerViewProps) {
-  const { getTimersForPlayer, deleteTimer } = useRansack()
+  const { getTimersForPlayer, deleteTimer, setTimerChecked } = useRansack()
   const [groupBy, setGroupBy] = useState<'character' | 'quest'>('character')
   const [addDialogOpen, setAddDialogOpen] = useState(false)
 
@@ -58,6 +58,7 @@ export default function RansackTimerView({ playerName, characters }: RansackTime
       <RansackTimerTable
         timers={timers}
         onDelete={deleteTimer}
+        onCheckedChange={setTimerChecked}
         groupBy={groupBy}
         showCharacterColumn={groupBy === 'quest' || timers.length > 0}
         showQuestColumn={groupBy === 'character' || timers.length > 0}

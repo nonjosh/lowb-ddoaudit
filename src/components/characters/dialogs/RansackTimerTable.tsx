@@ -1,6 +1,7 @@
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
   Box,
+  Checkbox,
   IconButton,
   Paper,
   Table,
@@ -20,6 +21,7 @@ import type { RansackTimer } from '@/storage/ransackDb'
 interface RansackTimerTableProps {
   timers: RansackTimer[]
   onDelete: (id: number) => void
+  onCheckedChange: (id: number, isRansacked: boolean) => void
   groupBy: 'character' | 'quest'
   showCharacterColumn?: boolean
   showQuestColumn?: boolean
@@ -70,9 +72,14 @@ function formatCharacterName(name: string): string {
   return getCharacterDisplayName(name, { anonymousWhenBlank: true })
 }
 
+function hasTimerId(timer: RansackTimer): timer is RansackTimer & { id: number } {
+  return timer.id !== undefined
+}
+
 export default function RansackTimerTable({
   timers,
   onDelete,
+  onCheckedChange,
   groupBy,
   showCharacterColumn = true,
   showQuestColumn = true,
@@ -122,13 +129,14 @@ export default function RansackTimerTable({
             )}
             <TableCell>Time Remaining</TableCell>
             <TableCell>Expires</TableCell>
+            <TableCell padding="checkbox">Ransack</TableCell>
             <TableCell width={50}></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {groupedTimers.map((group) =>
             group.timers.map((timer, index) => (
-              <TableRow key={timer.id}>
+              <TableRow key={timer.id ?? `${timer.characterId}-${timer.questId}`}>
                 {groupBy === 'character' ? (
                   <>
                     {showCharacterColumn && (
@@ -167,8 +175,20 @@ export default function RansackTimerTable({
                     </Box>
                   </Tooltip>
                 </TableCell>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={Boolean(timer.isRansacked)}
+                    onChange={(event) => {
+                      if (hasTimerId(timer)) {
+                        onCheckedChange(timer.id, event.target.checked)
+                      }
+                    }}
+                    inputProps={{ 'aria-label': `Mark ${timer.questName} on ${timer.characterName} as ransacked` }}
+                    size="small"
+                  />
+                </TableCell>
                 <TableCell>
-                  <IconButton size="small" onClick={() => timer.id && onDelete(timer.id)} color="error">
+                  <IconButton size="small" onClick={() => hasTimerId(timer) && onDelete(timer.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </TableCell>
