@@ -72,6 +72,10 @@ function formatCharacterName(name: string): string {
   return getCharacterDisplayName(name, { anonymousWhenBlank: true })
 }
 
+function hasTimerId(timer: RansackTimer): timer is RansackTimer & { id: number } {
+  return timer.id !== undefined
+}
+
 export default function RansackTimerTable({
   timers,
   onDelete,
@@ -132,7 +136,7 @@ export default function RansackTimerTable({
         <TableBody>
           {groupedTimers.map((group) =>
             group.timers.map((timer, index) => (
-              <TableRow key={timer.id}>
+              <TableRow key={timer.id ?? `${timer.characterId}-${timer.questId}`}>
                 {groupBy === 'character' ? (
                   <>
                     {showCharacterColumn && (
@@ -175,7 +179,7 @@ export default function RansackTimerTable({
                   <Checkbox
                     checked={Boolean(timer.isRansacked)}
                     onChange={(event) => {
-                      if (timer.id) {
+                      if (hasTimerId(timer)) {
                         onCheckedChange(timer.id, event.target.checked)
                       }
                     }}
@@ -184,7 +188,7 @@ export default function RansackTimerTable({
                   />
                 </TableCell>
                 <TableCell>
-                  <IconButton size="small" onClick={() => timer.id && onDelete(timer.id)} color="error">
+                  <IconButton size="small" onClick={() => hasTimerId(timer) && onDelete(timer.id)} color="error">
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </TableCell>

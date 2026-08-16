@@ -2,6 +2,7 @@ import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 're
 
 import {
   addRansackTimer,
+  clearAllRansackTimers,
   deleteExpiredTimers,
   deleteRansackTimer,
   getAllRansackTimers,
@@ -24,7 +25,7 @@ function buildDemoRansackTimers(now: Date): Omit<RansackTimer, 'id'>[] {
 
   return [
     {
-      characterId: 'demo-garei',
+      characterId: '81612811713',
       characterName: 'Garei',
       questId: 'demo-stealing-from-sorcere',
       questName: 'Stealing from Sorcere',
@@ -34,7 +35,7 @@ function buildDemoRansackTimers(now: Date): Omit<RansackTimer, 'id'>[] {
       playerName: 'Michael',
     },
     {
-      characterId: 'demo-garei',
+      characterId: '81612811713',
       characterName: 'Garei',
       questId: 'demo-isle-of-dread',
       questName: 'The Isle of Dread',
@@ -44,17 +45,37 @@ function buildDemoRansackTimers(now: Date): Omit<RansackTimer, 'id'>[] {
       playerName: 'Michael',
     },
     {
-      characterId: 'demo-kayos',
+      characterId: '111670702832',
       characterName: 'Kayos',
       questId: 'demo-stealing-from-sorcere',
       questName: 'Stealing from Sorcere',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(3, 9),
+      isRansacked: false,
+      playerName: 'Michael',
+    },
+    {
+      characterId: '81612782737',
+      characterName: 'Tareos',
+      questId: 'demo-stealing-from-sorcere',
+      questName: 'Stealing from Sorcere',
+      createdAt: now.toISOString(),
+      expiresAt: buildExpiry(1, 9),
+      isRansacked: false,
+      playerName: 'Michael',
+    },
+    {
+      characterId: '81612782737',
+      characterName: 'Tareos',
+      questId: 'demo-isle-of-dread',
+      questName: 'The Isle of Dread',
       createdAt: now.toISOString(),
       expiresAt: buildExpiry(3, 9),
       isRansacked: true,
       playerName: 'Michael',
     },
     {
-      characterId: 'demo-warkon',
+      characterId: '81612801618',
       characterName: 'Warkon',
       questId: 'demo-stealing-from-sorcere',
       questName: 'Stealing from Sorcere',
@@ -82,6 +103,8 @@ export function RansackProvider({ children }: RansackProviderProps) {
 
         if (searchParams.has(DEMO_SEED_QUERY_PARAM)) {
           const demoTimers = buildDemoRansackTimers(new Date())
+
+          await clearAllRansackTimers()
 
           for (const timer of demoTimers) {
             await addRansackTimer(timer)

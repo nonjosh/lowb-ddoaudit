@@ -78,6 +78,7 @@ interface RansackTimer {
 - Auto-delete expired timers on refresh
 - Grouped by player name
 - Provides: `timers`, `timersByPlayer`, `addTimer`, `deleteTimer`, `setTimerChecked`, `refreshTimers`
+- Dev-only `seedRansackDemo=true` query param resets IndexedDB and seeds a deterministic Michael sample set for manual loot-ransack UI checks
 
 ## UI Behavior
 
