@@ -8,6 +8,7 @@ export interface RansackTimer {
   questName: string
   createdAt: string
   expiresAt: string
+  isRansacked?: boolean
   playerName: string
 }
 
@@ -45,6 +46,10 @@ export async function addRansackTimer(timer: Omit<RansackTimer, 'id'>): Promise<
 
   const id = await ransackDb.timers.add(timer)
   return id as number
+}
+
+export async function setRansackTimerChecked(id: number, isRansacked: boolean): Promise<void> {
+  await ransackDb.timers.update(id, { isRansacked })
 }
 
 export async function deleteRansackTimer(id: number): Promise<void> {

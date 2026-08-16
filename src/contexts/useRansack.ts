@@ -8,6 +8,7 @@ export interface RansackContextValue {
   loading: boolean
   addTimer: (timer: Omit<RansackTimer, 'id'>) => Promise<void>
   deleteTimer: (id: number) => Promise<void>
+  setTimerChecked: (id: number, isRansacked: boolean) => Promise<void>
   refreshTimers: () => Promise<void>
   getTimersForPlayer: (playerName: string) => RansackTimer[]
 }

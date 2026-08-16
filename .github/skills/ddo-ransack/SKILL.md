@@ -51,6 +51,7 @@ interface RansackTimer {
   questName: string;
   createdAt: string; // ISO timestamp
   expiresAt: string; // ISO timestamp (createdAt + 168h)
+  isRansacked?: boolean; // client-side checkbox state for whether loot has already been taken
   playerName: string;
 }
 ```
@@ -66,6 +67,7 @@ interface RansackTimer {
 
 - `getAllRansackTimers()` / `getRansackTimersByPlayer(playerName)`
 - `addRansackTimer(timer)` — Upsert by characterId+questId
+- `setRansackTimerChecked(id, isRansacked)` — Persist checkbox state for an existing timer
 - `deleteRansackTimer(id)` / `deleteExpiredTimers()` / `clearAllRansackTimers()`
 
 ## Context Layer
@@ -75,7 +77,13 @@ interface RansackTimer {
 - Auto-refresh every 60 seconds
 - Auto-delete expired timers on refresh
 - Grouped by player name
-- Provides: `timers`, `timersByPlayer`, `addTimer`, `deleteTimer`, `refreshTimers`
+- Provides: `timers`, `timersByPlayer`, `addTimer`, `deleteTimer`, `setTimerChecked`, `refreshTimers`
+
+## UI Behavior
+
+- The loot-ransack table shows a persisted checkbox per row so players can start a timer before looting, then mark that character/quest pair as already ransacked later.
+- New timers should initialize `isRansacked` to `false`.
+- Existing records without the field should be treated as unchecked.
 
 ## Related Files
 
