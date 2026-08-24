@@ -201,7 +201,11 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         const questAreaId = quest?.areaId
         const isOnline = !!character?.is_online
         const locationId = character?.location_id ? String(character.location_id) : null
-        const isInRaid = !!(locationId && (locationId === questId || (questAreaId && locationId === questAreaId)))
+        const isInRaid = !!(
+          isOnline &&
+          locationId &&
+          (locationId === questId || (questAreaId && locationId === questAreaId))
+        )
 
         existing.entriesByCharacterId.set(characterId, {
           characterId,
@@ -240,7 +244,11 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
 
       const isOnline = !!character?.is_online
       const locationId = character?.location_id ? String(character.location_id) : null
-      const isInRaid = !!(locationId && (locationId === g.questId || (questAreaId && locationId === questAreaId)))
+      const isInRaid = !!(
+        isOnline &&
+        locationId &&
+        (locationId === g.questId || (questAreaId && locationId === questAreaId))
+      )
 
       g.entriesByCharacterId.set(characterId, {
         characterId,
@@ -305,7 +313,11 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
         const race = character.race
         const isOnline = !!character?.is_online
         const locationId = character?.location_id ? String(character.location_id) : null
-        const isInRaid = !!(locationId && (locationId === questId || (questAreaId && locationId === questAreaId)))
+        const isInRaid = !!(
+          isOnline &&
+          locationId &&
+          (locationId === questId || (questAreaId && locationId === questAreaId))
+        )
 
         entries.push({
           characterId,
