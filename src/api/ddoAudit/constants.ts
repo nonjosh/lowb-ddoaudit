@@ -12,3 +12,10 @@ export const HOUR_IN_MS = 60 * 60 * 1000
 export const DDOAUDIT_JSON_CACHE_TTL_MS = 24 * HOUR_IN_MS
 // User-specified lockout duration: 2 days + 18 hours.
 export const RAID_LOCKOUT_MS = (2 * 24 + 18) * HOUR_IN_MS
+
+/**
+ * Raid quest IDs that are hardcoded as pending (API data not yet available).
+ * Used to show "temporarily not available" in the raid timer UI.
+ * Remove entries here once the DDO Audit API includes correct data for them.
+ */
+export const PENDING_RAID_IDS = new Set(['1879303683'])

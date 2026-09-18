@@ -18,7 +18,7 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { addMs, formatTimeRemaining, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
+import { addMs, formatTimeRemaining, PENDING_RAID_IDS, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import IconWrapper from '@/components/shared/IconWrapper'
@@ -151,6 +151,7 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
     () => allEligibleEntries.some((e) => !isEntryAvailable(e, now)),
     [allEligibleEntries, now]
   )
+  const isPendingRaid = PENDING_RAID_IDS.has(g.questId) && !hasActiveTimer && !hasPlayersInRaid
   const shouldShowTable = allEligibleEntries.length > 0 && (!allAvailable || hasPlayersInRaid || hasLfm)
   const hasExpandableContent = shouldShowTable || hasRaidNotesContent
 
@@ -254,6 +255,9 @@ export default function RaidCard({ raidGroup: g, isRaidCollapsed, onToggleRaid, 
               <Typography variant="caption" color="text.secondary">
                 Level: {typeof g.questLevel === 'number' ? g.questLevel : '—'}
               </Typography>
+              {isPendingRaid && (
+                <Chip size="small" label="Data temporarily unavailable" color="warning" variant="outlined" sx={{ height: 20 }} />
+              )}
             </Box>
             {g.adventurePack && (
               <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>

@@ -15,6 +15,15 @@ export interface Quest {
 
 const QUESTS_CACHE_KEY = 'ddoaudit:quests'
 
+/**
+ * Hardcoded quests that may not yet be in the DDO Audit API.
+ * These are injected as fallback entries; once the API includes them,
+ * the API data takes precedence because it overwrites the map keys.
+ */
+const HARDCODED_QUESTS: Array<{ id: string; name: string; type: string | null; level: number | null; areaId: string | null }> = [
+  { id: '1879303683', name: 'Terror of the Demon Lords', type: 'raid', level: null, areaId: null },
+]
+
 export interface QuestResponseItem {
   id?: string | number | null
   area_id?: string | number | null
@@ -87,6 +96,25 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
   }
 
   questsByIdCache = { data: map, updatedAt: result.updatedAt }
+
+  // Inject hardcoded quests as fallbacks. If the API already includes them,
+  // the API data will have overwritten these keys during the loop above.
+  for (const hq of HARDCODED_QUESTS) {
+    if (!map[hq.id]) {
+      const questObj: Quest = {
+        id: hq.id,
+        name: hq.name,
+        type: hq.type,
+        level: hq.level,
+        heroicLevel: null,
+        epicLevel: null,
+        required_adventure_pack: null,
+        areaId: hq.areaId,
+      }
+      map[hq.id] = questObj
+      if (hq.areaId) map[hq.areaId] = questObj
+    }
+  }
 
   return map
 }
