@@ -37,7 +37,7 @@ export default function CharacterRaidTimersTable({ character }: CharacterRaidTim
         if (!questId) continue
 
         const quest = questsById?.[questId]
-        const raidName = quest?.name ?? `Unknown quest (${questId})`
+        const raidName = quest?.name ?? (questId !== '0' ? `Unknown quest (${questId})` : '')
         const questLevel = quest?.level ?? null
 
         if (typeof questLevel === 'number' && questLevel < 20) continue

@@ -83,7 +83,7 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
   if (!questId) return null
 
   const isRaid = isRaidQuest(quest)
-  const questName = String(quest?.name ?? '').trim() || `Unknown quest (${questId})`
+  const questName = String(quest?.name ?? '').trim() || (questId !== '0' ? `Unknown quest (${questId})` : '')
   const maxPlayers = isRaid ? 12 : 6
   const level = getEffectiveLevel(lfm, quest)
 

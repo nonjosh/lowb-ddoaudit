@@ -171,7 +171,7 @@ export function buildRaidGroups({ raidActivity, questsById, charactersById }: { 
       const questId = String(questIdRaw)
       if (!questId) continue
 
-      const raidName = questsById?.[questId]?.name ?? `Unknown quest (${questId})`
+      const raidName = questsById?.[questId]?.name ?? (questId !== '0' ? `Unknown quest (${questId})` : '')
       const questLevel = questsById?.[questId]?.level ?? null
       const adventurePack = questsById?.[questId]?.required_adventure_pack ?? null
       if (typeof questLevel === 'number' && questLevel < 20) continue
