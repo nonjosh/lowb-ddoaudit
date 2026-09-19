@@ -85,8 +85,21 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
       if (normalizedLfm) normalized.push(normalizedLfm)
     }
 
+    // Override isRaid and maxPlayers for LFMs with NO QUEST SELECTED but raid train in comment
+    for (const lfm of normalized) {
+      const questId = String(lfm.questId)
+      if (questId === '0' && lfm.comment && raidGroups.length > 0) {
+        const matched = detectRaidTrain(lfm.comment, raidGroups)
+        if (matched.length >= 2) {
+          lfm.isRaid = true
+          lfm.maxPlayers = 12
+          lfm.openSlots = Math.max(0, 12 - lfm.memberCount)
+        }
+      }
+    }
+
     return filterAndSortLfms(normalized, questFilter, tierFilter)
-  }, [lfmsById, questsById, questFilter, tierFilter])
+  }, [lfmsById, questsById, questFilter, tierFilter, raidGroups])
 
   const selectedLfm = useMemo(() => {
     if (!selectedLfmId) return null
