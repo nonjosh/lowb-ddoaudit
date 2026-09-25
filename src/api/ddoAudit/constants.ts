@@ -18,4 +18,4 @@ export const RAID_LOCKOUT_MS = (2 * 24 + 18) * HOUR_IN_MS
  * Used to show "temporarily not available" in the raid timer UI.
  * Remove entries here once the DDO Audit API includes correct data for them.
  */
-export const PENDING_RAID_IDS = new Set(['1879303683'])
+export const PENDING_RAID_IDS = new Set<string>([])

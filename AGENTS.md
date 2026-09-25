@@ -137,6 +137,17 @@ src/
 
 - Quest and area responses are fetched from DDO Audit at runtime, cached client-side for 24 hours, and can fall back to stale cached data if the network request fails.
 
+### Quests or areas missing from DDO Audit
+
+When a new quest/raid is not yet in the DDO Audit API (or upstream data is wrong), add temporary client-side data, then remove it once upstream catches up:
+
+1. **Quest missing from `/v1/quests`** → add a fallback entry to `HARDCODED_QUESTS` in `src/api/ddoAudit/quests.ts` (API data overrides it once available).
+2. **Raid timer shows "temporarily not available"** → add the quest id to `PENDING_RAID_IDS` in `src/api/ddoAudit/constants.ts`.
+3. **Area missing from `/v1/areas`** → add a fallback entry to `HARDCODED_AREAS` in `src/api/ddoAudit/areas.ts`.
+4. **Upstream area record is wrong** (e.g., a raid's area mislabeled as wilderness, which breaks Character panel grouping) → add an override to `AREA_PATCHES` in `src/api/ddoAudit/areas.ts`.
+
+Remove the entries as soon as the API provides correct data. Example: `Terror of the Demon Lords` (quest `1879303683`, area `1879303679`) was hardcoded on 2026-09 and cleaned up once upstream added it; its area remained patched (`is_wilderness: false`) because upstream mislabels it as wilderness `Vision of an Alternate History`.
+
 ### DDO Gear Planner (GitHub Raw)
 
 - Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/items.json`

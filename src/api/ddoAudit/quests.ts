@@ -19,10 +19,9 @@ const QUESTS_CACHE_KEY = 'ddoaudit:quests'
  * Hardcoded quests that may not yet be in the DDO Audit API.
  * These are injected as fallback entries; once the API includes them,
  * the API data takes precedence because it overwrites the map keys.
+ * Remove an entry once the API provides it (see AGENTS.md > "Quests or areas missing from DDO Audit").
  */
-const HARDCODED_QUESTS: Array<{ id: string; name: string; type: string | null; level: number | null; areaId: string | null }> = [
-  { id: '1879303683', name: 'Terror of the Demon Lords', type: 'raid', level: null, areaId: null },
-]
+const HARDCODED_QUESTS: Array<{ id: string; name: string; type: string | null; level: number | null; areaId: string | null }> = []
 
 export interface QuestResponseItem {
   id?: string | number | null

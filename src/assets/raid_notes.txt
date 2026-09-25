@@ -93,6 +93,3 @@ Page Regalia: Unsanctioned Arcana - Cloak: +3 Artifact bonus to Assassinate DCs
 Set:
 Kelas' Volatile Mixture  - Orb: +3 Artifact bonus to bonus Imbue Dice
 
-## Terror of the Demon Lords
-Notes:
-Raid data is temporarily unavailable. Timer data will populate once the DDO Audit API is updated.
