@@ -5,6 +5,7 @@
  */
 const RAID_UPDATE_MAP: Record<string, string> = {
   // 2025-2026 Releases
+  'terror of the demon lords': 'U81',
   'relentless': 'U75.7',
   'den of vipers': 'U72.1',
   'threats old and new': 'U69.3',
