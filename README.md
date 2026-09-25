@@ -38,9 +38,9 @@ Quest and area metadata are fetched live from DDO Audit and cached client-side f
 
 - **DDO Gear Planner**:
   - **GitHub Data**:
-    - Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/items.json`
-    - Crafting: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/crafting.json`
-    - Sets: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/sets.json`
+    - Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/items.json`
+    - Crafting: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/crafting.json`
+    - Sets: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/sets.json`
 
 ## Known Issues
 

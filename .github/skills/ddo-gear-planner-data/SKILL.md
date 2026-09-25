@@ -18,7 +18,7 @@ description: "DDO Gear Planner external data source from illusionistpm/ddo-gear-
 All data comes from the **illusionistpm/ddo-gear-planner** GitHub repository:
 
 ```
-https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/
+https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/
 ```
 
 | File            | Type           | Purpose                                        |

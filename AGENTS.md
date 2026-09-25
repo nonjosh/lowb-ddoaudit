@@ -150,9 +150,9 @@ Remove the entries as soon as the API provides correct data. Example: `Terror of
 
 ### DDO Gear Planner (GitHub Raw)
 
-- Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/items.json`
-- Crafting: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/crafting.json`
-- Sets: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/site/src/assets/sets.json`
+- Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/items.json`
+- Crafting: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/crafting.json`
+- Sets: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/sets.json`
 - Items/Crafting/Sets: from ddo-gear-planner
 
 ## Routes
