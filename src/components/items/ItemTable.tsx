@@ -93,9 +93,9 @@ export default function ItemTable({
             </TableCell>
           </TableRow>
         ) : (
-          items.map((item) => (
+          items.map((item, index) => (
             <ItemTableRow
-              key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}`}
+              key={`${item.name}-${item.ml}-${item.slot || 'no-slot'}-${item.type || 'no-type'}-${index}`}
               item={item}
               searchText={searchText}
               setsData={setsData}
