@@ -16,6 +16,7 @@ const RUNE_TO_RAID: Record<string, string> = {
   'Defiler Rune': 'Defiler of the Just',
   'Deathwyrm Rune': 'Temple of the Deathwyrm',
   'Demigod Rune': 'The Dryad and the Demigod',
+  'Demon Lord Rune': 'Terror of the Demon Lords',
   'Dread Rune': 'Skeletons in the Closet',
   'Forge Rune': 'Too Hot to Handle',
   'Hunter Rune': 'Hunt or Be Hunted',
