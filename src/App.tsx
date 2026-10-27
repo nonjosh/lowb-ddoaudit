@@ -8,6 +8,7 @@ import { RansackProvider } from '@/contexts/RansackContext'
 import { TRPlannerProvider } from '@/contexts/TRPlannerContext'
 import { TroveProvider } from '@/contexts/TroveContext'
 import { WishlistProvider } from '@/contexts/WishlistContext'
+import AdventureLog from '@/pages/AdventureLog'
 import Dashboard from '@/pages/Dashboard'
 import CurrencyConverter from '@/pages/CurrencyConverter'
 import GearPlanner from '@/pages/GearPlanner'
@@ -31,6 +32,7 @@ function App() {
                   <Layout>
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
+                      <Route path="/adventure-log" element={<AdventureLog />} />
                       {/* Gear-related routes */}
                       <Route path="/gear/wiki" element={<ItemWiki />} />
                       <Route path="/gear/planner" element={<GearPlanner />} />

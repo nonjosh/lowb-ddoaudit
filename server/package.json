@@ -1,0 +1,25 @@
+{
+  "name": "ddo-log-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test:integration": "npm run build && node --test test/integration.test.mjs",
+    "test:e2e": "node --test test/e2e.test.mjs"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.11.0",
+    "express": "^4.21.2",
+    "google-auth-library": "^9.15.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3"
+  }
+}

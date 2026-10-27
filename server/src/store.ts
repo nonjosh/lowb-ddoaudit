@@ -1,0 +1,191 @@
+import { Firestore, Timestamp } from '@google-cloud/firestore'
+
+import type { Completion, PollerState } from './detect.js'
+import { emptyState } from './detect.js'
+
+export interface CompletionRecord {
+  character_id: string
+  quest_id: string
+  finished: boolean
+  last_finished_at: Timestamp | null
+  level_at_finish: number | null
+  source: 'poll' | 'manual'
+  updated_at: Timestamp
+}
+
+const db = new Firestore()
+const completions = db.collection('completions')
+const edits = db.collection('edits')
+const stateDocument = db.doc('state/poller')
+
+export const completionId = (characterId: string, questId: string): string =>
+  `${characterId}_${questId}`
+
+type SerializedCompletions = Record<string, Record<string, unknown>>
+
+// GET /completions is public. Without this cache each request scans the whole
+// collection, which is both a bill and a way to starve the poller on the single
+// instance. 15s of staleness is invisible in the UI.
+const LIST_CACHE_TTL_MS = 15_000
+let listCache: { data: SerializedCompletions; expiresAt: number } | null = null
+// Bumped on every write: a read that started before the write must not repopulate
+// the cache with the pre-write snapshot.
+let listEpoch = 0
+let listInFlight: Promise<SerializedCompletions> | null = null
+
+export function invalidateCompletionsCache(): void {
+  listCache = null
+  listEpoch += 1
+}
+
+export async function listCompletions(): Promise<SerializedCompletions> {
+  if (listCache && listCache.expiresAt > Date.now()) return listCache.data
+  // Single-flight: a public endpoint should never fan a cold cache out into N scans.
+  if (listInFlight) return listInFlight
+
+  listInFlight = loadCompletions(listEpoch).finally(() => {
+    listInFlight = null
+  })
+  return listInFlight
+}
+
+async function loadCompletions(epoch: number): Promise<SerializedCompletions> {
+  const snapshot = await completions.get()
+  const result: SerializedCompletions = {}
+
+  for (const document of snapshot.docs) {
+    const data = document.data() as CompletionRecord
+    const characterId = data.character_id
+    const questId = data.quest_id
+    if (!characterId || !questId) continue
+
+    const bucket = result[characterId] ?? {}
+    bucket[questId] = {
+      finished: data.finished === true,
+      lastFinishedAt: data.last_finished_at ? data.last_finished_at.toDate().toISOString() : null,
+      levelAtFinish: data.level_at_finish ?? null,
+      source: data.source ?? 'poll',
+    }
+    result[characterId] = bucket
+  }
+
+  if (epoch === listEpoch) {
+    listCache = { data: result, expiresAt: Date.now() + LIST_CACHE_TTL_MS }
+  }
+  return result
+}
+
+/**
+ * Writes a polled completion unless we already recorded something newer.
+ * The timestamp comparison is the only dedupe needed: a retried poll carries the
+ * same exit time and is skipped.
+ */
+export async function recordPolledCompletion(completion: Completion): Promise<boolean> {
+  const reference = completions.doc(completionId(completion.characterId, completion.questId))
+
+  const written = await db.runTransaction(async (transaction) => {
+    const current = await transaction.get(reference)
+    const existing = current.exists ? (current.get('last_finished_at') as Timestamp | null) : null
+    if (existing && existing.toMillis() >= completion.exitAt.getTime()) return false
+
+    transaction.set(
+      reference,
+      {
+        character_id: completion.characterId,
+        quest_id: completion.questId,
+        finished: true,
+        last_finished_at: Timestamp.fromDate(completion.exitAt),
+        level_at_finish: completion.level,
+        source: 'poll',
+        updated_at: Timestamp.now(),
+      } satisfies CompletionRecord,
+      { merge: true },
+    )
+    return true
+  })
+
+  // Only after commit, so a concurrent read cannot cache the pre-write snapshot.
+  if (written) invalidateCompletionsCache()
+  return written
+}
+
+export interface ManualEdit {
+  characterId: string
+  questId: string
+  finished: boolean
+  /** undefined keeps the stored timestamp, null clears it (backfill without a date). */
+  lastFinishedAt: Date | null | undefined
+  level: number | null
+}
+
+export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecord> {
+  const reference = completions.doc(completionId(edit.characterId, edit.questId))
+
+  const record = await db.runTransaction(async (transaction) => {
+    const current = await transaction.get(reference)
+    const existing = current.exists ? (current.data() as CompletionRecord) : null
+
+    // Unchecking keeps the observed timestamp so the same visit cannot be re-applied.
+    const lastFinishedAt =
+      edit.lastFinishedAt === undefined
+        ? (existing?.last_finished_at ?? null)
+        : edit.lastFinishedAt === null
+          ? null
+          : Timestamp.fromDate(edit.lastFinishedAt)
+
+    const record: CompletionRecord = {
+      character_id: edit.characterId,
+      quest_id: edit.questId,
+      finished: edit.finished,
+      last_finished_at: lastFinishedAt,
+      level_at_finish: existing?.level_at_finish ?? edit.level,
+      source: 'manual',
+      updated_at: Timestamp.now(),
+    }
+
+    transaction.set(reference, record, { merge: true })
+    transaction.set(edits.doc(), {
+      character_id: edit.characterId,
+      quest_id: edit.questId,
+      finished: edit.finished,
+      last_finished_at: lastFinishedAt,
+      at: Timestamp.now(),
+      writer: null,
+    })
+
+    return record
+  })
+
+  invalidateCompletionsCache()
+  return record
+}
+
+export async function loadPollerState(): Promise<PollerState> {
+  const snapshot = await stateDocument.get()
+  if (!snapshot.exists) return emptyState()
+
+  const data = snapshot.data() as Partial<PollerState>
+  return {
+    lastPollAt: data.lastPollAt ?? null,
+    characters: data.characters ?? {},
+  }
+}
+
+/**
+ * Saves the poller state only if no other run advanced it since this one loaded.
+ * Completions are already committed at this point and are deduped by timestamp,
+ * so a rejected save is safe to drop.
+ */
+export async function savePollerState(
+  state: PollerState,
+  expectedLastPollAt: string | null,
+): Promise<boolean> {
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(stateDocument)
+    const current = snapshot.exists ? ((snapshot.data() as Partial<PollerState>).lastPollAt ?? null) : null
+    if (current !== expectedLastPollAt) return false
+
+    transaction.set(stateDocument, state)
+    return true
+  })
+}

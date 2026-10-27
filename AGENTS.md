@@ -31,6 +31,7 @@ This file provides instructions for AI coding agents (GitHub Copilot, OpenAI Cod
 ## Project Structure
 
 ```
+server/                  # Adventure log API (Cloud Run, Firestore) - Node/TypeScript, own package.json
 src/
 ├── App.tsx              # Main app - orchestrates data fetching and state
 ├── api/                 # External API integrations
@@ -160,6 +161,7 @@ Remove the entries as soon as the API provides correct data. Example: `Terror of
 | Path               | Page         | Description                 |
 | ------------------ | ------------ | --------------------------- |
 | `/`                | Dashboard    | Raid timers & loot tracking |
+| `/adventure-log`   | Adventure Log | Quest completions per character (editable) |
 | `/gear/wiki`       | Wiki         | Browse/search all items     |
 | `/gear/wishlist`   | Wishlist     | Track desired items         |
 | `/gear/planner`    | Gear Planner | Optimize gear sets          |
@@ -168,6 +170,39 @@ Remove the entries as soon as the API provides correct data. Example: `Terror of
 | `/tr-planner`      | TR Planner   | TR progression planning     |
 
 **Note**: Old routes (`/wiki`, `/wishlist`, `/planner`) redirect to new paths for backward compatibility.
+
+## Adventure Log Backend (`server/`)
+
+A separate Node/TypeScript package that serves the adventure log. It is **not** part of
+the Vite build and is deployed to Cloud Run; the SPA calls it with `fetch`.
+
+| Route | Auth | Purpose |
+| ----- | ---- | ------- |
+| `GET /completions` | public | all recorded completions, 15 s in-process cache |
+| `PATCH /completions/{characterId}/{questId}` | `X-Log-Password` header | uncheck / backfill |
+| `POST /poll` | Cloud Scheduler OIDC | one poll cycle, run every minute |
+
+Commands (from `server/`):
+
+| Command | Description |
+| ------- | ----------- |
+| `npm install` | install server dependencies (separate from the SPA) |
+| `npm run build` | compile to `dist/` |
+| `npm run test:integration` | live DDO Audit mapping assertions (no mocks) |
+| `npm run test:e2e` | against the deployed service; needs `BASE_URL`, `LOG_PASSWORD`, `TEST_CHARACTER_ID`, `TEST_QUEST_ID` |
+
+Infrastructure lives in the sibling Terraform repo: `terraform-dev/ddo-log/`
+(Cloud Run + Firestore + Cloud Scheduler). See its README for the two-phase deploy and
+how to read the write password from Secret Manager.
+
+Rules that matter when editing this area:
+
+- `src/data/character_ids.csv` is the source of the tracked character list; the
+  `tracked_character_ids` Terraform variable must be regenerated when an alt is added
+  (see `terraform-dev/ddo-log/README.md`).
+- Never commit the write password, and never log it. It only exists in Secret Manager.
+- Inference rules are documented in `.github/skills/ddo-adventure-log/SKILL.md`; update
+  that skill when changing `server/src/detect.ts`.
 
 ## Common Tasks
 
@@ -238,6 +273,7 @@ DDO game mechanics are documented as Copilot agent skills that are automatically
 | `ddo-weapon-styles`         | Fighting styles, weapon combinations                    | `src/domains/gearPlanner/gearSetup.ts`       |
 | `ddo-trove-data`            | Trove inventory data format, item matching              | `src/api/trove/`                             |
 | `ddo-audit-api`             | DDO Audit REST API endpoints, data types                | `src/api/ddoAudit/`                          |
+| `ddo-adventure-log`         | Completion inference, poller rules, Firestore schema    | `server/`, `src/pages/AdventureLog.tsx`      |
 | `ddo-gear-planner-data`     | Gear Planner JSON data source, caching                  | `src/api/ddoGearPlanner/`                    |
 | `ddo-wiki`                  | DDO Wiki URL patterns, linking conventions              | `src/components/shared/DdoWikiLink.tsx`      |
 
@@ -258,6 +294,7 @@ Update the corresponding skill when you:
 | `ITEM_MAX_LEVEL`  | 36 (plan for 40)   | `src/api/ddoGearPlanner/constants.ts`        |
 | `RAID_LOCKOUT_MS` | 66 hours (2d 18h)  | `src/api/ddoAudit/constants.ts`              |
 | Ransack Duration  | 168 hours (7 days) | `src/storage/ransackDb.ts`                   |
+| Poller interval   | 60 s (2 samples min) | `terraform-dev/ddo-log` + `server/src/config.ts` |
 | TR Multipliers    | 1x / 1.5x / 2x     | `src/domains/trPlanner/levelRequirements.ts` |
 | Heroic XP Cap     | 1,900,000          | `src/domains/trPlanner/levelRequirements.ts` |
 | Epic XP Cap       | 8,250,000          | `src/domains/trPlanner/levelRequirements.ts` |
