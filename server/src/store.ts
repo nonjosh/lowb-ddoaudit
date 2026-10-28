@@ -48,29 +48,33 @@ type SerializedCompletions = Record<string, Record<string, unknown>>
 // collection, which is both a bill and a way to starve the poller on the single
 // instance. 15s of staleness is invisible in the UI.
 const LIST_CACHE_TTL_MS = 15_000
-let listCache: { data: SerializedCompletions; expiresAt: number } | null = null
+let listCache: { json: string; expiresAt: number } | null = null
 // Bumped on every write: a read that started before the write must not repopulate
 // the cache with the pre-write snapshot.
 let listEpoch = 0
-let listInFlight: Promise<SerializedCompletions> | null = null
+let listInFlight: Promise<string> | null = null
 
 export function invalidateCompletionsCache(): void {
   listCache = null
   listEpoch += 1
 }
 
-export async function listCompletions(): Promise<SerializedCompletions> {
-  if (listCache && listCache.expiresAt > Date.now()) return listCache.data
+/**
+ * Serialized body for GET /completions. The string is cached, not just the object,
+ * so a public request costs no re-stringify on the single instance.
+ */
+export async function listCompletionsJson(): Promise<string> {
+  if (listCache && listCache.expiresAt > Date.now()) return listCache.json
   // Single-flight: a public endpoint should never fan a cold cache out into N scans.
   if (listInFlight) return listInFlight
 
-  listInFlight = loadCompletions(listEpoch).finally(() => {
+  listInFlight = loadCompletionsJson(listEpoch).finally(() => {
     listInFlight = null
   })
   return listInFlight
 }
 
-async function loadCompletions(epoch: number): Promise<SerializedCompletions> {
+async function loadCompletionsJson(epoch: number): Promise<string> {
   const snapshot = await completions.get()
   const result: SerializedCompletions = {}
 
@@ -93,10 +97,11 @@ async function loadCompletions(epoch: number): Promise<SerializedCompletions> {
     result[characterId] = bucket
   }
 
+  const json = JSON.stringify({ data: result })
   if (epoch === listEpoch) {
-    listCache = { data: result, expiresAt: Date.now() + LIST_CACHE_TTL_MS }
+    listCache = { json, expiresAt: Date.now() + LIST_CACHE_TTL_MS }
   }
-  return result
+  return json
 }
 
 /**

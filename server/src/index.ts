@@ -7,7 +7,13 @@ import { isQuestBand } from './bands.js'
 import { config } from './config.js'
 import { getCatalog } from './ddo.js'
 import { runPoll } from './poller.js'
-import { applyManualEdit, applyManualEdits, listCompletions, loadPollerState, type ManualEdit } from './store.js'
+import {
+  applyManualEdit,
+  applyManualEdits,
+  listCompletionsJson,
+  loadPollerState,
+  type ManualEdit,
+} from './store.js'
 
 const app = express()
 app.disable('x-powered-by')
@@ -101,9 +107,9 @@ app.get('/health', (_request, response) => {
 app.get(
   '/completions',
   asyncRoute(async (_request, response) => {
-    const data = await listCompletions()
+    const body = await listCompletionsJson()
     response.setHeader('Cache-Control', 'no-store')
-    response.json({ data })
+    response.type('application/json').send(body)
   }),
 )
 
