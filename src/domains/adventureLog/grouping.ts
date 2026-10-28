@@ -105,6 +105,12 @@ export function sagaGroupNamesForRow(quest: Quest, band: QuestBand): string[] {
 
 /** Playable versions of a quest: heroic, epic and/or legendary. */
 export function questVersions(quest: Quest): Array<{ band: QuestBand; level: number | null }> {
+  // The challenge "- EPIC" records report the same heroic and epic CR; that is one
+  // epic version, not two, so treat it as such instead of listing it twice.
+  if (quest.heroicLevel !== null && quest.epicLevel !== null && quest.heroicLevel === quest.epicLevel) {
+    return [{ band: quest.epicLevel >= 30 ? 'legendary' : 'epic', level: quest.epicLevel }]
+  }
+
   const versions: Array<{ band: QuestBand; level: number | null }> = []
   if (quest.heroicLevel !== null) versions.push({ band: 'heroic', level: quest.heroicLevel })
   if (quest.epicLevel !== null) {
