@@ -65,6 +65,7 @@ test('a two-sample visit is recorded, a single-sample one is not', () => {
   assert.equal(third.completions.length, 1)
   assert.equal(third.completions[0].exitAt.toISOString(), t1.toISOString())
   assert.equal(catalog.questById.get(third.completions[0].questId)?.name, 'The Master Artificer')
+  assert.equal(third.completions[0].band, 'heroic')
 
   // Re-applying the same observation must not produce a second completion.
   const fourth = applyObservations(third.state, [outside], t3, catalog, options)
@@ -112,4 +113,5 @@ test('leaving the game also closes the visit', () => {
 
   assert.equal(third.completions.length, 1)
   assert.equal(catalog.questById.get(third.completions[0].questId)?.name, 'Legendary Master Artificer')
+  assert.equal(third.completions[0].band, 'legendary')
 })

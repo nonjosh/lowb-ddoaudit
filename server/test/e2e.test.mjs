@@ -5,6 +5,7 @@ const baseUrl = process.env.BASE_URL
 const password = process.env.LOG_PASSWORD
 const characterId = process.env.TEST_CHARACTER_ID
 const questId = process.env.TEST_QUEST_ID
+const band = process.env.TEST_BAND ?? 'heroic'
 
 const enabled = Boolean(baseUrl && password && characterId && questId)
 
@@ -14,11 +15,11 @@ const readState = async () => {
   const response = await fetch(url('/completions'))
   assert.equal(response.status, 200)
   const body = await response.json()
-  return body.data?.[characterId]?.[questId] ?? null
+  return body.data?.[characterId]?.[`${questId}:${band}`] ?? null
 }
 
 const patch = (body, headers = {}) =>
-  fetch(url(`/completions/${characterId}/${questId}`), {
+  fetch(url(`/completions/${characterId}/${questId}/${band}`), {
     method: 'PATCH',
     headers: { 'content-type': 'application/json', ...headers },
     body: JSON.stringify(body),
@@ -40,7 +41,7 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
   })
 
   await t.test('CORS preflight is answered for the Pages origin', async () => {
-    const response = await fetch(url(`/completions/${characterId}/${questId}`), {
+    const response = await fetch(url(`/completions/${characterId}/${questId}/${band}`), {
       method: 'OPTIONS',
       headers: {
         origin: 'https://nonjosh.github.io',
@@ -63,7 +64,7 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
   })
 
   await t.test('unknown character is rejected', async () => {
-    const response = await fetch(url('/completions/1/2'), {
+    const response = await fetch(url('/completions/1/2/heroic'), {
       method: 'PATCH',
       headers: { 'content-type': 'application/json', ...auth },
       body: JSON.stringify({ finished: true }),
@@ -80,7 +81,7 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
   })
 
   await t.test('malformed JSON is a client error, not a crash', async () => {
-    const response = await fetch(url(`/completions/${characterId}/${questId}`), {
+    const response = await fetch(url(`/completions/${characterId}/${questId}/${band}`), {
       method: 'PATCH',
       headers: { 'content-type': 'application/json', ...auth },
       body: '{not json',

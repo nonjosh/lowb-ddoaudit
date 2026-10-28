@@ -178,8 +178,9 @@ the Vite build and is deployed to Cloud Run; the SPA calls it with `fetch`.
 
 | Route | Auth | Purpose |
 | ----- | ---- | ------- |
-| `GET /completions` | public | all recorded completions, 15 s in-process cache |
-| `PATCH /completions/{characterId}/{questId}` | `X-Log-Password` header | uncheck / backfill |
+| `GET /completions` | public | all recorded completions keyed `questId:band`, 15 s in-process cache |
+| `GET /activity` | public | where the poller last saw each tracked character |
+| `PATCH /completions/{characterId}/{questId}/{band}` | `X-Log-Password` header | uncheck / backfill one version |
 | `POST /poll` | Cloud Scheduler OIDC | one poll cycle, run every minute |
 
 Commands (from `server/`):
@@ -191,6 +192,7 @@ Commands (from `server/`):
 | `npm run test:integration` | live DDO Audit mapping assertions (no mocks) |
 | `npm run test:e2e` | against the deployed service; needs `BASE_URL`, `LOG_PASSWORD`, `TEST_CHARACTER_ID`, `TEST_QUEST_ID` |
 | `npx tsx scripts/build-quest-groupings.ts` | regenerate `src/data/questGroupings.json` (quest -> saga/pack cache) |
+| `node scripts/migrate-bands.mjs` | one-off: re-key completions to `{char}_{quest}_{band}` (already run) |
 
 Infrastructure lives in the sibling Terraform repo: `terraform-dev/ddo-log/`
 (Cloud Run + Firestore + Cloud Scheduler). See its README for the two-phase deploy and

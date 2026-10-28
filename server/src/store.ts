@@ -6,6 +6,8 @@ import { emptyState } from './detect.js'
 export interface CompletionRecord {
   character_id: string
   quest_id: string
+  /** heroic | epic | legendary — one document per character, quest and version. */
+  band: string
   finished: boolean
   last_finished_at: Timestamp | null
   /** Completion timestamps, newest first. Capped at HISTORY_LIMIT. */
@@ -23,8 +25,8 @@ const completions = db.collection('completions')
 const edits = db.collection('edits')
 const stateDocument = db.doc('state/poller')
 
-export const completionId = (characterId: string, questId: string): string =>
-  `${characterId}_${questId}`
+export const completionId = (characterId: string, questId: string, band: string): string =>
+  `${characterId}_${questId}_${band}`
 
 /** Older documents only have last_finished_at; treat it as a one-entry history. */
 function historyOf(data: Partial<CompletionRecord> | null): Timestamp[] {
@@ -79,8 +81,9 @@ async function loadCompletions(epoch: number): Promise<SerializedCompletions> {
     if (!characterId || !questId) continue
 
     const history = historyOf(data)
+    const band = data.band ?? 'heroic'
     const bucket = result[characterId] ?? {}
-    bucket[questId] = {
+    bucket[`${questId}:${band}`] = {
       finished: data.finished === true,
       lastFinishedAt: history[0]?.toDate().toISOString() ?? null,
       history: history.map((entry) => entry.toDate().toISOString()),
@@ -102,7 +105,9 @@ async function loadCompletions(epoch: number): Promise<SerializedCompletions> {
  * same exit time and is skipped.
  */
 export async function recordPolledCompletion(completion: Completion): Promise<boolean> {
-  const reference = completions.doc(completionId(completion.characterId, completion.questId))
+  const reference = completions.doc(
+    completionId(completion.characterId, completion.questId, completion.band),
+  )
 
   const exitAt = Timestamp.fromDate(completion.exitAt)
 
@@ -119,6 +124,7 @@ export async function recordPolledCompletion(completion: Completion): Promise<bo
       {
         character_id: completion.characterId,
         quest_id: completion.questId,
+        band: completion.band,
         finished: true,
         last_finished_at: exitAt,
         history: withHistoryEntry(history, exitAt),
@@ -139,6 +145,7 @@ export async function recordPolledCompletion(completion: Completion): Promise<bo
 export interface ManualEdit {
   characterId: string
   questId: string
+  band: string
   finished: boolean
   /** undefined keeps the stored timestamp, null clears it (backfill without a date). */
   lastFinishedAt: Date | null | undefined
@@ -146,7 +153,7 @@ export interface ManualEdit {
 }
 
 export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecord> {
-  const reference = completions.doc(completionId(edit.characterId, edit.questId))
+  const reference = completions.doc(completionId(edit.characterId, edit.questId, edit.band))
 
   const record = await db.runTransaction(async (transaction) => {
     const current = await transaction.get(reference)
@@ -166,6 +173,7 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
     const record: CompletionRecord = {
       character_id: edit.characterId,
       quest_id: edit.questId,
+      band: edit.band,
       finished: edit.finished,
       last_finished_at: lastFinishedAt,
       history,
@@ -178,6 +186,7 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
     transaction.set(edits.doc(), {
       character_id: edit.characterId,
       quest_id: edit.questId,
+      band: edit.band,
       finished: edit.finished,
       last_finished_at: lastFinishedAt,
       at: Timestamp.now(),

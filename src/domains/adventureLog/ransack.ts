@@ -14,11 +14,12 @@ export interface RansackStatus {
   ransacked: boolean
 }
 
-export function getRansackStatus(history: readonly string[], now: number = Date.now()): RansackStatus {
-  const runsInWindow = history.filter((iso) => {
-    const timestamp = new Date(iso).getTime()
-    return Number.isFinite(timestamp) && now - timestamp <= QUEST_RANSACK_WINDOW_MS
-  }).length
+export function isWithinRansackWindow(iso: string, now: number = Date.now()): boolean {
+  const timestamp = new Date(iso).getTime()
+  return Number.isFinite(timestamp) && now - timestamp <= QUEST_RANSACK_WINDOW_MS
+}
 
+export function getRansackStatus(history: readonly string[], now: number = Date.now()): RansackStatus {
+  const runsInWindow = history.filter((iso) => isWithinRansackWindow(iso, now)).length
   return { runsInWindow, ransacked: runsInWindow >= QUEST_RANSACK_LIMIT }
 }

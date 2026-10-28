@@ -6,19 +6,36 @@ interface GroupingEntry {
   pack?: string
 }
 
-export type QuestBand = 'Heroic' | 'Epic' | 'Legendary'
+export type QuestBand = 'heroic' | 'epic' | 'legendary'
+
+export interface QuestBandLabel {
+  key: QuestBand
+  label: string
+}
+
+const BAND_LABELS: Record<QuestBand, string> = {
+  heroic: 'Heroic',
+  epic: 'Epic',
+  legendary: 'Legendary',
+}
+
+/** One row of the table: a specific version of a quest. */
+export interface QuestRowModel {
+  key: string
+  quest: Quest
+  band: QuestBand
+  level: number | null
+}
 
 export interface QuestGroup {
   id: string
   label: string
   kind: 'saga' | 'pack' | 'level'
   band?: QuestBand
-  level?: number
-  quests: Quest[]
+  levelMin: number | null
+  levelMax: number | null
+  rows: QuestRowModel[]
 }
-
-const BAND_ORDER: Record<QuestBand, number> = { Heroic: 0, Epic: 1, Legendary: 2 }
-const KIND_ORDER = { saga: 0, pack: 1, level: 2 } as const
 
 /**
  * Quest -> saga / adventure pack, snapshotted in `scripts/build-quest-groupings.ts`
@@ -33,94 +50,175 @@ export function getSagaName(quest: Quest): string | undefined {
   return CACHED_GROUPINGS[quest.id]?.saga
 }
 
+/** Sagas are versioned in their own name, e.g. "Saltmarsh (Heroic)". */
+function sagaBand(sagaName: string): QuestBand | null {
+  if (/\(heroic\)/i.test(sagaName)) return 'heroic'
+  if (/\(legendary\)/i.test(sagaName)) return 'legendary'
+  if (/\(epic\)/i.test(sagaName)) return 'epic'
+  return null
+}
+
 export function getPackName(quest: Quest): string | null {
   return CACHED_GROUPINGS[quest.id]?.pack ?? quest.required_adventure_pack ?? null
 }
 
-/** A quest is heroic when it has a heroic version at all, otherwise epic/legendary by CR. */
-export function getQuestBand(quest: Quest): QuestBand | null {
-  if (quest.heroicLevel !== null) return 'Heroic'
-  if (quest.epicLevel === null) return null
-  return quest.epicLevel >= 30 ? 'Legendary' : 'Epic'
+export function bandLabel(band: QuestBand): string {
+  return BAND_LABELS[band]
 }
 
-export function listAdventurePacks(quests: Quest[]): string[] {
-  const packs = new Set<string>()
-  for (const quest of quests) {
-    const pack = getPackName(quest)
-    if (pack) packs.add(pack)
+/** Playable versions of a quest: heroic, epic and/or legendary. */
+export function questVersions(quest: Quest): Array<{ band: QuestBand; level: number | null }> {
+  const versions: Array<{ band: QuestBand; level: number | null }> = []
+  if (quest.heroicLevel !== null) versions.push({ band: 'heroic', level: quest.heroicLevel })
+  if (quest.epicLevel !== null) {
+    versions.push({ band: quest.epicLevel >= 30 ? 'legendary' : 'epic', level: quest.epicLevel })
   }
-  return [...packs].sort((left, right) => left.localeCompare(right))
+  if (versions.length === 0) versions.push({ band: 'heroic', level: quest.level })
+  return versions
 }
 
-function sortQuests(quests: Quest[]): Quest[] {
-  return [...quests].sort(
-    (left, right) => (left.level ?? 0) - (right.level ?? 0) || left.name.localeCompare(right.name),
-  )
-}
-
-function sortGroups(groups: QuestGroup[]): QuestGroup[] {
-  return groups.sort((left, right) => {
-    const byKind = KIND_ORDER[left.kind] - KIND_ORDER[right.kind]
-    if (byKind !== 0) return byKind
-
-    if (left.kind === 'level') return (left.level ?? 0) - (right.level ?? 0)
-
-    const byLabel = left.label.localeCompare(right.label)
-    if (byLabel !== 0) return byLabel
-    if (left.kind === 'pack') {
-      return (BAND_ORDER[left.band ?? 'Heroic'] ?? 9) - (BAND_ORDER[right.band ?? 'Heroic'] ?? 9)
-    }
-    return 0
-  })
+export function completionKey(questId: string, band: QuestBand): string {
+  return `${questId}:${band}`
 }
 
 /**
- * Grouping order: saga, then adventure pack (heroic/epic/legendary separate),
- * then level for quests that belong to neither. Hidden packs are dropped entirely.
+ * Which version a character level belongs to, picked by the nearest version level.
+ * Mirrors `bandForLevel` in server/src/bands.ts.
  */
-export function groupQuests(quests: Quest[], hiddenPacks: ReadonlySet<string> = new Set()): QuestGroup[] {
-  const groups = new Map<string, QuestGroup>()
+export function bandForCharacter(quest: Quest, level: number | null): QuestBand {
+  const versions = questVersions(quest)
+  if (level === null || versions.length === 1) return versions[0].band
+  return [...versions].sort(
+    (left, right) => Math.abs((left.level ?? 0) - level) - Math.abs((right.level ?? 0) - level),
+  )[0].band
+}
+
+export interface AdventurePackInfo {
+  pack: string
+  levelMin: number | null
+  levelMax: number | null
+  questCount: number
+}
+
+/** Packs with the level span and quest count of their quests, for the hide dialog. */
+export function listAdventurePackInfo(quests: Quest[]): AdventurePackInfo[] {
+  const byPack = new Map<string, { levels: number[]; quests: Set<string> }>()
 
   for (const quest of quests) {
     const pack = getPackName(quest)
-    if (pack && hiddenPacks.has(pack)) continue
+    if (!pack) continue
 
-    const saga = getSagaName(quest)
-    let group: QuestGroup
-
-    if (saga) {
-      group = { id: `saga:${saga}`, label: saga, kind: 'saga', quests: [] }
-    } else if (pack) {
-      const band = getQuestBand(quest)
-      group = {
-        id: `pack:${pack}:${band ?? 'Unknown'}`,
-        label: pack,
-        kind: 'pack',
-        ...(band ? { band } : {}),
-        quests: [],
-      }
-    } else {
-      group = {
-        id: `level:${quest.level ?? 'unknown'}`,
-        label: quest.level === null ? 'Unknown level' : `Level ${quest.level}`,
-        kind: 'level',
-        ...(quest.level === null ? {} : { level: quest.level }),
-        quests: [],
-      }
+    const entry = byPack.get(pack) ?? { levels: [], quests: new Set<string>() }
+    entry.quests.add(quest.id)
+    for (const version of questVersions(quest)) {
+      if (version.level !== null) entry.levels.push(version.level)
     }
-
-    const existing = groups.get(group.id)
-    if (existing) existing.quests.push(quest)
-    else groups.set(group.id, { ...group, quests: [quest] })
+    byPack.set(pack, entry)
   }
 
-  return sortGroups([...groups.values()]).map((group) => ({
-    ...group,
-    quests: sortQuests(group.quests),
-  }))
+  return [...byPack.entries()]
+    .map(([pack, entry]) => ({
+      pack,
+      levelMin: entry.levels.length ? Math.min(...entry.levels) : null,
+      levelMax: entry.levels.length ? Math.max(...entry.levels) : null,
+      questCount: entry.quests.size,
+    }))
+    .sort((left, right) => left.pack.localeCompare(right.pack))
+}
+
+export function buildQuestRows(quests: Quest[]): QuestRowModel[] {
+  const rows: QuestRowModel[] = []
+  for (const quest of quests) {
+    for (const version of questVersions(quest)) {
+      rows.push({
+        key: completionKey(quest.id, version.band),
+        quest,
+        band: version.band,
+        level: version.level,
+      })
+    }
+  }
+  return rows
+}
+
+function levelRange(rows: QuestRowModel[]): { levelMin: number | null; levelMax: number | null } {
+  const levels = rows.map((row) => row.level).filter((level): level is number => level !== null)
+  if (levels.length === 0) return { levelMin: null, levelMax: null }
+  return { levelMin: Math.min(...levels), levelMax: Math.max(...levels) }
+}
+
+export function formatLevelRange(group: QuestGroup): string {
+  if (group.levelMin === null || group.levelMax === null) return '—'
+  return group.levelMin === group.levelMax
+    ? `${group.levelMin}`
+    : `${group.levelMin}–${group.levelMax}`
+}
+
+/**
+ * Grouping order: saga, then adventure pack split by version, then level for quests
+ * with neither. Groups are ordered by their highest level, descending.
+ */
+export function groupQuestRows(
+  rows: QuestRowModel[],
+  hiddenPacks: ReadonlySet<string> = new Set(),
+): QuestGroup[] {
+  const groups = new Map<string, QuestGroup>()
+
+  for (const row of rows) {
+    const pack = getPackName(row.quest)
+    if (pack && hiddenPacks.has(pack)) continue
+
+    const sagaName = getSagaName(row.quest)
+    // A legendary version of a quest must not land in the "(Heroic)" saga; it falls
+    // through to its adventure pack group instead.
+    const sagaBandName = sagaName ? sagaBand(sagaName) : null
+    const saga = sagaName && (sagaBandName === null || sagaBandName === row.band) ? sagaName : undefined
+
+    let id: string
+    let label: string
+    let kind: QuestGroup['kind']
+    let band: QuestBand | undefined
+
+    if (saga) {
+      id = `saga:${saga}`
+      label = saga
+      kind = 'saga'
+    } else if (pack) {
+      id = `pack:${pack}:${row.band}`
+      label = pack
+      kind = 'pack'
+      band = row.band
+    } else {
+      id = `level:${row.level ?? 'unknown'}`
+      label = row.level === null ? 'Unknown level' : `Level ${row.level}`
+      kind = 'level'
+    }
+
+    const existing = groups.get(id)
+    if (existing) existing.rows.push(row)
+    else groups.set(id, { id, label, kind, band, levelMin: null, levelMax: null, rows: [row] })
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      ...levelRange(group.rows),
+      rows: [...group.rows].sort(
+        (left, right) =>
+          (left.level ?? 0) - (right.level ?? 0) ||
+          left.quest.name.localeCompare(right.quest.name) ||
+          left.band.localeCompare(right.band),
+      ),
+    }))
+    .sort((left, right) => {
+      const byLevel = (right.levelMax ?? -1) - (left.levelMax ?? -1)
+      if (byLevel !== 0) return byLevel
+      const byLabel = left.label.localeCompare(right.label)
+      if (byLabel !== 0) return byLabel
+      return (left.band ?? '').localeCompare(right.band ?? '')
+    })
 }
 
 export function groupLabel(group: QuestGroup): string {
-  return group.kind === 'pack' && group.band ? `${group.label} · ${group.band}` : group.label
+  return group.kind === 'pack' && group.band ? `${group.label} · ${bandLabel(group.band)}` : group.label
 }

@@ -3,10 +3,11 @@ import { timingSafeEqual } from 'node:crypto'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { OAuth2Client } from 'google-auth-library'
 
+import { isQuestBand } from './bands.js'
 import { config } from './config.js'
 import { getCatalog } from './ddo.js'
 import { runPoll } from './poller.js'
-import { applyManualEdit, listCompletions } from './store.js'
+import { applyManualEdit, listCompletions, loadPollerState } from './store.js'
 
 const app = express()
 app.disable('x-powered-by')
@@ -60,8 +61,25 @@ app.get(
   }),
 )
 
+app.get(
+  '/activity',
+  asyncRoute(async (_request, response) => {
+    const state = await loadPollerState()
+    const data: Record<string, { areaId: string | null; questId: string | null; since: string }> = {}
+    for (const [characterId, character] of Object.entries(state.characters)) {
+      data[characterId] = {
+        areaId: character.areaId,
+        questId: character.questId,
+        since: character.since,
+      }
+    }
+    response.setHeader('Cache-Control', 'no-store')
+    response.json({ data, polledAt: state.lastPollAt })
+  }),
+)
+
 app.patch(
-  '/completions/:characterId/:questId',
+  '/completions/:characterId/:questId/:band',
   asyncRoute(async (request, response) => {
     if (!passwordMatches(request.header('x-log-password'), config.writePassword)) {
       response.status(401).json({ message: 'Invalid password' })
@@ -69,6 +87,11 @@ app.patch(
     }
 
     const { characterId, questId } = request.params
+    const band = request.params.band
+    if (!isQuestBand(band)) {
+      response.status(400).json({ message: 'Unknown version' })
+      return
+    }
     if (!config.trackedCharacterIds.includes(characterId)) {
       response.status(400).json({ message: 'Unknown character' })
       return
@@ -112,6 +135,7 @@ app.patch(
     await applyManualEdit({
       characterId,
       questId,
+      band,
       finished: body.finished,
       lastFinishedAt,
       // Manual edits carry no character level; the poll path owns that field.

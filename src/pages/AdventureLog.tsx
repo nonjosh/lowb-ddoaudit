@@ -16,7 +16,6 @@ import {
   FormControl,
   FormControlLabel,
   InputLabel,
-  ListSubheader,
   MenuItem,
   Paper,
   Select,
@@ -31,25 +30,43 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   WritePasswordRejectedError,
+  fetchActivity,
   fetchCompletions,
   updateCompletion,
+  type ActivityMap,
   type CompletionEntry,
   type CompletionMap,
 } from '@/api/adventureLog'
 import { ADVENTURE_LOG_PASSWORD_STORAGE_KEY } from '@/api/adventureLog/constants'
-import { fetchQuestsById, type Quest } from '@/api/ddoAudit'
+import { fetchCharactersByIds, fetchQuestsById, type CharacterData, type Quest } from '@/api/ddoAudit'
 import HidePacksDialog from '@/components/adventureLog/HidePacksDialog'
 import { CHARACTERS } from '@/config/characters'
-import { groupLabel, groupQuests, listAdventurePacks, type QuestGroup } from '@/domains/adventureLog/grouping'
-import { QUEST_RANSACK_LIMIT, getRansackStatus } from '@/domains/adventureLog/ransack'
+import {
+  bandForCharacter,
+  bandLabel,
+  buildQuestRows,
+  completionKey,
+  formatLevelRange,
+  groupLabel,
+  groupQuestRows,
+  listAdventurePackInfo,
+  type QuestGroup,
+  type QuestRowModel,
+} from '@/domains/adventureLog/grouping'
+import {
+  QUEST_RANSACK_LIMIT,
+  getRansackStatus,
+  isWithinRansackWindow,
+} from '@/domains/adventureLog/ransack'
 
-const RECENT_DAYS = 8
 const DAY_MS = 24 * 60 * 60 * 1000
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
+const PLAYER_STORAGE_KEY = 'lowb-adventure-log-player'
+const CHARACTER_STORAGE_KEY = 'lowb-adventure-log-character'
 
 function formatRelative(iso: string | null): string {
   if (!iso) return 'before tracking'
@@ -63,18 +80,56 @@ function formatRelative(iso: string | null): string {
   return `${Math.floor(elapsed / DAY_MS)}d ago`
 }
 
-function formatHistory(history: readonly string[]): string {
-  if (history.length === 0) return 'No recorded completions'
-  return history
-    .slice(0, 10)
-    .map((iso) => new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }))
-    .join('\n')
+function formatExact(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 }
 
-function isRecent(iso: string | null): boolean {
-  if (!iso) return false
-  const timestamp = new Date(iso).getTime()
-  return Number.isFinite(timestamp) && Date.now() - timestamp <= RECENT_DAYS * DAY_MS
+function HistoryTooltip({ history }: { history: readonly string[] }) {
+  if (history.length === 0) return <span>No recorded completions</span>
+
+  const status = getRansackStatus(history)
+
+  return (
+    <Box sx={{ py: 0.5 }}>
+      <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+        {status.runsInWindow}/{QUEST_RANSACK_LIMIT} runs in the last 7 days
+        {status.ransacked ? ' — ransacked' : `, ${Math.max(QUEST_RANSACK_LIMIT - status.runsInWindow, 0)} to go`}
+      </Typography>
+      {history.map((iso) => {
+        const inWindow = isWithinRansackWindow(iso)
+        return (
+          <Stack key={iso} direction="row" spacing={1} sx={{ fontSize: 12, lineHeight: 1.6 }}>
+            <Box
+              component="span"
+              sx={{ color: inWindow ? 'warning.main' : 'text.secondary', fontWeight: inWindow ? 700 : 400 }}
+            >
+              {formatRelative(iso)}
+            </Box>
+            <Box component="span" sx={{ color: 'text.secondary' }}>
+              {formatExact(iso)}
+            </Box>
+          </Stack>
+        )
+      })}
+    </Box>
+  )
+}
+
+function readStorage(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function writeStorage(key: string, value: string): void {
+  try {
+    if (value) localStorage.setItem(key, value)
+    else localStorage.removeItem(key)
+  } catch {
+    // Storage can be blocked; the selection still applies to this page view.
+  }
 }
 
 function readStoredPassword(): string {
@@ -90,7 +145,7 @@ function storePassword(value: string): void {
     if (value) sessionStorage.setItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY, value)
     else sessionStorage.removeItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY)
   } catch {
-    // Storage can be blocked (private mode, policy). The password still works for this page view.
+    // Non-fatal.
   }
 }
 
@@ -109,34 +164,32 @@ function storeHiddenPacks(packs: Set<string>): void {
   try {
     localStorage.setItem(HIDDEN_PACKS_STORAGE_KEY, JSON.stringify([...packs]))
   } catch {
-    // Non-fatal: the selection applies for this view only.
+    // Non-fatal.
   }
 }
 
-const playerGroups = (() => {
-  const byPlayer = new Map<string, { id: string; name: string }[]>()
-  for (const character of Object.values(CHARACTERS)) {
-    const list = byPlayer.get(character.player) ?? []
-    list.push({ id: character.id, name: character.name })
-    byPlayer.set(character.player, list)
-  }
+const PLAYER_NAMES = [...new Set(Object.values(CHARACTERS).map((character) => character.player))].sort(
+  (left, right) => left.localeCompare(right),
+)
 
-  return [...byPlayer.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([player, characters]) => ({
-      player,
-      characters: characters.sort((left, right) => left.name.localeCompare(right.name)),
-    }))
-})()
+function charactersOfPlayer(player: string): Array<{ id: string; name: string }> {
+  return Object.values(CHARACTERS)
+    .filter((character) => character.player === player)
+    .map(({ id, name }) => ({ id, name }))
+    .sort((left, right) => left.name.localeCompare(right.name))
+}
+
+const ALL_CHARACTER_IDS = Object.keys(CHARACTERS)
 
 interface QuestRowProps {
-  quest: Quest
+  row: QuestRowModel
   entry: CompletionEntry | undefined
   busy: boolean
-  onToggle: (questId: string, finished: boolean) => void
+  occupants: Array<{ id: string; name: string; level: number | null }>
+  onToggle: (row: QuestRowModel, finished: boolean) => void
 }
 
-function QuestRow({ quest, entry, busy, onToggle }: QuestRowProps) {
+function QuestRow({ row, entry, busy, occupants, onToggle }: QuestRowProps) {
   const finished = entry?.finished === true
   const ransack = getRansackStatus(entry?.history ?? [])
 
@@ -146,16 +199,31 @@ function QuestRow({ quest, entry, busy, onToggle }: QuestRowProps) {
         <Checkbox
           checked={finished}
           disabled={busy}
-          onChange={(event) => onToggle(quest.id, event.target.checked)}
-          inputProps={{ 'aria-label': `Mark ${quest.name} as done` }}
+          onChange={(event) => onToggle(row, event.target.checked)}
+          inputProps={{ 'aria-label': `Mark ${row.quest.name} (${bandLabel(row.band)}) as done` }}
         />
       </TableCell>
-      <TableCell>{quest.name}</TableCell>
-      <TableCell align="right">{quest.level ?? '—'}</TableCell>
-      <TableCell>{quest.type ?? '—'}</TableCell>
+      <TableCell>
+        <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
+          <span>{row.quest.name}</span>
+          <Chip size="small" variant="outlined" label={bandLabel(row.band)} />
+          {row.quest.type === 'Raid' && <Chip size="small" color="secondary" label="Raid" />}
+          {occupants.length > 0 && (
+            <Tooltip
+              title={`Inside now: ${occupants
+                .map((occupant) => `${occupant.name}${occupant.level ? ` (L${occupant.level})` : ''}`)
+                .join(', ')}`}
+            >
+              <Chip size="small" color="info" label={`${occupants.length} inside`} />
+            </Tooltip>
+          )}
+        </Stack>
+      </TableCell>
+      <TableCell align="right">{row.level ?? '—'}</TableCell>
+      <TableCell>{row.quest.type ?? '—'}</TableCell>
       <TableCell>
         {finished ? (
-          <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{formatHistory(entry?.history ?? [])}</span>}>
+          <Tooltip title={<HistoryTooltip history={entry?.history ?? []} />}>
             <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
               <span>{formatRelative(entry?.lastFinishedAt ?? null)}</span>
               {ransack.ransacked ? (
@@ -178,31 +246,46 @@ function QuestRow({ quest, entry, busy, onToggle }: QuestRowProps) {
 export default function AdventureLog() {
   const [quests, setQuests] = useState<Quest[]>([])
   const [completions, setCompletions] = useState<CompletionMap>({})
-  const [characterId, setCharacterId] = useState(() => playerGroups[0]?.characters[0]?.id ?? '')
+  const [characterData, setCharacterData] = useState<Record<string, CharacterData>>({})
+  const [activity, setActivity] = useState<ActivityMap>({})
+  const [playerName, setPlayerName] = useState(() => readStorage(PLAYER_STORAGE_KEY))
+  const [characterId, setCharacterId] = useState(() => readStorage(CHARACTER_STORAGE_KEY))
   const [search, setSearch] = useState('')
-  const [onlyMissing, setOnlyMissing] = useState(false)
+  const [onlyRansacked, setOnlyRansacked] = useState(false)
+  const [hideCompleted, setHideCompleted] = useState(false)
   const [hiddenPacks, setHiddenPacks] = useState<Set<string>>(readHiddenPacks)
   const [packsDialogOpen, setPacksDialogOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [password, setPassword] = useState(readStoredPassword)
-  const [pendingEdit, setPendingEdit] = useState<{ questId: string; finished: boolean } | null>(null)
+  const [passwordPromptOpen, setPasswordPromptOpen] = useState(false)
   const [passwordDraft, setPasswordDraft] = useState('')
-  const [busyQuestId, setBusyQuestId] = useState<string | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
+  const [bulkGroupId, setBulkGroupId] = useState<string | null>(null)
+
+  const groupRefs = useRef(new Map<string, HTMLTableRowElement>())
+  const characterSelectionInitialized = useRef(false)
+  const lastAutoFocusedCharacter = useRef<string | null>(null)
+  const pendingAction = useRef<((secret: string) => void) | null>(null)
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
-      const [questMap, log] = await Promise.all([fetchQuestsById(), fetchCompletions(signal)])
+      const [questMap, log, characters, presence] = await Promise.all([
+        fetchQuestsById(),
+        fetchCompletions(signal),
+        fetchCharactersByIds(ALL_CHARACTER_IDS, { signal }),
+        fetchActivity(signal),
+      ])
+
       const unique = new Map<string, Quest>()
       for (const quest of Object.values(questMap)) unique.set(quest.id, quest)
-      const sorted = [...unique.values()].sort(
-        (left, right) => (left.level ?? 0) - (right.level ?? 0) || left.name.localeCompare(right.name),
-      )
-      setQuests(sorted)
+      setQuests([...unique.values()])
       setCompletions(log)
+      setCharacterData(characters)
+      setActivity(presence)
     } catch (loadError) {
       if ((loadError as Error).name !== 'AbortError') {
         setError((loadError as Error).message)
@@ -218,64 +301,179 @@ export default function AdventureLog() {
     return () => controller.abort()
   }, [load])
 
+  // Pick the player/character once the character data (online + level) is known:
+  // the stored player, their single online character, else the stored character.
+  useEffect(() => {
+    if (characterSelectionInitialized.current) return
+    if (loading || PLAYER_NAMES.length === 0) return
+    characterSelectionInitialized.current = true
+
+    const storedPlayer = readStorage(PLAYER_STORAGE_KEY)
+    const storedCharacter = readStorage(CHARACTER_STORAGE_KEY)
+
+    const player = PLAYER_NAMES.includes(storedPlayer)
+      ? storedPlayer
+      : (PLAYER_NAMES.find((name) =>
+          charactersOfPlayer(name).some((character) => characterData[character.id]?.is_online),
+        ) ?? PLAYER_NAMES[0])
+
+    const options = charactersOfPlayer(player)
+    const online = options.filter((character) => characterData[character.id]?.is_online)
+    const character =
+      online.length === 1
+        ? online[0].id
+        : options.some((option) => option.id === storedCharacter)
+          ? storedCharacter
+          : (options[0]?.id ?? '')
+
+    setPlayerName(player)
+    setCharacterId(character)
+    writeStorage(PLAYER_STORAGE_KEY, player)
+    writeStorage(CHARACTER_STORAGE_KEY, character)
+  }, [characterData, loading])
+
+  const handlePlayerChange = useCallback(
+    (nextPlayer: string) => {
+      setPlayerName(nextPlayer)
+      writeStorage(PLAYER_STORAGE_KEY, nextPlayer)
+
+      const options = charactersOfPlayer(nextPlayer)
+      const online = options.filter((character) => characterData[character.id]?.is_online)
+      const storedCharacter = readStorage(CHARACTER_STORAGE_KEY)
+      const nextCharacter =
+        online.length === 1
+          ? online[0].id
+          : options.some((option) => option.id === storedCharacter)
+            ? storedCharacter
+            : (options[0]?.id ?? '')
+
+      setCharacterId(nextCharacter)
+      writeStorage(CHARACTER_STORAGE_KEY, nextCharacter)
+      setExpandedGroups(new Set())
+    },
+    [characterData],
+  )
+
+  const handleCharacterChange = useCallback((nextCharacter: string) => {
+    setCharacterId(nextCharacter)
+    writeStorage(CHARACTER_STORAGE_KEY, nextCharacter)
+    setExpandedGroups(new Set())
+  }, [])
+
+  const withPassword = useCallback(
+    (action: (secret: string) => void) => {
+      if (password) {
+        action(password)
+        return
+      }
+      pendingAction.current = action
+      setPasswordDraft('')
+      setPasswordPromptOpen(true)
+    },
+    [password],
+  )
+
+  const setEntry = useCallback(
+    (character: string, key: string, finished: boolean) => {
+      setCompletions((previous) => {
+        const forCharacter = { ...(previous[character] ?? {}) }
+        const existing = forCharacter[key]
+        forCharacter[key] = {
+          finished,
+          lastFinishedAt: existing?.lastFinishedAt ?? null,
+          history: existing?.history ?? [],
+          levelAtFinish: existing?.levelAtFinish ?? null,
+          source: 'manual',
+        }
+        return { ...previous, [character]: forCharacter }
+      })
+    },
+    [],
+  )
+
   const sendEdit = useCallback(
-    async (questId: string, finished: boolean, secret: string) => {
-      setBusyQuestId(questId)
+    async (row: QuestRowModel, finished: boolean, secret: string) => {
+      setBusyKey(row.key)
       setError(null)
       try {
-        await updateCompletion({ characterId, questId, finished, password: secret })
-
-        setCompletions((previous) => {
-          const forCharacter = { ...(previous[characterId] ?? {}) }
-          const existing = forCharacter[questId]
-          forCharacter[questId] = {
-            finished,
-            lastFinishedAt: existing?.lastFinishedAt ?? null,
-            history: existing?.history ?? [],
-            levelAtFinish: existing?.levelAtFinish ?? null,
-            source: 'manual',
-          }
-          return { ...previous, [characterId]: forCharacter }
+        await updateCompletion({
+          characterId,
+          questId: row.quest.id,
+          band: row.band,
+          finished,
+          password: secret,
         })
+        setEntry(characterId, row.key, finished)
       } catch (editError) {
         if (editError instanceof WritePasswordRejectedError) {
           storePassword('')
           setPassword('')
-          setPendingEdit({ questId, finished })
-          setPasswordDraft('')
           setError('The write password was rejected. Enter it again.')
+          withPassword((nextSecret) => void sendEdit(row, finished, nextSecret))
         } else {
           setError((editError as Error).message)
         }
       } finally {
-        setBusyQuestId(null)
+        setBusyKey(null)
       }
     },
-    [characterId],
+    [characterId, setEntry, withPassword],
   )
 
   const handleToggle = useCallback(
-    (questId: string, finished: boolean) => {
-      if (!password) {
-        setPendingEdit({ questId, finished })
-        setPasswordDraft('')
-        return
-      }
-      void sendEdit(questId, finished, password)
+    (row: QuestRowModel, finished: boolean) => {
+      withPassword((secret) => void sendEdit(row, finished, secret))
     },
-    [password, sendEdit],
+    [sendEdit, withPassword],
+  )
+
+  const handleBulkToggle = useCallback(
+    (group: QuestGroup, finished: boolean) => {
+      withPassword((secret) => {
+        void (async () => {
+          setBulkGroupId(group.id)
+          setError(null)
+          try {
+            for (const row of group.rows) {
+              const current = completions[characterId]?.[row.key]?.finished === true
+              if (current === finished) continue
+              await updateCompletion({
+                characterId,
+                questId: row.quest.id,
+                band: row.band,
+                finished,
+                password: secret,
+              })
+              setEntry(characterId, row.key, finished)
+            }
+          } catch (bulkError) {
+            if (bulkError instanceof WritePasswordRejectedError) {
+              storePassword('')
+              setPassword('')
+              setError('The write password was rejected midway through the group.')
+            } else {
+              setError((bulkError as Error).message)
+            }
+          } finally {
+            setBulkGroupId(null)
+          }
+        })()
+      })
+    },
+    [characterId, completions, setEntry, withPassword],
   )
 
   const confirmPassword = useCallback(() => {
     const next = passwordDraft.trim()
-    if (!next || !pendingEdit) return
+    if (!next) return
     storePassword(next)
     setPassword(next)
-    const edit = pendingEdit
-    setPendingEdit(null)
+    setPasswordPromptOpen(false)
     setPasswordDraft('')
-    void sendEdit(edit.questId, edit.finished, next)
-  }, [passwordDraft, pendingEdit, sendEdit])
+    const action = pendingAction.current
+    pendingAction.current = null
+    action?.(next)
+  }, [passwordDraft])
 
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((previous) => {
@@ -303,38 +501,88 @@ export default function AdventureLog() {
   }, [])
 
   const characterCompletions = useMemo(() => completions[characterId] ?? {}, [completions, characterId])
+  const questById = useMemo(() => new Map(quests.map((quest) => [quest.id, quest])), [quests])
 
-  const visibleQuests = useMemo(() => {
+  const rows = useMemo(() => buildQuestRows(quests), [quests])
+
+  const visibleRows = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    return quests.filter((quest) => {
-      if (needle && !quest.name.toLowerCase().includes(needle)) return false
-      if (!onlyMissing) return true
-      const entry = characterCompletions[quest.id]
-      return !(entry?.finished && isRecent(entry.lastFinishedAt))
+    return rows.filter((row) => {
+      if (needle && !row.quest.name.toLowerCase().includes(needle)) return false
+
+      const entry = characterCompletions[row.key]
+      if (hideCompleted && entry?.finished) return false
+      if (onlyRansacked && !getRansackStatus(entry?.history ?? []).ransacked) return false
+      return true
     })
-  }, [quests, search, onlyMissing, characterCompletions])
+  }, [rows, search, onlyRansacked, hideCompleted, characterCompletions])
 
-  const groups = useMemo(() => groupQuests(visibleQuests, hiddenPacks), [visibleQuests, hiddenPacks])
-  const packs = useMemo(() => listAdventurePacks(quests), [quests])
+  const groups = useMemo(() => groupQuestRows(visibleRows, hiddenPacks), [visibleRows, hiddenPacks])
+  const packs = useMemo(() => listAdventurePackInfo(quests), [quests])
 
-  const groupedQuestCount = groups.reduce((total, group) => total + group.quests.length, 0)
+  /** `${questId}:${band}` -> characters currently inside that quest version. */
+  const occupantsByKey = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; name: string; level: number | null }>>()
+    for (const [occupantId, presence] of Object.entries(activity)) {
+      if (!presence.questId) continue
+      const info = CHARACTERS[occupantId]
+      const quest = questById.get(presence.questId)
+      if (!info || !quest) continue
+      const level = characterData[occupantId]?.total_level ?? null
+      const key = completionKey(quest.id, bandForCharacter(quest, level))
+      map.set(key, [...(map.get(key) ?? []), { id: occupantId, name: info.name, level }])
+    }
+    return map
+  }, [activity, characterData, questById])
+
+  const groupedRowCount = groups.reduce((total, group) => total + group.rows.length, 0)
   const doneCount = groups.reduce(
-    (total, group) => total + group.quests.filter((quest) => characterCompletions[quest.id]?.finished).length,
+    (total, group) => total + group.rows.filter((row) => characterCompletions[row.key]?.finished).length,
     0,
   )
-
   const searching = search.trim().length > 0
 
-  const renderRows = (items: Quest[]) =>
-    items.map((quest) => (
-      <QuestRow
-        key={quest.id}
-        quest={quest}
-        entry={characterCompletions[quest.id]}
-        busy={busyQuestId === quest.id}
-        onToggle={handleToggle}
-      />
-    ))
+  // Focus the table: the group holding the character's current quest, otherwise the
+  // group around their level. Runs once per character.
+  useEffect(() => {
+    if (groups.length === 0) return
+    if (lastAutoFocusedCharacter.current === characterId) return
+    lastAutoFocusedCharacter.current = characterId
+
+    const characterLevel = characterData[characterId]?.total_level ?? null
+    const currentQuestId = activity[characterId]?.questId ?? null
+
+    const target = currentQuestId
+      ? groups.find((group) => group.rows.some((row) => row.quest.id === currentQuestId))
+      : (groups.find(
+          (group) =>
+            characterLevel !== null &&
+            group.levelMin !== null &&
+            group.levelMax !== null &&
+            characterLevel >= group.levelMin &&
+            characterLevel <= group.levelMax,
+        ) ??
+        groups.find((group) => characterLevel !== null && group.levelMax !== null && group.levelMax <= characterLevel))
+
+    if (!target) return
+    setExpandedGroups((previous) => new Set(previous).add(target.id))
+    requestAnimationFrame(() => {
+      groupRefs.current.get(target.id)?.scrollIntoView({ block: 'center' })
+    })
+  }, [activity, characterData, characterId, groups])
+
+  const selectedCharacter = characterId ? CHARACTERS[characterId] : undefined
+  const selectedLevel = characterId ? (characterData[characterId]?.total_level ?? null) : null
+  const renderRow = (row: QuestRowModel) => (
+    <QuestRow
+      key={row.key}
+      row={row}
+      entry={characterCompletions[row.key]}
+      busy={busyKey === row.key || bulkGroupId !== null}
+      occupants={occupantsByKey.get(row.key) ?? []}
+      onToggle={handleToggle}
+    />
+  )
 
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
@@ -367,23 +615,57 @@ export default function AdventureLog() {
         {error && <Alert severity="error">{error}</Alert>}
 
         <Stack direction="row" useFlexGap flexWrap="wrap" spacing={2} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 240 }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="adventure-log-player">Player</InputLabel>
+            <Select
+              labelId="adventure-log-player"
+              label="Player"
+              value={PLAYER_NAMES.includes(playerName) ? playerName : ''}
+              onChange={(event) => handlePlayerChange(event.target.value)}
+            >
+              {PLAYER_NAMES.map((name) => (
+                <MenuItem key={name} value={name}>
+                  {name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel id="adventure-log-character">Character</InputLabel>
             <Select
               labelId="adventure-log-character"
               label="Character"
               value={characterId}
-              onChange={(event) => setCharacterId(event.target.value)}
-              renderValue={(value) => CHARACTERS[String(value)]?.name ?? String(value)}
+              onChange={(event) => handleCharacterChange(event.target.value)}
+              renderValue={(value) => {
+                const character = CHARACTERS[String(value)]
+                const level = characterData[String(value)]?.total_level
+                return character ? `${character.name}${level ? ` · L${level}` : ''}` : String(value)
+              }}
             >
-              {playerGroups.flatMap((group) => [
-                <ListSubheader key={`player:${group.player}`}>{group.player}</ListSubheader>,
-                ...group.characters.map((character) => (
+              {charactersOfPlayer(playerName).map((character) => {
+                const level = characterData[character.id]?.total_level
+                const online = characterData[character.id]?.is_online === true
+                return (
                   <MenuItem key={character.id} value={character.id}>
-                    {character.name}
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%' }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: online ? 'success.main' : 'action.disabled',
+                        }}
+                      />
+                      <span>{character.name}</span>
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                        {level ? `L${level}` : ''}
+                      </Typography>
+                    </Stack>
                   </MenuItem>
-                )),
-              ])}
+                )
+              })}
             </Select>
           </FormControl>
 
@@ -392,12 +674,17 @@ export default function AdventureLog() {
             label="Search quests"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            sx={{ minWidth: 240, flex: 1 }}
+            sx={{ minWidth: 220, flex: 1 }}
           />
 
           <FormControlLabel
-            control={<Checkbox checked={onlyMissing} onChange={(event) => setOnlyMissing(event.target.checked)} />}
-            label={`Not done in ${RECENT_DAYS} days`}
+            control={<Checkbox checked={onlyRansacked} onChange={(event) => setOnlyRansacked(event.target.checked)} />}
+            label="Ransacked"
+          />
+
+          <FormControlLabel
+            control={<Checkbox checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} />}
+            label="Hide completed"
           />
         </Stack>
 
@@ -420,28 +707,56 @@ export default function AdventureLog() {
                 </TableHead>
                 <TableBody>
                   {searching
-                    ? renderRows(visibleQuests)
-                    : groups.map((group: QuestGroup) => {
+                    ? visibleRows.map(renderRow)
+                    : groups.map((group) => {
                         const expanded = expandedGroups.has(group.id)
-                        const groupDone = group.quests.filter((quest) => characterCompletions[quest.id]?.finished).length
+                        const done = group.rows.filter((row) => characterCompletions[row.key]?.finished).length
+                        const allDone = done === group.rows.length
+                        const someDone = done > 0 && !allDone
+                        const bulkBusy = bulkGroupId === group.id
+
                         return (
                           <Fragment key={group.id}>
-                            <TableRow hover onClick={() => toggleGroup(group.id)} sx={{ cursor: 'pointer' }}>
-                              <TableCell padding="checkbox">
-                                {expanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+                            <TableRow
+                              hover
+                              onClick={() => toggleGroup(group.id)}
+                              sx={{ cursor: 'pointer', bgcolor: 'action.hover' }}
+                              ref={(element: HTMLTableRowElement | null) => {
+                                if (element) groupRefs.current.set(group.id, element)
+                                else groupRefs.current.delete(group.id)
+                              }}
+                            >
+                              <TableCell padding="checkbox" onClick={(event) => event.stopPropagation()}>
+                                {bulkBusy ? (
+                                  <CircularProgress size={18} />
+                                ) : (
+                                  <Checkbox
+                                    checked={allDone}
+                                    indeterminate={someDone}
+                                    disabled={group.rows.length === 0}
+                                    onChange={(event) => handleBulkToggle(group, event.target.checked)}
+                                    inputProps={{ 'aria-label': `Mark all ${groupLabel(group)} quests as done` }}
+                                  />
+                                )}
                               </TableCell>
                               <TableCell colSpan={3}>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {groupLabel(group)}
-                                </Typography>
+                                <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
+                                  {expanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {groupLabel(group)}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    L{formatLevelRange(group)}
+                                  </Typography>
+                                </Stack>
                               </TableCell>
                               <TableCell align="right">
                                 <Typography variant="caption" color="text.secondary">
-                                  {groupDone}/{group.quests.length}
+                                  {done}/{group.rows.length}
                                 </Typography>
                               </TableCell>
                             </TableRow>
-                            {expanded && renderRows(group.quests)}
+                            {expanded && group.rows.map(renderRow)}
                           </Fragment>
                         )
                       })}
@@ -452,10 +767,9 @@ export default function AdventureLog() {
         )}
 
         <Typography variant="caption" color="text.secondary">
-          {searching
-            ? `${visibleQuests.length} matching quests`
-            : `${groups.length} groups · ${groupedQuestCount} quests`}{' '}
-          · {doneCount} marked done
+          {searching ? `${visibleRows.length} matching quests` : `${groups.length} groups · ${groupedRowCount} rows`} ·{' '}
+          {doneCount} marked done
+          {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
           {hiddenPacks.size > 0 ? ` · ${hiddenPacks.size} packs hidden` : ''}
         </Typography>
       </Stack>
@@ -469,7 +783,7 @@ export default function AdventureLog() {
         onClose={() => setPacksDialogOpen(false)}
       />
 
-      <Dialog open={pendingEdit !== null} onClose={() => setPendingEdit(null)}>
+      <Dialog open={passwordPromptOpen} onClose={() => setPasswordPromptOpen(false)}>
         <DialogTitle>Write password</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
@@ -488,7 +802,7 @@ export default function AdventureLog() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPendingEdit(null)}>Cancel</Button>
+          <Button onClick={() => setPasswordPromptOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={confirmPassword} disabled={!passwordDraft.trim()}>
             Save
           </Button>

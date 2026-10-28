@@ -46,7 +46,13 @@ Currently: `Vision of an Alternate History` → `Terror of the Demon Lords`.
 
 ## Completion schema (Firestore)
 
-`completions/{character_id}_{quest_id}`
+`completions/{character_id}_{quest_id}_{band}` — one document per version, where
+`band` is `heroic`, `epic` or `legendary`. A run's version is picked by the nearest
+version level (`server/src/bands.ts`), mirroring the resolver, so a level-32 character
+in Toven's Workshop writes the legendary row and a level-19 character the heroic one.
+
+Rows written before bands existed were re-keyed by
+`server/scripts/migrate-bands.mjs` (dry run supported, JSON backup written first).
 
 | Field | Meaning |
 | --- | --- |
@@ -87,11 +93,19 @@ constants if the game changes; nothing is written for this, so no migration is n
 
 ## Grouping (saga -> pack -> level)
 
-The page groups quests in this order, all collapsed by default:
+The page shows one row per playable version (a quest with heroic and legendary CRs
+gets two rows) and groups them, all collapsed by default and ordered by level
+descending:
 
-1. **Saga** — from `src/data/questGroupings.json` (generated).
+1. **Saga** — from `src/data/questGroupings.json` (generated). A legendary row never
+   lands in a "(Heroic)" saga; it falls through to its pack group.
 2. **Adventure pack**, split into Heroic / Epic / Legendary bands.
 3. **Level** — for quests with neither a saga nor a pack.
+
+Group headers carry a tri-state checkbox (all / some / none done) that marks every row
+in the group, the level range, and a done/total count. Raid rows get a Raid badge, and
+a row shows an "N inside" badge when tracked characters are currently in that quest
+(`GET /activity`).
 
 `src/data/questGroupings.json` is a snapshot of quest id -> `{ saga, pack }`, built by
 `scripts/build-quest-groupings.ts` from `src/data/sagas.json` plus the DDO Audit quest
@@ -123,6 +137,8 @@ Hidden adventure packs are a browser preference (`localStorage`,
 - `POST /poll` requires the scheduler OIDC token (audience = service URL, email verified).
 - `PATCH` requires `X-Log-Password` (Secret Manager, constant-time compare).
 - `GET /completions` is public and served from a 15 s in-process cache.
+- `GET /activity` is public and exposes `state/poller` (area, quest, since) so the page
+  can show who is inside a quest and focus that group on load.
 - A run is skipped when the last completed poll is younger than 45 s.
 
 ## Files

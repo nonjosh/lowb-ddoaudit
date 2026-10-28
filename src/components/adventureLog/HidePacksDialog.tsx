@@ -13,13 +13,20 @@ import {
 } from '@mui/material'
 import { useMemo } from 'react'
 
+import type { AdventurePackInfo } from '@/domains/adventureLog/grouping'
+
 interface HidePacksDialogProps {
   open: boolean
-  packs: string[]
+  packs: AdventurePackInfo[]
   hiddenPacks: ReadonlySet<string>
   onToggle: (pack: string) => void
   onShowAll: () => void
   onClose: () => void
+}
+
+function levelLabel(info: AdventurePackInfo): string {
+  if (info.levelMin === null || info.levelMax === null) return '—'
+  return info.levelMin === info.levelMax ? `${info.levelMin}` : `${info.levelMin}–${info.levelMax}`
 }
 
 export default function HidePacksDialog({
@@ -31,7 +38,7 @@ export default function HidePacksDialog({
   onClose,
 }: HidePacksDialogProps) {
   const hiddenCount = useMemo(
-    () => packs.filter((pack) => hiddenPacks.has(pack)).length,
+    () => packs.filter((info) => hiddenPacks.has(info.pack)).length,
     [packs, hiddenPacks],
   )
 
@@ -48,10 +55,13 @@ export default function HidePacksDialog({
           </Typography>
         )}
         <List dense disablePadding>
-          {packs.map((pack) => (
-            <ListItemButton key={pack} onClick={() => onToggle(pack)}>
-              <Checkbox edge="start" checked={hiddenPacks.has(pack)} tabIndex={-1} disableRipple />
-              <ListItemText primary={pack} />
+          {packs.map((info) => (
+            <ListItemButton key={info.pack} onClick={() => onToggle(info.pack)}>
+              <Checkbox edge="start" checked={hiddenPacks.has(info.pack)} tabIndex={-1} disableRipple />
+              <ListItemText
+                primary={info.pack}
+                secondary={`L${levelLabel(info)} · ${info.questCount} quest${info.questCount === 1 ? '' : 's'}`}
+              />
             </ListItemButton>
           ))}
         </List>

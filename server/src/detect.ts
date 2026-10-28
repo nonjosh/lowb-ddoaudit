@@ -1,3 +1,4 @@
+import { bandForLevel, type QuestBand } from './bands.js'
 import type { Catalog, CharacterObservation, QuestRecord } from './ddo.js'
 
 /**
@@ -74,6 +75,8 @@ export interface PollerState {
 export interface Completion {
   characterId: string
   questId: string
+  /** Which version of the quest the run belongs to. */
+  band: QuestBand
   exitAt: Date
   level: number | null
 }
@@ -129,9 +132,11 @@ export function applyObservations(
     }
 
     if (previous?.questId && previous.samples >= options.minSamples && previous.lastInsideAt) {
+      const quest = catalog.questById.get(previous.questId)
       completions.push({
         characterId: observation.characterId,
         questId: previous.questId,
+        band: quest ? bandForLevel(quest, previous.level) : 'heroic',
         exitAt: new Date(previous.lastInsideAt),
         level: previous.level,
       })

@@ -9,8 +9,17 @@ export interface CompletionEntry {
   source: 'poll' | 'manual'
 }
 
-/** characterId -> questId -> entry */
+/** characterId -> `${questId}:${band}` -> entry */
 export type CompletionMap = Record<string, Record<string, CompletionEntry>>
+
+export interface ActivityEntry {
+  areaId: string | null
+  questId: string | null
+  since: string
+}
+
+/** characterId -> where the poller last saw them. */
+export type ActivityMap = Record<string, ActivityEntry>
 
 export class WritePasswordRejectedError extends Error {
   constructor() {
@@ -23,6 +32,10 @@ interface CompletionsResponse {
   data?: CompletionMap
 }
 
+interface ActivityResponse {
+  data?: ActivityMap
+}
+
 export async function fetchCompletions(signal?: AbortSignal): Promise<CompletionMap> {
   const response = await fetch(`${ADVENTURE_LOG_API_URL}/completions`, { signal })
   if (!response.ok) {
@@ -33,9 +46,21 @@ export async function fetchCompletions(signal?: AbortSignal): Promise<Completion
   return body.data ?? {}
 }
 
+export async function fetchActivity(signal?: AbortSignal): Promise<ActivityMap> {
+  const response = await fetch(`${ADVENTURE_LOG_API_URL}/activity`, { signal })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch activity (${response.status})`)
+  }
+
+  const body = (await response.json()) as ActivityResponse
+  return body.data ?? {}
+}
+
 export interface CompletionUpdate {
   characterId: string
   questId: string
+  /** heroic | epic | legendary — one row per version of the quest. */
+  band: string
   finished: boolean
   /** Omit to keep the stored timestamp, null for "done before tracking". */
   lastFinishedAt?: string | null
@@ -44,7 +69,7 @@ export interface CompletionUpdate {
 
 export async function updateCompletion(update: CompletionUpdate): Promise<void> {
   const response = await fetch(
-    `${ADVENTURE_LOG_API_URL}/completions/${encodeURIComponent(update.characterId)}/${encodeURIComponent(update.questId)}`,
+    `${ADVENTURE_LOG_API_URL}/completions/${encodeURIComponent(update.characterId)}/${encodeURIComponent(update.questId)}/${encodeURIComponent(update.band)}`,
     {
       method: 'PATCH',
       headers: {
