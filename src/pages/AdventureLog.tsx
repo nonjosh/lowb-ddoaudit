@@ -55,6 +55,7 @@ import {
   completionKey,
   formatLevelRange,
   getPackName,
+  getSagaNames,
   groupLabel,
   groupQuestRows,
   listAdventurePackInfo,
@@ -75,7 +76,7 @@ const PLAYER_STORAGE_KEY = 'lowb-adventure-log-player'
 const CHARACTER_STORAGE_KEY = 'lowb-adventure-log-character'
 
 function formatRelative(iso: string | null): string {
-  if (!iso) return 'before tracking'
+  if (!iso) return 'no data'
   const timestamp = new Date(iso).getTime()
   if (Number.isNaN(timestamp)) return 'unknown'
 
@@ -109,7 +110,7 @@ function formatExact(iso: string): string {
 }
 
 function HistoryTooltip({ history }: { history: readonly string[] }) {
-  if (history.length === 0) return <span>No recorded completions</span>
+  if (history.length === 0) return <span>No data</span>
 
   const status = getRansackStatus(history)
 
@@ -210,13 +211,15 @@ interface QuestRowProps {
   entry: CompletionEntry | undefined
   busy: boolean
   query: string
+  showSagaBadge: boolean
   occupants: Array<{ id: string; name: string; level: number | null }>
   onToggle: (row: QuestRowModel, finished: boolean) => void
 }
 
-function QuestRow({ row, entry, busy, query, occupants, onToggle }: QuestRowProps) {
+function QuestRow({ row, entry, busy, query, showSagaBadge, occupants, onToggle }: QuestRowProps) {
   const finished = entry?.finished === true
   const ransack = getRansackStatus(entry?.history ?? [])
+  const sagaNames = showSagaBadge ? getSagaNames(row.quest) : []
 
   return (
     <TableRow hover>
@@ -240,6 +243,11 @@ function QuestRow({ row, entry, busy, query, occupants, onToggle }: QuestRowProp
             <HighlightedText text={row.quest.name} query={query} />
           </Link>
           {row.quest.type === 'Raid' && <Chip size="small" color="secondary" label="Raid" />}
+          {sagaNames.length > 0 && (
+            <Tooltip title={`Saga: ${sagaNames.join(', ')}`}>
+              <Chip size="small" variant="outlined" color="info" label="Saga" />
+            </Tooltip>
+          )}
           {occupants.length > 0 && (
             <Tooltip
               title={`Inside now: ${occupants
@@ -653,6 +661,7 @@ export default function AdventureLog() {
       entry={characterCompletions[row.key]}
       busy={busyKey === row.key || bulkGroupId !== null}
       query={search}
+      showSagaBadge={!sagasOnly}
       occupants={occupantsByKey.get(row.key) ?? []}
       onToggle={handleToggle}
     />

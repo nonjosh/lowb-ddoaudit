@@ -58,7 +58,7 @@ Rows written before bands existed were re-keyed by
 | --- | --- |
 | `finished` | the user-facing checkbox |
 | `history` | completion timestamps, newest first, capped at 10 (`HISTORY_LIMIT`) |
-| `last_finished_at` | `history[0]`; `null` = recorded before tracking began |
+| `last_finished_at` | `history[0]`; `null` = no known completion date (rendered as "no data") |
 | `level_at_finish` | character level at exit (poll path only; `null` for manual edits) |
 | `source` | `poll` or `manual` |
 | `updated_at` | audit timestamp |
@@ -85,7 +85,8 @@ constants if the game changes; nothing is written for this, so no migration is n
 
 - **Uncheck (wipe/false positive):** `finished = false`, **keep** `last_finished_at`.
   Clearing it lets the next poll re-apply the same visit.
-- **Backfill without a date:** `finished = true`, `last_finished_at = null`.
+- **Backfill without a date:** `finished = true`, `last_finished_at = null` (the page
+  renders this as "no data").
 - **Re-check after uncheck:** omit `last_finished_at` so the observed timestamp survives.
   The SPA only sends `null` when the entry has no timestamp at all.
 - **Poller writes** bump the timestamp forward and set `finished = true`; that is how a

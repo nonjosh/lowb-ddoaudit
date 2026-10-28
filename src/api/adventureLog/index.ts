@@ -62,7 +62,7 @@ export interface CompletionUpdate {
   /** heroic | epic | legendary — one row per version of the quest. */
   band: string
   finished: boolean
-  /** Omit to keep the stored timestamp, null for "done before tracking". */
+  /** Omit to keep the stored timestamp, null for "no data". */
   lastFinishedAt?: string | null
   password: string
 }
