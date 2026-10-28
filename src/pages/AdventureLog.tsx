@@ -309,10 +309,32 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, trAt, now, occupants
             >
               <Chip
                 size="small"
-                color="info"
+                variant="outlined"
+                color="success"
                 label={
-                  <Stack component="span" direction="row" spacing={0.5} alignItems="center">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
+                  <Stack component="span" direction="row" spacing={0.75} alignItems="center">
+                    {/* pulsing live dot: a solid core plus an expanding ring */}
+                    <Box component="span" sx={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
+                      <Box
+                        component="span"
+                        sx={{
+                          position: 'absolute',
+                          inset: 0,
+                          borderRadius: '50%',
+                          bgcolor: 'currentColor',
+                          '@keyframes insidePing': {
+                            '0%': { transform: 'scale(1)', opacity: 0.7 },
+                            '100%': { transform: 'scale(2.6)', opacity: 0 },
+                          },
+                          animation: 'insidePing 1.8s ease-out infinite',
+                          '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 },
+                        }}
+                      />
+                      <Box
+                        component="span"
+                        sx={{ position: 'absolute', inset: 0, borderRadius: '50%', bgcolor: 'currentColor' }}
+                      />
+                    </Box>
                     <span>{occupants.length} inside</span>
                   </Stack>
                 }
