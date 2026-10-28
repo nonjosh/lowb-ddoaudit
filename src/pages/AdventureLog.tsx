@@ -54,6 +54,7 @@ import {
 import { ADVENTURE_LOG_PASSWORD_STORAGE_KEY } from '@/api/adventureLog/constants'
 import { fetchCharactersByIds, fetchQuestsById, type CharacterData, type Quest } from '@/api/ddoAudit'
 import HidePacksDialog from '@/components/adventureLog/HidePacksDialog'
+import ClassDisplay from '@/components/shared/ClassDisplay'
 import ReincarnationDialog from '@/components/adventureLog/ReincarnationDialog'
 import { CHARACTERS } from '@/config/characters'
 import {
@@ -872,7 +873,7 @@ export default function AdventureLog() {
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 220 }}>
+          <FormControl size="small" sx={{ minWidth: 260 }}>
             <InputLabel id="adventure-log-character">Character</InputLabel>
             <Select
               labelId="adventure-log-character"
@@ -881,8 +882,20 @@ export default function AdventureLog() {
               onChange={(event) => handleCharacterChange(event.target.value)}
               renderValue={(value) => {
                 const character = CHARACTERS[String(value)]
-                const level = characterData[String(value)]?.total_level
-                return character ? `${character.name}${level ? ` · L${level}` : ''}` : String(value)
+                const data = characterData[String(value)]
+                if (!character) return String(value)
+
+                return (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <span>{character.name}</span>
+                    {data?.total_level ? (
+                      <Typography variant="caption" color="text.secondary">
+                        L{data.total_level}
+                      </Typography>
+                    ) : null}
+                    <ClassDisplay classes={data?.classes ?? []} showIcons iconSize={16} />
+                  </Stack>
+                )
               }}
             >
               {charactersOfPlayer(playerName).map((character) => {
@@ -900,9 +913,12 @@ export default function AdventureLog() {
                         }}
                       />
                       <span>{character.name}</span>
-                      <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                      <Typography variant="caption" color="text.secondary">
                         {level ? `L${level}` : ''}
                       </Typography>
+                      <Box sx={{ ml: 'auto' }}>
+                        <ClassDisplay classes={characterData[character.id]?.classes ?? []} showIcons iconSize={16} />
+                      </Box>
                     </Stack>
                   </MenuItem>
                 )
