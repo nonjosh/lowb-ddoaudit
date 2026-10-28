@@ -887,11 +887,26 @@ export default function AdventureLog() {
               value={PLAYER_NAMES.includes(playerName) ? playerName : ''}
               onChange={(event) => handlePlayerChange(event.target.value)}
             >
-              {PLAYER_NAMES.map((name) => (
-                <MenuItem key={name} value={name}>
-                  {name}
-                </MenuItem>
-              ))}
+              {PLAYER_NAMES.map((name) => {
+                const online = charactersOfPlayer(name).some(
+                  (character) => characterData[character.id]?.is_online === true,
+                )
+                return (
+                  <MenuItem key={name} value={name}>
+                    <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ width: '100%' }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: online ? 'success.main' : 'action.disabled',
+                        }}
+                      />
+                      <span>{name}</span>
+                    </Stack>
+                  </MenuItem>
+                )
+              })}
             </Select>
           </FormControl>
 
