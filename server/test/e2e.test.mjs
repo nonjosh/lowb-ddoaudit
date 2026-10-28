@@ -8,24 +8,29 @@ const questId = process.env.TEST_QUEST_ID
 
 const enabled = Boolean(baseUrl && password && characterId && questId)
 
+const url = (path) => `${baseUrl}${path}`
+
+const readState = async () => {
+  const response = await fetch(url('/completions'))
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  return body.data?.[characterId]?.[questId] ?? null
+}
+
+const patch = (body, headers = {}) =>
+  fetch(url(`/completions/${characterId}/${questId}`), {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  })
+
+const auth = { 'x-log-password': password }
+
 test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTER_ID, TEST_QUEST_ID' }, async (t) => {
-  const url = (path) => `${baseUrl}${path}`
-
-  const readState = async () => {
-    const response = await fetch(url('/completions'))
-    assert.equal(response.status, 200)
-    const body = await response.json()
-    return body.data?.[characterId]?.[questId] ?? null
-  }
-
-  const patch = (body, headers = {}) =>
-    fetch(url(`/completions/${characterId}/${questId}`), {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json', ...headers },
-      body: JSON.stringify(body),
-    })
-
+  // Never mutate a row that already holds real play history: history entries cannot
+  // be restored through the API. Use a throwaway character/quest pair.
   const original = await readState()
+  const skipMutation = (original?.history?.length ?? 0) > 0 ? 'test row already has real history' : false
 
   await t.test('public read works', async () => {
     const response = await fetch(url('/completions'))
@@ -60,36 +65,16 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
   await t.test('unknown character is rejected', async () => {
     const response = await fetch(url('/completions/1/2'), {
       method: 'PATCH',
-      headers: { 'content-type': 'application/json', 'x-log-password': password },
+      headers: { 'content-type': 'application/json', ...auth },
       body: JSON.stringify({ finished: true }),
     })
     assert.equal(response.status, 400)
   })
 
-  await t.test('write round-trips through Firestore', async () => {
-    const target = original?.finished === true ? false : true
-    const response = await patch({ finished: target }, { 'x-log-password': password })
-    assert.equal(response.status, 204)
-
-    const updated = await readState()
-    assert.equal(updated.finished, target)
-  })
-
-  await t.test('uncheck keeps the observed timestamp', async () => {
-    const stamp = new Date(Date.now() - 3_600_000).toISOString()
-    await patch({ finished: true, lastFinishedAt: stamp }, { 'x-log-password': password })
-    const unchecked = await patch({ finished: false }, { 'x-log-password': password })
-    assert.equal(unchecked.status, 204)
-
-    const state = await readState()
-    assert.equal(state.finished, false)
-    assert.equal(new Date(state.lastFinishedAt).toISOString(), stamp)
-  })
-
   await t.test('future timestamps are rejected', async () => {
     const response = await patch(
       { finished: true, lastFinishedAt: new Date(Date.now() + 400 * 24 * 3600 * 1000).toISOString() },
-      { 'x-log-password': password },
+      auth,
     )
     assert.equal(response.status, 400)
   })
@@ -97,23 +82,65 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
   await t.test('malformed JSON is a client error, not a crash', async () => {
     const response = await fetch(url(`/completions/${characterId}/${questId}`), {
       method: 'PATCH',
-      headers: { 'content-type': 'application/json', 'x-log-password': password },
+      headers: { 'content-type': 'application/json', ...auth },
       body: '{not json',
     })
     assert.equal(response.status, 400)
   })
 
-  await t.test('restore original state', async () => {
-    if (original === null) {
-      await patch({ finished: false, lastFinishedAt: null }, { 'x-log-password': password })
-      return
-    }
-    const response = await patch(
-      { finished: original.finished, lastFinishedAt: original.lastFinishedAt },
-      { 'x-log-password': password },
-    )
+  await t.test('write round-trips through Firestore', { skip: skipMutation }, async () => {
+    const response = await patch({ finished: true }, auth)
     assert.equal(response.status, 204)
+
+    const updated = await readState()
+    assert.equal(updated.finished, true)
+  })
+
+  await t.test('uncheck keeps the observed timestamp', { skip: skipMutation }, async () => {
+    const stamp = new Date(Date.now() - 3_600_000).toISOString()
+    await patch({ finished: true, lastFinishedAt: stamp }, auth)
+    const unchecked = await patch({ finished: false }, auth)
+    assert.equal(unchecked.status, 204)
+
+    const state = await readState()
+    assert.equal(state.finished, false)
+    assert.equal(new Date(state.lastFinishedAt).toISOString(), stamp)
+  })
+
+  await t.test('repeat completions accumulate newest first', { skip: skipMutation }, async () => {
+    const older = new Date(Date.now() - 5 * 3_600_000).toISOString()
+    const newer = new Date(Date.now() - 2 * 3_600_000).toISOString()
+
+    // Start from a clean row so the assertions do not depend on the previous subtest.
+    await patch({ finished: true, lastFinishedAt: null }, auth)
+    await patch({ finished: true, lastFinishedAt: older }, auth)
+    await patch({ finished: true, lastFinishedAt: newer }, auth)
+
+    const state = await readState()
+    assert.ok(Array.isArray(state.history), 'history must be an array')
+    assert.equal(new Date(state.history[0]).toISOString(), newer)
+    assert.ok(
+      state.history.some((entry) => new Date(entry).toISOString() === older),
+      'older completion must be kept',
+    )
+    assert.equal(new Date(state.lastFinishedAt).toISOString(), newer)
+    assert.ok(state.history.length <= 10, 'history is capped at 10 entries')
+  })
+
+  await t.test('backfill without a date clears history', { skip: skipMutation }, async () => {
+    await patch({ finished: true, lastFinishedAt: null }, auth)
+    const state = await readState()
+    assert.equal(state.finished, true)
+    assert.equal(state.lastFinishedAt, null)
+    assert.deepEqual(state.history, [])
+  })
+
+  await t.test('restore a clean row', { skip: skipMutation }, async () => {
+    const response = await patch({ finished: false, lastFinishedAt: null }, auth)
+    assert.equal(response.status, 204)
+
     const restored = await readState()
-    assert.equal(restored.finished, original.finished)
+    assert.equal(restored.finished, false)
+    assert.deepEqual(restored.history, [])
   })
 })

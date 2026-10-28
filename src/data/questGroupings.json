@@ -1,0 +1,1692 @@
+{
+  "generatedAt": "2026-10-28T13:45:43.837Z",
+  "sources": {
+    "quests": "https://api.ddoaudit.com/v1/quests",
+    "sagas": "src/data/sagas.json",
+    "wikiSaga": "https://ddowiki.com/page/Saga",
+    "wikiPacks": "https://ddowiki.com/page/Adventure_Pack"
+  },
+  "counts": {
+    "quests": 531,
+    "questsWithSaga": 88,
+    "packs": 67,
+    "sagasInSource": 13
+  },
+  "quests": {
+    "1879051405": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879051406": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879051424": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879051430": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879051442": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879051444": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879051453": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879051519": {
+      "pack": "Delera's Tomb"
+    },
+    "1879051535": {
+      "pack": "Three-Barrel Cove"
+    },
+    "1879051551": {
+      "pack": "Three-Barrel Cove"
+    },
+    "1879051712": {
+      "pack": "Delera's Tomb"
+    },
+    "1879051717": {
+      "pack": "Delera's Tomb"
+    },
+    "1879051736": {
+      "pack": "The Seal of Shan-To-Kor"
+    },
+    "1879051737": {
+      "pack": "The Seal of Shan-To-Kor"
+    },
+    "1879051738": {
+      "pack": "The Seal of Shan-To-Kor"
+    },
+    "1879051741": {
+      "pack": "The Seal of Shan-To-Kor"
+    },
+    "1879051771": {
+      "pack": "Delera's Tomb"
+    },
+    "1879051782": {
+      "pack": "Delera's Tomb"
+    },
+    "1879051783": {
+      "pack": "Delera's Tomb"
+    },
+    "1879052123": {
+      "pack": "The Catacombs"
+    },
+    "1879052218": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879052220": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879052226": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879052228": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879052230": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879052267": {
+      "pack": "The Catacombs"
+    },
+    "1879052343": {
+      "pack": "The Catacombs"
+    },
+    "1879052395": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052398": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052404": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052424": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052428": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052433": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052471": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052474": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052478": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052480": {
+      "pack": "Sorrowdusk Isle"
+    },
+    "1879052559": {
+      "pack": "The Catacombs"
+    },
+    "1879052560": {
+      "pack": "The Catacombs"
+    },
+    "1879052561": {
+      "pack": "The Catacombs"
+    },
+    "1879052574": {
+      "pack": "The Catacombs"
+    },
+    "1879052672": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879052673": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879054318": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879054322": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879054439": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879054747": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879054887": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879057359": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879057788": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879057790": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879057791": {
+      "pack": "Tangleroot Gorge"
+    },
+    "1879058614": {
+      "saga": "Pirates of the Thunder Sea (Heroic)"
+    },
+    "1879059023": {
+      "pack": "Three-Barrel Cove"
+    },
+    "1879059024": {
+      "pack": "Three-Barrel Cove"
+    },
+    "1879059099": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Three-Barrel Cove"
+    },
+    "1879059101": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Three-Barrel Cove"
+    },
+    "1879059125": {
+      "pack": "Three-Barrel Cove"
+    },
+    "1879065458": {
+      "pack": "The Ruins of Threnal"
+    },
+    "1879069585": {
+      "pack": "The Vault of Night"
+    },
+    "1879069587": {
+      "pack": "The Vault of Night"
+    },
+    "1879069681": {
+      "pack": "The Vault of Night"
+    },
+    "1879069683": {
+      "pack": "The Vault of Night"
+    },
+    "1879069888": {
+      "pack": "The Vault of Night"
+    },
+    "1879069900": {
+      "pack": "The Vault of Night"
+    },
+    "1879069901": {
+      "pack": "The Vault of Night"
+    },
+    "1879070741": {
+      "pack": "The Restless Isles"
+    },
+    "1879071165": {
+      "pack": "The Restless Isles"
+    },
+    "1879071167": {
+      "pack": "The Restless Isles"
+    },
+    "1879071168": {
+      "pack": "The Restless Isles"
+    },
+    "1879071283": {
+      "pack": "The Necropolis, Part 2"
+    },
+    "1879071300": {
+      "pack": "The Necropolis, Part 2"
+    },
+    "1879071301": {
+      "pack": "The Necropolis, Part 2"
+    },
+    "1879071302": {
+      "pack": "The Necropolis, Part 2"
+    },
+    "1879071303": {
+      "pack": "The Necropolis, Part 2"
+    },
+    "1879071325": {
+      "pack": "The Necropolis, Part 1"
+    },
+    "1879071326": {
+      "pack": "The Necropolis, Part 1"
+    },
+    "1879071327": {
+      "pack": "The Necropolis, Part 1"
+    },
+    "1879071328": {
+      "pack": "The Necropolis, Part 1"
+    },
+    "1879071329": {
+      "pack": "The Necropolis, Part 1"
+    },
+    "1879071330": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879071342": {
+      "pack": "The Necropolis, Part 3"
+    },
+    "1879071345": {
+      "pack": "The Necropolis, Part 3"
+    },
+    "1879071349": {
+      "pack": "The Necropolis, Part 3"
+    },
+    "1879071351": {
+      "pack": "The Necropolis, Part 3"
+    },
+    "1879071659": {
+      "pack": "Delera's Tomb"
+    },
+    "1879071712": {
+      "pack": "The Restless Isles"
+    },
+    "1879072067": {
+      "pack": "The Restless Isles"
+    },
+    "1879073019": {
+      "pack": "The Demon Sands"
+    },
+    "1879073020": {
+      "pack": "The Demon Sands"
+    },
+    "1879073032": {
+      "pack": "The Demon Sands"
+    },
+    "1879073034": {
+      "pack": "The Demon Sands"
+    },
+    "1879073036": {
+      "pack": "The Demon Sands"
+    },
+    "1879073040": {
+      "pack": "The Demon Sands"
+    },
+    "1879073042": {
+      "pack": "The Demon Sands"
+    },
+    "1879073044": {
+      "pack": "The Demon Sands"
+    },
+    "1879073048": {
+      "pack": "The Demon Sands"
+    },
+    "1879073050": {
+      "pack": "The Demon Sands"
+    },
+    "1879073052": {
+      "pack": "The Demon Sands"
+    },
+    "1879073062": {
+      "pack": "Delera's Tomb"
+    },
+    "1879073073": {
+      "pack": "Delera's Tomb"
+    },
+    "1879074477": {
+      "pack": "The Demon Sands"
+    },
+    "1879077265": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077447": {
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077474": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077477": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077480": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077483": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077486": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077487": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879077494": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879078755": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879078995": {
+      "saga": "In the Wastes of Gianthold (Heroic)",
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879079055": {
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879079912": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879080000": {
+      "pack": "The Necropolis, Part 3"
+    },
+    "1879080627": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879080630": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879080632": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879080633": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879080637": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879082352": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879083031": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879083071": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879083073": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879083074": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879083075": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879083837": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879086504": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879086508": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879086553": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879086559": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879086653": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Three-Barrel Cove"
+    },
+    "1879086661": {
+      "pack": "Devil Assault"
+    },
+    "1879086971": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Three-Barrel Cove"
+    },
+    "1879088619": {
+      "pack": "The Inspired Quarter"
+    },
+    "1879088621": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Three-Barrel Cove"
+    },
+    "1879095894": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879095895": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879095896": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879095897": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879095912": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879097438": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879097439": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879097440": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879097685": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879097697": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879097698": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879097710": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879097737": {
+      "pack": "The Reaver's Reach"
+    },
+    "1879097742": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879097753": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879098366": {
+      "pack": "Sentinels of Stormreach"
+    },
+    "1879101694": {
+      "pack": "The Sharn Syndicate"
+    },
+    "1879101717": {
+      "pack": "The Sharn Syndicate"
+    },
+    "1879102010": {
+      "pack": "The Sharn Syndicate"
+    },
+    "1879102102": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879102117": {
+      "pack": "The Devils of Shavarath"
+    },
+    "1879102142": {
+      "pack": "The Sharn Syndicate"
+    },
+    "1879102278": {
+      "pack": "The Sharn Syndicate"
+    },
+    "1879102350": {
+      "pack": "The Sharn Syndicate"
+    },
+    "1879102988": {
+      "pack": "The Inspired Quarter"
+    },
+    "1879103026": {
+      "pack": "The Dreaming Dark"
+    },
+    "1879103031": {
+      "pack": "The Inspired Quarter"
+    },
+    "1879103096": {
+      "pack": "The Inspired Quarter"
+    },
+    "1879103099": {
+      "pack": "The Inspired Quarter"
+    },
+    "1879103153": {
+      "pack": "The Dreaming Dark"
+    },
+    "1879103272": {
+      "pack": "The Dreaming Dark"
+    },
+    "1879103284": {
+      "pack": "The Dreaming Dark"
+    },
+    "1879103304": {
+      "pack": "The Dreaming Dark"
+    },
+    "1879105680": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Sentinels of Stormreach"
+    },
+    "1879105685": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Sentinels of Stormreach"
+    },
+    "1879105689": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Sentinels of Stormreach"
+    },
+    "1879105692": {
+      "saga": "Pirates of the Thunder Sea (Heroic)",
+      "pack": "Sentinels of Stormreach"
+    },
+    "1879108198": {
+      "pack": "Phiarlan Carnival"
+    },
+    "1879108202": {
+      "pack": "Phiarlan Carnival"
+    },
+    "1879108203": {
+      "pack": "Phiarlan Carnival"
+    },
+    "1879108207": {
+      "saga": "Fables of the Feywild (Heroic)",
+      "pack": "Phiarlan Carnival"
+    },
+    "1879108214": {
+      "pack": "Phiarlan Carnival"
+    },
+    "1879108414": {
+      "pack": "The Red Fens"
+    },
+    "1879108415": {
+      "pack": "The Red Fens"
+    },
+    "1879108416": {
+      "pack": "The Red Fens"
+    },
+    "1879108417": {
+      "pack": "The Red Fens"
+    },
+    "1879108418": {
+      "pack": "The Red Fens"
+    },
+    "1879115244": {
+      "pack": "Attack on Stormreach"
+    },
+    "1879115252": {
+      "pack": "Attack on Stormreach"
+    },
+    "1879115261": {
+      "pack": "Devil Assault"
+    },
+    "1879115268": {
+      "pack": "Attack on Stormreach"
+    },
+    "1879115270": {
+      "pack": "Attack on Stormreach"
+    },
+    "1879120681": {
+      "pack": "Harbinger of Madness"
+    },
+    "1879120682": {
+      "saga": "Fables of the Feywild (Heroic)",
+      "pack": "Harbinger of Madness"
+    },
+    "1879120683": {
+      "pack": "Harbinger of Madness"
+    },
+    "1879120684": {
+      "pack": "Harbinger of Madness"
+    },
+    "1879120685": {
+      "pack": "Reign of Madness"
+    },
+    "1879120686": {
+      "pack": "Reign of Madness"
+    },
+    "1879120687": {
+      "pack": "Reign of Madness"
+    },
+    "1879120688": {
+      "pack": "Reign of Madness"
+    },
+    "1879132371": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132373": {
+      "saga": "Masterminds of Sharn (Heroic)",
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132375": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132377": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132379": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132381": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132383": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132385": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132387": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132389": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879132391": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879135622": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879135736": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137191": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137194": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137196": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137198": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137203": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137205": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137207": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879137209": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140958": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140959": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140960": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140961": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140962": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140963": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140964": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140965": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879140966": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879146143": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879146260": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879146404": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Menace of the Underdark"
+    },
+    "1879146405": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147898": {
+      "saga": "Menace of the Underdark (Epic)"
+    },
+    "1879147900": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147902": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147904": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147906": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147908": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147910": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147912": {
+      "saga": "Menace of the Underdark (Epic)",
+      "pack": "Menace of the Underdark"
+    },
+    "1879147914": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147916": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147918": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147920": {
+      "saga": "Menace of the Underdark (Epic)",
+      "pack": "Menace of the Underdark"
+    },
+    "1879147922": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147924": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147926": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879147928": {
+      "saga": "Fables of the Feywild (Heroic)",
+      "pack": "Menace of the Underdark"
+    },
+    "1879147930": {
+      "pack": "Menace of the Underdark"
+    },
+    "1879150375": {
+      "pack": "Eveningstar Challenge Pack"
+    },
+    "1879150496": {
+      "pack": "Eveningstar Challenge Pack"
+    },
+    "1879150500": {
+      "pack": "Eveningstar Challenge Pack"
+    },
+    "1879150502": {
+      "pack": "Eveningstar Challenge Pack"
+    },
+    "1879155939": {
+      "pack": "Eveningstar Challenge Pack"
+    },
+    "1879155942": {
+      "pack": "Eveningstar Challenge Pack"
+    },
+    "1879162863": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The Druid's Deep"
+    },
+    "1879162864": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The Druid's Deep"
+    },
+    "1879162865": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The High Road of Shadows"
+    },
+    "1879162866": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The Druid's Deep"
+    },
+    "1879162867": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The Druid's Deep"
+    },
+    "1879162894": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The High Road of Shadows"
+    },
+    "1879162902": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The High Road of Shadows"
+    },
+    "1879162908": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The High Road of Shadows"
+    },
+    "1879162911": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "The High Road of Shadows"
+    },
+    "1879165026": {
+      "pack": "The High Road of Shadows"
+    },
+    "1879167260": {
+      "pack": "The Ruins of Gianthold"
+    },
+    "1879173259": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879173262": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879173271": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879173273": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879173274": {
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879174691": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879175190": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879175196": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879175202": {
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879175203": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879175204": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879175407": {
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879183857": {
+      "saga": "Perils of Cormyr (Heroic)"
+    },
+    "1879183864": {
+      "saga": "Perils of Cormyr (Heroic)",
+      "pack": "Shadowfell Conspiracy"
+    },
+    "1879183866": {
+      "saga": "Perils of Cormyr (Heroic)"
+    },
+    "1879197087": {
+      "pack": "Haunted Halls of Eveningstar"
+    },
+    "1879197132": {
+      "pack": "Shadow Under Thunderholme"
+    },
+    "1879197134": {
+      "pack": "Shadow Under Thunderholme"
+    },
+    "1879197136": {
+      "pack": "Shadow Under Thunderholme"
+    },
+    "1879200134": {
+      "pack": "Haunted Halls of Eveningstar"
+    },
+    "1879200138": {
+      "pack": "Haunted Halls of Eveningstar"
+    },
+    "1879203043": {
+      "pack": "Three-Barrel Cove"
+    },
+    "1879205086": {
+      "pack": "The Necropolis, Part 4"
+    },
+    "1879206209": {
+      "pack": "Tomb of Horrors"
+    },
+    "1879206212": {
+      "pack": "Tomb of Horrors"
+    },
+    "1879206213": {
+      "pack": "Tomb of Horrors"
+    },
+    "1879207279": {
+      "pack": "Heart of Madness"
+    },
+    "1879207282": {
+      "pack": "Heart of Madness"
+    },
+    "1879207636": {
+      "pack": "Heart of Madness"
+    },
+    "1879212049": {
+      "pack": "Trials of the Archons"
+    },
+    "1879212050": {
+      "pack": "Trials of the Archons"
+    },
+    "1879212058": {
+      "pack": "Trials of the Archons"
+    },
+    "1879212059": {
+      "pack": "Trials of the Archons"
+    },
+    "1879213843": {
+      "pack": "Fall Festival Event"
+    },
+    "1879213845": {
+      "pack": "Fall Festival Event"
+    },
+    "1879213848": {
+      "pack": "Fall Festival Event"
+    },
+    "1879213854": {
+      "pack": "Fall Festival Event"
+    },
+    "1879213855": {
+      "pack": "Fall Festival Event"
+    },
+    "1879213856": {
+      "pack": "Fall Festival Event"
+    },
+    "1879213910": {
+      "pack": "The Devil's Gambit"
+    },
+    "1879213912": {
+      "pack": "The Devil's Gambit"
+    },
+    "1879213918": {
+      "pack": "The Devil's Gambit"
+    },
+    "1879213927": {
+      "pack": "The Devil's Gambit"
+    },
+    "1879213964": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879215392": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879215396": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879228626": {
+      "saga": "Isle of Dread (Heroic)"
+    },
+    "1879229248": {
+      "pack": "Against the Slave Lords"
+    },
+    "1879229249": {
+      "pack": "Against the Slave Lords"
+    },
+    "1879229250": {
+      "pack": "Against the Slave Lords"
+    },
+    "1879236270": {
+      "pack": "The Dragonblood Prophecy"
+    },
+    "1879236271": {
+      "pack": "The Dragonblood Prophecy"
+    },
+    "1879236275": {
+      "pack": "The Dragonblood Prophecy"
+    },
+    "1879236276": {
+      "pack": "The Dragonblood Prophecy"
+    },
+    "1879236304": {
+      "pack": "Peril of the Planar Eyes"
+    },
+    "1879236305": {
+      "pack": "Peril of the Planar Eyes"
+    },
+    "1879238677": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238682": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238695": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238699": {
+      "pack": "Ravenloft"
+    },
+    "1879238701": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238708": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238709": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238714": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238717": {
+      "pack": "Ravenloft"
+    },
+    "1879238721": {
+      "pack": "Ravenloft"
+    },
+    "1879238723": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238726": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238727": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238732": {
+      "saga": "Mists of Ravenloft (Heroic)",
+      "pack": "Ravenloft"
+    },
+    "1879238738": {
+      "pack": "Ravenloft"
+    },
+    "1879238852": {
+      "pack": "The Mines of Tethyamar"
+    },
+    "1879238859": {
+      "pack": "The Mines of Tethyamar"
+    },
+    "1879238863": {
+      "pack": "The Mines of Tethyamar"
+    },
+    "1879238870": {
+      "pack": "The Mines of Tethyamar"
+    },
+    "1879238872": {
+      "pack": "The Mines of Tethyamar"
+    },
+    "1879242478": {
+      "pack": "Fall Festival Event"
+    },
+    "1879244589": {
+      "pack": "Disciples of Rage"
+    },
+    "1879244593": {
+      "pack": "Disciples of Rage"
+    },
+    "1879244598": {
+      "pack": "Disciples of Rage"
+    },
+    "1879244600": {
+      "pack": "Disciples of Rage"
+    },
+    "1879244603": {
+      "pack": "Disciples of Rage"
+    },
+    "1879244778": {
+      "pack": "Fall Festival Event"
+    },
+    "1879244859": {
+      "pack": "Fall Festival Event"
+    },
+    "1879244860": {
+      "pack": "Fall Festival Event"
+    },
+    "1879246055": {
+      "pack": "White Plume Mountain and Other Tales"
+    },
+    "1879246057": {
+      "pack": "White Plume Mountain and Other Tales"
+    },
+    "1879246063": {
+      "pack": "White Plume Mountain and Other Tales"
+    },
+    "1879246064": {
+      "pack": "White Plume Mountain and Other Tales"
+    },
+    "1879246066": {
+      "pack": "White Plume Mountain and Other Tales"
+    },
+    "1879248461": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248464": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248467": {
+      "saga": "Masterminds of Sharn (Heroic)"
+    },
+    "1879248470": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248477": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248479": {
+      "saga": "Masterminds of Sharn (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248489": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248491": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248492": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248494": {
+      "saga": "Masterminds of Sharn (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248501": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248526": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248529": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248531": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248533": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248534": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248557": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248560": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248562": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248564": {
+      "saga": "Cogs Explorer Dungeons (Heroic)",
+      "pack": "Masterminds of Sharn"
+    },
+    "1879250059": {
+      "pack": "Masterminds of Sharn"
+    },
+    "1879255025": {
+      "pack": "The Soul Splitter"
+    },
+    "1879255026": {
+      "pack": "The Soul Splitter"
+    },
+    "1879255032": {
+      "pack": "The Soul Splitter"
+    },
+    "1879255039": {
+      "pack": "The Soul Splitter"
+    },
+    "1879255040": {
+      "pack": "The Soul Splitter"
+    },
+    "1879255044": {
+      "pack": "The Soul Splitter"
+    },
+    "1879256689": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256693": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256700": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256701": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256703": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256706": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256713": {
+      "pack": "Snowpeaks Festival Event"
+    },
+    "1879256718": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256719": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879256748": {
+      "pack": "Keep on the Borderlands"
+    },
+    "1879259098": {
+      "pack": "The Lost Gatekeepers"
+    },
+    "1879259099": {
+      "pack": "The Lost Gatekeepers"
+    },
+    "1879259105": {
+      "pack": "The Lost Gatekeepers"
+    },
+    "1879259108": {
+      "pack": "The Lost Gatekeepers"
+    },
+    "1879259111": {
+      "pack": "The Lost Gatekeepers"
+    },
+    "1879260005": {
+      "pack": "Peril of the Planar Eyes"
+    },
+    "1879260013": {
+      "pack": "Peril of the Planar Eyes"
+    },
+    "1879260044": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260049": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260050": {
+      "saga": "Fables of the Feywild (Heroic)",
+      "pack": "Fables of the Feywild"
+    },
+    "1879260051": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260053": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260069": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260078": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260083": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260087": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260094": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260107": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260117": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260120": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879260123": {
+      "pack": "Hunter and Hunted"
+    },
+    "1879260125": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879261808": {
+      "pack": "Fables of the Feywild"
+    },
+    "1879261813": {
+      "pack": "Hunter and Hunted"
+    },
+    "1879261815": {
+      "pack": "Hunter and Hunted"
+    },
+    "1879263795": {
+      "pack": "The Vale of Twilight"
+    },
+    "1879263820": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879263821": {
+      "pack": "Secrets of the Artificers"
+    },
+    "1879267185": {
+      "saga": "Sinister Secret of Saltmarsh (Heroic)",
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879267196": {
+      "saga": "Sinister Secret of Saltmarsh (Heroic)",
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879267202": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879267204": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879267206": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879267207": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879267236": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879269036": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879269038": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879269054": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879269057": {
+      "pack": "Sinister Secret of Saltmarsh"
+    },
+    "1879272930": {
+      "pack": "Isle of Dread"
+    },
+    "1879272936": {
+      "pack": "Isle of Dread"
+    },
+    "1879272938": {
+      "pack": "Isle of Dread"
+    },
+    "1879272940": {
+      "pack": "Isle of Dread"
+    },
+    "1879272954": {
+      "pack": "Isle of Dread"
+    },
+    "1879272956": {
+      "pack": "Isle of Dread"
+    },
+    "1879272961": {
+      "pack": "Isle of Dread"
+    },
+    "1879272963": {
+      "pack": "Isle of Dread"
+    },
+    "1879272996": {
+      "pack": "Isle of Dread"
+    },
+    "1879272999": {
+      "pack": "Isle of Dread"
+    },
+    "1879273000": {
+      "pack": "Isle of Dread"
+    },
+    "1879273008": {
+      "pack": "Isle of Dread"
+    },
+    "1879273037": {
+      "pack": "Isle of Dread"
+    },
+    "1879273040": {
+      "saga": "Isle of Dread (Heroic)",
+      "pack": "Isle of Dread"
+    },
+    "1879282181": {
+      "pack": "Grip of the Hidden Hand"
+    },
+    "1879282182": {
+      "saga": "Vecna Unleashed (Heroic)",
+      "pack": "Grip of the Hidden Hand"
+    },
+    "1879282190": {
+      "saga": "Vecna Unleashed (Heroic)",
+      "pack": "Grip of the Hidden Hand"
+    },
+    "1879282192": {
+      "saga": "Vecna Unleashed (Heroic)",
+      "pack": "Grip of the Hidden Hand"
+    },
+    "1879282193": {
+      "pack": "Grip of the Hidden Hand"
+    },
+    "1879282557": {
+      "pack": "The Temple of Elemental Evil"
+    },
+    "1879282559": {
+      "pack": "The Temple of Elemental Evil"
+    },
+    "1879282561": {
+      "pack": "The Temple of Elemental Evil"
+    },
+    "1879282562": {
+      "pack": "The Temple of Elemental Evil"
+    },
+    "1879282563": {
+      "pack": "The Temple of Elemental Evil"
+    },
+    "1879282564": {
+      "pack": "The Temple of Elemental Evil"
+    },
+    "1879282565": {
+      "pack": "The Temple of Elemental Evil"
+    },
+    "1879283270": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283278": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283281": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283288": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283292": {
+      "saga": "Vecna Unleashed (Heroic)",
+      "pack": "Vecna Unleashed"
+    },
+    "1879283297": {
+      "saga": "Vecna Unleashed (Heroic)",
+      "pack": "Vecna Unleashed"
+    },
+    "1879283298": {
+      "saga": "Vecna Unleashed (Heroic)",
+      "pack": "Vecna Unleashed"
+    },
+    "1879283300": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283309": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283315": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283318": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283325": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283327": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879283331": {
+      "pack": "Vecna Unleashed"
+    },
+    "1879287711": {
+      "pack": "Fall of the Night Brigade"
+    },
+    "1879287713": {
+      "pack": "Fall of the Night Brigade"
+    },
+    "1879287714": {
+      "pack": "Fall of the Night Brigade"
+    },
+    "1879287720": {
+      "pack": "Fall of the Night Brigade"
+    },
+    "1879287732": {
+      "pack": "Slice of Life"
+    },
+    "1879287737": {
+      "pack": "Slice of Life"
+    },
+    "1879287738": {
+      "pack": "Slice of Life"
+    },
+    "1879289580": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289585": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289586": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289589": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289602": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289607": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289610": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289611": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289613": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289615": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289617": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289627": {
+      "saga": "Magic of Myth Drannor (Heroic)",
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289629": {
+      "saga": "Magic of Myth Drannor (Heroic)",
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289639": {
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879289656": {
+      "saga": "Magic of Myth Drannor (Heroic)",
+      "pack": "Magic of Myth Drannor"
+    },
+    "1879295216": {
+      "saga": "The Chill of Ravenloft (Heroic)",
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295652": {
+      "saga": "The Chill of Ravenloft (Heroic)",
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295657": {
+      "saga": "The Chill of Ravenloft (Heroic)",
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295660": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295661": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295664": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295666": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295670": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295679": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295685": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295690": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295698": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295700": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295702": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879295797": {
+      "pack": "Tavern Tales"
+    },
+    "1879295808": {
+      "pack": "Tavern Tales"
+    },
+    "1879295811": {
+      "pack": "Tavern Tales"
+    },
+    "1879295817": {
+      "pack": "The Chill of Ravenloft"
+    },
+    "1879300838": {
+      "pack": "The Dragons' Hand"
+    },
+    "1879300840": {
+      "pack": "The Dragons' Hand"
+    },
+    "1879300846": {
+      "pack": "The Dragons' Hand"
+    },
+    "1879300849": {
+      "pack": "The Dragons' Hand"
+    },
+    "1879300855": {
+      "pack": "The Dragons' Hand"
+    },
+    "1879303593": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303596": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303597": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303608": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303610": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303626": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303627": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303632": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303635": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303636": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303667": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303674": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303676": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879303683": {
+      "pack": "Terror of Demogorgon"
+    },
+    "1879305547": {
+      "pack": "Terror of Demogorgon"
+    }
+  }
+}

@@ -8,10 +8,15 @@ export interface CompletionRecord {
   quest_id: string
   finished: boolean
   last_finished_at: Timestamp | null
+  /** Completion timestamps, newest first. Capped at HISTORY_LIMIT. */
+  history: Timestamp[]
   level_at_finish: number | null
   source: 'poll' | 'manual'
   updated_at: Timestamp
 }
+
+/** Enough repeats to detect a ransacked quest without growing without bound. */
+export const HISTORY_LIMIT = 10
 
 const db = new Firestore()
 const completions = db.collection('completions')
@@ -20,6 +25,20 @@ const stateDocument = db.doc('state/poller')
 
 export const completionId = (characterId: string, questId: string): string =>
   `${characterId}_${questId}`
+
+/** Older documents only have last_finished_at; treat it as a one-entry history. */
+function historyOf(data: Partial<CompletionRecord> | null): Timestamp[] {
+  if (!data) return []
+  if (Array.isArray(data.history) && data.history.length > 0) return data.history
+  return data.last_finished_at ? [data.last_finished_at] : []
+}
+
+function withHistoryEntry(history: Timestamp[], at: Timestamp): Timestamp[] {
+  const millis = at.toMillis()
+  return [at, ...history.filter((entry) => entry.toMillis() !== millis)]
+    .sort((left, right) => right.toMillis() - left.toMillis())
+    .slice(0, HISTORY_LIMIT)
+}
 
 type SerializedCompletions = Record<string, Record<string, unknown>>
 
@@ -59,10 +78,12 @@ async function loadCompletions(epoch: number): Promise<SerializedCompletions> {
     const questId = data.quest_id
     if (!characterId || !questId) continue
 
+    const history = historyOf(data)
     const bucket = result[characterId] ?? {}
     bucket[questId] = {
       finished: data.finished === true,
-      lastFinishedAt: data.last_finished_at ? data.last_finished_at.toDate().toISOString() : null,
+      lastFinishedAt: history[0]?.toDate().toISOString() ?? null,
+      history: history.map((entry) => entry.toDate().toISOString()),
       levelAtFinish: data.level_at_finish ?? null,
       source: data.source ?? 'poll',
     }
@@ -83,10 +104,15 @@ async function loadCompletions(epoch: number): Promise<SerializedCompletions> {
 export async function recordPolledCompletion(completion: Completion): Promise<boolean> {
   const reference = completions.doc(completionId(completion.characterId, completion.questId))
 
+  const exitAt = Timestamp.fromDate(completion.exitAt)
+
   const written = await db.runTransaction(async (transaction) => {
     const current = await transaction.get(reference)
-    const existing = current.exists ? (current.get('last_finished_at') as Timestamp | null) : null
-    if (existing && existing.toMillis() >= completion.exitAt.getTime()) return false
+    const history = historyOf(current.exists ? (current.data() as CompletionRecord) : null)
+
+    // Timestamp comparison is the only dedupe needed: a retried poll carries the
+    // same exit time and is skipped.
+    if (history[0] && history[0].toMillis() >= exitAt.toMillis()) return false
 
     transaction.set(
       reference,
@@ -94,7 +120,8 @@ export async function recordPolledCompletion(completion: Completion): Promise<bo
         character_id: completion.characterId,
         quest_id: completion.questId,
         finished: true,
-        last_finished_at: Timestamp.fromDate(completion.exitAt),
+        last_finished_at: exitAt,
+        history: withHistoryEntry(history, exitAt),
         level_at_finish: completion.level,
         source: 'poll',
         updated_at: Timestamp.now(),
@@ -125,19 +152,23 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
     const current = await transaction.get(reference)
     const existing = current.exists ? (current.data() as CompletionRecord) : null
 
-    // Unchecking keeps the observed timestamp so the same visit cannot be re-applied.
-    const lastFinishedAt =
+    // Unchecking keeps the observed history so the same visit cannot be re-applied.
+    const previousHistory = historyOf(existing)
+    const history =
       edit.lastFinishedAt === undefined
-        ? (existing?.last_finished_at ?? null)
+        ? previousHistory
         : edit.lastFinishedAt === null
-          ? null
-          : Timestamp.fromDate(edit.lastFinishedAt)
+          ? []
+          : withHistoryEntry(previousHistory, Timestamp.fromDate(edit.lastFinishedAt))
+
+    const lastFinishedAt = history[0] ?? null
 
     const record: CompletionRecord = {
       character_id: edit.characterId,
       quest_id: edit.questId,
       finished: edit.finished,
       last_finished_at: lastFinishedAt,
+      history,
       level_at_finish: existing?.level_at_finish ?? edit.level,
       source: 'manual',
       updated_at: Timestamp.now(),

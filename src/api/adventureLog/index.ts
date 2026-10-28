@@ -3,6 +3,8 @@ import { ADVENTURE_LOG_API_URL } from './constants'
 export interface CompletionEntry {
   finished: boolean
   lastFinishedAt: string | null
+  /** Completion timestamps, newest first (up to 10). Used for ransack detection. */
+  history: string[]
   levelAtFinish: number | null
   source: 'poll' | 'manual'
 }

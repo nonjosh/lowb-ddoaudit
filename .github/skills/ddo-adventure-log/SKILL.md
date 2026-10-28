@@ -51,10 +51,27 @@ Currently: `Vision of an Alternate History` → `Terror of the Demon Lords`.
 | Field | Meaning |
 | --- | --- |
 | `finished` | the user-facing checkbox |
-| `last_finished_at` | last observed completion; `null` = recorded before tracking began |
+| `history` | completion timestamps, newest first, capped at 10 (`HISTORY_LIMIT`) |
+| `last_finished_at` | `history[0]`; `null` = recorded before tracking began |
 | `level_at_finish` | character level at exit (poll path only; `null` for manual edits) |
 | `source` | `poll` or `manual` |
 | `updated_at` | audit timestamp |
+
+Documents written before `history` existed are read as a one-entry history from
+`last_finished_at`, so no migration is needed.
+
+### Ransack status (derived, not stored)
+
+`src/domains/adventureLog/ransack.ts` counts completions inside a 7-day window:
+
+| Constant | Value |
+| --- | --- |
+| `QUEST_RANSACK_WINDOW_MS` | 7 days |
+| `QUEST_RANSACK_LIMIT` | 5 runs |
+
+`getRansackStatus(history)` returns `{ runsInWindow, ransacked }`; the page shows a
+"Ransacked" chip at the limit and an "N/5 in 7d" hint above one run. Adjust the two
+constants if the game changes; nothing is written for this, so no migration is needed.
 
 `edits/{autoId}` is append-only: character, quest, finished, timestamps, `writer: null`.
 
@@ -67,6 +84,23 @@ Currently: `Vision of an Alternate History` → `Terror of the Demon Lords`.
   The SPA only sends `null` when the entry has no timestamp at all.
 - **Poller writes** bump the timestamp forward and set `finished = true`; that is how a
   genuine later completion re-checks a quest by itself.
+
+## Grouping (saga -> pack -> level)
+
+The page groups quests in this order, all collapsed by default:
+
+1. **Saga** — from `src/data/questGroupings.json` (generated).
+2. **Adventure pack**, split into Heroic / Epic / Legendary bands.
+3. **Level** — for quests with neither a saga nor a pack.
+
+`src/data/questGroupings.json` is a snapshot of quest id -> `{ saga, pack }`, built by
+`scripts/build-quest-groupings.ts` from `src/data/sagas.json` plus the DDO Audit quest
+list. Re-run `npx tsx scripts/build-quest-groupings.ts` after adding a saga or a pack.
+Grouping prefers the snapshot and falls back to the live `required_adventure_pack`
+field for quests released after it was generated.
+
+Hidden adventure packs are a browser preference (`localStorage`,
+`lowb-adventure-log-hidden-packs`) and filter quests out of every group.
 
 ## Cadence
 

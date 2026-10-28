@@ -38,6 +38,19 @@ description: "DDO chest ransack timer tracking, 168-hour duration, gradual recov
 | Source   | DDO Audit API  | User-entered    |
 | Recovery | Full at expiry | Gradual 50%/18h |
 
+## Quest End-Reward Ransack (adventure log)
+
+Separate from chest ransack: the adventure log derives quest ransack from the
+completion history stored per character + quest.
+
+- Window: 7 days, limit: 5 completions — constants in
+  `src/domains/adventureLog/ransack.ts`.
+- Source: `history` on `completions/{character_id}_{quest_id}` (newest first, max 10),
+  written by the poller and by manual edits.
+- Display: a "Ransacked" chip at the limit, an "N/5 in 7d" hint above one run.
+- Nothing is stored for ransack status; it is recomputed from timestamps so a changed
+  rule needs no migration.
+
 ## Data Model
 
 **File**: `src/storage/ransackDb.ts`

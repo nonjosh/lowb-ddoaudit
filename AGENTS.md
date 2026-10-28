@@ -190,6 +190,7 @@ Commands (from `server/`):
 | `npm run build` | compile to `dist/` |
 | `npm run test:integration` | live DDO Audit mapping assertions (no mocks) |
 | `npm run test:e2e` | against the deployed service; needs `BASE_URL`, `LOG_PASSWORD`, `TEST_CHARACTER_ID`, `TEST_QUEST_ID` |
+| `npx tsx scripts/build-quest-groupings.ts` | regenerate `src/data/questGroupings.json` (quest -> saga/pack cache) |
 
 Infrastructure lives in the sibling Terraform repo: `terraform-dev/ddo-log/`
 (Cloud Run + Firestore + Cloud Scheduler). See its README for the two-phase deploy and
@@ -203,6 +204,9 @@ Rules that matter when editing this area:
 - Never commit the write password, and never log it. It only exists in Secret Manager.
 - Inference rules are documented in `.github/skills/ddo-adventure-log/SKILL.md`; update
   that skill when changing `server/src/detect.ts`.
+- Quest -> saga / adventure pack grouping is cached in `src/data/questGroupings.json`;
+  regenerate it with `npx tsx scripts/build-quest-groupings.ts` after adding a saga or
+  a pack.
 
 ## Common Tasks
 
@@ -295,6 +299,8 @@ Update the corresponding skill when you:
 | `RAID_LOCKOUT_MS` | 66 hours (2d 18h)  | `src/api/ddoAudit/constants.ts`              |
 | Ransack Duration  | 168 hours (7 days) | `src/storage/ransackDb.ts`                   |
 | Poller interval   | 60 s (2 samples min) | `terraform-dev/ddo-log` + `server/src/config.ts` |
+| Completion history | last 10 per character+quest | `server/src/store.ts` (`HISTORY_LIMIT`) |
+| Quest ransack     | 7 days / 5 runs    | `src/domains/adventureLog/ransack.ts` |
 | TR Multipliers    | 1x / 1.5x / 2x     | `src/domains/trPlanner/levelRequirements.ts` |
 | Heroic XP Cap     | 1,900,000          | `src/domains/trPlanner/levelRequirements.ts` |
 | Epic XP Cap       | 8,250,000          | `src/domains/trPlanner/levelRequirements.ts` |
