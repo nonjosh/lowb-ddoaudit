@@ -35,8 +35,11 @@ export interface QuestGroup {
 }
 
 export interface GroupOptions {
-  /** Show a quest in every saga it belongs to instead of just the first. */
-  allSagas?: boolean
+  /**
+   * 'packs' ignores sagas entirely and groups by adventure pack, then level.
+   * 'sagas' groups by saga only (one row can appear in several sagas).
+   */
+  mode?: 'packs' | 'sagas'
 }
 
 /**
@@ -165,9 +168,9 @@ export function formatLevelRange(group: QuestGroup): string {
 const isRaid = (row: QuestRowModel): boolean => row.quest.type === 'Raid'
 
 /**
- * Grouping order: saga, then adventure pack split by version, then level for quests
- * with neither. Groups are ordered by their highest level, descending; at the same
- * level a raid pack follows a normal one. Inside a group, raid quests come last.
+ * Groups by adventure pack (split by version), then level, or by saga when asked.
+ * Groups are ordered by their highest level, descending; at the same level a raid
+ * pack follows a normal one. Inside a group, raid quests come last.
  */
 export function groupQuestRows(
   rows: QuestRowModel[],
@@ -180,12 +183,12 @@ export function groupQuestRows(
     const pack = getPackName(row.quest)
     if (pack && hiddenPacks.has(pack)) continue
 
-    const sagaNames = sagaGroupNamesForRow(row.quest, row.band)
+    const sagaNames =
+      options.mode === 'sagas' ? sagaGroupNamesForRow(row.quest, row.band) : []
     const targets: Array<Pick<QuestGroup, 'id' | 'label' | 'kind' | 'band'>> = []
 
     if (sagaNames.length > 0) {
-      const selected = options.allSagas ? sagaNames : sagaNames.slice(0, 1)
-      for (const saga of selected) targets.push({ id: `saga:${saga}`, label: saga, kind: 'saga' })
+      for (const saga of sagaNames) targets.push({ id: `saga:${saga}`, label: saga, kind: 'saga' })
     } else if (pack) {
       targets.push({
         id: `pack:${pack}:${row.band}`,

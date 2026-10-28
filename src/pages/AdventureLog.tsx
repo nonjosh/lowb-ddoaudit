@@ -570,7 +570,7 @@ export default function AdventureLog() {
   }, [rows, search, onlyRansacked, hideCompleted, sagasOnly, patronFilter, characterCompletions])
 
   const groups = useMemo(
-    () => groupQuestRows(visibleRows, hiddenPacks, { allSagas: sagasOnly }),
+    () => groupQuestRows(visibleRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' }),
     [visibleRows, hiddenPacks, sagasOnly],
   )
   const packs = useMemo(() => listAdventurePackInfo(quests), [quests])

@@ -95,12 +95,13 @@ constants if the game changes; nothing is written for this, so no migration is n
 
 The page shows one row per playable version (a quest with heroic and legendary CRs
 gets two rows) and groups them, all collapsed by default and ordered by level
-descending:
+descending. There are two modes:
 
-1. **Saga** — from `src/data/questGroupings.json` (generated). A legendary row never
-   lands in a "(Heroic)" saga; it falls through to its pack group.
-2. **Adventure pack**, split into Heroic / Epic / Legendary bands.
-3. **Level** — for quests with neither a saga nor a pack.
+- **Default**: adventure pack only, split into Heroic / Epic / Legendary bands, then
+  level for quests with no pack. Sagas are ignored here.
+- **"Sagas only"**: saga groups only; a quest appears in every saga it belongs to
+  (`src/data/questGroupings.json`), and rows whose version does not match a
+  "(Heroic)"/"(Legendary)" saga are dropped from this view.
 
 Group headers carry a tri-state checkbox (all / some / none done) that marks every row
 in the group, the level range, and a done/total count. Inside a group, raid quests sort
