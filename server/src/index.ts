@@ -158,11 +158,14 @@ app.post(
       at = parsed
     }
 
-    // Record first, then re-derive the checkboxes for the new life.
-    await recordReincarnation(characterId, at, 'manual')
-    const reset = await resetCompletionsForLife(characterId, at, 'manual')
+    // Record first, then re-derive the checkboxes with the time actually in force
+    // (an earlier request is ignored rather than rewinding the boundary).
+    const { recorded, effectiveAt } = await recordReincarnation(characterId, at, 'manual')
+    const reset = await resetCompletionsForLife(characterId, effectiveAt, 'manual')
 
-    response.json({ data: { at: at.toISOString(), unchecked: reset } })
+    response.json({
+      data: { at: effectiveAt.toISOString(), unchecked: reset, recorded },
+    })
   }),
 )
 

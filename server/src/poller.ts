@@ -63,9 +63,13 @@ async function pollOnce(now: Date): Promise<PollResult> {
   // Reincarnations are applied after the new completions so this life's runs stay
   // checked while everything older is unchecked (history is preserved either way).
   for (const reincarnation of reincarnations) {
-    const recorded = await recordReincarnation(reincarnation.characterId, reincarnation.at, 'auto')
+    const { recorded, effectiveAt } = await recordReincarnation(
+      reincarnation.characterId,
+      reincarnation.at,
+      'auto',
+    )
     if (!recorded) continue
-    const reset = await resetCompletionsForLife(reincarnation.characterId, reincarnation.at, 'auto')
+    const reset = await resetCompletionsForLife(reincarnation.characterId, effectiveAt, 'auto')
     console.log(
       `poll: reincarnation ${reincarnation.characterId} at ${reincarnation.at.toISOString()} (unchecked ${reset})`,
     )

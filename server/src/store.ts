@@ -296,13 +296,17 @@ export async function recordReincarnation(
   characterId: string,
   at: Date,
   source: 'auto' | 'manual',
-): Promise<boolean> {
+): Promise<{ recorded: boolean; effectiveAt: Date }> {
   const reference = reincarnations.doc(characterId)
   const current = await reference.get()
   const storedAt = current.exists ? (current.get('at') as Timestamp | null) : null
 
-  // Never rewind the boundary: a late auto-detection must not resurrect a previous life.
-  if (storedAt && storedAt.toMillis() >= at.getTime()) return false
+  // Never rewind the boundary, and tell the caller which time is actually in force:
+  // a late detection must not resurrect a previous life, nor a reset use the older
+  // requested time.
+  if (storedAt && storedAt.toMillis() >= at.getTime()) {
+    return { recorded: false, effectiveAt: storedAt.toDate() }
+  }
 
   await reference.set(
     {
@@ -313,7 +317,7 @@ export async function recordReincarnation(
     },
     { merge: true },
   )
-  return true
+  return { recorded: true, effectiveAt: at }
 }
 
 /**
