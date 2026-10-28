@@ -113,9 +113,23 @@ descending. There are two modes:
   "(Heroic)"/"(Legendary)" saga are dropped from this view.
 
 Group headers carry a tri-state checkbox (all / some / none done) that marks every row
-in the group, the level range, and a done/total count. Inside a group, raid quests sort
+in the group, the level range, and a done/total count; a group whose every row is done
+is struck through. Totals include rows hidden by the level cut below, so a group cannot
+look complete while its hidden rows are unfinished. Inside a group, raid quests sort
 last; the search box matches quest names, adventure packs and favor factions, and
-highlights the match in the name and favor columns. Raid rows get a Raid badge, and
+highlights the match in the name and favor columns.
+
+Groups start **collapsed**. The only automatic expansion is for groups that contain a
+character currently inside a quest (`GET /activity`); there is no level-based
+auto-expand or scrolling.
+
+### Level cut
+
+`OFF_LEVEL_RANGE = 6` in `src/pages/AdventureLog.tsx`, on by default and toggled by the
+"±6 levels" button: rows whose level is more than 6 away from the selected character are
+hidden. A row stays visible when the character already cleared that version or when any
+tracked character is inside it. The cut is skipped while the search box has text, so a
+search is never silently filtered. Raid rows get a Raid badge, and
 a row shows an "N inside" badge when tracked characters are currently in that quest
 (`GET /activity`).
 

@@ -1,5 +1,6 @@
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import RefreshIcon from '@mui/icons-material/Refresh'
 import TuneIcon from '@mui/icons-material/Tune'
 import {
   Alert,
@@ -15,6 +16,7 @@ import {
   DialogTitle,
   FormControl,
   FormControlLabel,
+  IconButton,
   InputLabel,
   Link,
   MenuItem,
@@ -74,6 +76,8 @@ import {
 import { getQuestWikiUrl } from '@/utils/wikiUrls'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+/** Hide quests further than this from the selected character's level. */
+const OFF_LEVEL_RANGE = 6
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
 /** Version colours, shared by the row badge and the group header tint. */
 const BAND_COLOR: Record<QuestBand, 'success' | 'info' | 'warning'> = {
@@ -276,7 +280,16 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, occupants, onToggle 
                 .map((occupant) => `${occupant.name}${occupant.level ? ` (L${occupant.level})` : ''}`)
                 .join(', ')}`}
             >
-              <Chip size="small" color="info" label={`${occupants.length} inside`} />
+              <Chip
+                size="small"
+                color="info"
+                label={
+                  <Stack component="span" direction="row" spacing={0.5} alignItems="center">
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
+                    <span>{occupants.length} inside</span>
+                  </Stack>
+                }
+              />
             </Tooltip>
           )}
         </Stack>
@@ -325,6 +338,7 @@ export default function AdventureLog() {
   const [onlyRansacked, setOnlyRansacked] = useState(false)
   const [hideCompleted, setHideCompleted] = useState(false)
   const [sagasOnly, setSagasOnly] = useState(false)
+  const [hideOffLevel, setHideOffLevel] = useState(true)
   const [patronFilter, setPatronFilter] = useState('')
   const [hiddenPacks, setHiddenPacks] = useState<Set<string>>(readHiddenPacks)
   const [packsDialogOpen, setPacksDialogOpen] = useState(false)
@@ -337,9 +351,7 @@ export default function AdventureLog() {
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [bulkGroupId, setBulkGroupId] = useState<string | null>(null)
 
-  const groupRefs = useRef(new Map<string, HTMLTableRowElement>())
   const characterSelectionInitialized = useRef(false)
-  const lastAutoFocusedCharacter = useRef<string | null>(null)
   const pendingAction = useRef<((secret: string) => void) | null>(null)
 
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -586,7 +598,24 @@ export default function AdventureLog() {
 
   const rows = useMemo(() => buildQuestRows(quests), [quests])
 
-  const visibleRows = useMemo(() => {
+  /** `${questId}:${band}` -> characters currently inside that quest version. */
+  const occupantsByKey = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; name: string; level: number | null }>>()
+    for (const [occupantId, presence] of Object.entries(activity)) {
+      if (!presence.questId) continue
+      const info = CHARACTERS[occupantId]
+      const quest = questById.get(presence.questId)
+      if (!info || !quest) continue
+      const level = characterData[occupantId]?.total_level ?? null
+      const key = completionKey(quest.id, bandForCharacter(quest, level))
+      map.set(key, [...(map.get(key) ?? []), { id: occupantId, name: info.name, level }])
+    }
+    return map
+  }, [activity, characterData, questById])
+
+
+  /** Everything the user asked for, before the level cut (used for group totals). */
+  const filteredRows = useMemo(() => {
     const needle = search.trim().toLowerCase()
     return rows.filter((row) => {
       // Adventure areas (Sorrowdusk Isle, Korthos Island, ...) are not quests.
@@ -607,10 +636,32 @@ export default function AdventureLog() {
     })
   }, [rows, search, onlyRansacked, hideCompleted, sagasOnly, patronFilter, characterCompletions])
 
+  /** Level cut: skipped while searching, so a lookup is never silently filtered. */
+  const visibleRows = useMemo(() => {
+    if (!hideOffLevel || search.trim()) return filteredRows
+
+    const characterLevel = characterId ? (characterData[characterId]?.total_level ?? null) : null
+    if (characterLevel === null) return filteredRows
+
+    return filteredRows.filter((row) => {
+      if (row.level === null) return true
+      if (Math.abs(row.level - characterLevel) <= OFF_LEVEL_RANGE) return true
+      // Keep it visible when someone is inside, or this character cleared it.
+      if (occupantsByKey.has(row.key)) return true
+      return characterCompletions[row.key]?.finished === true
+    })
+  }, [filteredRows, hideOffLevel, search, characterId, characterData, occupantsByKey, characterCompletions])
+
   const groups = useMemo(
     () => groupQuestRows(visibleRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' }),
     [visibleRows, hiddenPacks, sagasOnly],
   )
+
+  /** Row totals from the same filters minus the level cut, so a hidden row still counts. */
+  const groupTotals = useMemo(() => {
+    const all = groupQuestRows(filteredRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' })
+    return new Map(all.map((group) => [group.id, group.rows.length]))
+  }, [filteredRows, hiddenPacks, sagasOnly])
   const packs = useMemo(() => listAdventurePackInfo(quests), [quests])
   /** Packs whose rows cover more than one version, so the label needs the suffix. */
   const multiBandPacks = useMemo(() => {
@@ -631,21 +682,6 @@ export default function AdventureLog() {
     return [...names].sort((left, right) => left.localeCompare(right))
   }, [quests])
 
-  /** `${questId}:${band}` -> characters currently inside that quest version. */
-  const occupantsByKey = useMemo(() => {
-    const map = new Map<string, Array<{ id: string; name: string; level: number | null }>>()
-    for (const [occupantId, presence] of Object.entries(activity)) {
-      if (!presence.questId) continue
-      const info = CHARACTERS[occupantId]
-      const quest = questById.get(presence.questId)
-      if (!info || !quest) continue
-      const level = characterData[occupantId]?.total_level ?? null
-      const key = completionKey(quest.id, bandForCharacter(quest, level))
-      map.set(key, [...(map.get(key) ?? []), { id: occupantId, name: info.name, level }])
-    }
-    return map
-  }, [activity, characterData, questById])
-
   const groupedRowCount = groups.reduce((total, group) => total + group.rows.length, 0)
   const doneCount = groups.reduce(
     (total, group) => total + group.rows.filter((row) => characterCompletions[row.key]?.finished).length,
@@ -653,34 +689,17 @@ export default function AdventureLog() {
   )
   const searching = search.trim().length > 0
 
-  // Focus the table: the group holding the character's current quest, otherwise the
-  // group around their level. Runs once per character.
+  // Groups start collapsed; only groups someone is currently inside open themselves.
   useEffect(() => {
-    if (groups.length === 0) return
-    if (lastAutoFocusedCharacter.current === characterId) return
-    lastAutoFocusedCharacter.current = characterId
+    const occupied = groups.filter((group) => group.rows.some((row) => occupantsByKey.has(row.key)))
+    if (occupied.length === 0) return
 
-    const characterLevel = characterData[characterId]?.total_level ?? null
-    const currentQuestId = activity[characterId]?.questId ?? null
-
-    const target = currentQuestId
-      ? groups.find((group) => group.rows.some((row) => row.quest.id === currentQuestId))
-      : (groups.find(
-          (group) =>
-            characterLevel !== null &&
-            group.levelMin !== null &&
-            group.levelMax !== null &&
-            characterLevel >= group.levelMin &&
-            characterLevel <= group.levelMax,
-        ) ??
-        groups.find((group) => characterLevel !== null && group.levelMax !== null && group.levelMax <= characterLevel))
-
-    if (!target) return
-    setExpandedGroups((previous) => new Set(previous).add(target.id))
-    requestAnimationFrame(() => {
-      groupRefs.current.get(target.id)?.scrollIntoView({ block: 'center' })
+    setExpandedGroups((previous) => {
+      const next = new Set(previous)
+      for (const group of occupied) next.add(group.id)
+      return next
     })
-  }, [activity, characterData, characterId, groups])
+  }, [groups, occupantsByKey])
 
   const selectedCharacter = characterId ? CHARACTERS[characterId] : undefined
   const selectedLevel = characterId ? (characterData[characterId]?.total_level ?? null) : null
@@ -702,27 +721,23 @@ export default function AdventureLog() {
       <Stack spacing={2}>
         <Stack direction="row" useFlexGap flexWrap="wrap" alignItems="center" justifyContent="space-between">
           <Box>
-            <Typography variant="h4" component="h1">
-              Adventure Log
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="h4" component="h1">
+                Adventure Log
+              </Typography>
+              <Tooltip title="Refresh">
+                <span>
+                  <IconButton onClick={() => void load()} disabled={loading} size="small" aria-label="Refresh">
+                    <RefreshIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Stack>
             <Typography variant="body2" color="text.secondary">
               Quest completions inferred from character activity, editable by hand. Checkbox state is shared by everyone
               with the write password.
             </Typography>
           </Box>
-          <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<TuneIcon />}
-              onClick={() => setPacksDialogOpen(true)}
-              title="Choose which adventure packs to hide"
-            >
-              Packs{hiddenPacks.size > 0 ? ` (${hiddenPacks.size} hidden)` : ''}
-            </Button>
-            <Button variant="outlined" onClick={() => void load()} disabled={loading}>
-              Refresh
-            </Button>
-          </Stack>
         </Stack>
 
         {error && <Alert severity="error">{error}</Alert>}
@@ -781,6 +796,28 @@ export default function AdventureLog() {
               })}
             </Select>
           </FormControl>
+
+          <Box sx={{ flex: 1 }} />
+
+          <ToggleButton
+            value="offlevel"
+            size="small"
+            selected={hideOffLevel}
+            onChange={() => setHideOffLevel((previous) => !previous)}
+            title={`Hide quests more than ${OFF_LEVEL_RANGE} levels away from the character`}
+          >
+            ±{OFF_LEVEL_RANGE} levels
+          </ToggleButton>
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<TuneIcon />}
+            onClick={() => setPacksDialogOpen(true)}
+            title="Choose which adventure packs to hide"
+          >
+            Packs{hiddenPacks.size > 0 ? ` (${hiddenPacks.size} hidden)` : ''}
+          </Button>
         </Stack>
 
         <Stack direction="row" useFlexGap flexWrap="wrap" spacing={2} alignItems="center">
@@ -854,7 +891,8 @@ export default function AdventureLog() {
                     : groups.map((group) => {
                         const expanded = expandedGroups.has(group.id)
                         const done = group.rows.filter((row) => characterCompletions[row.key]?.finished).length
-                        const allDone = done === group.rows.length
+                        const total = groupTotals.get(group.id) ?? group.rows.length
+                        const allDone = total > 0 && done === total
                         const someDone = done > 0 && !allDone
                         const bulkBusy = bulkGroupId === group.id
 
@@ -873,10 +911,6 @@ export default function AdventureLog() {
                                     : 'action.hover'
                                 })(),
                               }}
-                              ref={(element: HTMLTableRowElement | null) => {
-                                if (element) groupRefs.current.set(group.id, element)
-                                else groupRefs.current.delete(group.id)
-                              }}
                             >
                               <TableCell padding="checkbox" onClick={(event) => event.stopPropagation()}>
                                 {bulkBusy ? (
@@ -894,7 +928,14 @@ export default function AdventureLog() {
                               <TableCell colSpan={4}>
                                 <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
                                   {expanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
-                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontWeight: 600,
+                                      textDecoration: allDone ? 'line-through' : 'none',
+                                      color: allDone ? 'text.secondary' : 'text.primary',
+                                    }}
+                                  >
                                     {group.kind === 'pack' && group.band && multiBandPacks.has(group.label)
                                       ? groupLabel(group)
                                       : group.label}
@@ -906,7 +947,7 @@ export default function AdventureLog() {
                               </TableCell>
                               <TableCell align="right">
                                 <Typography variant="caption" color="text.secondary">
-                                  {done}/{group.rows.length}
+                                  {done}/{total}
                                 </Typography>
                               </TableCell>
                             </TableRow>
