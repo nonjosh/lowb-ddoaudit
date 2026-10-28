@@ -91,6 +91,21 @@ async function main() {
     }
   }
 
+  // Saga version comes from its level range: two legendary sagas are named "(Epic)".
+  const sagaBands: Record<string, 'heroic' | 'epic' | 'legendary'> = {}
+  for (const bucket of SAGA_BUCKETS) {
+    for (const saga of sagasData[bucket] ?? []) {
+      const level = Number.parseInt(String(saga.levelRange ?? ''), 10)
+      sagaBands[saga.name] = Number.isFinite(level)
+        ? level >= 30
+          ? 'legendary'
+          : level >= 20
+            ? 'epic'
+            : 'heroic'
+        : bucket
+    }
+  }
+
   const questsMap: Record<string, GroupingEntry> = {}
   const packs = new Set<string>()
   let withSaga = 0
@@ -130,6 +145,7 @@ async function main() {
       wikiSaga: 'https://ddowiki.com/page/Saga',
       wikiPacks: 'https://ddowiki.com/page/Adventure_Pack',
     },
+    sagaBands,
     counts: {
       quests: Object.keys(questsMap).length,
       questsWithSaga: withSaga,

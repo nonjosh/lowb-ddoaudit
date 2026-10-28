@@ -8,6 +8,12 @@ interface GroupingEntry {
   wilderness?: boolean
 }
 
+interface GroupingFile {
+  quests: Record<string, GroupingEntry>
+  /** Saga name -> version, derived from its level range (some "(Epic)" sagas are legendary). */
+  sagaBands?: Record<string, QuestBand>
+}
+
 export type QuestBand = 'heroic' | 'epic' | 'legendary'
 
 const BAND_LABELS: Record<QuestBand, string> = {
@@ -49,9 +55,9 @@ export interface GroupOptions {
  * from `sagas.json` plus the DDO Audit quest list. Kept in the repo so grouping does
  * not change when the upstream API does; unknown ids fall back to the live field.
  */
-const CACHED_GROUPINGS: Record<string, GroupingEntry> = (
-  groupingsData as { quests: Record<string, GroupingEntry> }
-).quests
+const GROUPINGS = groupingsData as GroupingFile
+const CACHED_GROUPINGS: Record<string, GroupingEntry> = GROUPINGS.quests
+const SAGA_BANDS: Record<string, QuestBand> = GROUPINGS.sagaBands ?? {}
 
 export function getSagaNames(quest: Quest): string[] {
   return CACHED_GROUPINGS[quest.id]?.sagas ?? []
@@ -70,8 +76,19 @@ export function bandLabel(band: QuestBand): string {
   return BAND_LABELS[band]
 }
 
-/** Sagas are versioned in their own name, e.g. "Saltmarsh (Heroic)". */
+/** Level bands: 30+ is legendary, 21-29 epic, the rest heroic. */
+export function bandForLevelNumber(level: number | null): QuestBand | null {
+  if (level === null) return null
+  return level >= 30 ? 'legendary' : level >= 21 ? 'epic' : 'heroic'
+}
+
+/**
+ * Version of a saga. The cache carries the band derived from each saga's level
+ * range, because a couple of legendary sagas are named "(Epic)" on the wiki.
+ */
 function sagaBand(sagaName: string): QuestBand | null {
+  const cached = SAGA_BANDS[sagaName]
+  if (cached) return cached
   if (/\(heroic\)/i.test(sagaName)) return 'heroic'
   if (/\(legendary\)/i.test(sagaName)) return 'legendary'
   if (/\(epic\)/i.test(sagaName)) return 'epic'

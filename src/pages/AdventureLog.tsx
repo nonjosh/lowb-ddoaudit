@@ -32,6 +32,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
@@ -61,6 +62,7 @@ import {
   isWildernessQuest,
   listAdventurePackInfo,
   sagaGroupNamesForRow,
+  type QuestBand,
   type QuestGroup,
   type QuestRowModel,
 } from '@/domains/adventureLog/grouping'
@@ -73,6 +75,13 @@ import { getQuestWikiUrl } from '@/utils/wikiUrls'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
+/** Version colours, shared by the row badge and the group header tint. */
+const BAND_COLOR: Record<QuestBand, 'success' | 'info' | 'warning'> = {
+  heroic: 'success',
+  epic: 'info',
+  legendary: 'warning',
+}
+
 const PLAYER_STORAGE_KEY = 'lowb-adventure-log-player'
 const CHARACTER_STORAGE_KEY = 'lowb-adventure-log-character'
 
@@ -263,7 +272,7 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, occupants, onToggle 
       <TableCell align="right">
         <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
           <span>{row.level ?? '—'}</span>
-          <Chip size="small" variant="outlined" label={bandLabel(row.band)} />
+          <Chip size="small" variant="outlined" color={BAND_COLOR[row.band]} label={bandLabel(row.band)} />
         </Stack>
       </TableCell>
       <TableCell>{row.quest.type ?? '—'}</TableCell>
@@ -462,7 +471,11 @@ export default function AdventureLog() {
           storePassword('')
           setPassword('')
           setError('The write password was rejected. Enter it again.')
-          withPassword((nextSecret) => void sendEdit(row, finished, nextSecret))
+          // Re-enter through the prompt, not through withPassword(): its closure
+          // still holds the rejected secret and would retry in a loop.
+          pendingAction.current = (nextSecret) => void sendEdit(row, finished, nextSecret)
+          setPasswordDraft('')
+          setPasswordPromptOpen(true)
         } else {
           setError((editError as Error).message)
         }
@@ -470,7 +483,7 @@ export default function AdventureLog() {
         setBusyKey(null)
       }
     },
-    [characterId, applyLocalBulk, withPassword],
+    [characterId, applyLocalBulk],
   )
 
   const handleToggle = useCallback(
@@ -837,7 +850,16 @@ export default function AdventureLog() {
                             <TableRow
                               hover
                               onClick={() => toggleGroup(group.id)}
-                              sx={{ cursor: 'pointer', bgcolor: 'action.hover' }}
+                              sx={{
+                                cursor: 'pointer',
+                                bgcolor: (() => {
+                                  const rowBands = new Set(group.rows.map((row) => row.band))
+                                  const band = group.band ?? (rowBands.size === 1 ? [...rowBands][0] : null)
+                                  return band
+                                    ? (theme) => alpha(theme.palette[BAND_COLOR[band]].main, 0.1)
+                                    : 'action.hover'
+                                })(),
+                              }}
                               ref={(element: HTMLTableRowElement | null) => {
                                 if (element) groupRefs.current.set(group.id, element)
                                 else groupRefs.current.delete(group.id)
