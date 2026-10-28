@@ -152,6 +152,67 @@ export interface ManualEdit {
   level: number | null
 }
 
+/** Applies several edits in one transaction; returns the number written. */
+export async function applyManualEdits(changes: ManualEdit[]): Promise<number> {
+  if (changes.length === 0) return 0
+
+  // Firestore allows one write per document per transaction, so collapse duplicates
+  // (last edit wins) before building the refs.
+  const deduped = [...new Map(changes.map((edit) => [completionId(edit.characterId, edit.questId, edit.band), edit])).values()]
+  changes = deduped
+
+  const refs = changes.map((edit) =>
+    completions.doc(completionId(edit.characterId, edit.questId, edit.band)),
+  )
+
+  const written = await db.runTransaction(async (transaction) => {
+    const snapshots = await transaction.getAll(...refs)
+
+    changes.forEach((edit, index) => {
+      const existing = snapshots[index].exists ? (snapshots[index].data() as CompletionRecord) : null
+
+      const previousHistory = historyOf(existing)
+      const history =
+        edit.lastFinishedAt === undefined
+          ? previousHistory
+          : edit.lastFinishedAt === null
+            ? []
+            : withHistoryEntry(previousHistory, Timestamp.fromDate(edit.lastFinishedAt))
+
+      transaction.set(
+        refs[index],
+        {
+          character_id: edit.characterId,
+          quest_id: edit.questId,
+          band: edit.band,
+          finished: edit.finished,
+          last_finished_at: history[0] ?? null,
+          history,
+          level_at_finish: existing?.level_at_finish ?? edit.level,
+          source: 'manual',
+          updated_at: Timestamp.now(),
+        } satisfies CompletionRecord,
+        { merge: true },
+      )
+
+      transaction.set(edits.doc(), {
+        character_id: edit.characterId,
+        quest_id: edit.questId,
+        band: edit.band,
+        finished: edit.finished,
+        last_finished_at: history[0] ?? null,
+        at: Timestamp.now(),
+        writer: null,
+      })
+    })
+
+    return changes.length
+  })
+
+  invalidateCompletionsCache()
+  return written
+}
+
 export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecord> {
   const reference = completions.doc(completionId(edit.characterId, edit.questId, edit.band))
 

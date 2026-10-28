@@ -39,6 +39,7 @@ import {
   fetchActivity,
   fetchCompletions,
   updateCompletion,
+  updateCompletionsBulk,
   type ActivityMap,
   type CompletionEntry,
   type CompletionMap,
@@ -238,7 +239,6 @@ function QuestRow({ row, entry, busy, query, occupants, onToggle }: QuestRowProp
           >
             <HighlightedText text={row.quest.name} query={query} />
           </Link>
-          <Chip size="small" variant="outlined" label={bandLabel(row.band)} />
           {row.quest.type === 'Raid' && <Chip size="small" color="secondary" label="Raid" />}
           {occupants.length > 0 && (
             <Tooltip
@@ -251,7 +251,12 @@ function QuestRow({ row, entry, busy, query, occupants, onToggle }: QuestRowProp
           )}
         </Stack>
       </TableCell>
-      <TableCell align="right">{row.level ?? '—'}</TableCell>
+      <TableCell align="right">
+        <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
+          <span>{row.level ?? '—'}</span>
+          <Chip size="small" variant="outlined" label={bandLabel(row.band)} />
+        </Stack>
+      </TableCell>
       <TableCell>{row.quest.type ?? '—'}</TableCell>
       <TableCell>
         <HighlightedText text={row.quest.patron ?? '—'} query={query} />
@@ -410,22 +415,24 @@ export default function AdventureLog() {
     [password],
   )
 
-  const setEntry = useCallback(
-    (character: string, key: string, finished: boolean) => {
+  const applyLocalBulk = useCallback(
+    (keys: string[], finished: boolean) => {
       setCompletions((previous) => {
-        const forCharacter = { ...(previous[character] ?? {}) }
-        const existing = forCharacter[key]
-        forCharacter[key] = {
-          finished,
-          lastFinishedAt: existing?.lastFinishedAt ?? null,
-          history: existing?.history ?? [],
-          levelAtFinish: existing?.levelAtFinish ?? null,
-          source: 'manual',
+        const forCharacter = { ...(previous[characterId] ?? {}) }
+        for (const key of keys) {
+          const existing = forCharacter[key]
+          forCharacter[key] = {
+            finished,
+            lastFinishedAt: existing?.lastFinishedAt ?? null,
+            history: existing?.history ?? [],
+            levelAtFinish: existing?.levelAtFinish ?? null,
+            source: 'manual',
+          }
         }
-        return { ...previous, [character]: forCharacter }
+        return { ...previous, [characterId]: forCharacter }
       })
     },
-    [],
+    [characterId],
   )
 
   const sendEdit = useCallback(
@@ -440,7 +447,7 @@ export default function AdventureLog() {
           finished,
           password: secret,
         })
-        setEntry(characterId, row.key, finished)
+        applyLocalBulk([row.key], finished)
       } catch (editError) {
         if (editError instanceof WritePasswordRejectedError) {
           storePassword('')
@@ -454,7 +461,7 @@ export default function AdventureLog() {
         setBusyKey(null)
       }
     },
-    [characterId, setEntry, withPassword],
+    [characterId, applyLocalBulk, withPassword],
   )
 
   const handleToggle = useCallback(
@@ -466,28 +473,30 @@ export default function AdventureLog() {
 
   const handleBulkToggle = useCallback(
     (group: QuestGroup, finished: boolean) => {
+      const changed = group.rows.filter(
+        (row) => (completions[characterId]?.[row.key]?.finished === true) !== finished,
+      )
+      if (changed.length === 0) return
+
       withPassword((secret) => {
         void (async () => {
           setBulkGroupId(group.id)
           setError(null)
           try {
-            for (const row of group.rows) {
-              const current = completions[characterId]?.[row.key]?.finished === true
-              if (current === finished) continue
-              await updateCompletion({
-                characterId,
-                questId: row.quest.id,
-                band: row.band,
-                finished,
-                password: secret,
-              })
-              setEntry(characterId, row.key, finished)
-            }
+            await updateCompletionsBulk({
+              characterId,
+              items: changed.map((row) => ({ questId: row.quest.id, band: row.band, finished })),
+              password: secret,
+            })
+            applyLocalBulk(
+              changed.map((row) => row.key),
+              finished,
+            )
           } catch (bulkError) {
             if (bulkError instanceof WritePasswordRejectedError) {
               storePassword('')
               setPassword('')
-              setError('The write password was rejected midway through the group.')
+              setError('The write password was rejected for this group.')
             } else {
               setError((bulkError as Error).message)
             }
@@ -497,7 +506,7 @@ export default function AdventureLog() {
         })()
       })
     },
-    [characterId, completions, setEntry, withPassword],
+    [characterId, completions, applyLocalBulk, withPassword],
   )
 
   const confirmPassword = useCallback(() => {
@@ -565,6 +574,19 @@ export default function AdventureLog() {
     [visibleRows, hiddenPacks, sagasOnly],
   )
   const packs = useMemo(() => listAdventurePackInfo(quests), [quests])
+  /** Packs whose rows cover more than one version, so the label needs the suffix. */
+  const multiBandPacks = useMemo(() => {
+    const byPack = new Map<string, Set<string>>()
+    for (const row of rows) {
+      const pack = getPackName(row.quest)
+      if (!pack) continue
+      const bands = byPack.get(pack) ?? new Set<string>()
+      bands.add(row.band)
+      byPack.set(pack, bands)
+    }
+    return new Set([...byPack.entries()].filter(([, bands]) => bands.size > 1).map(([pack]) => pack))
+  }, [rows])
+
   const patrons = useMemo(() => {
     const names = new Set<string>()
     for (const quest of quests) if (quest.patron) names.add(quest.patron)
@@ -825,7 +847,9 @@ export default function AdventureLog() {
                                 <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
                                   {expanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
                                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                    {groupLabel(group)}
+                                    {group.kind === 'pack' && group.band && multiBandPacks.has(group.label)
+                                      ? groupLabel(group)
+                                      : group.label}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary">
                                     L{formatLevelRange(group)}

@@ -67,6 +67,32 @@ export interface CompletionUpdate {
   password: string
 }
 
+export interface BulkCompletionUpdate {
+  characterId: string
+  items: Array<{ questId: string; band: string; finished: boolean }>
+  password: string
+}
+
+/** Marks several rows in one request so a group toggle is a single round-trip. */
+export async function updateCompletionsBulk(update: BulkCompletionUpdate): Promise<number> {
+  const response = await fetch(`${ADVENTURE_LOG_API_URL}/completions/bulk`, {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+      'x-log-password': update.password,
+    },
+    body: JSON.stringify({
+      updates: update.items.map((item) => ({ characterId: update.characterId, ...item })),
+    }),
+  })
+
+  if (response.status === 401) throw new WritePasswordRejectedError()
+  if (!response.ok) throw new Error(`Failed to update completions (${response.status})`)
+
+  const body = (await response.json()) as { data?: { updated?: number } }
+  return body.data?.updated ?? 0
+}
+
 export async function updateCompletion(update: CompletionUpdate): Promise<void> {
   const response = await fetch(
     `${ADVENTURE_LOG_API_URL}/completions/${encodeURIComponent(update.characterId)}/${encodeURIComponent(update.questId)}/${encodeURIComponent(update.band)}`,

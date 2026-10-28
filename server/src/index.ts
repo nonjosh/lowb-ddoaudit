@@ -7,11 +7,11 @@ import { isQuestBand } from './bands.js'
 import { config } from './config.js'
 import { getCatalog } from './ddo.js'
 import { runPoll } from './poller.js'
-import { applyManualEdit, listCompletions, loadPollerState } from './store.js'
+import { applyManualEdit, applyManualEdits, listCompletions, loadPollerState, type ManualEdit } from './store.js'
 
 const app = express()
 app.disable('x-powered-by')
-app.use(express.json({ limit: '32kb' }))
+app.use(express.json({ limit: '128kb' }))
 
 const oidcClient = new OAuth2Client()
 
@@ -41,6 +41,52 @@ app.use((request, response, next) => {
   }
   next()
 })
+
+type RawEdit = {
+  characterId?: unknown
+  questId?: unknown
+  band?: unknown
+  finished?: unknown
+  lastFinishedAt?: unknown
+}
+
+type ParsedEdit = { ok: true; edit: ManualEdit } | { ok: false; message: string }
+
+function parseEdit(raw: RawEdit, catalog: Awaited<ReturnType<typeof getCatalog>>): ParsedEdit {
+  const characterId = typeof raw.characterId === 'string' ? raw.characterId : ''
+  const questId = typeof raw.questId === 'string' ? raw.questId : ''
+  const band = typeof raw.band === 'string' ? raw.band : ''
+
+  if (!config.trackedCharacterIds.includes(characterId)) return { ok: false, message: 'Unknown character' }
+  if (!isQuestBand(band)) return { ok: false, message: 'Unknown version' }
+  if (!catalog.questById.get(questId)) return { ok: false, message: 'Unknown quest' }
+  if (typeof raw.finished !== 'boolean') return { ok: false, message: 'finished must be a boolean' }
+
+  let lastFinishedAt: Date | null | undefined
+  if (raw.lastFinishedAt !== undefined) {
+    if (raw.lastFinishedAt === null) {
+      lastFinishedAt = null
+    } else if (typeof raw.lastFinishedAt === 'string') {
+      const parsed = new Date(raw.lastFinishedAt)
+      if (Number.isNaN(parsed.getTime())) {
+        return { ok: false, message: 'lastFinishedAt must be an ISO date or null' }
+      }
+      if (parsed.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+        return { ok: false, message: 'lastFinishedAt cannot be in the future' }
+      }
+      lastFinishedAt = parsed
+    } else {
+      return { ok: false, message: 'lastFinishedAt must be an ISO date or null' }
+    }
+  }
+
+  return {
+    ok: true,
+    edit: { characterId, questId, band, finished: raw.finished, lastFinishedAt, level: null },
+  }
+}
+
+const MAX_BULK_EDITS = 100
 
 const asyncRoute =
   (handler: (request: Request, response: Response) => Promise<void>) =>
@@ -79,6 +125,40 @@ app.get(
 )
 
 app.patch(
+  '/completions/bulk',
+  asyncRoute(async (request, response) => {
+    if (!passwordMatches(request.header('x-log-password'), config.writePassword)) {
+      response.status(401).json({ message: 'Invalid password' })
+      return
+    }
+
+    const body = request.body as { updates?: unknown }
+    if (!Array.isArray(body?.updates) || body.updates.length === 0) {
+      response.status(400).json({ message: 'updates must be a non-empty array' })
+      return
+    }
+    if (body.updates.length > MAX_BULK_EDITS) {
+      response.status(400).json({ message: `at most ${MAX_BULK_EDITS} updates per request` })
+      return
+    }
+
+    const catalog = await getCatalog()
+    const edits: ManualEdit[] = []
+    for (const raw of body.updates) {
+      const parsed = parseEdit((raw ?? {}) as RawEdit, catalog)
+      if (!parsed.ok) {
+        response.status(400).json({ message: parsed.message })
+        return
+      }
+      edits.push(parsed.edit)
+    }
+
+    const updated = await applyManualEdits(edits)
+    response.json({ data: { updated } })
+  }),
+)
+
+app.patch(
   '/completions/:characterId/:questId/:band',
   asyncRoute(async (request, response) => {
     if (!passwordMatches(request.header('x-log-password'), config.writePassword)) {
@@ -86,62 +166,23 @@ app.patch(
       return
     }
 
-    const { characterId, questId } = request.params
-    const band = request.params.band
-    if (!isQuestBand(band)) {
-      response.status(400).json({ message: 'Unknown version' })
-      return
-    }
-    if (!config.trackedCharacterIds.includes(characterId)) {
-      response.status(400).json({ message: 'Unknown character' })
-      return
-    }
-
     const catalog = await getCatalog()
-    const quest = catalog.questById.get(questId)
-    if (!quest) {
-      response.status(400).json({ message: 'Unknown quest' })
+    const parsed = parseEdit(
+      {
+        characterId: request.params.characterId,
+        questId: request.params.questId,
+        band: request.params.band,
+        ...(request.body as { finished?: unknown; lastFinishedAt?: unknown }),
+      },
+      catalog,
+    )
+
+    if (!parsed.ok) {
+      response.status(400).json({ message: parsed.message })
       return
     }
 
-    const body = request.body as { finished?: unknown; lastFinishedAt?: unknown }
-    if (typeof body?.finished !== 'boolean') {
-      response.status(400).json({ message: 'finished must be a boolean' })
-      return
-    }
-
-    let lastFinishedAt: Date | null | undefined
-    if (body.lastFinishedAt !== undefined) {
-      if (body.lastFinishedAt === null) {
-        lastFinishedAt = null
-      } else if (typeof body.lastFinishedAt === 'string') {
-        const parsed = new Date(body.lastFinishedAt)
-        if (Number.isNaN(parsed.getTime())) {
-          response.status(400).json({ message: 'lastFinishedAt must be an ISO date or null' })
-          return
-        }
-        // A far-future timestamp would permanently block the poller for this row.
-        if (parsed.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
-          response.status(400).json({ message: 'lastFinishedAt cannot be in the future' })
-          return
-        }
-        lastFinishedAt = parsed
-      } else {
-        response.status(400).json({ message: 'lastFinishedAt must be an ISO date or null' })
-        return
-      }
-    }
-
-    await applyManualEdit({
-      characterId,
-      questId,
-      band,
-      finished: body.finished,
-      lastFinishedAt,
-      // Manual edits carry no character level; the poll path owns that field.
-      level: null,
-    })
-
+    await applyManualEdit(parsed.edit)
     response.status(204).end()
   }),
 )

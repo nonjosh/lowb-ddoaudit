@@ -27,6 +27,13 @@ const patch = (body, headers = {}) =>
 
 const auth = { 'x-log-password': password }
 
+const bulkPatch = (updates, headers = auth) =>
+  fetch(url('/completions/bulk'), {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify({ updates }),
+  })
+
 test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTER_ID, TEST_QUEST_ID' }, async (t) => {
   // Never mutate a row that already holds real play history: history entries cannot
   // be restored through the API. Use a throwaway character/quest pair.
@@ -134,6 +141,32 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
     assert.equal(state.finished, true)
     assert.equal(state.lastFinishedAt, null)
     assert.deepEqual(state.history, [])
+  })
+
+  await t.test('bulk update writes in one request', { skip: skipMutation }, async () => {
+    const response = await bulkPatch([
+      { characterId, questId, band, finished: true },
+      { characterId, questId, band, finished: true, lastFinishedAt: null },
+    ])
+    assert.equal(response.status, 200)
+
+    const body = await response.json()
+    assert.equal(body.data.updated, 1, 'duplicate rows collapse to one write')
+
+    const state = await readState()
+    assert.equal(state.finished, true)
+  })
+
+  await t.test('bulk requires the password', async () => {
+    const response = await bulkPatch([{ characterId, questId, band, finished: true }], {
+      'x-log-password': 'wrong',
+    })
+    assert.equal(response.status, 401)
+  })
+
+  await t.test('bulk rejects an unknown character', async () => {
+    const response = await bulkPatch([{ characterId: '1', questId, band, finished: true }])
+    assert.equal(response.status, 400)
   })
 
   await t.test('restore a clean row', { skip: skipMutation }, async () => {
