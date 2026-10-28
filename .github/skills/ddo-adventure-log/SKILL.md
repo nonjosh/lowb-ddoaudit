@@ -119,6 +119,11 @@ look complete while its hidden rows are unfinished. Inside a group, raid quests 
 last; the search box matches quest names, adventure packs and favor factions, and
 highlights the match in the name and favor columns.
 
+Search works on **groups**, not rows: a group is kept when any of its rows matches, and
+then all of its rows are listed with the group header, expanded, so the pack can be read
+in context. The level cut is skipped while searching and the list says when nothing
+matches (`No quest, pack or favor matches "…"`).
+
 Groups start **collapsed**. The only automatic expansion is for groups that contain a
 character currently inside a quest (`GET /activity`); there is no level-based
 auto-expand or scrolling.

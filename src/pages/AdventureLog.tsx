@@ -616,15 +616,9 @@ export default function AdventureLog() {
 
   /** Everything the user asked for, before the level cut (used for group totals). */
   const filteredRows = useMemo(() => {
-    const needle = search.trim().toLowerCase()
     return rows.filter((row) => {
       // Adventure areas (Sorrowdusk Isle, Korthos Island, ...) are not quests.
       if (isWildernessQuest(row.quest)) return false
-
-      if (needle) {
-        const haystack = [row.quest.name, getPackName(row.quest) ?? '', row.quest.patron ?? '']
-        if (!haystack.some((value) => value.toLowerCase().includes(needle))) return false
-      }
 
       if (sagasOnly && sagaGroupNamesForRow(row.quest, row.band).length === 0) return false
       if (patronFilter && row.quest.patron !== patronFilter) return false
@@ -634,11 +628,35 @@ export default function AdventureLog() {
       if (onlyRansacked && !getRansackStatus(entry?.history ?? []).ransacked) return false
       return true
     })
-  }, [rows, search, onlyRansacked, hideCompleted, sagasOnly, patronFilter, characterCompletions])
+  }, [rows, onlyRansacked, hideCompleted, sagasOnly, patronFilter, characterCompletions])
+
+  const searching = search.trim().length > 0
+
+  /**
+   * Search selects whole groups: a group is kept when any of its rows matches the
+   * quest name, its adventure pack or its favor faction. All other rows of that group
+   * stay visible so the pack can be read in context.
+   */
+  const matchingGroupIds = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    if (!needle) return null
+
+    const all = groupQuestRows(filteredRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' })
+    const ids = new Set<string>()
+    for (const group of all) {
+      const hit = group.rows.some((row) =>
+        [row.quest.name, getPackName(row.quest) ?? '', row.quest.patron ?? ''].some((value) =>
+          value.toLowerCase().includes(needle),
+        ),
+      )
+      if (hit) ids.add(group.id)
+    }
+    return ids
+  }, [search, filteredRows, hiddenPacks, sagasOnly])
 
   /** Level cut: skipped while searching, so a lookup is never silently filtered. */
   const visibleRows = useMemo(() => {
-    if (!hideOffLevel || search.trim()) return filteredRows
+    if (!hideOffLevel || searching) return filteredRows
 
     const characterLevel = characterId ? (characterData[characterId]?.total_level ?? null) : null
     if (characterLevel === null) return filteredRows
@@ -650,7 +668,7 @@ export default function AdventureLog() {
       if (occupantsByKey.has(row.key)) return true
       return characterCompletions[row.key]?.finished === true
     })
-  }, [filteredRows, hideOffLevel, search, characterId, characterData, occupantsByKey, characterCompletions])
+  }, [filteredRows, hideOffLevel, searching, characterId, characterData, occupantsByKey, characterCompletions])
 
   const groups = useMemo(
     () => groupQuestRows(visibleRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' }),
@@ -682,12 +700,16 @@ export default function AdventureLog() {
     return [...names].sort((left, right) => left.localeCompare(right))
   }, [quests])
 
-  const groupedRowCount = groups.reduce((total, group) => total + group.rows.length, 0)
-  const doneCount = groups.reduce(
+  const renderedGroups = useMemo(
+    () => (matchingGroupIds ? groups.filter((group) => matchingGroupIds.has(group.id)) : groups),
+    [groups, matchingGroupIds],
+  )
+
+  const groupedRowCount = renderedGroups.reduce((total, group) => total + group.rows.length, 0)
+  const doneCount = renderedGroups.reduce(
     (total, group) => total + group.rows.filter((row) => characterCompletions[row.key]?.finished).length,
     0,
   )
-  const searching = search.trim().length > 0
 
   // Groups start collapsed; only groups someone is currently inside open themselves.
   useEffect(() => {
@@ -886,10 +908,10 @@ export default function AdventureLog() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {searching
-                    ? visibleRows.map(renderRow)
-                    : groups.map((group) => {
-                        const expanded = expandedGroups.has(group.id)
+                  {renderedGroups.map((group) => {
+                        const expanded =
+                          expandedGroups.has(group.id) ||
+                          (searching && (matchingGroupIds?.has(group.id) ?? false))
                         const done = group.rows.filter((row) => characterCompletions[row.key]?.finished).length
                         const total = groupTotals.get(group.id) ?? group.rows.length
                         const allDone = total > 0 && done === total
@@ -958,11 +980,21 @@ export default function AdventureLog() {
                 </TableBody>
               </Table>
             </TableContainer>
+            {renderedGroups.length === 0 && (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  {searching ? `No quest, pack or favor matches “${search.trim()}”.` : 'No quests match the filters.'}
+                </Typography>
+              </Box>
+            )}
           </Paper>
         )}
 
         <Typography variant="caption" color="text.secondary">
-          {searching ? `${visibleRows.length} matching quests` : `${groups.length} groups · ${groupedRowCount} rows`} ·{' '}
+          {searching
+            ? `${renderedGroups.length} matching groups · ${groupedRowCount} rows`
+            : `${renderedGroups.length} groups · ${groupedRowCount} rows`}{' '}
+          ·{' '}
           {doneCount} marked done
           {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
           {patronFilter ? ` · favor: ${patronFilter}` : ''}
