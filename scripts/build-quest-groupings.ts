@@ -28,6 +28,15 @@ const AREAS_URL = 'https://api.ddoaudit.com/v1/areas?force=false'
 /** Areas upstream mislabels as wilderness; keep in sync with AREA_PATCHES. */
 const FORCED_QUEST_AREAS = new Set(['1879303679'])
 
+/** Case, articles and punctuation do not change which quest a name refers to. */
+function normalizeQuestName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/^(a|an|the)\s+/, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
 const SAGA_BUCKETS = ['heroic', 'epic', 'legendary'] as const
 
 interface SagaRecord {
@@ -75,18 +84,58 @@ async function main() {
 
   const sagasData = JSON.parse(fs.readFileSync(SAGAS_PATH, 'utf8')) as Record<string, SagaRecord[]>
 
+  // The wiki does not always spell a quest the way the API does ("A Mad Tea Party"
+  // vs "Mad Tea Party", "Trial by Fury" vs "Trial By Fury"). Resolve exact names
+  // first, then a normalized form, but only when it is unambiguous.
+  const idsByName = new Map<string, string[]>()
+  const idsByNormalizedName = new Map<string, string[]>()
+  const addTo = (map: Map<string, string[]>, key: string, id: string) =>
+    map.set(key, [...(map.get(key) ?? []), id])
+
+  for (const quest of quests) {
+    const id = quest.id === undefined || quest.id === null ? '' : String(quest.id)
+    const name = (quest.name ?? '').trim()
+    if (!id || !name) continue
+    addTo(idsByName, name, id)
+    addTo(idsByNormalizedName, normalizeQuestName(name), id)
+  }
+
+  const unique = (candidates: string[] | undefined): string | undefined =>
+    candidates && candidates.length === 1 ? candidates[0] : undefined
+
+  /**
+   * Wiki title -> API quest id. Exact title first, then a normalized form, then the
+   * same check with a leading "Return to " removed (the epic saga lists the epic
+   * variant of quests the API stores under the base name). Every step requires a
+   * single candidate, so a duplicate name is reported instead of guessed.
+   */
+  const resolveQuestId = (wikiName: string): string | undefined =>
+    unique(idsByName.get(wikiName)) ??
+    unique(idsByNormalizedName.get(normalizeQuestName(wikiName))) ??
+    unique(idsByNormalizedName.get(normalizeQuestName(wikiName.replace(/^return to\s+/i, ''))))
+
   // A quest can legitimately sit in several sagas (heroic + legendary variants, and
   // some event sagas share quests), so keep every membership in bucket order.
-  const sagasByQuestName = new Map<string, string[]>()
+  const sagasByQuestId = new Map<string, string[]>()
+  const resolvedAliases = new Set<string>()
+  const unresolvedNames = new Set<string>()
   let sagaCount = 0
+
   for (const bucket of SAGA_BUCKETS) {
     const sagas = sagasData[bucket] ?? []
     sagaCount = Math.max(sagaCount, sagas.length)
     for (const saga of sagas) {
       for (const questName of saga.quests) {
-        const names = sagasByQuestName.get(questName) ?? []
+        const questId = resolveQuestId(questName)
+        if (!questId) {
+          unresolvedNames.add(questName)
+          continue
+        }
+        if (!idsByName.has(questName)) resolvedAliases.add(questName)
+
+        const names = sagasByQuestId.get(questId) ?? []
         if (!names.includes(saga.name)) names.push(saga.name)
-        sagasByQuestName.set(questName, names)
+        sagasByQuestId.set(questId, names)
       }
     }
   }
@@ -116,8 +165,7 @@ async function main() {
     if (!id) continue
 
     const entry: GroupingEntry = {}
-    const name = (quest.name ?? '').trim()
-    const sagas = name ? sagasByQuestName.get(name) : undefined
+    const sagas = sagasByQuestId.get(id)
     if (sagas && sagas.length > 0) {
       entry.sagas = sagas
       withSaga += 1
@@ -157,6 +205,15 @@ async function main() {
   }
 
   fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(output, null, 2)}\n`)
+  if (resolvedAliases.size > 0) {
+    console.log(`Resolved ${resolvedAliases.size} wiki name(s) by normalized match:`)
+    for (const name of [...resolvedAliases].sort()) console.log(`  ${name}`)
+  }
+  if (unresolvedNames.size > 0) {
+    console.warn(`${unresolvedNames.size} saga quest name(s) are absent from the API and were skipped:`)
+    for (const name of [...unresolvedNames].sort()) console.warn(`  ${name}`)
+  }
+
   console.log(
     `Wrote ${path.relative(process.cwd(), OUTPUT_PATH)}: ` +
       `${output.counts.quests} quests, ${withSaga} in a saga, ${wilderness} wilderness areas, ${packs.size} packs`,

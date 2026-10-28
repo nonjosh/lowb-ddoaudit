@@ -811,6 +811,7 @@ export default function AdventureLog() {
   }, [groups, occupantsByKey])
 
   const trAt = characterId ? (reincarnations[characterId]?.at ?? null) : null
+  const characterEntries = useMemo(() => Object.values(characterCompletions), [characterCompletions])
   const selectedCharacter = characterId ? CHARACTERS[characterId] : undefined
   const selectedLevel = characterId ? (characterData[characterId]?.total_level ?? null) : null
   const renderRow = (row: QuestRowModel) => (
@@ -918,11 +919,14 @@ export default function AdventureLog() {
           )}
 
           <Tooltip title="Record a reincarnation and reset this character's checkboxes">
-            <span>
-              <IconButton size="small" onClick={() => setTrDialogOpen(true)} aria-label="Record reincarnation">
-                <RestartAltIcon fontSize="small" />
-              </IconButton>
-            </span>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<RestartAltIcon />}
+              onClick={() => setTrDialogOpen(true)}
+            >
+              TR reset
+            </Button>
           </Tooltip>
 
           <Box sx={{ flex: 1 }} />
@@ -1118,6 +1122,7 @@ export default function AdventureLog() {
         open={trDialogOpen}
         characterName={selectedCharacter?.name ?? 'this character'}
         currentAt={trAt}
+        entries={characterEntries}
         onClose={() => setTrDialogOpen(false)}
         onConfirm={handleReincarnation}
       />

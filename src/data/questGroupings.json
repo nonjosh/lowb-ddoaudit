@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T15:12:19.224Z",
+  "generatedAt": "2026-10-28T18:37:01.561Z",
   "sources": {
     "quests": "https://api.ddoaudit.com/v1/quests",
     "sagas": "src/data/sagas.json",
@@ -41,7 +41,7 @@
   },
   "counts": {
     "quests": 545,
-    "questsWithSaga": 176,
+    "questsWithSaga": 179,
     "wilderness": 54,
     "packs": 67,
     "sagasInSource": 14
@@ -424,13 +424,15 @@
     },
     "1879077483": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)"
+        "In the Wastes of Gianthold (Heroic)",
+        "In the Wastes of Gianthold (Epic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
     "1879077486": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)"
+        "In the Wastes of Gianthold (Heroic)",
+        "In the Wastes of Gianthold (Epic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
@@ -453,13 +455,15 @@
     },
     "1879078755": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)"
+        "In the Wastes of Gianthold (Heroic)",
+        "In the Wastes of Gianthold (Epic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
     "1879078995": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)"
+        "In the Wastes of Gianthold (Heroic)",
+        "In the Wastes of Gianthold (Epic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
@@ -908,6 +912,9 @@
       ]
     },
     "1879147900": {
+      "sagas": [
+        "Honor of the Huntsilvers (Heroic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147902": {
@@ -988,6 +995,11 @@
       "pack": "Menace of the Underdark"
     },
     "1879147926": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "The End of Eberron (Epic)",
+        "The Planeswalker's Path (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147928": {
@@ -1176,6 +1188,12 @@
       "pack": "Shadowfell Conspiracy"
     },
     "1879175202": {
+      "sagas": [
+        "Honor of the Huntsilvers (Heroic)",
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
+      ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879175203": {
@@ -1395,7 +1413,8 @@
     },
     "1879238717": {
       "sagas": [
-        "Mists of Ravenloft (Heroic)"
+        "Mists of Ravenloft (Heroic)",
+        "Mists of Ravenloft (Epic)"
       ],
       "pack": "Ravenloft"
     },
