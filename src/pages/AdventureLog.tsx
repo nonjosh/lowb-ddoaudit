@@ -220,7 +220,7 @@ function QuestRow({ row, entry, busy, query, occupants, onToggle }: QuestRowProp
 
   return (
     <TableRow hover>
-      <TableCell padding="checkbox">
+      <TableCell padding="checkbox" sx={{ pl: 5 }}>
         <Checkbox
           checked={finished}
           disabled={busy}
