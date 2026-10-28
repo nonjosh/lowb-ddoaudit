@@ -40,6 +40,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navEntries: NavEntry[] = [
     { label: 'Raids', path: '/' },
+    { label: 'Adventure Log', path: '/adventure-log' },
     {
       label: 'Puzzle Solvers',
       preserveLabel: true,
@@ -60,7 +61,6 @@ export default function Layout({ children }: LayoutProps) {
         { label: 'Legendary Green Steel', path: '/crafting/lgs' },
       ],
     },
-    { label: 'Adventure Log', path: '/adventure-log' },
     { label: 'Trove Explorer', path: '/trove/explorer' },
     { label: 'TR Planner', path: '/tr-planner' },
   ]

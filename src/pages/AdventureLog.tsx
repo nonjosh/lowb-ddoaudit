@@ -1,6 +1,7 @@
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import TuneIcon from '@mui/icons-material/Tune'
 import {
   Alert,
@@ -35,21 +36,25 @@ import {
   Typography,
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   WritePasswordRejectedError,
   fetchActivity,
   fetchCompletions,
+  fetchReincarnations,
+  resetReincarnation,
   updateCompletion,
   updateCompletionsBulk,
   type ActivityMap,
   type CompletionEntry,
   type CompletionMap,
+  type ReincarnationMap,
 } from '@/api/adventureLog'
 import { ADVENTURE_LOG_PASSWORD_STORAGE_KEY } from '@/api/adventureLog/constants'
 import { fetchCharactersByIds, fetchQuestsById, type CharacterData, type Quest } from '@/api/ddoAudit'
 import HidePacksDialog from '@/components/adventureLog/HidePacksDialog'
+import ReincarnationDialog from '@/components/adventureLog/ReincarnationDialog'
 import { CHARACTERS } from '@/config/characters'
 import {
   bandForCharacter,
@@ -123,10 +128,19 @@ function formatExact(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 }
 
-function HistoryTooltip({ history }: { history: readonly string[] }) {
+function HistoryTooltip({
+  history,
+  trAt,
+  now,
+}: {
+  history: readonly string[]
+  trAt: string | null
+  now: number
+}) {
   if (history.length === 0) return <span>No data</span>
 
-  const status = getRansackStatus(history)
+  const status = getRansackStatus(history, now, trAt)
+  const lifeStart = trAt ? new Date(trAt).getTime() : null
 
   return (
     <Box sx={{ py: 0.5 }}>
@@ -145,18 +159,22 @@ function HistoryTooltip({ history }: { history: readonly string[] }) {
         </Typography>
       )}
       {history.map((iso) => {
-        const inWindow = status.windowStart
-          ? new Date(iso).getTime() >= status.windowStart.getTime()
-          : isWithinRansackWindow(iso)
+        const timestamp = new Date(iso).getTime()
+        const previousLife = lifeStart !== null && timestamp < lifeStart
+        const inWindow = status.windowStart ? timestamp >= status.windowStart.getTime() : isWithinRansackWindow(iso)
         return (
           <Stack key={iso} direction="row" spacing={1} sx={{ fontSize: 12, lineHeight: 1.6 }}>
             <Box
               component="span"
-              sx={{ color: inWindow ? 'warning.main' : 'text.secondary', fontWeight: inWindow ? 700 : 400 }}
+              sx={{
+                color: previousLife ? 'text.disabled' : inWindow ? 'warning.main' : 'text.secondary',
+                fontWeight: inWindow && !previousLife ? 700 : 400,
+              }}
             >
               {formatRelative(iso)}
+              {previousLife ? ' (prev life)' : ''}
             </Box>
-            <Box component="span" sx={{ color: 'text.secondary' }}>
+            <Box component="span" sx={{ color: previousLife ? 'text.disabled' : 'text.secondary' }}>
               {formatExact(iso)}
             </Box>
           </Stack>
@@ -238,13 +256,15 @@ interface QuestRowProps {
   busy: boolean
   query: string
   showSagaBadge: boolean
+  trAt: string | null
+  now: number
   occupants: Array<{ id: string; name: string; level: number | null }>
   onToggle: (row: QuestRowModel, finished: boolean) => void
 }
 
-function QuestRow({ row, entry, busy, query, showSagaBadge, occupants, onToggle }: QuestRowProps) {
+function QuestRow({ row, entry, busy, query, showSagaBadge, trAt, now, occupants, onToggle }: QuestRowProps) {
   const finished = entry?.finished === true
-  const ransack = getRansackStatus(entry?.history ?? [])
+  const ransack = getRansackStatus(entry?.history ?? [], now, trAt)
   const sagaNames = showSagaBadge ? getSagaNames(row.quest) : []
 
   return (
@@ -268,7 +288,13 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, occupants, onToggle 
           >
             <HighlightedText text={row.quest.name} query={query} />
           </Link>
-          {row.quest.type === 'Raid' && <Chip size="small" color="secondary" label="Raid" />}
+          {row.quest.type && row.quest.type !== 'Party' && (
+            <Chip
+              size="small"
+              color={row.quest.type === 'Raid' ? 'secondary' : 'default'}
+              label={row.quest.type}
+            />
+          )}
           {sagaNames.length > 0 && (
             <Tooltip title={`Saga: ${sagaNames.join(', ')}`}>
               <Chip size="small" variant="outlined" color="info" label="Saga" />
@@ -300,15 +326,14 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, occupants, onToggle 
           <Chip size="small" variant="outlined" color={BAND_COLOR[row.band]} label={bandLabel(row.band)} />
         </Stack>
       </TableCell>
-      <TableCell>{row.quest.type ?? '—'}</TableCell>
       <TableCell>
         <HighlightedText text={row.quest.patron ?? '—'} query={query} />
       </TableCell>
       <TableCell>
-        {finished ? (
-          <Tooltip title={<HistoryTooltip history={entry?.history ?? []} />}>
+        {(entry?.history.length ?? 0) > 0 ? (
+          <Tooltip title={<HistoryTooltip history={entry?.history ?? []} trAt={trAt} now={now} />}>
             <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
-              <span>{formatRelative(entry?.lastFinishedAt ?? null)}</span>
+              <span>{finished ? formatRelative(entry?.lastFinishedAt ?? null) : '—'}</span>
               {ransack.ransacked ? (
                 <Chip size="small" color="warning" label="Ransacked" />
               ) : ransack.runsInWindow > 1 ? (
@@ -332,9 +357,11 @@ export default function AdventureLog() {
   const [completions, setCompletions] = useState<CompletionMap>({})
   const [characterData, setCharacterData] = useState<Record<string, CharacterData>>({})
   const [activity, setActivity] = useState<ActivityMap>({})
+  const [reincarnations, setReincarnations] = useState<ReincarnationMap>({})
   const [playerName, setPlayerName] = useState(() => readStorage(PLAYER_STORAGE_KEY))
   const [characterId, setCharacterId] = useState(() => readStorage(CHARACTER_STORAGE_KEY))
   const [search, setSearch] = useState('')
+  const query = useDeferredValue(search)
   const [onlyRansacked, setOnlyRansacked] = useState(false)
   const [hideCompleted, setHideCompleted] = useState(false)
   const [sagasOnly, setSagasOnly] = useState(false)
@@ -342,9 +369,11 @@ export default function AdventureLog() {
   const [patronFilter, setPatronFilter] = useState('')
   const [hiddenPacks, setHiddenPacks] = useState<Set<string>>(readHiddenPacks)
   const [packsDialogOpen, setPacksDialogOpen] = useState(false)
+  const [trDialogOpen, setTrDialogOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [now, setNow] = useState(() => Date.now())
   const [password, setPassword] = useState(readStoredPassword)
   const [passwordPromptOpen, setPasswordPromptOpen] = useState(false)
   const [passwordDraft, setPasswordDraft] = useState('')
@@ -358,11 +387,13 @@ export default function AdventureLog() {
     setLoading(true)
     setError(null)
     try {
-      const [questMap, log, characters, presence] = await Promise.all([
+      const [questMap, log, characters, presence, lives] = await Promise.all([
         fetchQuestsById(),
         fetchCompletions(signal),
         fetchCharactersByIds(ALL_CHARACTER_IDS, { signal }),
         fetchActivity(signal),
+        // Decoration only: a 404 before the API deploy must not blank the page.
+        fetchReincarnations(signal).catch(() => ({})),
       ])
 
       const unique = new Map<string, Quest>()
@@ -371,6 +402,7 @@ export default function AdventureLog() {
       setCompletions(log)
       setCharacterData(characters)
       setActivity(presence)
+      setReincarnations(lives)
     } catch (loadError) {
       if ((loadError as Error).name !== 'AbortError') {
         setError((loadError as Error).message)
@@ -385,6 +417,12 @@ export default function AdventureLog() {
     void load(controller.signal)
     return () => controller.abort()
   }, [load])
+
+  // Relative times and ransack windows need a clock; keep it out of render.
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Pick the player/character once the character data (online + level) is known:
   // the stored player, their single online character, else the stored character.
@@ -577,6 +615,36 @@ export default function AdventureLog() {
     })
   }, [])
 
+  const runReincarnation = useCallback(
+    async (atIso: string, secret: string) => {
+      setError(null)
+      try {
+        await resetReincarnation(characterId, atIso, secret)
+        await load()
+      } catch (reincarnationError) {
+        if (reincarnationError instanceof WritePasswordRejectedError) {
+          storePassword('')
+          setPassword('')
+          setError('The write password was rejected. Enter it again.')
+          pendingAction.current = (nextSecret) => void runReincarnation(atIso, nextSecret)
+          setPasswordDraft('')
+          setPasswordPromptOpen(true)
+        } else {
+          setError((reincarnationError as Error).message)
+        }
+      }
+    },
+    [characterId, load],
+  )
+
+  const handleReincarnation = useCallback(
+    (atIso: string) => {
+      setTrDialogOpen(false)
+      withPassword((secret) => void runReincarnation(atIso, secret))
+    },
+    [runReincarnation, withPassword],
+  )
+
   const toggleHiddenPack = useCallback((pack: string) => {
     setHiddenPacks((previous) => {
       const next = new Set(previous)
@@ -614,6 +682,11 @@ export default function AdventureLog() {
   }, [activity, characterData, questById])
 
 
+  const isFinished = useCallback(
+    (row: QuestRowModel) => characterCompletions[row.key]?.finished === true,
+    [characterCompletions],
+  )
+
   /** Everything the user asked for, before the level cut (used for group totals). */
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
@@ -622,37 +695,23 @@ export default function AdventureLog() {
 
       if (sagasOnly && sagaGroupNamesForRow(row.quest, row.band).length === 0) return false
       if (patronFilter && row.quest.patron !== patronFilter) return false
-
-      const entry = characterCompletions[row.key]
-      if (hideCompleted && entry?.finished) return false
-      if (onlyRansacked && !getRansackStatus(entry?.history ?? []).ransacked) return false
+      if (onlyRansacked && !getRansackStatus(characterCompletions[row.key]?.history ?? []).ransacked) return false
       return true
     })
-  }, [rows, onlyRansacked, hideCompleted, sagasOnly, patronFilter, characterCompletions])
+  }, [rows, onlyRansacked, sagasOnly, patronFilter, characterCompletions])
 
-  const searching = search.trim().length > 0
+  const searching = query.trim().length > 0
 
   /**
    * Search selects whole groups: a group is kept when any of its rows matches the
    * quest name, its adventure pack or its favor faction. All other rows of that group
    * stay visible so the pack can be read in context.
    */
-  const matchingGroupIds = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    if (!needle) return null
-
-    const all = groupQuestRows(filteredRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' })
-    const ids = new Set<string>()
-    for (const group of all) {
-      const hit = group.rows.some((row) =>
-        [row.quest.name, getPackName(row.quest) ?? '', row.quest.patron ?? ''].some((value) =>
-          value.toLowerCase().includes(needle),
-        ),
-      )
-      if (hit) ids.add(group.id)
-    }
-    return ids
-  }, [search, filteredRows, hiddenPacks, sagasOnly])
+  /** Groups before the level cut: totals, "all done" checks and completeness. */
+  const allGroups = useMemo(
+    () => groupQuestRows(filteredRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' }),
+    [filteredRows, hiddenPacks, sagasOnly],
+  )
 
   /** Level cut: skipped while searching, so a lookup is never silently filtered. */
   const visibleRows = useMemo(() => {
@@ -670,16 +729,44 @@ export default function AdventureLog() {
     })
   }, [filteredRows, hideOffLevel, searching, characterId, characterData, occupantsByKey, characterCompletions])
 
-  const groups = useMemo(
-    () => groupQuestRows(visibleRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' }),
-    [visibleRows, hiddenPacks, sagasOnly],
-  )
+  /** Row totals per group and whether every row is done, from before the level cut. */
+  const groupInfo = useMemo(() => {
+    const map = new Map<string, { total: number; allDone: boolean }>()
+    for (const group of allGroups) {
+      map.set(group.id, { total: group.rows.length, allDone: group.rows.every((row) => isFinished(row)) })
+    }
+    return map
+  }, [allGroups, isFinished])
 
-  /** Row totals from the same filters minus the level cut, so a hidden row still counts. */
-  const groupTotals = useMemo(() => {
-    const all = groupQuestRows(filteredRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' })
-    return new Map(all.map((group) => [group.id, group.rows.length]))
-  }, [filteredRows, hiddenPacks, sagasOnly])
+  /**
+   * A group is hidden by "Hide completed" only when every quest in it is done;
+   * partially-done groups keep their full list.
+   */
+  const groups = useMemo(() => {
+    const visible = groupQuestRows(visibleRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' })
+    if (!hideCompleted) return visible
+    return visible.filter((group) => !groupInfo.get(group.id)?.allDone)
+  }, [visibleRows, hiddenPacks, sagasOnly, hideCompleted, groupInfo])
+
+  /**
+   * Search selects whole groups: a group is kept when any of its rows matches the
+   * quest name, its adventure pack or its favor faction.
+   */
+  const matchingGroupIds = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return null
+
+    const ids = new Set<string>()
+    for (const group of groups) {
+      const hit = group.rows.some((row) =>
+        [row.quest.name, getPackName(row.quest) ?? '', row.quest.patron ?? ''].some((value) =>
+          value.toLowerCase().includes(needle),
+        ),
+      )
+      if (hit) ids.add(group.id)
+    }
+    return ids
+  }, [query, groups])
   const packs = useMemo(() => listAdventurePackInfo(quests), [quests])
   /** Packs whose rows cover more than one version, so the label needs the suffix. */
   const multiBandPacks = useMemo(() => {
@@ -723,6 +810,7 @@ export default function AdventureLog() {
     })
   }, [groups, occupantsByKey])
 
+  const trAt = characterId ? (reincarnations[characterId]?.at ?? null) : null
   const selectedCharacter = characterId ? CHARACTERS[characterId] : undefined
   const selectedLevel = characterId ? (characterData[characterId]?.total_level ?? null) : null
   const renderRow = (row: QuestRowModel) => (
@@ -731,8 +819,10 @@ export default function AdventureLog() {
       row={row}
       entry={characterCompletions[row.key]}
       busy={busyKey === row.key || bulkGroupId !== null}
-      query={search}
+      query={query}
       showSagaBadge={!sagasOnly}
+      trAt={trAt}
+      now={now}
       occupants={occupantsByKey.get(row.key) ?? []}
       onToggle={handleToggle}
     />
@@ -819,6 +909,22 @@ export default function AdventureLog() {
             </Select>
           </FormControl>
 
+          {trAt && (
+            <Tooltip
+              title={`Reincarnated ${new Date(trAt).toLocaleString()} (${reincarnations[characterId]?.source ?? 'manual'})`}
+            >
+              <Chip size="small" variant="outlined" color="secondary" label={`TR ${new Date(trAt).toLocaleDateString()}`} />
+            </Tooltip>
+          )}
+
+          <Tooltip title="Record a reincarnation and reset this character's checkboxes">
+            <span>
+              <IconButton size="small" onClick={() => setTrDialogOpen(true)} aria-label="Record reincarnation">
+                <RestartAltIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
           <Box sx={{ flex: 1 }} />
 
           <ToggleButton
@@ -902,7 +1008,6 @@ export default function AdventureLog() {
                     <TableCell padding="checkbox" />
                     <TableCell>Quest</TableCell>
                     <TableCell align="right">Level</TableCell>
-                    <TableCell>Type</TableCell>
                     <TableCell>Favor</TableCell>
                     <TableCell>Last done</TableCell>
                   </TableRow>
@@ -913,7 +1018,7 @@ export default function AdventureLog() {
                           expandedGroups.has(group.id) ||
                           (searching && (matchingGroupIds?.has(group.id) ?? false))
                         const done = group.rows.filter((row) => characterCompletions[row.key]?.finished).length
-                        const total = groupTotals.get(group.id) ?? group.rows.length
+                        const total = groupInfo.get(group.id)?.total ?? group.rows.length
                         const allDone = total > 0 && done === total
                         const someDone = done > 0 && !allDone
                         const bulkBusy = bulkGroupId === group.id
@@ -947,7 +1052,7 @@ export default function AdventureLog() {
                                   />
                                 )}
                               </TableCell>
-                              <TableCell colSpan={4}>
+                              <TableCell colSpan={3}>
                                 <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
                                   {expanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
                                   <Typography
@@ -958,9 +1063,14 @@ export default function AdventureLog() {
                                       color: allDone ? 'text.secondary' : 'text.primary',
                                     }}
                                   >
-                                    {group.kind === 'pack' && group.band && multiBandPacks.has(group.label)
-                                      ? groupLabel(group)
-                                      : group.label}
+                                    <HighlightedText
+                                      text={
+                                        group.kind === 'pack' && group.band && multiBandPacks.has(group.label)
+                                          ? groupLabel(group)
+                                          : group.label
+                                      }
+                                      query={searching ? query : ''}
+                                    />
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary">
                                     L{formatLevelRange(group)}
@@ -997,10 +1107,20 @@ export default function AdventureLog() {
           ·{' '}
           {doneCount} marked done
           {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
+          {trAt ? ` · TR ${new Date(trAt).toLocaleDateString()}` : ''}
           {patronFilter ? ` · favor: ${patronFilter}` : ''}
           {hiddenPacks.size > 0 ? ` · ${hiddenPacks.size} packs hidden` : ''}
         </Typography>
       </Stack>
+
+      <ReincarnationDialog
+        key={`${trDialogOpen}-${trAt ?? 'none'}`}
+        open={trDialogOpen}
+        characterName={selectedCharacter?.name ?? 'this character'}
+        currentAt={trAt}
+        onClose={() => setTrDialogOpen(false)}
+        onConfirm={handleReincarnation}
+      />
 
       <HidePacksDialog
         open={packsDialogOpen}

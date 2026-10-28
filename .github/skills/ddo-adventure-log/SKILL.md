@@ -66,6 +66,23 @@ Rows written before bands existed were re-keyed by
 Documents written before `history` existed are read as a one-entry history from
 `last_finished_at`, so no migration is needed.
 
+### Reincarnation (TR)
+
+A character that drops from level 20+ to 5 or below and then appears in a quest with
+heroic CR <= 3 is treated as reincarnated (`server/src/detect.ts`). The poller stores the
+event in `reincarnations/{character_id}` and re-derives the checkboxes for that character:
+`finished` stays true only when the newest history entry is at or after the TR time
+(`resetCompletionsForLife` in `server/src/store.ts`). History is never deleted, so the
+previous life stays readable and its entries are tagged "(prev life)" in the tooltip.
+
+- Candidates expire after 24h, a level of 0 or a missing level never triggers one, and a
+  recorded TR time never moves backwards.
+- Iconic reincarnations (level 15) and Otto's Box leveling are not detectable this way;
+  use the manual dialog (`Record a reincarnation`) or
+  `POST /reincarnations/{characterId}` with the write password and an optional `at`
+  (max 24h in the future).
+- The ransack counter only counts loots from the current life.
+
 ### Ransack status (derived, not stored)
 
 `src/domains/adventureLog/ransack.ts` counts completions inside a 7-day window:
@@ -111,6 +128,11 @@ descending. There are two modes:
 - **"Sagas only"**: saga groups only; a quest appears in every saga it belongs to
   (`src/data/questGroupings.json`), and rows whose version does not match a
   "(Heroic)"/"(Legendary)" saga are dropped from this view.
+
+"Hide completed" removes a group only when **every** quest in it is done; a partially
+finished group keeps its full list. The Type column is gone — a `Solo`/`Raid`/other badge
+appears next to the quest name when it is not a `Party` quest. The search input is
+deferred (`useDeferredValue`) so typing stays responsive while groups recompute.
 
 Group headers carry a tri-state checkbox (all / some / none done) that marks every row
 in the group, the level range, and a done/total count; a group whose every row is done

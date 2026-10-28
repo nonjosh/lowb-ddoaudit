@@ -35,10 +35,21 @@ export function isWithinRansackWindow(iso: string, now: number = Date.now()): bo
   return Number.isFinite(timestamp) && now - timestamp <= QUEST_RANSACK_WINDOW_MS
 }
 
-export function getRansackStatus(history: readonly string[], now: number = Date.now()): RansackStatus {
+/**
+ * `since` is the last reincarnation: loots from a previous life do not count towards
+ * the current life's timer.
+ */
+export function getRansackStatus(
+  history: readonly string[],
+  now: number = Date.now(),
+  since: string | null = null,
+): RansackStatus {
+  const lifeStart = since === null ? null : new Date(since).getTime()
+
   const times = history
     .map((iso) => new Date(iso).getTime())
     .filter((timestamp) => Number.isFinite(timestamp))
+    .filter((timestamp) => lifeStart === null || !Number.isFinite(lifeStart) || timestamp >= lifeStart)
     .sort((left, right) => left - right)
 
   const truncated = history.length >= HISTORY_CAP

@@ -21,6 +21,14 @@ export interface ActivityEntry {
 /** characterId -> where the poller last saw them. */
 export type ActivityMap = Record<string, ActivityEntry>
 
+export interface ReincarnationInfo {
+  at: string
+  source: 'auto' | 'manual'
+}
+
+/** characterId -> most recent reincarnation. */
+export type ReincarnationMap = Record<string, ReincarnationInfo>
+
 export class WritePasswordRejectedError extends Error {
   constructor() {
     super('Write password rejected')
@@ -44,6 +52,41 @@ export async function fetchCompletions(signal?: AbortSignal): Promise<Completion
 
   const body = (await response.json()) as CompletionsResponse
   return body.data ?? {}
+}
+
+export async function fetchReincarnations(signal?: AbortSignal): Promise<ReincarnationMap> {
+  const response = await fetch(`${ADVENTURE_LOG_API_URL}/reincarnations`, { signal })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch reincarnations (${response.status})`)
+  }
+
+  const body = (await response.json()) as { data?: ReincarnationMap }
+  return body.data ?? {}
+}
+
+/**
+ * Records a reincarnation and re-derives the checkboxes: rows whose newest completion
+ * is older than `at` are unchecked, history is left untouched.
+ */
+export async function resetReincarnation(
+  characterId: string,
+  at: string | null,
+  password: string,
+): Promise<{ at: string; unchecked: number }> {
+  const response = await fetch(
+    `${ADVENTURE_LOG_API_URL}/reincarnations/${encodeURIComponent(characterId)}`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-log-password': password },
+      body: JSON.stringify(at === null ? {} : { at }),
+    },
+  )
+
+  if (response.status === 401) throw new WritePasswordRejectedError()
+  if (!response.ok) throw new Error(`Failed to reset the log (${response.status})`)
+
+  const body = (await response.json()) as { data?: { at: string; unchecked: number } }
+  return body.data ?? { at: '', unchecked: 0 }
 }
 
 export async function fetchActivity(signal?: AbortSignal): Promise<ActivityMap> {
