@@ -31,10 +31,14 @@ Items in `items.json` have a `url` field with a **relative path**:
 
 ### Quest Pages
 
-Quest names are converted to wiki URLs by replacing spaces with underscores:
+Quest names are converted to wiki URLs by replacing spaces with underscores. Use the
+shared helper rather than inlining the rule:
 
 ```typescript
-questName.replace(/\s+/g, "_");
+import { getQuestWikiUrl } from "@/utils/wikiUrls";
+
+getQuestWikiUrl("Shadow Under Thunderholme");
+// https://ddowiki.com/page/Shadow_Under_Thunderholme
 ```
 
 ### Augment Pages (Wishlist)

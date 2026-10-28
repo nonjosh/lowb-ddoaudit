@@ -1,13 +1,16 @@
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { Link, Tooltip } from '@mui/material'
 
+import { getQuestWikiUrl } from '@/utils/wikiUrls'
+
 interface DdoWikiLinkProps {
   questName?: string
   wikiUrl?: string
 }
 
+
 export default function DdoWikiLink({ questName, wikiUrl }: DdoWikiLinkProps) {
-  const url = wikiUrl || (questName ? `https://ddowiki.com/page/${questName.replace(/\s+/g, '_')}` : '')
+  const url = wikiUrl || (questName ? getQuestWikiUrl(questName) : '')
 
   if (!url) return null
 

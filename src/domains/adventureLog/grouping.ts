@@ -218,13 +218,13 @@ export function groupQuestRows(
       ),
     }))
     .sort((left, right) => {
-      // Raid adventure packs sit below everything else, then groups go by level.
+      const byLevel = (right.levelMax ?? -1) - (left.levelMax ?? -1)
+      if (byLevel !== 0) return byLevel
+
+      // At the same level, raid packs come after normal packs.
       const leftRaid = left.kind === 'pack' && left.raid ? 1 : 0
       const rightRaid = right.kind === 'pack' && right.raid ? 1 : 0
       if (leftRaid !== rightRaid) return leftRaid - rightRaid
-
-      const byLevel = (right.levelMax ?? -1) - (left.levelMax ?? -1)
-      if (byLevel !== 0) return byLevel
       const byLabel = left.label.localeCompare(right.label)
       if (byLabel !== 0) return byLabel
       return (left.band ?? '').localeCompare(right.band ?? '')

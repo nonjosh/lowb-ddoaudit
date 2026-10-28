@@ -16,6 +16,7 @@ import {
   FormControl,
   FormControlLabel,
   InputLabel,
+  Link,
   MenuItem,
   Paper,
   Select,
@@ -64,6 +65,7 @@ import {
   getRansackStatus,
   isWithinRansackWindow,
 } from '@/domains/adventureLog/ransack'
+import { getQuestWikiUrl } from '@/utils/wikiUrls'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
@@ -207,7 +209,15 @@ function QuestRow({ row, entry, busy, occupants, onToggle }: QuestRowProps) {
       </TableCell>
       <TableCell>
         <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
-          <span>{row.quest.name}</span>
+          <Link
+            href={getQuestWikiUrl(row.quest.name)}
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="hover"
+            color="inherit"
+          >
+            {row.quest.name}
+          </Link>
           <Chip size="small" variant="outlined" label={bandLabel(row.band)} />
           {row.quest.type === 'Raid' && <Chip size="small" color="secondary" label="Raid" />}
           {occupants.length > 0 && (
