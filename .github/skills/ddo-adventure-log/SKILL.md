@@ -72,8 +72,12 @@ Documents written before `history` existed are read as a one-entry history from
 
 | Constant | Value |
 | --- | --- |
-| `QUEST_RANSACK_WINDOW_MS` | 7 days |
-| `QUEST_RANSACK_LIMIT` | 5 runs |
+| `QUEST_RANSACK_WINDOW_MS` | 7 days (168 h) |
+| `QUEST_RANSACK_LIMIT` | 8 runs |
+
+The wiki's rule is "8 loots per 7 days without ransack, the 9th is the first reduced"
+(https://ddowiki.com/page/Chest_ransack). The counter turns into a "Ransacked" chip at
+8 recorded completions inside the window.
 
 `getRansackStatus(history)` returns `{ runsInWindow, ransacked }`; the page shows a
 "Ransacked" chip at the limit and an "N/5 in 7d" hint above one run. Adjust the two

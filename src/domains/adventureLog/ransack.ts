@@ -1,13 +1,16 @@
 import { HOUR_IN_MS } from '@/api/ddoAudit'
 
 /**
- * Quest end-reward ransack: repeating a quest too often within the window degrades
- * the end reward list. The wiki describes the window in days and the count in runs;
- * these two constants are the only place to adjust if the game changes.
- * See .github/skills/ddo-ransack/SKILL.md for the chest version of the mechanic.
+ * Reward-loot ransack: a chest (and the end-reward list of its quest) yields normal
+ * loot for the first 8 loots within 7 days; the 9th is the first reduced one. The
+ * wiki states it as "8 times per 7 days without ransack".
+ * https://ddowiki.com/page/Chest_ransack
+ *
+ * Note this is not the quest XP ransack (a 20%-per-repeat penalty that decays 50%
+ * every 18 hours); see .github/skills/ddo-ransack/SKILL.md.
  */
 export const QUEST_RANSACK_WINDOW_MS = 7 * 24 * HOUR_IN_MS
-export const QUEST_RANSACK_LIMIT = 5
+export const QUEST_RANSACK_LIMIT = 8
 
 export interface RansackStatus {
   runsInWindow: number

@@ -14,21 +14,19 @@ description: "DDO chest ransack timer tracking, 168-hour duration, gradual recov
 
 ## Game Rules
 
-### Ransack Mechanic
+### Ransack Mechanic (https://ddowiki.com/page/Chest_ransack)
 
-| Chest Opening | Drop Rate |
-| ------------- | --------- |
-| 1st           | 100%      |
-| 2nd           | 80%       |
-| 3rd           | 60%       |
-| 4th           | 40%       |
-| 5th+          | 20%       |
+- Every chest has its own ransack timer, tracked **per character** (not per difficulty).
+- The timer starts on the first loot and lasts exactly **7 days (168 hours)**.
+- Loot 1–**8** inside that window is normal; **the 9th** is the first reduced one
+  (ransack warning, no chest-specific named items, chest level −1 per further loot).
+- At chest level 0 you get no loot at all; how fast that happens depends on the
+  chest's starting level.
 
-### Timer Duration
-
-- **Full Duration**: 7 days (168 hours)
-- Penalty decreases by **50%** every **18 hours** (logarithmic recovery)
-- First-time difficulty completion waives ransack penalty
+Do not confuse this with **quest XP ransack** (https://ddowiki.com/page/Quest_ransack):
+each repeat of the same difficulty beyond the first adds a stacking −20% XP penalty
+(capped at −80%) that decays 50% per 18 hours since the last completion. The two are
+tracked separately; only chest/reward loot has the 8-per-7-days rule.
 
 ### Comparison with Raid Lockout
 
@@ -38,16 +36,16 @@ description: "DDO chest ransack timer tracking, 168-hour duration, gradual recov
 | Source   | DDO Audit API  | User-entered    |
 | Recovery | Full at expiry | Gradual 50%/18h |
 
-## Quest End-Reward Ransack (adventure log)
+## Reward Ransack (adventure log)
 
-Separate from chest ransack: the adventure log derives quest ransack from the
-completion history stored per character + quest.
+The adventure log derives reward ransack from the completion history stored per
+character + quest.
 
-- Window: 7 days, limit: 5 completions — constants in
+- Window: 7 days, limit: **8** completions — constants in
   `src/domains/adventureLog/ransack.ts`.
 - Source: `history` on `completions/{character_id}_{quest_id}` (newest first, max 10),
   written by the poller and by manual edits.
-- Display: a "Ransacked" chip at the limit, an "N/5 in 7d" hint above one run.
+- Display: a "Ransacked" chip at the limit, an "N/8 in 7d" hint above one run.
 - Nothing is stored for ransack status; it is recomputed from timestamps so a changed
   rule needs no migration.
 
