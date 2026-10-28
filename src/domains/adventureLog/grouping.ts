@@ -34,6 +34,8 @@ export interface QuestGroup {
   band?: QuestBand
   levelMin: number | null
   levelMax: number | null
+  /** True when every row in the group is a raid. */
+  raid: boolean
   rows: QuestRowModel[]
 }
 
@@ -194,9 +196,14 @@ export function groupQuestRows(
       kind = 'level'
     }
 
+    const isRaid = row.quest.type === 'Raid'
     const existing = groups.get(id)
-    if (existing) existing.rows.push(row)
-    else groups.set(id, { id, label, kind, band, levelMin: null, levelMax: null, rows: [row] })
+    if (existing) {
+      existing.rows.push(row)
+      existing.raid = existing.raid && isRaid
+    } else {
+      groups.set(id, { id, label, kind, band, levelMin: null, levelMax: null, raid: isRaid, rows: [row] })
+    }
   }
 
   return [...groups.values()]
@@ -211,6 +218,11 @@ export function groupQuestRows(
       ),
     }))
     .sort((left, right) => {
+      // Raid adventure packs sit below everything else, then groups go by level.
+      const leftRaid = left.kind === 'pack' && left.raid ? 1 : 0
+      const rightRaid = right.kind === 'pack' && right.raid ? 1 : 0
+      if (leftRaid !== rightRaid) return leftRaid - rightRaid
+
       const byLevel = (right.levelMax ?? -1) - (left.levelMax ?? -1)
       if (byLevel !== 0) return byLevel
       const byLabel = left.label.localeCompare(right.label)

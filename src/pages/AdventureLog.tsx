@@ -27,6 +27,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -51,6 +52,7 @@ import {
   buildQuestRows,
   completionKey,
   formatLevelRange,
+  getSagaName,
   groupLabel,
   groupQuestRows,
   listAdventurePackInfo,
@@ -134,7 +136,7 @@ function writeStorage(key: string, value: string): void {
 
 function readStoredPassword(): string {
   try {
-    return sessionStorage.getItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY) ?? ''
+    return localStorage.getItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY) ?? ''
   } catch {
     return ''
   }
@@ -142,8 +144,8 @@ function readStoredPassword(): string {
 
 function storePassword(value: string): void {
   try {
-    if (value) sessionStorage.setItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY, value)
-    else sessionStorage.removeItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY)
+    if (value) localStorage.setItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY, value)
+    else localStorage.removeItem(ADVENTURE_LOG_PASSWORD_STORAGE_KEY)
   } catch {
     // Non-fatal.
   }
@@ -253,6 +255,7 @@ export default function AdventureLog() {
   const [search, setSearch] = useState('')
   const [onlyRansacked, setOnlyRansacked] = useState(false)
   const [hideCompleted, setHideCompleted] = useState(false)
+  const [sagasOnly, setSagasOnly] = useState(false)
   const [hiddenPacks, setHiddenPacks] = useState<Set<string>>(readHiddenPacks)
   const [packsDialogOpen, setPacksDialogOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
@@ -510,12 +513,14 @@ export default function AdventureLog() {
     return rows.filter((row) => {
       if (needle && !row.quest.name.toLowerCase().includes(needle)) return false
 
+      if (sagasOnly && !getSagaName(row.quest)) return false
+
       const entry = characterCompletions[row.key]
       if (hideCompleted && entry?.finished) return false
       if (onlyRansacked && !getRansackStatus(entry?.history ?? []).ransacked) return false
       return true
     })
-  }, [rows, search, onlyRansacked, hideCompleted, characterCompletions])
+  }, [rows, search, onlyRansacked, hideCompleted, sagasOnly, characterCompletions])
 
   const groups = useMemo(() => groupQuestRows(visibleRows, hiddenPacks), [visibleRows, hiddenPacks])
   const packs = useMemo(() => listAdventurePackInfo(quests), [quests])
@@ -686,6 +691,16 @@ export default function AdventureLog() {
             control={<Checkbox checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} />}
             label="Hide completed"
           />
+
+          <ToggleButton
+            value="sagas"
+            size="small"
+            selected={sagasOnly}
+            onChange={() => setSagasOnly((previous) => !previous)}
+            title="Show only quests that belong to a saga"
+          >
+            Sagas only
+          </ToggleButton>
         </Stack>
 
         {loading ? (
@@ -787,7 +802,7 @@ export default function AdventureLog() {
         <DialogTitle>Write password</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Ask in Discord for the shared write password. It is stored in this browser tab only.
+            Hint: the guild name, four lowercase letters. It is remembered in this browser, so you only enter it once.
           </Typography>
           <TextField
             autoFocus
