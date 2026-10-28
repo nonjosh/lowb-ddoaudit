@@ -17,7 +17,9 @@ description: "DDO chest ransack timer tracking, 168-hour duration, gradual recov
 ### Ransack Mechanic (https://ddowiki.com/page/Chest_ransack)
 
 - Every chest has its own ransack timer, tracked **per character** (not per difficulty).
-- The timer starts on the first loot and lasts exactly **7 days (168 hours)**.
+- The timer starts on the first loot and lasts exactly **7 days (168 hours)**; later
+  loots do **not** extend it, and when it expires the chest is fully normal again
+  (the next loot starts a new timer).
 - Loot 1–**8** inside that window is normal; **the 9th** is the first reduced one
   (ransack warning, no chest-specific named items, chest level −1 per further loot).
 - At chest level 0 you get no loot at all; how fast that happens depends on the

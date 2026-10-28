@@ -127,11 +127,23 @@ function HistoryTooltip({ history }: { history: readonly string[] }) {
   return (
     <Box sx={{ py: 0.5 }}>
       <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
-        {status.runsInWindow}/{QUEST_RANSACK_LIMIT} runs in the last 7 days
-        {status.ransacked ? ' — ransacked' : `, ${Math.max(QUEST_RANSACK_LIMIT - status.runsInWindow, 0)} to go`}
+        {status.runsInWindow}/{QUEST_RANSACK_LIMIT} loots in this ransack timer
+        {status.ransacked
+          ? ' — ransacked'
+          : status.runsInWindow === QUEST_RANSACK_LIMIT
+            ? ' — next loot is ransacked'
+            : `, ${QUEST_RANSACK_LIMIT - status.runsInWindow} to go`}
       </Typography>
+      {status.resetsAt && (
+        <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+          {status.truncated ? 'Resets by ~' : 'Resets ~'}
+          {status.resetsAt.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+        </Typography>
+      )}
       {history.map((iso) => {
-        const inWindow = isWithinRansackWindow(iso)
+        const inWindow = status.windowStart
+          ? new Date(iso).getTime() >= status.windowStart.getTime()
+          : isWithinRansackWindow(iso)
         return (
           <Stack key={iso} direction="row" spacing={1} sx={{ fontSize: 12, lineHeight: 1.6 }}>
             <Box
@@ -288,7 +300,8 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, occupants, onToggle 
                 <Chip size="small" color="warning" label="Ransacked" />
               ) : ransack.runsInWindow > 1 ? (
                 <Typography variant="caption" color="text.secondary">
-                  {ransack.runsInWindow}/{QUEST_RANSACK_LIMIT} in 7d
+                  {ransack.runsInWindow}/{QUEST_RANSACK_LIMIT}
+                  {ransack.runsInWindow === QUEST_RANSACK_LIMIT ? ' · next loot ransacked' : ''}
                 </Typography>
               ) : null}
             </Stack>
