@@ -223,6 +223,7 @@ function QuestRow({ row, entry, busy, occupants, onToggle }: QuestRowProps) {
       </TableCell>
       <TableCell align="right">{row.level ?? '—'}</TableCell>
       <TableCell>{row.quest.type ?? '—'}</TableCell>
+      <TableCell>{row.quest.patron ?? '—'}</TableCell>
       <TableCell>
         {finished ? (
           <Tooltip title={<HistoryTooltip history={entry?.history ?? []} />}>
@@ -256,6 +257,7 @@ export default function AdventureLog() {
   const [onlyRansacked, setOnlyRansacked] = useState(false)
   const [hideCompleted, setHideCompleted] = useState(false)
   const [sagasOnly, setSagasOnly] = useState(false)
+  const [patronFilter, setPatronFilter] = useState('')
   const [hiddenPacks, setHiddenPacks] = useState<Set<string>>(readHiddenPacks)
   const [packsDialogOpen, setPacksDialogOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
@@ -514,16 +516,22 @@ export default function AdventureLog() {
       if (needle && !row.quest.name.toLowerCase().includes(needle)) return false
 
       if (sagasOnly && !getSagaName(row.quest)) return false
+      if (patronFilter && row.quest.patron !== patronFilter) return false
 
       const entry = characterCompletions[row.key]
       if (hideCompleted && entry?.finished) return false
       if (onlyRansacked && !getRansackStatus(entry?.history ?? []).ransacked) return false
       return true
     })
-  }, [rows, search, onlyRansacked, hideCompleted, sagasOnly, characterCompletions])
+  }, [rows, search, onlyRansacked, hideCompleted, sagasOnly, patronFilter, characterCompletions])
 
   const groups = useMemo(() => groupQuestRows(visibleRows, hiddenPacks), [visibleRows, hiddenPacks])
   const packs = useMemo(() => listAdventurePackInfo(quests), [quests])
+  const patrons = useMemo(() => {
+    const names = new Set<string>()
+    for (const quest of quests) if (quest.patron) names.add(quest.patron)
+    return [...names].sort((left, right) => left.localeCompare(right))
+  }, [quests])
 
   /** `${questId}:${band}` -> characters currently inside that quest version. */
   const occupantsByKey = useMemo(() => {
@@ -682,6 +690,23 @@ export default function AdventureLog() {
             sx={{ minWidth: 220, flex: 1 }}
           />
 
+          <FormControl size="small" sx={{ minWidth: 190 }}>
+            <InputLabel id="adventure-log-favor">Favor</InputLabel>
+            <Select
+              labelId="adventure-log-favor"
+              label="Favor"
+              value={patronFilter}
+              onChange={(event) => setPatronFilter(event.target.value)}
+            >
+              <MenuItem value="">All favor</MenuItem>
+              {patrons.map((patron) => (
+                <MenuItem key={patron} value={patron}>
+                  {patron}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <FormControlLabel
             control={<Checkbox checked={onlyRansacked} onChange={(event) => setOnlyRansacked(event.target.checked)} />}
             label="Ransacked"
@@ -717,6 +742,7 @@ export default function AdventureLog() {
                     <TableCell>Quest</TableCell>
                     <TableCell align="right">Level</TableCell>
                     <TableCell>Type</TableCell>
+                    <TableCell>Favor</TableCell>
                     <TableCell>Last done</TableCell>
                   </TableRow>
                 </TableHead>
@@ -754,7 +780,7 @@ export default function AdventureLog() {
                                   />
                                 )}
                               </TableCell>
-                              <TableCell colSpan={3}>
+                              <TableCell colSpan={4}>
                                 <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
                                   {expanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
                                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -785,6 +811,7 @@ export default function AdventureLog() {
           {searching ? `${visibleRows.length} matching quests` : `${groups.length} groups · ${groupedRowCount} rows`} ·{' '}
           {doneCount} marked done
           {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
+          {patronFilter ? ` · favor: ${patronFilter}` : ''}
           {hiddenPacks.size > 0 ? ` · ${hiddenPacks.size} packs hidden` : ''}
         </Typography>
       </Stack>

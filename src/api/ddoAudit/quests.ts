@@ -10,6 +10,8 @@ export interface Quest {
   heroicLevel: number | null
   epicLevel: number | null
   required_adventure_pack: string | null
+  /** Favor faction the quest grants (e.g. "House Kundarak"). */
+  patron: string | null
   areaId: string | null
 }
 
@@ -31,6 +33,7 @@ export interface QuestResponseItem {
   heroic_normal_cr?: string | number | null
   epic_normal_cr?: string | number | null
   required_adventure_pack?: string | null
+  patron?: string | null
 }
 
 type QuestsApiResponse = { data?: QuestResponseItem[] } | QuestResponseItem[]
@@ -71,6 +74,7 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
     const epicCr = parseNullableInt(q?.epic_normal_cr)
     const level = heroicCr === null && epicCr === null ? null : Math.max(heroicCr ?? 0, epicCr ?? 0)
     const pack = String(q?.required_adventure_pack ?? '').trim() || null
+    const patron = String(q?.patron ?? '').trim() || null
 
     const primaryId = String(q?.id ?? '').trim()
     const areaId = String(q?.area_id ?? '').trim()
@@ -86,6 +90,7 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
       heroicLevel: heroicCr,
       epicLevel: epicCr,
       required_adventure_pack: pack,
+      patron,
       areaId: areaId && areaId.toLowerCase() !== 'null' && areaId !== '0' ? areaId : null,
     }
 
@@ -108,6 +113,7 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
         heroicLevel: null,
         epicLevel: null,
         required_adventure_pack: null,
+        patron: null,
         areaId: hq.areaId,
       }
       map[hq.id] = questObj
