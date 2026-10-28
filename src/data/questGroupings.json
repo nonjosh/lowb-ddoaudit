@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T14:34:03.287Z",
+  "generatedAt": "2026-10-28T14:55:09.407Z",
   "sources": {
     "quests": "https://api.ddoaudit.com/v1/quests",
     "sagas": "src/data/sagas.json",
@@ -7,10 +7,11 @@
     "wikiPacks": "https://ddowiki.com/page/Adventure_Pack"
   },
   "counts": {
-    "quests": 531,
-    "questsWithSaga": 88,
+    "quests": 545,
+    "questsWithSaga": 176,
+    "wilderness": 54,
     "packs": 67,
-    "sagasInSource": 13
+    "sagasInSource": 14
   },
   "quests": {
     "1879051405": {
@@ -124,6 +125,9 @@
     "1879052480": {
       "pack": "Sorrowdusk Isle"
     },
+    "1879052512": {
+      "wilderness": true
+    },
     "1879052559": {
       "pack": "The Catacombs"
     },
@@ -142,6 +146,9 @@
     "1879052673": {
       "pack": "The Ruins of Threnal"
     },
+    "1879053859": {
+      "wilderness": true
+    },
     "1879054318": {
       "pack": "The Ruins of Threnal"
     },
@@ -158,7 +165,8 @@
       "pack": "The Ruins of Threnal"
     },
     "1879057359": {
-      "pack": "Tangleroot Gorge"
+      "pack": "Tangleroot Gorge",
+      "wilderness": true
     },
     "1879057788": {
       "pack": "Tangleroot Gorge"
@@ -171,9 +179,11 @@
     },
     "1879058614": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)"
       ]
+    },
+    "1879058647": {
+      "wilderness": true
     },
     "1879059023": {
       "pack": "Three-Barrel Cove"
@@ -183,23 +193,26 @@
     },
     "1879059099": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)"
       ],
       "pack": "Three-Barrel Cove"
     },
     "1879059101": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)"
       ],
       "pack": "Three-Barrel Cove"
     },
     "1879059125": {
-      "pack": "Three-Barrel Cove"
+      "pack": "Three-Barrel Cove",
+      "wilderness": true
     },
     "1879065458": {
-      "pack": "The Ruins of Threnal"
+      "pack": "The Ruins of Threnal",
+      "wilderness": true
+    },
+    "1879066420": {
+      "wilderness": true
     },
     "1879069585": {
       "pack": "The Vault of Night"
@@ -223,7 +236,8 @@
       "pack": "The Vault of Night"
     },
     "1879070741": {
-      "pack": "The Restless Isles"
+      "pack": "The Restless Isles",
+      "wilderness": true
     },
     "1879071165": {
       "pack": "The Restless Isles"
@@ -319,7 +333,8 @@
       "pack": "The Demon Sands"
     },
     "1879073052": {
-      "pack": "The Demon Sands"
+      "pack": "The Demon Sands",
+      "wilderness": true
     },
     "1879073062": {
       "pack": "Delera's Tomb"
@@ -327,8 +342,17 @@
     "1879073073": {
       "pack": "Delera's Tomb"
     },
+    "1879073425": {
+      "wilderness": true
+    },
+    "1879074159": {
+      "wilderness": true
+    },
     "1879074477": {
       "pack": "The Demon Sands"
+    },
+    "1879075161": {
+      "wilderness": true
     },
     "1879077265": {
       "sagas": [
@@ -337,8 +361,12 @@
       ],
       "pack": "The Ruins of Gianthold"
     },
+    "1879077382": {
+      "wilderness": true
+    },
     "1879077447": {
-      "pack": "The Ruins of Gianthold"
+      "pack": "The Ruins of Gianthold",
+      "wilderness": true
     },
     "1879077474": {
       "sagas": [
@@ -363,15 +391,13 @@
     },
     "1879077483": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)",
-        "In the Wastes of Gianthold (Epic)"
+        "In the Wastes of Gianthold (Heroic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
     "1879077486": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)",
-        "In the Wastes of Gianthold (Epic)"
+        "In the Wastes of Gianthold (Heroic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
@@ -389,17 +415,18 @@
       ],
       "pack": "The Ruins of Gianthold"
     },
+    "1879077941": {
+      "wilderness": true
+    },
     "1879078755": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)",
-        "In the Wastes of Gianthold (Epic)"
+        "In the Wastes of Gianthold (Heroic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
     "1879078995": {
       "sagas": [
-        "In the Wastes of Gianthold (Heroic)",
-        "In the Wastes of Gianthold (Epic)"
+        "In the Wastes of Gianthold (Heroic)"
       ],
       "pack": "The Ruins of Gianthold"
     },
@@ -407,7 +434,11 @@
       "pack": "The Ruins of Gianthold"
     },
     "1879079912": {
-      "pack": "The Necropolis, Part 4"
+      "pack": "The Necropolis, Part 4",
+      "wilderness": true
+    },
+    "1879079960": {
+      "wilderness": true
     },
     "1879080000": {
       "pack": "The Necropolis, Part 3"
@@ -427,11 +458,15 @@
     "1879080637": {
       "pack": "The Necropolis, Part 4"
     },
+    "1879080845": {
+      "wilderness": true
+    },
     "1879082352": {
       "pack": "The Vale of Twilight"
     },
     "1879083031": {
-      "pack": "The Vale of Twilight"
+      "pack": "The Vale of Twilight",
+      "wilderness": true
     },
     "1879083071": {
       "pack": "The Vale of Twilight"
@@ -449,10 +484,12 @@
       "pack": "The Vale of Twilight"
     },
     "1879086504": {
-      "pack": "The Vale of Twilight"
+      "pack": "The Vale of Twilight",
+      "wilderness": true
     },
     "1879086508": {
-      "pack": "The Vale of Twilight"
+      "pack": "The Vale of Twilight",
+      "wilderness": true
     },
     "1879086553": {
       "pack": "The Vale of Twilight"
@@ -462,8 +499,8 @@
     },
     "1879086653": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)",
+        "The Pirates of the Thunder Sea (Epic)"
       ],
       "pack": "Three-Barrel Cove"
     },
@@ -472,8 +509,7 @@
     },
     "1879086971": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)"
       ],
       "pack": "Three-Barrel Cove"
     },
@@ -482,10 +518,13 @@
     },
     "1879088621": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)",
+        "The Pirates of the Thunder Sea (Epic)"
       ],
       "pack": "Three-Barrel Cove"
+    },
+    "1879094638": {
+      "wilderness": true
     },
     "1879095894": {
       "pack": "The Reaver's Reach"
@@ -500,19 +539,24 @@
       "pack": "The Reaver's Reach"
     },
     "1879095912": {
-      "pack": "The Reaver's Reach"
+      "pack": "The Reaver's Reach",
+      "wilderness": true
     },
     "1879097438": {
-      "pack": "The Reaver's Reach"
+      "pack": "The Reaver's Reach",
+      "wilderness": true
     },
     "1879097439": {
-      "pack": "The Reaver's Reach"
+      "pack": "The Reaver's Reach",
+      "wilderness": true
     },
     "1879097440": {
-      "pack": "The Reaver's Reach"
+      "pack": "The Reaver's Reach",
+      "wilderness": true
     },
     "1879097685": {
-      "pack": "The Devils of Shavarath"
+      "pack": "The Devils of Shavarath",
+      "wilderness": true
     },
     "1879097697": {
       "pack": "The Devils of Shavarath"
@@ -533,6 +577,9 @@
       "pack": "The Devils of Shavarath"
     },
     "1879098366": {
+      "sagas": [
+        "The Pirates of the Thunder Sea (Epic)"
+      ],
       "pack": "Sentinels of Stormreach"
     },
     "1879101694": {
@@ -588,29 +635,29 @@
     },
     "1879105680": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)",
+        "The Pirates of the Thunder Sea (Epic)"
       ],
       "pack": "Sentinels of Stormreach"
     },
     "1879105685": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)",
+        "The Pirates of the Thunder Sea (Epic)"
       ],
       "pack": "Sentinels of Stormreach"
     },
     "1879105689": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)",
+        "The Pirates of the Thunder Sea (Epic)"
       ],
       "pack": "Sentinels of Stormreach"
     },
     "1879105692": {
       "sagas": [
-        "Pirates of the Thunder Sea (Heroic)",
-        "Pirates of the Thunder Sea (Epic)"
+        "The Pirates of the Thunder Sea (Heroic)",
+        "The Pirates of the Thunder Sea (Epic)"
       ],
       "pack": "Sentinels of Stormreach"
     },
@@ -624,17 +671,14 @@
       "pack": "Phiarlan Carnival"
     },
     "1879108207": {
-      "sagas": [
-        "Fables of the Feywild (Heroic)",
-        "Fables of the Feywild (Legendary)"
-      ],
       "pack": "Phiarlan Carnival"
     },
     "1879108214": {
       "pack": "Phiarlan Carnival"
     },
     "1879108414": {
-      "pack": "The Red Fens"
+      "pack": "The Red Fens",
+      "wilderness": true
     },
     "1879108415": {
       "pack": "The Red Fens"
@@ -667,10 +711,6 @@
       "pack": "Harbinger of Madness"
     },
     "1879120682": {
-      "sagas": [
-        "Fables of the Feywild (Heroic)",
-        "Fables of the Feywild (Legendary)"
-      ],
       "pack": "Harbinger of Madness"
     },
     "1879120683": {
@@ -692,13 +732,10 @@
       "pack": "Reign of Madness"
     },
     "1879132371": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879132373": {
-      "sagas": [
-        "Masterminds of Sharn (Heroic)",
-        "Masterminds of Sharn (Legendary)"
-      ],
       "pack": "Secrets of the Artificers"
     },
     "1879132375": {
@@ -720,7 +757,8 @@
       "pack": "Secrets of the Artificers"
     },
     "1879132387": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879132389": {
       "pack": "Secrets of the Artificers"
@@ -729,10 +767,12 @@
       "pack": "Secrets of the Artificers"
     },
     "1879135622": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879135736": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879137191": {
       "pack": "Secrets of the Artificers"
@@ -747,16 +787,33 @@
       "pack": "Secrets of the Artificers"
     },
     "1879137203": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879137205": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879137207": {
       "pack": "Secrets of the Artificers"
     },
     "1879137209": {
       "pack": "Secrets of the Artificers"
+    },
+    "1879140563": {
+      "sagas": [
+        "The End of Eberron (Epic)"
+      ]
+    },
+    "1879140565": {
+      "sagas": [
+        "The End of Eberron (Epic)"
+      ]
+    },
+    "1879140567": {
+      "sagas": [
+        "The End of Eberron (Epic)"
+      ]
     },
     "1879140958": {
       "pack": "Secrets of the Artificers"
@@ -774,10 +831,12 @@
       "pack": "Secrets of the Artificers"
     },
     "1879140963": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879140964": {
-      "pack": "Secrets of the Artificers"
+      "pack": "Secrets of the Artificers",
+      "wilderness": true
     },
     "1879140965": {
       "pack": "Secrets of the Artificers"
@@ -786,73 +845,113 @@
       "pack": "Secrets of the Artificers"
     },
     "1879146143": {
-      "pack": "Menace of the Underdark"
+      "pack": "Menace of the Underdark",
+      "wilderness": true
     },
     "1879146260": {
-      "pack": "Menace of the Underdark"
-    },
-    "1879146404": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
+        "Menace of the Underdark (Epic)",
         "Perils of Cormyr (Epic)"
       ],
       "pack": "Menace of the Underdark"
     },
+    "1879146404": {
+      "sagas": [
+        "Honor of the Huntsilvers (Heroic)"
+      ],
+      "pack": "Menace of the Underdark"
+    },
     "1879146405": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "Perils of Cormyr (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147898": {
       "sagas": [
-        "Menace of the Underdark (Epic)",
-        "The End of Eberron",
-        "The Planeswalker's Path"
+        "The End of Eberron (Epic)",
+        "The Planeswalker's Path (Epic)"
       ]
     },
     "1879147900": {
       "pack": "Menace of the Underdark"
     },
     "1879147902": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "Perils of Cormyr (Epic)",
+        "The Planeswalker's Path (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147904": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "Perils of Cormyr (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147906": {
-      "pack": "Menace of the Underdark"
+      "pack": "Menace of the Underdark",
+      "wilderness": true
     },
     "1879147908": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "The End of Eberron (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147910": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "The End of Eberron (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147912": {
       "sagas": [
         "Menace of the Underdark (Epic)",
-        "The End of Eberron",
-        "The Planeswalker's Path"
+        "The End of Eberron (Epic)"
       ],
       "pack": "Menace of the Underdark"
     },
     "1879147914": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "Perils of Cormyr (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147916": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "Perils of Cormyr (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147918": {
-      "pack": "Menace of the Underdark"
+      "pack": "Menace of the Underdark",
+      "wilderness": true
     },
     "1879147920": {
       "sagas": [
-        "Menace of the Underdark (Epic)"
+        "Menace of the Underdark (Epic)",
+        "The End of Eberron (Epic)"
       ],
       "pack": "Menace of the Underdark"
     },
     "1879147922": {
-      "pack": "Menace of the Underdark"
+      "pack": "Menace of the Underdark",
+      "wilderness": true
     },
     "1879147924": {
+      "sagas": [
+        "Menace of the Underdark (Epic)",
+        "The End of Eberron (Epic)",
+        "The Planeswalker's Path (Epic)"
+      ],
       "pack": "Menace of the Underdark"
     },
     "1879147926": {
@@ -860,13 +959,15 @@
     },
     "1879147928": {
       "sagas": [
-        "Fables of the Feywild (Heroic)",
-        "Fables of the Feywild (Legendary)"
+        "Menace of the Underdark (Epic)",
+        "The End of Eberron (Epic)",
+        "The Planeswalker's Path (Epic)"
       ],
       "pack": "Menace of the Underdark"
     },
     "1879147930": {
-      "pack": "Menace of the Underdark"
+      "pack": "Menace of the Underdark",
+      "wilderness": true
     },
     "1879150375": {
       "pack": "Eveningstar Challenge Pack"
@@ -888,152 +989,156 @@
     },
     "1879162863": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "The Druid's Deep"
     },
     "1879162864": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Heroic)",
         "Perils of Cormyr (Epic)"
       ],
       "pack": "The Druid's Deep"
     },
     "1879162865": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "The Planeswalker's Path",
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
         "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "The Planeswalker's Path (Epic)"
       ],
       "pack": "The High Road of Shadows"
     },
     "1879162866": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Heroic)",
         "Perils of Cormyr (Epic)"
       ],
       "pack": "The Druid's Deep"
     },
     "1879162867": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Heroic)",
         "Perils of Cormyr (Epic)"
       ],
       "pack": "The Druid's Deep"
     },
     "1879162894": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "The Planeswalker's Path",
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
         "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "The Planeswalker's Path (Epic)"
       ],
       "pack": "The High Road of Shadows"
     },
     "1879162902": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
         "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "The Planeswalker's Path (Epic)"
       ],
       "pack": "The High Road of Shadows"
     },
     "1879162908": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "The Planeswalker's Path",
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
         "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "The Planeswalker's Path (Epic)"
       ],
       "pack": "The High Road of Shadows"
     },
     "1879162911": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "The Planeswalker's Path",
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
         "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "The Planeswalker's Path (Epic)"
       ],
       "pack": "The High Road of Shadows"
     },
     "1879165026": {
-      "pack": "The High Road of Shadows"
+      "pack": "The High Road of Shadows",
+      "wilderness": true
     },
     "1879167260": {
       "pack": "The Ruins of Gianthold"
     },
     "1879173259": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
         "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "The Planeswalker's Path (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879173262": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879173271": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879173273": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879173274": {
-      "pack": "Shadowfell Conspiracy"
+      "pack": "Shadowfell Conspiracy",
+      "wilderness": true
     },
     "1879174691": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879175190": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879175196": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
@@ -1042,42 +1147,40 @@
     },
     "1879175203": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879175204": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
         "Honor of the Huntsilvers (Heroic)",
-        "Perils of Cormyr (Epic)",
-        "Honor of the Huntsilvers (Epic)"
+        "Perils of Cormyr (Heroic)",
+        "Honor of the Huntsilvers (Epic)",
+        "Perils of Cormyr (Epic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879175407": {
-      "pack": "Shadowfell Conspiracy"
+      "pack": "Shadowfell Conspiracy",
+      "wilderness": true
     },
     "1879183857": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
-        "Perils of Cormyr (Epic)"
+        "Honor of the Huntsilvers (Heroic)"
       ]
     },
     "1879183864": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
-        "Perils of Cormyr (Epic)"
+        "Honor of the Huntsilvers (Heroic)"
       ],
       "pack": "Shadowfell Conspiracy"
     },
     "1879183866": {
       "sagas": [
-        "Perils of Cormyr (Heroic)",
-        "Perils of Cormyr (Epic)"
+        "Honor of the Huntsilvers (Heroic)"
       ]
     },
     "1879197087": {
@@ -1090,7 +1193,8 @@
       "pack": "Shadow Under Thunderholme"
     },
     "1879197136": {
-      "pack": "Shadow Under Thunderholme"
+      "pack": "Shadow Under Thunderholme",
+      "wilderness": true
     },
     "1879200134": {
       "pack": "Haunted Halls of Eveningstar"
@@ -1099,6 +1203,9 @@
       "pack": "Haunted Halls of Eveningstar"
     },
     "1879203043": {
+      "sagas": [
+        "The Pirates of the Thunder Sea (Epic)"
+      ],
       "pack": "Three-Barrel Cove"
     },
     "1879205086": {
@@ -1173,12 +1280,6 @@
     "1879215396": {
       "pack": "The Vale of Twilight"
     },
-    "1879228626": {
-      "sagas": [
-        "Isle of Dread (Heroic)",
-        "Isle of Dread (Legendary)"
-      ]
-    },
     "1879229248": {
       "pack": "Against the Slave Lords"
     },
@@ -1228,7 +1329,8 @@
       "pack": "Ravenloft"
     },
     "1879238699": {
-      "pack": "Ravenloft"
+      "pack": "Ravenloft",
+      "wilderness": true
     },
     "1879238701": {
       "sagas": [
@@ -1259,6 +1361,9 @@
       "pack": "Ravenloft"
     },
     "1879238717": {
+      "sagas": [
+        "Mists of Ravenloft (Heroic)"
+      ],
       "pack": "Ravenloft"
     },
     "1879238721": {
@@ -1353,9 +1458,17 @@
       "pack": "White Plume Mountain and Other Tales"
     },
     "1879248461": {
+      "sagas": [
+        "Masterminds of Sharn (Heroic)",
+        "Masterminds of Sharn (Legendary)"
+      ],
       "pack": "Masterminds of Sharn"
     },
     "1879248464": {
+      "sagas": [
+        "Masterminds of Sharn (Heroic)",
+        "Masterminds of Sharn (Legendary)"
+      ],
       "pack": "Masterminds of Sharn"
     },
     "1879248467": {
@@ -1365,9 +1478,17 @@
       ]
     },
     "1879248470": {
+      "sagas": [
+        "Masterminds of Sharn (Heroic)",
+        "Masterminds of Sharn (Legendary)"
+      ],
       "pack": "Masterminds of Sharn"
     },
     "1879248477": {
+      "sagas": [
+        "Masterminds of Sharn (Heroic)",
+        "Masterminds of Sharn (Legendary)"
+      ],
       "pack": "Masterminds of Sharn"
     },
     "1879248479": {
@@ -1378,26 +1499,39 @@
       "pack": "Masterminds of Sharn"
     },
     "1879248489": {
-      "pack": "Masterminds of Sharn"
-    },
-    "1879248491": {
-      "pack": "Masterminds of Sharn"
-    },
-    "1879248492": {
-      "pack": "Masterminds of Sharn"
-    },
-    "1879248494": {
       "sagas": [
         "Masterminds of Sharn (Heroic)",
         "Masterminds of Sharn (Legendary)"
       ],
       "pack": "Masterminds of Sharn"
     },
+    "1879248491": {
+      "sagas": [
+        "Masterminds of Sharn (Heroic)",
+        "Masterminds of Sharn (Legendary)"
+      ],
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248492": {
+      "sagas": [
+        "Masterminds of Sharn (Heroic)",
+        "Masterminds of Sharn (Legendary)"
+      ],
+      "pack": "Masterminds of Sharn"
+    },
+    "1879248494": {
+      "pack": "Masterminds of Sharn"
+    },
     "1879248501": {
+      "sagas": [
+        "Masterminds of Sharn (Heroic)",
+        "Masterminds of Sharn (Legendary)"
+      ],
       "pack": "Masterminds of Sharn"
     },
     "1879248526": {
-      "pack": "Masterminds of Sharn"
+      "pack": "Masterminds of Sharn",
+      "wilderness": true
     },
     "1879248529": {
       "sagas": [
@@ -1504,7 +1638,8 @@
       "pack": "Keep on the Borderlands"
     },
     "1879256748": {
-      "pack": "Keep on the Borderlands"
+      "pack": "Keep on the Borderlands",
+      "wilderness": true
     },
     "1879259098": {
       "pack": "The Lost Gatekeepers"
@@ -1528,9 +1663,17 @@
       "pack": "Peril of the Planar Eyes"
     },
     "1879260044": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260049": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260050": {
@@ -1541,30 +1684,63 @@
       "pack": "Fables of the Feywild"
     },
     "1879260051": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260053": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260069": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260078": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260083": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260087": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260094": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260107": {
-      "pack": "Fables of the Feywild"
+      "pack": "Fables of the Feywild",
+      "wilderness": true
     },
     "1879260117": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879260120": {
@@ -1574,9 +1750,17 @@
       "pack": "Hunter and Hunted"
     },
     "1879260125": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879261808": {
+      "sagas": [
+        "Fables of the Feywild (Heroic)",
+        "Fables of the Feywild (Legendary)"
+      ],
       "pack": "Fables of the Feywild"
     },
     "1879261813": {
@@ -1609,100 +1793,166 @@
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879267202": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879267204": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879267206": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879267207": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879267236": {
-      "pack": "Sinister Secret of Saltmarsh"
+      "pack": "Sinister Secret of Saltmarsh",
+      "wilderness": true
     },
     "1879269036": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879269038": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879269054": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879269057": {
+      "sagas": [
+        "Sinister Secret of Saltmarsh (Heroic)",
+        "Sinister Secret of Saltmarsh (Legendary)"
+      ],
       "pack": "Sinister Secret of Saltmarsh"
     },
     "1879272930": {
-      "pack": "Isle of Dread"
-    },
-    "1879272936": {
-      "pack": "Isle of Dread"
-    },
-    "1879272938": {
-      "pack": "Isle of Dread"
-    },
-    "1879272940": {
-      "pack": "Isle of Dread"
-    },
-    "1879272954": {
-      "pack": "Isle of Dread"
-    },
-    "1879272956": {
-      "pack": "Isle of Dread"
-    },
-    "1879272961": {
-      "pack": "Isle of Dread"
-    },
-    "1879272963": {
-      "pack": "Isle of Dread"
-    },
-    "1879272996": {
-      "pack": "Isle of Dread"
-    },
-    "1879272999": {
-      "pack": "Isle of Dread"
-    },
-    "1879273000": {
-      "pack": "Isle of Dread"
-    },
-    "1879273008": {
-      "pack": "Isle of Dread"
-    },
-    "1879273037": {
-      "pack": "Isle of Dread"
-    },
-    "1879273040": {
       "sagas": [
         "Isle of Dread (Heroic)",
         "Isle of Dread (Legendary)"
       ],
       "pack": "Isle of Dread"
     },
+    "1879272936": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272938": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272940": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272954": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272956": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272961": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272963": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272996": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879272999": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879273000": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879273008": {
+      "sagas": [
+        "Isle of Dread (Heroic)",
+        "Isle of Dread (Legendary)"
+      ],
+      "pack": "Isle of Dread"
+    },
+    "1879273037": {
+      "pack": "Isle of Dread"
+    },
+    "1879273040": {
+      "pack": "Isle of Dread",
+      "wilderness": true
+    },
     "1879282181": {
       "pack": "Grip of the Hidden Hand"
     },
     "1879282182": {
-      "sagas": [
-        "Vecna Unleashed (Heroic)",
-        "Vecna Unleashed (Legendary)"
-      ],
       "pack": "Grip of the Hidden Hand"
     },
     "1879282190": {
-      "sagas": [
-        "Vecna Unleashed (Heroic)",
-        "Vecna Unleashed (Legendary)"
-      ],
       "pack": "Grip of the Hidden Hand"
     },
     "1879282192": {
-      "sagas": [
-        "Vecna Unleashed (Heroic)",
-        "Vecna Unleashed (Legendary)"
-      ],
       "pack": "Grip of the Hidden Hand"
     },
     "1879282193": {
@@ -1730,22 +1980,34 @@
       "pack": "The Temple of Elemental Evil"
     },
     "1879283270": {
-      "pack": "Vecna Unleashed"
-    },
-    "1879283278": {
-      "pack": "Vecna Unleashed"
-    },
-    "1879283281": {
-      "pack": "Vecna Unleashed"
-    },
-    "1879283288": {
-      "pack": "Vecna Unleashed"
-    },
-    "1879283292": {
       "sagas": [
         "Vecna Unleashed (Heroic)",
         "Vecna Unleashed (Legendary)"
       ],
+      "pack": "Vecna Unleashed"
+    },
+    "1879283278": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
+      "pack": "Vecna Unleashed"
+    },
+    "1879283281": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
+      "pack": "Vecna Unleashed"
+    },
+    "1879283288": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
+      "pack": "Vecna Unleashed"
+    },
+    "1879283292": {
       "pack": "Vecna Unleashed"
     },
     "1879283297": {
@@ -1763,24 +2025,52 @@
       "pack": "Vecna Unleashed"
     },
     "1879283300": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
       "pack": "Vecna Unleashed"
     },
     "1879283309": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
       "pack": "Vecna Unleashed"
     },
     "1879283315": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
       "pack": "Vecna Unleashed"
     },
     "1879283318": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
       "pack": "Vecna Unleashed"
     },
     "1879283325": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
       "pack": "Vecna Unleashed"
     },
     "1879283327": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
       "pack": "Vecna Unleashed"
     },
     "1879283331": {
+      "sagas": [
+        "Vecna Unleashed (Heroic)",
+        "Vecna Unleashed (Legendary)"
+      ],
       "pack": "Vecna Unleashed"
     },
     "1879287711": {
@@ -1805,36 +2095,80 @@
       "pack": "Slice of Life"
     },
     "1879289580": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289585": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289586": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289589": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289602": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289607": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289610": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289611": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289613": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289615": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289617": {
+      "sagas": [
+        "Magic of Myth Drannor (Heroic)",
+        "Magic of Myth Drannor (Legendary)"
+      ],
       "pack": "Magic of Myth Drannor"
     },
     "1879289627": {
@@ -1855,18 +2189,12 @@
       "pack": "Magic of Myth Drannor"
     },
     "1879289656": {
-      "sagas": [
-        "Magic of Myth Drannor (Heroic)",
-        "Magic of Myth Drannor (Legendary)"
-      ],
-      "pack": "Magic of Myth Drannor"
+      "pack": "Magic of Myth Drannor",
+      "wilderness": true
     },
     "1879295216": {
-      "sagas": [
-        "The Chill of Ravenloft (Heroic)",
-        "The Chill of Ravenloft (Legendary)"
-      ],
-      "pack": "The Chill of Ravenloft"
+      "pack": "The Chill of Ravenloft",
+      "wilderness": true
     },
     "1879295652": {
       "sagas": [
@@ -1883,36 +2211,80 @@
       "pack": "The Chill of Ravenloft"
     },
     "1879295660": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295661": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295664": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295666": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295670": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295679": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295685": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295690": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295698": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295700": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295702": {
+      "sagas": [
+        "The Chill of Ravenloft (Heroic)",
+        "The Chill of Ravenloft (Legendary)"
+      ],
       "pack": "The Chill of Ravenloft"
     },
     "1879295797": {
@@ -1943,39 +2315,87 @@
       "pack": "The Dragons' Hand"
     },
     "1879303593": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303596": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303597": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303608": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303610": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303626": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303627": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303632": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303635": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303636": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303667": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303674": {
+      "sagas": [
+        "Terror of Demogorgon (Heroic)",
+        "Terror of Demogorgon (Legendary)"
+      ],
       "pack": "Terror of Demogorgon"
     },
     "1879303676": {
@@ -1985,7 +2405,8 @@
       "pack": "Terror of Demogorgon"
     },
     "1879305547": {
-      "pack": "Terror of Demogorgon"
+      "pack": "Terror of Demogorgon",
+      "wilderness": true
     }
   }
 }

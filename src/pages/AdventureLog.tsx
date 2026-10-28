@@ -58,6 +58,7 @@ import {
   getSagaNames,
   groupLabel,
   groupQuestRows,
+  isWildernessQuest,
   listAdventurePackInfo,
   sagaGroupNamesForRow,
   type QuestGroup,
@@ -562,6 +563,9 @@ export default function AdventureLog() {
   const visibleRows = useMemo(() => {
     const needle = search.trim().toLowerCase()
     return rows.filter((row) => {
+      // Adventure areas (Sorrowdusk Isle, Korthos Island, ...) are not quests.
+      if (isWildernessQuest(row.quest)) return false
+
       if (needle) {
         const haystack = [row.quest.name, getPackName(row.quest) ?? '', row.quest.patron ?? '']
         if (!haystack.some((value) => value.toLowerCase().includes(needle))) return false

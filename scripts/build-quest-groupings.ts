@@ -23,6 +23,10 @@ const DATA_DIR = path.join(process.cwd(), 'src', 'data')
 const SAGAS_PATH = path.join(DATA_DIR, 'sagas.json')
 const OUTPUT_PATH = path.join(DATA_DIR, 'questGroupings.json')
 const QUESTS_URL = 'https://api.ddoaudit.com/v1/quests?force=false'
+const AREAS_URL = 'https://api.ddoaudit.com/v1/areas?force=false'
+
+/** Areas upstream mislabels as wilderness; keep in sync with AREA_PATCHES. */
+const FORCED_QUEST_AREAS = new Set(['1879303679'])
 
 const SAGA_BUCKETS = ['heroic', 'epic', 'legendary'] as const
 
@@ -34,13 +38,21 @@ interface SagaRecord {
 
 interface QuestRecord {
   id: string | number
+  area_id?: string | number | null
   name?: string | null
   required_adventure_pack?: string | null
+}
+
+interface AreaRecord {
+  id: string | number
+  is_wilderness?: boolean
 }
 
 interface GroupingEntry {
   sagas?: string[]
   pack?: string
+  /** Upstream lists adventure areas as quests; the page hides them. */
+  wilderness?: boolean
 }
 
 async function main() {
@@ -49,6 +61,17 @@ async function main() {
 
   const payload = (await response.json()) as { data?: QuestRecord[] } | QuestRecord[]
   const quests = Array.isArray(payload) ? payload : (payload.data ?? [])
+
+  const areasResponse = await fetch(AREAS_URL)
+  if (!areasResponse.ok) throw new Error(`Failed to fetch areas (${areasResponse.status})`)
+  const areasPayload = (await areasResponse.json()) as { data?: AreaRecord[] } | AreaRecord[]
+  const areas = Array.isArray(areasPayload) ? areasPayload : (areasPayload.data ?? [])
+  const wildernessAreas = new Set(
+    areas
+      .filter((area) => area.is_wilderness === true)
+      .map((area) => String(area.id))
+      .filter((id) => !FORCED_QUEST_AREAS.has(id)),
+  )
 
   const sagasData = JSON.parse(fs.readFileSync(SAGAS_PATH, 'utf8')) as Record<string, SagaRecord[]>
 
@@ -71,6 +94,7 @@ async function main() {
   const questsMap: Record<string, GroupingEntry> = {}
   const packs = new Set<string>()
   let withSaga = 0
+  let wilderness = 0
 
   for (const quest of quests) {
     const id = quest.id === undefined || quest.id === null ? '' : String(quest.id)
@@ -89,7 +113,13 @@ async function main() {
       packs.add(pack)
     }
 
-    if (entry.sagas || entry.pack) questsMap[id] = entry
+    const areaId = quest.area_id === null || quest.area_id === undefined ? '' : String(quest.area_id)
+    if (areaId && wildernessAreas.has(areaId)) {
+      entry.wilderness = true
+      wilderness += 1
+    }
+
+    if (entry.sagas || entry.pack || entry.wilderness) questsMap[id] = entry
   }
 
   const output = {
@@ -103,6 +133,7 @@ async function main() {
     counts: {
       quests: Object.keys(questsMap).length,
       questsWithSaga: withSaga,
+      wilderness,
       packs: packs.size,
       sagasInSource: sagaCount,
     },
@@ -112,7 +143,7 @@ async function main() {
   fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(output, null, 2)}\n`)
   console.log(
     `Wrote ${path.relative(process.cwd(), OUTPUT_PATH)}: ` +
-      `${output.counts.quests} quests, ${withSaga} in a saga, ${packs.size} packs`,
+      `${output.counts.quests} quests, ${withSaga} in a saga, ${wilderness} wilderness areas, ${packs.size} packs`,
   )
 }
 

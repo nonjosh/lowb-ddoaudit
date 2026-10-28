@@ -4,6 +4,8 @@ import groupingsData from '@/data/questGroupings.json'
 interface GroupingEntry {
   sagas?: string[]
   pack?: string
+  /** Upstream lists adventure areas as quests; the page hides them. */
+  wilderness?: boolean
 }
 
 export type QuestBand = 'heroic' | 'epic' | 'legendary'
@@ -53,6 +55,11 @@ const CACHED_GROUPINGS: Record<string, GroupingEntry> = (
 
 export function getSagaNames(quest: Quest): string[] {
   return CACHED_GROUPINGS[quest.id]?.sagas ?? []
+}
+
+/** True for upstream records that are adventure areas, not instanced quests. */
+export function isWildernessQuest(quest: Quest): boolean {
+  return CACHED_GROUPINGS[quest.id]?.wilderness === true
 }
 
 export function getPackName(quest: Quest): string | null {
