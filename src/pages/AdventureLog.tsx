@@ -915,7 +915,11 @@ export default function AdventureLog() {
                         L{data.total_level}
                       </Typography>
                     ) : null}
-                    <ClassDisplay classes={data?.classes ?? []} showIcons iconSize={16} />
+                    {(data?.classes?.length ?? 0) > 0 && (
+                      <Box component="span" aria-hidden sx={{ display: 'inline-flex' }}>
+                        <ClassDisplay classes={data?.classes ?? []} showIcons iconSize={16} />
+                      </Box>
+                    )}
                   </Stack>
                 )
               }}
@@ -925,7 +929,7 @@ export default function AdventureLog() {
                 const online = characterData[character.id]?.is_online === true
                 return (
                   <MenuItem key={character.id} value={character.id}>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%' }}>
+                    <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ width: '100%' }}>
                       <Box
                         sx={{
                           width: 8,
