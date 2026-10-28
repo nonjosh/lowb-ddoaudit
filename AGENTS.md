@@ -55,8 +55,7 @@ src/
 │   ├── gearPlanner/     # Gear optimization logic
 │   ├── lfm/             # LFM helper functions
 │   ├── quests/          # Quest helper functions
-│   ├── raids/           # Raid grouping and timer logic
-│   └── trPlanner/       # TR planning and XP calculation
+│   └── raids/           # Raid grouping and timer logic
 ├── hooks/               # Custom React hooks
 ├── pages/               # Page-level components
 ├── storage/             # IndexedDB storage (Dexie)
@@ -67,7 +66,6 @@ src/
 ├── copilot-instructions.md  # Workspace instructions for Copilot
 └── skills/                  # DDO game logic skills (MUST be kept updated)
     ├── ddo-raids/           # Raid lockout timers
-    ├── ddo-xp-leveling/     # XP calculation and leveling
     ├── ddo-gear-affixes/    # Gear and affix stacking
     ├── ddo-augments-crafting/ # Augments and crafting slots
    ├── ddo-catalyst-crafting/ # Catalyst loot mapping and variant ML refresh
@@ -167,7 +165,6 @@ Remove the entries as soon as the API provides correct data. Example: `Terror of
 | `/gear/planner`    | Gear Planner | Optimize gear sets          |
 | `/trove/explorer`  | Trove Explorer | Browse imported shared bank, personal bank, and inventory snapshots |
 | `/tools/converter` | Converter    | Convert Points, Shards, HKD |
-| `/tr-planner`      | TR Planner   | TR progression planning     |
 
 **Note**: Old routes (`/wiki`, `/wishlist`, `/planner`) redirect to new paths for backward compatibility.
 
@@ -268,7 +265,6 @@ DDO game mechanics are documented as Copilot agent skills that are automatically
 | Skill                       | Covers                                                  | Key Source Files                             |
 | --------------------------- | ------------------------------------------------------- | -------------------------------------------- |
 | `ddo-raids`                 | Raid lockouts (66h), tier filtering, character grouping | `src/domains/raids/raidLogic.ts`             |
-| `ddo-xp-leveling`           | XP calculation, bonuses, penalties, TR scaling          | `src/domains/trPlanner/`                     |
 | `ddo-gear-affixes`          | Affix stacking rules, gear evaluation                   | `src/domains/gearPlanner/affixStacking.ts`   |
 | `ddo-augments-crafting`     | Augment slots, crafting options, color compatibility    | `src/domains/gearPlanner/craftingHelpers.ts` |
 | `ddo-catalyst-crafting`     | Deep/Abyssal catalyst loot mapping, wiki ML refresh, quest-loot ML derivation | `src/utils/itemLootHelpers.ts`, `src/assets/questCatalysts.json` |
@@ -304,6 +300,3 @@ Update the corresponding skill when you:
 | Poller interval   | 60 s (2 samples min) | `terraform-dev/ddo-log` + `server/src/config.ts` |
 | Completion history | last 10 per character+quest | `server/src/store.ts` (`HISTORY_LIMIT`) |
 | Quest ransack     | 7 days / 5 runs    | `src/domains/adventureLog/ransack.ts` |
-| TR Multipliers    | 1x / 1.5x / 2x     | `src/domains/trPlanner/levelRequirements.ts` |
-| Heroic XP Cap     | 1,900,000          | `src/domains/trPlanner/levelRequirements.ts` |
-| Epic XP Cap       | 8,250,000          | `src/domains/trPlanner/levelRequirements.ts` |

@@ -62,7 +62,6 @@ export default function Layout({ children }: LayoutProps) {
       ],
     },
     { label: 'Trove Explorer', path: '/trove/explorer' },
-    { label: 'TR Planner', path: '/tr-planner' },
   ]
 
   const converterNav = {
