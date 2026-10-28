@@ -53,10 +53,11 @@ import {
   buildQuestRows,
   completionKey,
   formatLevelRange,
-  getSagaName,
+  getPackName,
   groupLabel,
   groupQuestRows,
   listAdventurePackInfo,
+  sagaGroupNamesForRow,
   type QuestGroup,
   type QuestRowModel,
 } from '@/domains/adventureLog/grouping'
@@ -82,6 +83,24 @@ function formatRelative(iso: string | null): string {
   if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m ago`
   if (elapsed < DAY_MS) return `${Math.floor(elapsed / 3_600_000)}h ago`
   return `${Math.floor(elapsed / DAY_MS)}d ago`
+}
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  const needle = query.trim()
+  if (!needle) return <>{text}</>
+
+  const index = text.toLowerCase().indexOf(needle.toLowerCase())
+  if (index < 0) return <>{text}</>
+
+  return (
+    <>
+      {text.slice(0, index)}
+      <Box component="mark" sx={{ px: 0.25, borderRadius: '2px', bgcolor: 'warning.main', color: 'inherit' }}>
+        {text.slice(index, index + needle.length)}
+      </Box>
+      {text.slice(index + needle.length)}
+    </>
+  )
 }
 
 function formatExact(iso: string): string {
@@ -189,11 +208,12 @@ interface QuestRowProps {
   row: QuestRowModel
   entry: CompletionEntry | undefined
   busy: boolean
+  query: string
   occupants: Array<{ id: string; name: string; level: number | null }>
   onToggle: (row: QuestRowModel, finished: boolean) => void
 }
 
-function QuestRow({ row, entry, busy, occupants, onToggle }: QuestRowProps) {
+function QuestRow({ row, entry, busy, query, occupants, onToggle }: QuestRowProps) {
   const finished = entry?.finished === true
   const ransack = getRansackStatus(entry?.history ?? [])
 
@@ -216,7 +236,7 @@ function QuestRow({ row, entry, busy, occupants, onToggle }: QuestRowProps) {
             underline="hover"
             color="inherit"
           >
-            {row.quest.name}
+            <HighlightedText text={row.quest.name} query={query} />
           </Link>
           <Chip size="small" variant="outlined" label={bandLabel(row.band)} />
           {row.quest.type === 'Raid' && <Chip size="small" color="secondary" label="Raid" />}
@@ -233,7 +253,9 @@ function QuestRow({ row, entry, busy, occupants, onToggle }: QuestRowProps) {
       </TableCell>
       <TableCell align="right">{row.level ?? '—'}</TableCell>
       <TableCell>{row.quest.type ?? '—'}</TableCell>
-      <TableCell>{row.quest.patron ?? '—'}</TableCell>
+      <TableCell>
+        <HighlightedText text={row.quest.patron ?? '—'} query={query} />
+      </TableCell>
       <TableCell>
         {finished ? (
           <Tooltip title={<HistoryTooltip history={entry?.history ?? []} />}>
@@ -523,9 +545,12 @@ export default function AdventureLog() {
   const visibleRows = useMemo(() => {
     const needle = search.trim().toLowerCase()
     return rows.filter((row) => {
-      if (needle && !row.quest.name.toLowerCase().includes(needle)) return false
+      if (needle) {
+        const haystack = [row.quest.name, getPackName(row.quest) ?? '', row.quest.patron ?? '']
+        if (!haystack.some((value) => value.toLowerCase().includes(needle))) return false
+      }
 
-      if (sagasOnly && !getSagaName(row.quest)) return false
+      if (sagasOnly && sagaGroupNamesForRow(row.quest, row.band).length === 0) return false
       if (patronFilter && row.quest.patron !== patronFilter) return false
 
       const entry = characterCompletions[row.key]
@@ -535,7 +560,10 @@ export default function AdventureLog() {
     })
   }, [rows, search, onlyRansacked, hideCompleted, sagasOnly, patronFilter, characterCompletions])
 
-  const groups = useMemo(() => groupQuestRows(visibleRows, hiddenPacks), [visibleRows, hiddenPacks])
+  const groups = useMemo(
+    () => groupQuestRows(visibleRows, hiddenPacks, { allSagas: sagasOnly }),
+    [visibleRows, hiddenPacks, sagasOnly],
+  )
   const packs = useMemo(() => listAdventurePackInfo(quests), [quests])
   const patrons = useMemo(() => {
     const names = new Set<string>()
@@ -602,6 +630,7 @@ export default function AdventureLog() {
       row={row}
       entry={characterCompletions[row.key]}
       busy={busyKey === row.key || bulkGroupId !== null}
+      query={search}
       occupants={occupantsByKey.get(row.key) ?? []}
       onToggle={handleToggle}
     />
@@ -691,13 +720,15 @@ export default function AdventureLog() {
               })}
             </Select>
           </FormControl>
+        </Stack>
 
+        <Stack direction="row" useFlexGap flexWrap="wrap" spacing={2} alignItems="center">
           <TextField
             size="small"
-            label="Search quests"
+            label="Search quest, pack or favor"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            sx={{ minWidth: 220, flex: 1 }}
+            sx={{ minWidth: 260, flex: 1 }}
           />
 
           <FormControl size="small" sx={{ minWidth: 190 }}>

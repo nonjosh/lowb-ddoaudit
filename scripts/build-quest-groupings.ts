@@ -39,7 +39,7 @@ interface QuestRecord {
 }
 
 interface GroupingEntry {
-  saga?: string
+  sagas?: string[]
   pack?: string
 }
 
@@ -52,15 +52,18 @@ async function main() {
 
   const sagasData = JSON.parse(fs.readFileSync(SAGAS_PATH, 'utf8')) as Record<string, SagaRecord[]>
 
-  // Same precedence as the app: heroic, then epic, then legendary.
-  const sagaByQuestName = new Map<string, string>()
+  // A quest can legitimately sit in several sagas (heroic + legendary variants, and
+  // some event sagas share quests), so keep every membership in bucket order.
+  const sagasByQuestName = new Map<string, string[]>()
   let sagaCount = 0
   for (const bucket of SAGA_BUCKETS) {
     const sagas = sagasData[bucket] ?? []
     sagaCount = Math.max(sagaCount, sagas.length)
     for (const saga of sagas) {
       for (const questName of saga.quests) {
-        if (!sagaByQuestName.has(questName)) sagaByQuestName.set(questName, saga.name)
+        const names = sagasByQuestName.get(questName) ?? []
+        if (!names.includes(saga.name)) names.push(saga.name)
+        sagasByQuestName.set(questName, names)
       }
     }
   }
@@ -75,9 +78,9 @@ async function main() {
 
     const entry: GroupingEntry = {}
     const name = (quest.name ?? '').trim()
-    const saga = name ? sagaByQuestName.get(name) : undefined
-    if (saga) {
-      entry.saga = saga
+    const sagas = name ? sagasByQuestName.get(name) : undefined
+    if (sagas && sagas.length > 0) {
+      entry.sagas = sagas
       withSaga += 1
     }
     const pack = (quest.required_adventure_pack ?? '').trim()
@@ -86,7 +89,7 @@ async function main() {
       packs.add(pack)
     }
 
-    if (entry.saga || entry.pack) questsMap[id] = entry
+    if (entry.sagas || entry.pack) questsMap[id] = entry
   }
 
   const output = {

@@ -103,15 +103,20 @@ descending:
 3. **Level** — for quests with neither a saga nor a pack.
 
 Group headers carry a tri-state checkbox (all / some / none done) that marks every row
-in the group, the level range, and a done/total count. Raid rows get a Raid badge, and
+in the group, the level range, and a done/total count. Inside a group, raid quests sort
+last; the search box matches quest names, adventure packs and favor factions, and
+highlights the match in the name and favor columns. Raid rows get a Raid badge, and
 a row shows an "N inside" badge when tracked characters are currently in that quest
 (`GET /activity`).
 
-`src/data/questGroupings.json` is a snapshot of quest id -> `{ saga, pack }`, built by
+`src/data/questGroupings.json` is a snapshot of quest id -> `{ sagas, pack }`, built by
 `scripts/build-quest-groupings.ts` from `src/data/sagas.json` plus the DDO Audit quest
 list. Re-run `npx tsx scripts/build-quest-groupings.ts` after adding a saga or a pack.
-Grouping prefers the snapshot and falls back to the live `required_adventure_pack`
-field for quests released after it was generated.
+A quest can belong to several sagas (heroic/legendary variants, and event sagas that
+share quests), so the cache stores every membership. The normal view shows a quest in
+its first saga; the "Sagas only" toggle shows it in all of them. Grouping prefers the
+snapshot and falls back to the live `required_adventure_pack` field for quests released
+after it was generated.
 
 Hidden adventure packs are a browser preference (`localStorage`,
 `lowb-adventure-log-hidden-packs`) and filter quests out of every group.

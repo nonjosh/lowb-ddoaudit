@@ -2,16 +2,11 @@ import type { Quest } from '@/api/ddoAudit'
 import groupingsData from '@/data/questGroupings.json'
 
 interface GroupingEntry {
-  saga?: string
+  sagas?: string[]
   pack?: string
 }
 
 export type QuestBand = 'heroic' | 'epic' | 'legendary'
-
-export interface QuestBandLabel {
-  key: QuestBand
-  label: string
-}
 
 const BAND_LABELS: Record<QuestBand, string> = {
   heroic: 'Heroic',
@@ -39,8 +34,13 @@ export interface QuestGroup {
   rows: QuestRowModel[]
 }
 
+export interface GroupOptions {
+  /** Show a quest in every saga it belongs to instead of just the first. */
+  allSagas?: boolean
+}
+
 /**
- * Quest -> saga / adventure pack, snapshotted in `scripts/build-quest-groupings.ts`
+ * Quest -> sagas / adventure pack, snapshotted in `scripts/build-quest-groupings.ts`
  * from `sagas.json` plus the DDO Audit quest list. Kept in the repo so grouping does
  * not change when the upstream API does; unknown ids fall back to the live field.
  */
@@ -48,8 +48,16 @@ const CACHED_GROUPINGS: Record<string, GroupingEntry> = (
   groupingsData as { quests: Record<string, GroupingEntry> }
 ).quests
 
-export function getSagaName(quest: Quest): string | undefined {
-  return CACHED_GROUPINGS[quest.id]?.saga
+export function getSagaNames(quest: Quest): string[] {
+  return CACHED_GROUPINGS[quest.id]?.sagas ?? []
+}
+
+export function getPackName(quest: Quest): string | null {
+  return CACHED_GROUPINGS[quest.id]?.pack ?? quest.required_adventure_pack ?? null
+}
+
+export function bandLabel(band: QuestBand): string {
+  return BAND_LABELS[band]
 }
 
 /** Sagas are versioned in their own name, e.g. "Saltmarsh (Heroic)". */
@@ -60,12 +68,12 @@ function sagaBand(sagaName: string): QuestBand | null {
   return null
 }
 
-export function getPackName(quest: Quest): string | null {
-  return CACHED_GROUPINGS[quest.id]?.pack ?? quest.required_adventure_pack ?? null
-}
-
-export function bandLabel(band: QuestBand): string {
-  return BAND_LABELS[band]
+/** Sagas this row belongs to; a "(Heroic)" saga only takes the heroic version. */
+export function sagaGroupNamesForRow(quest: Quest, band: QuestBand): string[] {
+  return getSagaNames(quest).filter((name) => {
+    const required = sagaBand(name)
+    return required === null || required === band
+  })
 }
 
 /** Playable versions of a quest: heroic, epic and/or legendary. */
@@ -151,18 +159,20 @@ function levelRange(rows: QuestRowModel[]): { levelMin: number | null; levelMax:
 
 export function formatLevelRange(group: QuestGroup): string {
   if (group.levelMin === null || group.levelMax === null) return '—'
-  return group.levelMin === group.levelMax
-    ? `${group.levelMin}`
-    : `${group.levelMin}–${group.levelMax}`
+  return group.levelMin === group.levelMax ? `${group.levelMin}` : `${group.levelMin}–${group.levelMax}`
 }
+
+const isRaid = (row: QuestRowModel): boolean => row.quest.type === 'Raid'
 
 /**
  * Grouping order: saga, then adventure pack split by version, then level for quests
- * with neither. Groups are ordered by their highest level, descending.
+ * with neither. Groups are ordered by their highest level, descending; at the same
+ * level a raid pack follows a normal one. Inside a group, raid quests come last.
  */
 export function groupQuestRows(
   rows: QuestRowModel[],
   hiddenPacks: ReadonlySet<string> = new Set(),
+  options: GroupOptions = {},
 ): QuestGroup[] {
   const groups = new Map<string, QuestGroup>()
 
@@ -170,39 +180,35 @@ export function groupQuestRows(
     const pack = getPackName(row.quest)
     if (pack && hiddenPacks.has(pack)) continue
 
-    const sagaName = getSagaName(row.quest)
-    // A legendary version of a quest must not land in the "(Heroic)" saga; it falls
-    // through to its adventure pack group instead.
-    const sagaBandName = sagaName ? sagaBand(sagaName) : null
-    const saga = sagaName && (sagaBandName === null || sagaBandName === row.band) ? sagaName : undefined
+    const sagaNames = sagaGroupNamesForRow(row.quest, row.band)
+    const targets: Array<Pick<QuestGroup, 'id' | 'label' | 'kind' | 'band'>> = []
 
-    let id: string
-    let label: string
-    let kind: QuestGroup['kind']
-    let band: QuestBand | undefined
-
-    if (saga) {
-      id = `saga:${saga}`
-      label = saga
-      kind = 'saga'
+    if (sagaNames.length > 0) {
+      const selected = options.allSagas ? sagaNames : sagaNames.slice(0, 1)
+      for (const saga of selected) targets.push({ id: `saga:${saga}`, label: saga, kind: 'saga' })
     } else if (pack) {
-      id = `pack:${pack}:${row.band}`
-      label = pack
-      kind = 'pack'
-      band = row.band
+      targets.push({
+        id: `pack:${pack}:${row.band}`,
+        label: pack,
+        kind: 'pack',
+        band: row.band,
+      })
     } else {
-      id = `level:${row.level ?? 'unknown'}`
-      label = row.level === null ? 'Unknown level' : `Level ${row.level}`
-      kind = 'level'
+      targets.push({
+        id: `level:${row.level ?? 'unknown'}`,
+        label: row.level === null ? 'Unknown level' : `Level ${row.level}`,
+        kind: 'level',
+      })
     }
 
-    const isRaid = row.quest.type === 'Raid'
-    const existing = groups.get(id)
-    if (existing) {
-      existing.rows.push(row)
-      existing.raid = existing.raid && isRaid
-    } else {
-      groups.set(id, { id, label, kind, band, levelMin: null, levelMax: null, raid: isRaid, rows: [row] })
+    for (const target of targets) {
+      const existing = groups.get(target.id)
+      if (existing) {
+        existing.rows.push(row)
+        existing.raid = existing.raid && isRaid(row)
+      } else {
+        groups.set(target.id, { ...target, levelMin: null, levelMax: null, raid: isRaid(row), rows: [row] })
+      }
     }
   }
 
@@ -212,6 +218,7 @@ export function groupQuestRows(
       ...levelRange(group.rows),
       rows: [...group.rows].sort(
         (left, right) =>
+          Number(isRaid(left)) - Number(isRaid(right)) ||
           (left.level ?? 0) - (right.level ?? 0) ||
           left.quest.name.localeCompare(right.quest.name) ||
           left.band.localeCompare(right.band),
@@ -221,10 +228,10 @@ export function groupQuestRows(
       const byLevel = (right.levelMax ?? -1) - (left.levelMax ?? -1)
       if (byLevel !== 0) return byLevel
 
-      // At the same level, raid packs come after normal packs.
       const leftRaid = left.kind === 'pack' && left.raid ? 1 : 0
       const rightRaid = right.kind === 'pack' && right.raid ? 1 : 0
       if (leftRaid !== rightRaid) return leftRaid - rightRaid
+
       const byLabel = left.label.localeCompare(right.label)
       if (byLabel !== 0) return byLabel
       return (left.band ?? '').localeCompare(right.band ?? '')
