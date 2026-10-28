@@ -1,4 +1,4 @@
-import { Firestore, Timestamp } from '@google-cloud/firestore'
+import { Firestore, Timestamp, type DocumentReference } from '@google-cloud/firestore'
 
 import type { Completion, PollerState } from './detect.js'
 import { emptyState } from './detect.js'
@@ -23,6 +23,7 @@ export const HISTORY_LIMIT = 10
 const db = new Firestore()
 const completions = db.collection('completions')
 const edits = db.collection('edits')
+const reincarnations = db.collection('reincarnations')
 const stateDocument = db.doc('state/poller')
 
 export const completionId = (characterId: string, questId: string, band: string): string =>
@@ -264,6 +265,93 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
 
   invalidateCompletionsCache()
   return record
+}
+
+export interface ReincarnationInfo {
+  at: string
+  source: 'auto' | 'manual'
+}
+
+/**
+ * Latest reincarnation per character. Quest `finished` flags are reset when one is
+ * recorded, but `history` is kept so the previous life stays readable.
+ */
+export async function listReincarnations(): Promise<Record<string, ReincarnationInfo>> {
+  const snapshot = await reincarnations.get()
+  const result: Record<string, ReincarnationInfo> = {}
+
+  for (const document of snapshot.docs) {
+    const data = document.data() as { character_id?: string; at?: Timestamp; source?: string }
+    if (!data.character_id || !data.at) continue
+    result[data.character_id] = {
+      at: data.at.toDate().toISOString(),
+      source: data.source === 'auto' ? 'auto' : 'manual',
+    }
+  }
+
+  return result
+}
+
+export async function recordReincarnation(
+  characterId: string,
+  at: Date,
+  source: 'auto' | 'manual',
+): Promise<boolean> {
+  const reference = reincarnations.doc(characterId)
+  const current = await reference.get()
+  const storedAt = current.exists ? (current.get('at') as Timestamp | null) : null
+
+  // Never rewind the boundary: a late auto-detection must not resurrect a previous life.
+  if (storedAt && storedAt.toMillis() >= at.getTime()) return false
+
+  await reference.set(
+    {
+      character_id: characterId,
+      at: Timestamp.fromDate(at),
+      source,
+      updated_at: Timestamp.now(),
+    },
+    { merge: true },
+  )
+  return true
+}
+
+/**
+ * Re-derives the checkboxes for one life: a row is `finished` only when its newest
+ * completion happened at or after the reincarnation. History and timestamps are left
+ * untouched, so the previous life is preserved.
+ */
+export async function resetCompletionsForLife(
+  characterId: string,
+  at: Date,
+  source: 'auto' | 'manual' = 'manual',
+): Promise<number> {
+  const snapshot = await completions.where('character_id', '==', characterId).get()
+  const threshold = at.getTime()
+  const updates: Array<{ ref: DocumentReference; finished: boolean }> = []
+
+  for (const document of snapshot.docs) {
+    const data = document.data() as CompletionRecord
+    const latest = historyOf(data)[0]
+    const finished = latest !== undefined && latest.toMillis() >= threshold
+    if (finished !== (data.finished === true)) updates.push({ ref: document.ref, finished })
+  }
+
+  const chunkSize = 400
+  for (let index = 0; index < updates.length; index += chunkSize) {
+    const batch = db.batch()
+    for (const update of updates.slice(index, index + chunkSize)) {
+      batch.set(
+        update.ref,
+        { finished: update.finished, source, updated_at: Timestamp.now() },
+        { merge: true },
+      )
+    }
+    await batch.commit()
+  }
+
+  if (updates.length > 0) invalidateCompletionsCache()
+  return updates.length
 }
 
 export async function loadPollerState(): Promise<PollerState> {

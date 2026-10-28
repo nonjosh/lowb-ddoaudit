@@ -11,7 +11,10 @@ import {
   applyManualEdit,
   applyManualEdits,
   listCompletionsJson,
+  listReincarnations,
   loadPollerState,
+  recordReincarnation,
+  resetCompletionsForLife,
   type ManualEdit,
 } from './store.js'
 
@@ -34,7 +37,7 @@ function applyCors(request: Request, response: Response): void {
     response.setHeader('Access-Control-Allow-Origin', origin)
     response.setHeader('Vary', 'Origin')
   }
-  response.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
   response.setHeader('Access-Control-Allow-Headers', 'content-type, x-log-password')
   response.setHeader('Access-Control-Max-Age', '600')
 }
@@ -110,6 +113,56 @@ app.get(
     const body = await listCompletionsJson()
     response.setHeader('Cache-Control', 'no-store')
     response.type('application/json').send(body)
+  }),
+)
+
+app.get(
+  '/reincarnations',
+  asyncRoute(async (_request, response) => {
+    const data = await listReincarnations()
+    response.setHeader('Cache-Control', 'no-store')
+    response.json({ data })
+  }),
+)
+
+app.post(
+  '/reincarnations/:characterId',
+  asyncRoute(async (request, response) => {
+    if (!passwordMatches(request.header('x-log-password'), config.writePassword)) {
+      response.status(401).json({ message: 'Invalid password' })
+      return
+    }
+
+    const { characterId } = request.params
+    if (!config.trackedCharacterIds.includes(characterId)) {
+      response.status(400).json({ message: 'Unknown character' })
+      return
+    }
+
+    const body = request.body as { at?: unknown }
+    let at = new Date()
+    if (body?.at !== undefined) {
+      if (typeof body.at !== 'string') {
+        response.status(400).json({ message: 'at must be an ISO date' })
+        return
+      }
+      const parsed = new Date(body.at)
+      if (Number.isNaN(parsed.getTime())) {
+        response.status(400).json({ message: 'at must be an ISO date' })
+        return
+      }
+      if (parsed.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+        response.status(400).json({ message: 'at cannot be in the future' })
+        return
+      }
+      at = parsed
+    }
+
+    // Record first, then re-derive the checkboxes for the new life.
+    await recordReincarnation(characterId, at, 'manual')
+    const reset = await resetCompletionsForLife(characterId, at, 'manual')
+
+    response.json({ data: { at: at.toISOString(), unchecked: reset } })
   }),
 )
 

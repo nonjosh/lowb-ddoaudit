@@ -1,7 +1,13 @@
 import { config } from './config.js'
 import { applyObservations } from './detect.js'
 import { fetchObservations, getCatalog } from './ddo.js'
-import { loadPollerState, recordPolledCompletion, savePollerState } from './store.js'
+import {
+  loadPollerState,
+  recordPolledCompletion,
+  recordReincarnation,
+  resetCompletionsForLife,
+  savePollerState,
+} from './store.js'
 
 export interface PollResult {
   polled: number
@@ -37,7 +43,11 @@ async function pollOnce(now: Date): Promise<PollResult> {
   const catalog = await getCatalog()
   const observations = await fetchObservations(config.trackedCharacterIds)
 
-  const { state: nextState, completions } = applyObservations(state, observations, now, catalog, {
+  const {
+    state: nextState,
+    completions,
+    reincarnations,
+  } = applyObservations(state, observations, now, catalog, {
     minSamples: config.minSamples,
     levelMargin: config.levelMargin,
   })
@@ -48,6 +58,17 @@ async function pollOnce(now: Date): Promise<PollResult> {
   for (const completion of completions) {
     const written = await recordPolledCompletion(completion)
     if (written) recorded.push(`${completion.characterId}:${completion.questId}`)
+  }
+
+  // Reincarnations are applied after the new completions so this life's runs stay
+  // checked while everything older is unchecked (history is preserved either way).
+  for (const reincarnation of reincarnations) {
+    const recorded = await recordReincarnation(reincarnation.characterId, reincarnation.at, 'auto')
+    if (!recorded) continue
+    const reset = await resetCompletionsForLife(reincarnation.characterId, reincarnation.at, 'auto')
+    console.log(
+      `poll: reincarnation ${reincarnation.characterId} at ${reincarnation.at.toISOString()} (unchecked ${reset})`,
+    )
   }
 
   const saved = await savePollerState(nextState, state.lastPollAt)

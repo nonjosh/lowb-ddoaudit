@@ -99,6 +99,51 @@ test('a single upstream omission does not close a visit', () => {
   assert.equal(back.state.characters.c3.samples, 1)
 })
 
+test('a level drop into a low-level quest records a reincarnation', () => {
+  // Pick any uniquely-mapped low-level quest area from the live catalog.
+  const lowLevel = [...catalog.byArea.entries()].find(([areaId, quests]) => {
+    if (quests.length !== 1) return false
+    const quest = quests[0]
+    if (catalog.areaIsPublic.get(areaId) !== false) return false
+    if (catalog.areaIsWilderness.get(areaId) !== false) return false
+    return quest.heroicCr !== null && quest.heroicCr <= 3
+  })
+  assert.ok(lowLevel, 'no low-level quest area in the catalog')
+  const [areaId] = lowLevel
+
+  const level20 = { characterId: 'tr1', online: true, areaId: '1879248486', level: 20, updatedAt: null }
+  const level1Inside = { characterId: 'tr1', online: true, areaId, level: 1, updatedAt: null }
+
+  const t0 = new Date('2026-01-01T00:00:00Z')
+  const t1 = new Date('2026-01-01T00:01:00Z')
+
+  const before = applyObservations(emptyState(), [level20], t0, catalog, options)
+  assert.equal(before.reincarnations.length, 0)
+
+  const after = applyObservations(before.state, [level1Inside], t1, catalog, options)
+  assert.equal(after.reincarnations.length, 1)
+  assert.equal(after.reincarnations[0].characterId, 'tr1')
+  assert.equal(after.reincarnations[0].at.toISOString(), t1.toISOString())
+  assert.equal(after.state.characters.tr1.pendingTrAt, null)
+
+  // The dropped level is remembered, so a second low-level quest does not fire again.
+  const again = applyObservations(after.state, [level1Inside], new Date('2026-01-01T00:02:00Z'), catalog, options)
+  assert.equal(again.reincarnations.length, 0)
+})
+
+test('a level drop without a low-level quest does not record a reincarnation', () => {
+  const level20 = { characterId: 'tr2', online: true, areaId: '1879248486', level: 20, updatedAt: null }
+  const level1Hub = { characterId: 'tr2', online: true, areaId: '1879057731', level: 1, updatedAt: null }
+
+  const t0 = new Date('2026-01-01T00:00:00Z')
+  const t1 = new Date('2026-01-01T00:01:00Z')
+
+  const before = applyObservations(emptyState(), [level20], t0, catalog, options)
+  const after = applyObservations(before.state, [level1Hub], t1, catalog, options)
+  assert.equal(after.reincarnations.length, 0)
+  assert.ok(after.state.characters.tr2.pendingTrAt, 'the candidate should stay pending')
+})
+
 test('leaving the game also closes the visit', () => {
   const inside = { characterId: 'c2', online: true, areaId: '1879132475', level: 32, updatedAt: null }
   const offline = { characterId: 'c2', online: false, areaId: null, level: 32, updatedAt: null }

@@ -169,6 +169,31 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
     assert.equal(response.status, 400)
   })
 
+  await t.test('reincarnations are readable', async () => {
+    const response = await fetch(url('/reincarnations'))
+    assert.equal(response.status, 200)
+    const body = await response.json()
+    assert.equal(typeof body.data, 'object')
+  })
+
+  await t.test('reincarnation reset requires the password', async () => {
+    const response = await fetch(url(`/reincarnations/${characterId}`), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-log-password': 'wrong' },
+      body: '{}',
+    })
+    assert.equal(response.status, 401)
+  })
+
+  await t.test('reincarnation reset rejects an unknown character', async () => {
+    const response = await fetch(url('/reincarnations/1'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...auth },
+      body: '{}',
+    })
+    assert.equal(response.status, 400)
+  })
+
   await t.test('restore a clean row', { skip: skipMutation }, async () => {
     const response = await patch({ finished: false, lastFinishedAt: null }, auth)
     assert.equal(response.status, 204)

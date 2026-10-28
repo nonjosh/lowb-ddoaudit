@@ -65,6 +65,16 @@ export interface CharacterState {
   lastInsideAt: string | null
   /** Consecutive polls where upstream omitted this character. */
   misses?: number
+  /**
+   * Set when the character level drops hard (20+ -> 5-). Cleared when a low-level
+   * quest confirms the reincarnation, or by the poller after a day.
+   */
+  pendingTrAt?: string | null
+}
+
+export interface Reincarnation {
+  characterId: string
+  at: Date
 }
 
 export interface PollerState {
@@ -100,9 +110,10 @@ export function applyObservations(
   now: Date,
   catalog: Catalog,
   options: { minSamples: number; levelMargin: number },
-): { state: PollerState; completions: Completion[] } {
+): { state: PollerState; completions: Completion[]; reincarnations: Reincarnation[] } {
   const characters: Record<string, CharacterState> = { ...state.characters }
   const completions: Completion[] = []
+  const reincarnations: Reincarnation[] = []
 
   for (const observation of observations) {
     const previous = characters[observation.characterId] ?? null
@@ -117,11 +128,42 @@ export function applyObservations(
     const areaId = observation.online ? observation.areaId : null
     const resolved = resolveArea(areaId, observation.level, catalog, options.levelMargin)
 
+    // A hard level drop (20+ down to 5 or less) is a reincarnation candidate; it only
+    // becomes one when the character turns up in a low-level quest.
+    const previousLevel = previous?.level ?? null
+    const droppedToLowLevel =
+      previousLevel !== null &&
+      previousLevel >= 20 &&
+      observation.level !== null &&
+      observation.level >= 1 &&
+      observation.level <= 5
+
+    // A candidate that is never confirmed expires, so it cannot fire days later.
+    const stalePending =
+      previous?.pendingTrAt != null && now.getTime() - new Date(previous.pendingTrAt).getTime() > 24 * 60 * 60 * 1000
+    const carriedPending = stalePending ? null : (previous?.pendingTrAt ?? null)
+    const pendingTrAt = droppedToLowLevel ? now.toISOString() : carriedPending
+
+    const confirmsTr =
+      pendingTrAt !== null &&
+      resolved !== null &&
+      (resolved.quest.heroicCr ?? 99) <= 3 &&
+      observation.level !== null &&
+      observation.level >= 1 &&
+      observation.level <= 5
+    if (confirmsTr && pendingTrAt) {
+      reincarnations.push({ characterId: observation.characterId, at: new Date(pendingTrAt) })
+    }
+
+    const nextPendingTrAt = confirmsTr ? null : pendingTrAt
+
     if (previous && previous.areaId === areaId) {
       characters[observation.characterId] = {
         ...previous,
         samples: previous.samples + 1,
         misses: 0,
+        level: observation.level ?? previous.level,
+        pendingTrAt: nextPendingTrAt,
         questId: previous.questId ?? resolved?.quest.id ?? null,
         // Keep the clock running while we still hold a quest for this visit, even
         // if a level change makes the area ambiguous mid-run.
@@ -147,11 +189,13 @@ export function applyObservations(
       since: now.toISOString(),
       samples: 1,
       questId: resolved?.quest.id ?? null,
-      level: observation.level,
+      // Keep the last known level when a poll reports none, so a TR is not missed.
+      level: observation.level ?? previous?.level ?? null,
       lastInsideAt: resolved ? now.toISOString() : null,
       misses: 0,
+      pendingTrAt: nextPendingTrAt,
     }
   }
 
-  return { state: { lastPollAt: now.toISOString(), characters }, completions }
+  return { state: { lastPollAt: now.toISOString(), characters }, completions, reincarnations }
 }
