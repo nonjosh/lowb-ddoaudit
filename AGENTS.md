@@ -208,6 +208,71 @@ Rules that matter when editing this area:
   regenerate it with `npx tsx scripts/build-quest-groupings.ts` after adding a saga or
   a pack.
 
+## Review Checklist (traps that already shipped a bug)
+
+Each line below fixed a real defect found after the code looked done. Check them before
+calling a change finished.
+
+### Server / Cloud Run (`server/`)
+
+- **CORS lists every method the browser sends.** `Access-Control-Allow-Methods` must
+  include `GET, POST, PATCH, OPTIONS`. A missing `POST` broke an endpoint that all the
+  server-side tests passed.
+- **Public endpoints bill and starve.** Cache the serialized JSON body (not just the
+  object) and single-flight the load; a full collection scan or re-serialize per request
+  can starve the single instance and the minute poller.
+- **Every upstream `fetch` needs `AbortSignal.timeout`.** A hung third-party call holds
+  the poller past the scheduler deadline and loses the state write.
+- **One omitted character is not a logout.** Hold poller state for one sample, close the
+  visit on the second, or a transient gap fabricates a completion.
+- **Writes must be monotonic.** Reset/reincarnation/band timestamps never move backwards;
+  return the effective time and use it for the derived writes.
+- **Reject absurd input.** No future timestamps (>24h), no level `0`/unknown in a TR
+  heuristic, bounded bulk payloads (100 rows).
+- **Firestore:** `deletion_policy = "RETAIN"` + `prevent_destroy`, collections prefixed
+  `ddo_log_` (`COLLECTION_PREFIX`), one transaction per bulk edit (<=500 writes, dedupe
+  duplicate doc ids first).
+- **Secrets** never reach logs or responses; the write password lives in Secret Manager
+  and is compared timing-safe.
+
+### Data snapshots (`src/data`)
+
+- Generate with a script, commit the JSON, never fetch the wiki at runtime.
+- Resolve third-party names in three steps — exact, normalized (case, articles,
+  punctuation), then a leading `Return to ` removed — and only accept a step when it has
+  **exactly one** candidate. Print unresolved and ambiguous names; never guess.
+- Cross-check a count the source states and fail loudly when the page layout changes
+  (the saga cards feature silently matched 0 of 31 sagas because keys were not
+  normalized).
+
+### UI (MUI 7, `src/pages/AdventureLog.tsx`)
+
+- Fixed table layout needs explicit column widths **and** a `minWidth` floor, otherwise
+  the auto column collapses and text paints over neighbours.
+- `Stack spacing` writes child margins with higher specificity than `sx`: add
+  `useFlexGap` when a child needs `ml: 'auto'`.
+- Group/aggregate counts must come from the **pre-filter** set, or a filtered group looks
+  complete and strikes through.
+- Search is client-side: `useDeferredValue` plus one grouping pass; never re-group per
+  keystroke.
+- Popover filters need labelled, focusable controls (`FormControlLabel` + `Checkbox`),
+  not `MenuItem` + `tabIndex={-1}`, and the trigger needs `aria-haspopup`/`aria-expanded`.
+- `Chip` labels stay inline (`Stack component="span"`).
+- Destructive actions (TR reset, bulk uncheck) need a confirmation that previews the
+  effect; TR reset uses two steps.
+
+### Tests and deploys
+
+- e2e hits the live service and **mutates Firestore**: skip mutating cases when the row
+  already holds history, and delete test rows afterwards.
+- Destructive logic (reset, migration) is verified with a synthetic-id script
+  (`server/scripts/check-reincarnation-reset.mjs`), never a real character.
+- One-off migration scripts get `--dry-run`, a backup written **before** any delete, and
+  are deleted once they have run.
+- Deploy = build a new image tag, `terraform apply -var image=...` in
+  `terraform-dev/ddo-log`, then verify the Actions run and the served bundle. Pause the
+  scheduler for data moves.
+
 ## Common Tasks
 
 ### Adding a New Component
