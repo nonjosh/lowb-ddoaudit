@@ -47,9 +47,13 @@ Currently: `Vision of an Alternate History` → `Terror of the Demon Lords`.
 ## Completion schema (Firestore)
 
 Every collection this app owns is prefixed `ddo_log_` (`COLLECTION_PREFIX` in
-`server/src/store.ts`) so the shared default database stays readable. Existing data was
-moved by `server/scripts/migrate-collection-prefix.mjs` (copy, verify, delete; JSON
-backup first). Old unprefixed collections are empty and can be ignored.
+`server/src/store.ts`) so the shared default database stays readable. The move happened
+on 2026-10-29 (copy, verify, delete) and the one-off script was removed afterwards; the
+unprefixed collections are empty.
+
+**Do not roll the Cloud Run image back past that change.** A revision built before it
+reads the empty unprefixed collections: the log shows no rows and the poller starts from
+an empty state, writing duplicate completions into the orphan collection.
 
 `ddo_log_completions/{character_id}_{quest_id}_{band}` — one document per version, where
 `band` is `heroic`, `epic` or `legendary`. A run's version is picked by the nearest
@@ -57,7 +61,7 @@ version level (`server/src/bands.ts`), mirroring the resolver, so a level-32 cha
 in Toven's Workshop writes the legendary row and a level-19 character the heroic one.
 
 Rows written before bands existed were re-keyed by
-`server/scripts/migrate-bands.mjs` (dry run supported, JSON backup written first).
+a one-off script that was removed after it ran.
 
 | Field | Meaning |
 | --- | --- |
@@ -109,7 +113,7 @@ than reality and the tooltip says "Resets by" instead of "Resets".
 "Ransacked" chip at the limit and an "N/5 in 7d" hint above one run. Adjust the two
 constants if the game changes; nothing is written for this, so no migration is needed.
 
-`edits/{autoId}` is append-only: character, quest, finished, timestamps, `writer: null`.
+`ddo_log_edits/{autoId}` is append-only: character, quest, band, finished, timestamps, `writer: null`.
 
 ## Edit semantics (the part that is easy to break)
 

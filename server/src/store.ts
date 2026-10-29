@@ -22,8 +22,9 @@ export const HISTORY_LIMIT = 10
 
 /**
  * Every collection this app owns is prefixed, so the default database stays readable
- * when another app shares the project. Keep in sync with
- * `scripts/migrate-collection-prefix.mjs`.
+ * when another app shares the project. The data was migrated to these names in one
+ * move on 2026-10-29; there is no unprefixed fallback, so an image rollback past that
+ * change reads empty collections.
  */
 export const COLLECTION_PREFIX = 'ddo_log_'
 

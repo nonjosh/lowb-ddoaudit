@@ -9,7 +9,7 @@ import { Firestore, Timestamp } from '@google-cloud/firestore'
 
 const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'astute-nuance-286909'
 const db = new Firestore({ projectId })
-const completions = db.collection('completions')
+const completions = db.collection('ddo_log_completions')
 const characterId = 'test-reincarnation-character'
 const dayMs = 86_400_000
 const now = Date.now()
