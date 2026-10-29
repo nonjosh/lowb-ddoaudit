@@ -190,6 +190,7 @@ Commands (from `server/`):
 | `npm run test:e2e` | against the deployed service; needs `BASE_URL`, `LOG_PASSWORD`, `TEST_CHARACTER_ID`, `TEST_QUEST_ID` |
 | `npx tsx scripts/update-sagas.ts` | refresh `src/data/sagas.json` from the DDO Wiki (via the reader proxy) |
 | `npx tsx scripts/build-quest-groupings.ts` | regenerate `src/data/questGroupings.json` (quest -> saga/pack cache) |
+| `npx tsx scripts/build-saga-cards.ts` | refresh `src/data/sagaCards.json` (Deck of Many Curses card per saga) |
 | `node scripts/migrate-bands.mjs` | one-off: re-key completions to `{char}_{quest}_{band}` (already run) |
 
 Infrastructure lives in the sibling Terraform repo: `terraform-dev/ddo-log/`
