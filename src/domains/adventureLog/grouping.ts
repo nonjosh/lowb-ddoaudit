@@ -274,3 +274,42 @@ export function groupQuestRows(
 export function groupLabel(group: QuestGroup): string {
   return group.kind === 'pack' && group.band ? `${group.label} · ${bandLabel(group.band)}` : group.label
 }
+
+/** What the flat views need from a completion record. */
+interface CompletionLike {
+  finished?: boolean
+  lastFinishedAt?: string | null
+}
+
+/**
+ * "Recently done": completed rows that have a completion date, newest first, no
+ * grouping. A row checked by hand without a date has no "last done" to show, so it is
+ * left out rather than sorted to an arbitrary place. `rows` is expected to be the
+ * already-filtered set; only hidden packs and search are applied here.
+ */
+export function recentlyDoneRows(
+  rows: QuestRowModel[],
+  completions: Record<string, CompletionLike | undefined>,
+  query = '',
+  hiddenPacks: ReadonlySet<string> = new Set(),
+): QuestRowModel[] {
+  const needle = query.trim().toLowerCase()
+  return rows
+    .filter((row) => !hiddenPacks.has(getPackName(row.quest) ?? ''))
+    .filter((row) => {
+      const entry = completions[row.key]
+      return entry?.finished === true && Boolean(entry.lastFinishedAt)
+    })
+    .filter((row) => {
+      if (!needle) return true
+      return [row.quest.name, getPackName(row.quest) ?? '', row.quest.patron ?? ''].some((value) =>
+        value.toLowerCase().includes(needle),
+      )
+    })
+    .sort((left, right) => {
+      const byDate = (completions[right.key]?.lastFinishedAt ?? '').localeCompare(
+        completions[left.key]?.lastFinishedAt ?? '',
+      )
+      return byDate !== 0 ? byDate : left.quest.name.localeCompare(right.quest.name)
+    })
+}

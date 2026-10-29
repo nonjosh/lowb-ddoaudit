@@ -34,6 +34,7 @@ import {
   TableRow,
   TextField,
   ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -73,6 +74,7 @@ import {
   groupQuestRows,
   isWildernessQuest,
   listAdventurePackInfo,
+  recentlyDoneRows,
   sagaGroupNamesForRow,
   type QuestBand,
   type QuestGroup,
@@ -296,6 +298,8 @@ interface QuestRowProps {
   busy: boolean
   query: string
   showSagaBadge: boolean
+  /** Flat views have no pack header, so the pack travels with the row. */
+  showPack: boolean
   trAt: string | null
   now: number
   occupants: Array<{
@@ -308,10 +312,11 @@ interface QuestRowProps {
   onToggle: (row: QuestRowModel, finished: boolean) => void
 }
 
-function QuestRow({ row, entry, busy, query, showSagaBadge, trAt, now, occupants, onToggle }: QuestRowProps) {
+function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, trAt, now, occupants, onToggle }: QuestRowProps) {
   const finished = entry?.finished === true
   const ransack = getRansackStatus(entry?.history ?? [], now, trAt)
   const sagaNames = showSagaBadge ? getSagaNames(row.quest) : []
+  const packName = showPack ? getPackName(row.quest) : null
 
   return (
     <TableRow hover>
@@ -334,6 +339,11 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, trAt, now, occupants
           >
             <HighlightedText text={row.quest.name} query={query} />
           </Link>
+          {packName && (
+            <Typography component="span" variant="caption" color="text.secondary">
+              {packName}
+            </Typography>
+          )}
           {row.quest.type && row.quest.type !== 'Party' && (
             <Chip
               size="small"
@@ -405,8 +415,8 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, trAt, now, occupants
       </TableCell>
       <TableCell align="right">
         <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
-          <span>{row.level ?? '—'}</span>
           <Chip size="small" variant="outlined" color={BAND_COLOR[row.band]} label={bandLabel(row.band)} />
+          <span>{row.level ?? '—'}</span>
         </Stack>
       </TableCell>
       <TableCell>
@@ -447,7 +457,12 @@ export default function AdventureLog() {
   const query = useDeferredValue(search)
   const [onlyRansacked, setOnlyRansacked] = useState(false)
   const [hideCompleted, setHideCompleted] = useState(false)
-  const [sagasOnly, setSagasOnly] = useState(false)
+  /**
+   * packs: adventure-pack groups. sagas: saga groups (quests outside a saga are
+   * hidden). recent: one flat list of completed rows, newest first, no grouping.
+   */
+  const [viewMode, setViewMode] = useState<'packs' | 'sagas' | 'recent'>('packs')
+  const sagasOnly = viewMode === 'sagas'
   const [hideOffLevel, setHideOffLevel] = useState(true)
   const [patronFilters, setPatronFilters] = useState<Set<string>>(new Set())
   const [favorAnchor, setFavorAnchor] = useState<HTMLElement | null>(null)
@@ -805,8 +820,8 @@ export default function AdventureLog() {
    */
   /** Groups before the level cut: totals, "all done" checks and completeness. */
   const allGroups = useMemo(
-    () => groupQuestRows(filteredRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' }),
-    [filteredRows, hiddenPacks, sagasOnly],
+    () => (viewMode === 'recent' ? [] : groupQuestRows(filteredRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' })),
+    [filteredRows, hiddenPacks, sagasOnly, viewMode],
   )
 
   /** Level cut: skipped while searching, so a lookup is never silently filtered. */
@@ -839,10 +854,21 @@ export default function AdventureLog() {
    * partially-done groups keep their full list.
    */
   const groups = useMemo(() => {
+    if (viewMode === 'recent') return []
     const visible = groupQuestRows(visibleRows, hiddenPacks, { mode: sagasOnly ? 'sagas' : 'packs' })
     if (!hideCompleted) return visible
     return visible.filter((group) => !groupInfo.get(group.id)?.allDone)
-  }, [visibleRows, hiddenPacks, sagasOnly, hideCompleted, groupInfo])
+  }, [visibleRows, hiddenPacks, sagasOnly, hideCompleted, groupInfo, viewMode])
+
+  /**
+   * Recently done: completed rows with a date, newest first, no grouping. Rows checked
+   * by hand without a date have nothing to show in "Last done" and are left out.
+   */
+  const recentRows = useMemo(
+    () =>
+      viewMode === 'recent' ? recentlyDoneRows(visibleRows, characterCompletions, query, hiddenPacks) : [],
+    [viewMode, visibleRows, characterCompletions, query, hiddenPacks],
+  )
 
   /**
    * Search selects whole groups: a group is kept when any of its rows matches the
@@ -918,6 +944,7 @@ export default function AdventureLog() {
       busy={busyKey === row.key || bulkGroupId !== null}
       query={query}
       showSagaBadge={!sagasOnly}
+      showPack={viewMode === 'recent'}
       trAt={trAt}
       now={now}
       occupants={occupantsByKey.get(row.key) ?? []}
@@ -1097,20 +1124,43 @@ export default function AdventureLog() {
             label="Ransacked"
           />
 
-          <FormControlLabel
-            control={<Checkbox checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} />}
-            label="Hide completed"
-          />
+          <Tooltip title={viewMode === 'recent' ? 'Every row in this view is completed, so this filter does nothing here' : ''}>
+            <span>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={hideCompleted}
+                    disabled={viewMode === 'recent'}
+                    onChange={(event) => setHideCompleted(event.target.checked)}
+                  />
+                }
+                label="Hide completed"
+              />
+            </span>
+          </Tooltip>
 
-          <ToggleButton
-            value="sagas"
+          <ToggleButtonGroup
             size="small"
-            selected={sagasOnly}
-            onChange={() => setSagasOnly((previous) => !previous)}
-            title="Show only quests that belong to a saga"
+            exclusive
+            value={viewMode}
+            onChange={(_event, next: 'packs' | 'sagas' | 'recent' | null) => {
+              if (next) setViewMode(next)
+            }}
+            aria-label="Grouping"
           >
-            Sagas only
-          </ToggleButton>
+            <ToggleButton value="packs" title="Group quests by adventure pack">
+              Packs
+            </ToggleButton>
+            <ToggleButton
+              value="sagas"
+              title="Group by saga; quests that belong to no saga are hidden"
+            >
+              Sagas
+            </ToggleButton>
+            <ToggleButton value="recent" title="Completed quests, newest first, without grouping">
+              Recently done
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Stack>
 
         {loading ? (
@@ -1152,6 +1202,7 @@ export default function AdventureLog() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
+                  {viewMode === 'recent' && recentRows.map(renderRow)}
                   {renderedGroups.map((group) => {
                         const expanded =
                           expandedGroups.has(group.id) ||
@@ -1241,10 +1292,18 @@ export default function AdventureLog() {
                 </TableBody>
               </Table>
             </TableContainer>
-            {renderedGroups.length === 0 && (
+            {(viewMode === 'recent' ? recentRows.length === 0 : renderedGroups.length === 0) && (
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  {searching ? `No quest, pack or favor matches “${search.trim()}”.` : 'No quests match the filters.'}
+                  {viewMode === 'recent'
+                    ? characterId
+                      ? searching
+                        ? `No completed quest with a date, pack or favor matches “${search.trim()}”.`
+                        : 'No completed quest with a date matches the filters.'
+                      : 'Select a character to see what they recently completed.'
+                    : searching
+                      ? `No quest, pack or favor matches “${search.trim()}”.`
+                      : 'No quests match the filters.'}
                 </Typography>
               </Box>
             )}
@@ -1252,11 +1311,9 @@ export default function AdventureLog() {
         )}
 
         <Typography variant="caption" color="text.secondary">
-          {searching
-            ? `${renderedGroups.length} matching groups · ${groupedRowCount} rows`
-            : `${renderedGroups.length} groups · ${groupedRowCount} rows`}{' '}
-          ·{' '}
-          {doneCount} marked done
+          {viewMode === 'recent'
+            ? `${recentRows.length} recently done`
+            : `${renderedGroups.length} ${searching ? 'matching ' : ''}groups · ${groupedRowCount} rows · ${doneCount} marked done`}
           {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
           {trAt ? ` · TR ${formatLocalDate(trAt)}` : ''}
           {patronFilters.size > 0 ? ` · ${patronFilters.size} favor filter(s)` : ''}
