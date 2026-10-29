@@ -2,8 +2,8 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import TuneIcon from '@mui/icons-material/Tune'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
   Alert,
   Box,
@@ -1044,7 +1044,8 @@ export default function AdventureLog() {
             <Button
               size="small"
               variant="outlined"
-              startIcon={<RestartAltIcon />}
+              color="error"
+              startIcon={<WarningAmberIcon />}
               onClick={() => setTrDialogOpen(true)}
             >
               TR reset

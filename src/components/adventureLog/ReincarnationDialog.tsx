@@ -92,7 +92,7 @@ export default function ReincarnationDialog({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setStep('details')}>Back</Button>
-          <Button color="warning" variant="contained" onClick={() => onConfirm(new Date(parsedTime).toISOString())}>
+          <Button color="error" variant="contained" onClick={() => onConfirm(new Date(parsedTime).toISOString())}>
             Record &amp; reset
           </Button>
         </DialogActions>
