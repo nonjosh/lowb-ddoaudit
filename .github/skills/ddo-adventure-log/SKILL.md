@@ -46,7 +46,12 @@ Currently: `Vision of an Alternate History` → `Terror of the Demon Lords`.
 
 ## Completion schema (Firestore)
 
-`completions/{character_id}_{quest_id}_{band}` — one document per version, where
+Every collection this app owns is prefixed `ddo_log_` (`COLLECTION_PREFIX` in
+`server/src/store.ts`) so the shared default database stays readable. Existing data was
+moved by `server/scripts/migrate-collection-prefix.mjs` (copy, verify, delete; JSON
+backup first). Old unprefixed collections are empty and can be ignored.
+
+`ddo_log_completions/{character_id}_{quest_id}_{band}` — one document per version, where
 `band` is `heroic`, `epic` or `legendary`. A run's version is picked by the nearest
 version level (`server/src/bands.ts`), mirroring the resolver, so a level-32 character
 in Toven's Workshop writes the legendary row and a level-19 character the heroic one.
@@ -70,7 +75,7 @@ Documents written before `history` existed are read as a one-entry history from
 
 A character that drops from level 20+ to 5 or below and then appears in a quest with
 heroic CR <= 3 is treated as reincarnated (`server/src/detect.ts`). The poller stores the
-event in `reincarnations/{character_id}` and re-derives the checkboxes for that character:
+event in `ddo_log_reincarnations/{character_id}` and re-derives the checkboxes for that character:
 `finished` stays true only when the newest history entry is at or after the TR time
 (`resetCompletionsForLife` in `server/src/store.ts`). History is never deleted, so the
 previous life stays readable and its entries are tagged "(prev life)" in the tooltip.
@@ -194,12 +199,12 @@ Hidden adventure packs are a browser preference (`localStorage`,
 
 ## Operations
 
-- State lives in `state/poller` (one document): per-character `areaId`, `since`,
+- State lives in `ddo_log_state/poller` (one document): per-character `areaId`, `since`,
   `samples`, `questId`, `lastInsideAt`, `misses`, plus `lastPollAt`.
 - `POST /poll` requires the scheduler OIDC token (audience = service URL, email verified).
 - `PATCH` requires `X-Log-Password` (Secret Manager, constant-time compare).
 - `GET /completions` is public and served from a 15 s in-process cache.
-- `GET /activity` is public and exposes `state/poller` (area, quest, since) so the page
+- `GET /activity` is public and exposes `ddo_log_state/poller` (area, quest, since) so the page
   can show who is inside a quest and focus that group on load.
 - A run is skipped when the last completed poll is younger than 45 s.
 

@@ -20,11 +20,18 @@ export interface CompletionRecord {
 /** Enough repeats to detect a ransacked quest without growing without bound. */
 export const HISTORY_LIMIT = 10
 
+/**
+ * Every collection this app owns is prefixed, so the default database stays readable
+ * when another app shares the project. Keep in sync with
+ * `scripts/migrate-collection-prefix.mjs`.
+ */
+export const COLLECTION_PREFIX = 'ddo_log_'
+
 const db = new Firestore()
-const completions = db.collection('completions')
-const edits = db.collection('edits')
-const reincarnations = db.collection('reincarnations')
-const stateDocument = db.doc('state/poller')
+const completions = db.collection(`${COLLECTION_PREFIX}completions`)
+const edits = db.collection(`${COLLECTION_PREFIX}edits`)
+const reincarnations = db.collection(`${COLLECTION_PREFIX}reincarnations`)
+const stateDocument = db.doc(`${COLLECTION_PREFIX}state/poller`)
 
 export const completionId = (characterId: string, questId: string, band: string): string =>
   `${characterId}_${questId}_${band}`
