@@ -12,6 +12,7 @@ import {
 import { useMemo, useState } from 'react'
 
 import type { CompletionEntry } from '@/api/adventureLog'
+import { formatLocalDateTime } from '@/api/ddoAudit'
 
 interface ReincarnationDialogProps {
   open: boolean
@@ -76,7 +77,7 @@ export default function ReincarnationDialog({
           <Stack spacing={1.5}>
             <Typography variant="body2">
               Record a reincarnation for <strong>{characterName}</strong> at{' '}
-              <strong>{new Date(parsedTime).toLocaleString()}</strong>?
+              <strong>{formatLocalDateTime(parsedTime)}</strong>?
             </Typography>
             <Alert severity={willUncheck > 0 ? 'warning' : 'info'}>
               {willUncheck > 0
@@ -124,7 +125,7 @@ export default function ReincarnationDialog({
           />
           {currentAt && (
             <Typography variant="caption" color="text.secondary">
-              Currently recorded: {new Date(currentAt).toLocaleString()}
+              Currently recorded: {formatLocalDateTime(currentAt)}
             </Typography>
           )}
         </Stack>

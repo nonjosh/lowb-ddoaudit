@@ -34,6 +34,7 @@ import {
 } from '@mui/material'
 import { type ReactNode, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
+import { formatLocalDateTime } from '@/api/ddoAudit'
 import { ITEM_MAX_LEVEL } from '@/api/ddoGearPlanner'
 import type { Item as GearPlannerItem } from '@/api/ddoGearPlanner'
 import type {
@@ -384,7 +385,7 @@ function getTabItemCount(tab: ExplorerTabData): number {
 
 function formatTimestamp(timestamp: number | null): string | null {
   if (!timestamp) return null
-  return new Date(timestamp).toLocaleString()
+  return formatLocalDateTime(timestamp)
 }
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {

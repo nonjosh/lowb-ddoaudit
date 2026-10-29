@@ -67,20 +67,28 @@ export function parseNullableInt(value: unknown): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const pad2 = (value: number): string => String(value).padStart(2, '0')
+
+/**
+ * `2026-10-29 (Thu)`. Built by hand, not `toLocaleDateString`, so every locale and
+ * machine renders the same string.
+ */
+export function formatLocalDate(ts: string | number | Date | null | undefined): string {
+  if (ts === null || ts === undefined || ts === '') return '—'
+  const d = ts instanceof Date ? ts : new Date(ts)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} (${WEEKDAYS[d.getDay()]})`
+}
+
+/** `2026-10-29 (Thu) 09:46`, plus `:05` when seconds are wanted. */
 export function formatLocalDateTime(ts: string | number | Date | null | undefined, options: { includeSeconds?: boolean } = {}): string {
   if (ts === null || ts === undefined || ts === '') return '—'
   const d = ts instanceof Date ? ts : new Date(ts)
   if (Number.isNaN(d.getTime())) return '—'
-  const includeSeconds = options?.includeSeconds === true
-  return d.toLocaleString(undefined, {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    ...(includeSeconds ? { second: '2-digit' } : {}),
-  })
+  const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+  const seconds = options?.includeSeconds === true ? `:${pad2(d.getSeconds())}` : ''
+  return `${formatLocalDate(d)} ${time}${seconds}`
 }
 
 export function addMs(ts: string | number | Date | null | undefined, ms: number): Date | null {

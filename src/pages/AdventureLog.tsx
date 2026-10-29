@@ -54,7 +54,7 @@ import {
   type ReincarnationMap,
 } from '@/api/adventureLog'
 import { ADVENTURE_LOG_PASSWORD_STORAGE_KEY } from '@/api/adventureLog/constants'
-import { fetchCharactersByIds, fetchQuestsById, type CharacterData, type Quest } from '@/api/ddoAudit'
+import { fetchCharactersByIds, fetchQuestsById, formatLocalDate, formatLocalDateTime, type CharacterData, type Quest } from '@/api/ddoAudit'
 import HidePacksDialog from '@/components/adventureLog/HidePacksDialog'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import ReincarnationDialog from '@/components/adventureLog/ReincarnationDialog'
@@ -161,10 +161,6 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   )
 }
 
-function formatExact(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-}
-
 function HistoryTooltip({
   history,
   trAt,
@@ -192,7 +188,7 @@ function HistoryTooltip({
       {status.resetsAt && (
         <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
           {status.truncated ? 'Resets by ~' : 'Resets ~'}
-          {status.resetsAt.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+          {formatLocalDateTime(status.resetsAt)}
         </Typography>
       )}
       {history.map((iso) => {
@@ -212,7 +208,7 @@ function HistoryTooltip({
               {previousLife ? ' (prev life)' : ''}
             </Box>
             <Box component="span" sx={{ color: previousLife ? 'text.disabled' : 'text.secondary' }}>
-              {formatExact(iso)}
+              {formatLocalDateTime(iso)}
             </Box>
           </Stack>
         )
@@ -1046,9 +1042,9 @@ export default function AdventureLog() {
 
           {trAt && (
             <Tooltip
-              title={`Reincarnated ${new Date(trAt).toLocaleString()} (${reincarnations[characterId]?.source ?? 'manual'})`}
+              title={`Reincarnated ${formatLocalDateTime(trAt)} (${reincarnations[characterId]?.source ?? 'manual'})`}
             >
-              <Chip size="small" variant="outlined" color="secondary" label={`TR ${new Date(trAt).toLocaleDateString()}`} />
+              <Chip size="small" variant="outlined" color="secondary" label={`TR ${formatLocalDate(trAt)}`} />
             </Tooltip>
           )}
 
@@ -1262,7 +1258,7 @@ export default function AdventureLog() {
           ·{' '}
           {doneCount} marked done
           {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
-          {trAt ? ` · TR ${new Date(trAt).toLocaleDateString()}` : ''}
+          {trAt ? ` · TR ${formatLocalDate(trAt)}` : ''}
           {patronFilters.size > 0 ? ` · ${patronFilters.size} favor filter(s)` : ''}
           {hiddenPacks.size > 0 ? ` · ${hiddenPacks.size} packs hidden` : ''}
         </Typography>

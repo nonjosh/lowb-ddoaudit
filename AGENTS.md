@@ -103,6 +103,12 @@ src/
 - **Responsive Layout**: For horizontal arrays of controls or filters, use MUI `<Stack direction="row" useFlexGap flexWrap="wrap">` instead of strict `<Stack direction={{ xs: 'column', md: 'row' }}>` to prevent layout breaks and horizontally overflowing items on vertical or intermediate width displays.
 - **Item level cap**: Item-level selectors and exported gear-planner URLs must use `ITEM_MAX_LEVEL` from `src/api/ddoGearPlanner/constants.ts` instead of hardcoded values. The current cap is 36; when lv40 gear arrives, update that constant first and then audit any remaining explicit level bins or documentation.
 
+### Date Display
+
+- **Non-relative dates** use `yyyy-mm-dd (EEE)` — `2026-10-29 (Thu)`. A date with a time is `2026-10-29 (Thu) 09:46`, adding `:05` only where seconds matter.
+- Always render dates through `formatLocalDate` / `formatLocalDateTime` in `src/api/ddoAudit/helpers.ts`; never `toLocaleDateString`/`toLocaleString` on a `Date`, whose output changes with the browser locale.
+- **Relative text stays relative**: "just now", "3h ago", "in 2d", the raid lockout countdown. Those are a different reading task and are not covered by the format above.
+
 ### Error Handling
 
 - Wrap async operations in try/catch

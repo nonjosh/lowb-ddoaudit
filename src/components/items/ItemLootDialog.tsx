@@ -16,7 +16,7 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchAreasById, fetchQuestsById, Quest } from '@/api/ddoAudit'
+import { fetchAreasById, fetchQuestsById, formatLocalDateTime, Quest } from '@/api/ddoAudit'
 import QuestLocationPlayersPanel from '@/components/characters/dialogs/QuestLocationPlayersPanel'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
@@ -264,7 +264,7 @@ export default function ItemLootDialog({ open, onClose, questName, questId, area
                     variant="caption"
                     sx={{ display: 'block', color: stale ? 'warning.main' : 'text.secondary' }}
                   >
-                    Item data cached {new Date(updatedAt).toLocaleString()}
+                    Item data cached {formatLocalDateTime(updatedAt)}
                     {stale ? ' (using cached data)' : ''}
                   </Typography>
                 )}

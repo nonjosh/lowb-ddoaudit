@@ -29,6 +29,7 @@ import {
   Typography
 } from '@mui/material'
 
+import { formatLocalDateTime } from '@/api/ddoAudit'
 import { useGearPlanner } from '@/contexts/useGearPlanner'
 import { useTrove } from '@/contexts/useTrove'
 
@@ -169,9 +170,7 @@ export default function TroveImportDialog({
   }, [clearData])
 
   // Format date
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString()
-  }
+  const formatDate = (timestamp: number) => formatLocalDateTime(timestamp)
 
   // Get stats (only count BTC equipment, not consumables)
   const equipmentNames = new Set(items.map((item) => item.name))
