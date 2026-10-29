@@ -116,6 +116,18 @@ function getSagaCards(sagaLabel: string): string[] {
   return SAGA_CARDS.get(normalizeSagaName(sagaLabel)) ?? []
 }
 
+/** Deck of Many Curses card tints, one colour per card type. */
+const CARD_COLORS: Record<string, string> = {
+  forbidden: '#ce93d8',
+  uncanny: '#81c784',
+  otherworldly: '#ffd54f',
+  accursed: '#e57373',
+}
+
+function cardColor(card: string): string | undefined {
+  return CARD_COLORS[card.split(' ')[0].toLowerCase()]
+}
+
 const PLAYER_STORAGE_KEY = 'lowb-adventure-log-player'
 const CHARACTER_STORAGE_KEY = 'lowb-adventure-log-character'
 
@@ -1209,7 +1221,13 @@ export default function AdventureLog() {
                                   {group.kind === 'saga' &&
                                     getSagaCards(group.label).map((card) => (
                                       <Tooltip key={card} title={`Saga reward: ${card} (Deck of Many Curses)`}>
-                                        <Chip size="small" variant="outlined" color="secondary" label={card} />
+                                        <Chip
+                                          size="small"
+                                          variant="outlined"
+                                          color="secondary"
+                                          label={card}
+                                          sx={{ color: cardColor(card), borderColor: cardColor(card) }}
+                                        />
                                       </Tooltip>
                                     ))}
                                 </Stack>
