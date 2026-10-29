@@ -68,7 +68,7 @@ a one-off script that was removed after it ran.
 | `finished` | the user-facing checkbox |
 | `history` | completion timestamps, newest first, capped at 10 (`HISTORY_LIMIT`) |
 | `last_finished_at` | `history[0]`; `null` = no known completion date (rendered as "no data") |
-| `level_at_finish` | character level at exit (poll path only; `null` for manual edits) |
+| `level_at_finish` | character level at exit; a manual edit preserves the existing value and never sets one |
 | `source` | `poll` or `manual` |
 | `updated_at` | audit timestamp |
 
@@ -113,7 +113,28 @@ than reality and the tooltip says "Resets by" instead of "Resets".
 "Ransacked" chip at the limit and an "N/5 in 7d" hint above one run. Adjust the two
 constants if the game changes; nothing is written for this, so no migration is needed.
 
-`ddo_log_edits/{autoId}` is append-only: character, quest, band, finished, timestamps, `writer: null`.
+`ddo_log_edits/{autoId}` is append-only and written in the same transaction as the
+change. It holds the **after** state (`finished`, `last_finished_at`, `history`), `at`,
+and `writer: null` (a shared password identifies nobody), plus the **before** state:
+`previous_exists`, `previous_finished`, `previous_history`, `previous_level_at_finish`,
+`previous_source`.
+
+That pair makes a wrong bulk edit undoable, but the undo must check for drift first: read
+the live completion and abort unless its `finished` and `history` still equal the logged
+after-state. A poll may have added a completion since, and a blind write would delete it
+(the poller never re-adds an old exit time). Refuse the undo as well when the character has
+a reincarnation newer than the edit: a TR reset rewrites `finished` without touching
+`history`, so restoring `previous_finished` would resurrect a completion from the previous
+life. When `previous_exists` is false the undo deletes the document — nothing else in the
+server deletes completion docs, so a checked row for a never-played quest would otherwise
+stay visible forever.
+
+Entries without a `previous_exists` field predate this feature and are diagnostic only;
+test for the field, not a date.
+
+**Never put a Firestore TTL on `ddo_log_edits`.** It is the only undo record and the only
+record that a row was touched by hand; the write password is shared and guessable by
+design.
 
 ## Edit semantics (the part that is easy to break)
 

@@ -51,6 +51,22 @@ function withHistoryEntry(history: Timestamp[], at: Timestamp): Timestamp[] {
     .slice(0, HISTORY_LIMIT)
 }
 
+/**
+ * The state an edit replaces, stored on the edit document. Without it the log says
+ * what a row became but not what it was, so a wrong bulk edit cannot be undone.
+ * Entries written before this existed only carry the new value.
+ */
+function previousOf(existing: CompletionRecord | null) {
+  return {
+    // An edit that creates a row must be undone by deleting it, not by resetting flags.
+    previous_exists: existing !== null,
+    previous_finished: existing?.finished === true,
+    previous_history: historyOf(existing),
+    previous_level_at_finish: existing?.level_at_finish ?? null,
+    previous_source: existing?.source ?? null,
+  }
+}
+
 type SerializedCompletions = Record<string, Record<string, unknown>>
 
 // GET /completions is public. Without this cache each request scans the whole
@@ -215,8 +231,10 @@ export async function applyManualEdits(changes: ManualEdit[]): Promise<number> {
         band: edit.band,
         finished: edit.finished,
         last_finished_at: history[0] ?? null,
+        history,
         at: Timestamp.now(),
         writer: null,
+        ...previousOf(existing),
       })
     })
 
@@ -264,8 +282,10 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
       band: edit.band,
       finished: edit.finished,
       last_finished_at: lastFinishedAt,
+      history,
       at: Timestamp.now(),
       writer: null,
+      ...previousOf(existing),
     })
 
     return record
