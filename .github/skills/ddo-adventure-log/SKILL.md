@@ -151,13 +151,19 @@ design.
 
 The page shows one row per playable version (a quest with heroic and legendary CRs
 gets two rows) and groups them, all collapsed by default and ordered by level
-descending. There are two modes:
+descending. There are three modes, chosen by one Packs / Sagas / Recently done toggle:
 
-- **Default**: adventure pack only, split into Heroic / Epic / Legendary bands, then
+- **Packs**: adventure pack only, split into Heroic / Epic / Legendary bands, then
   level for quests with no pack. Sagas are ignored here.
-- **"Sagas only"**: saga groups only; a quest appears in every saga it belongs to
+- **Sagas**: saga groups only; a quest appears in every saga it belongs to
   (`src/data/questGroupings.json`), and rows whose version does not match a
   "(Heroic)"/"(Legendary)" saga are dropped from this view.
+- **Recently done**: no grouping. Completed rows that have a completion date, newest
+  first, with the adventure pack as dim caption text after the quest name instead of a
+  pack header. Rows ticked by hand without a date are left out — they have no last-done
+  date to show. Search matches single rows here instead of whole groups, hidden packs
+  still apply, and "Hide completed" is disabled because every row is already completed.
+  The ±level cut keeps completed rows, so an old run does not disappear.
 
 "Hide completed" removes a group only when **every** quest in it is done; a partially
 finished group keeps its full list. The Type column is gone — a `Solo`/`Raid`/other badge
