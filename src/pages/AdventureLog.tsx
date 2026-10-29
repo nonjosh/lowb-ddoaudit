@@ -1,5 +1,6 @@
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FilterListIcon from '@mui/icons-material/FilterList'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import TuneIcon from '@mui/icons-material/Tune'
@@ -22,6 +23,7 @@ import {
   Link,
   MenuItem,
   Paper,
+  Popover,
   Select,
   Stack,
   Table,
@@ -57,6 +59,8 @@ import HidePacksDialog from '@/components/adventureLog/HidePacksDialog'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import ReincarnationDialog from '@/components/adventureLog/ReincarnationDialog'
 import { CHARACTERS } from '@/config/characters'
+import type { CharacterClass } from '@/domains/raids/raidLogic'
+import sagaCardsData from '@/data/sagaCards.json'
 import {
   bandForCharacter,
   bandLabel,
@@ -90,6 +94,26 @@ const BAND_COLOR: Record<QuestBand, 'success' | 'info' | 'warning'> = {
   heroic: 'success',
   epic: 'info',
   legendary: 'warning',
+}
+
+function normalizeSagaName(name: string): string {
+  return name
+    .replace(/\s*\((heroic|epic|legendary)\)\s*$/i, '')
+    .replace(/^the\s+/i, '')
+    .trim()
+    .toLowerCase()
+}
+
+/** Deck of Many Curses card per saga base name (wiki Item:Deck_of_Many_Curses). */
+const SAGA_CARDS = new Map<string, string[]>(
+  Object.entries((sagaCardsData as { cards: Record<string, string[]> }).cards).map(([name, cards]) => [
+    normalizeSagaName(name),
+    cards,
+  ]),
+)
+
+function getSagaCards(sagaLabel: string): string[] {
+  return SAGA_CARDS.get(normalizeSagaName(sagaLabel)) ?? []
 }
 
 const PLAYER_STORAGE_KEY = 'lowb-adventure-log-player'
@@ -251,6 +275,13 @@ function charactersOfPlayer(player: string): Array<{ id: string; name: string }>
 
 const ALL_CHARACTER_IDS = Object.keys(CHARACTERS)
 
+/** "Ken,Renz" — deduplicated players, capped so the chip stays readable. */
+function formatOccupantPlayers(occupants: Array<{ player: string }>): string {
+  const players = [...new Set(occupants.map((occupant) => occupant.player))]
+  if (players.length <= 3) return players.join(',')
+  return `${players.slice(0, 3).join(',')} +${players.length - 3}`
+}
+
 interface QuestRowProps {
   row: QuestRowModel
   entry: CompletionEntry | undefined
@@ -259,7 +290,13 @@ interface QuestRowProps {
   showSagaBadge: boolean
   trAt: string | null
   now: number
-  occupants: Array<{ id: string; name: string; level: number | null }>
+  occupants: Array<{
+    id: string
+    name: string
+    player: string
+    level: number | null
+    classes: CharacterClass[]
+  }>
   onToggle: (row: QuestRowModel, finished: boolean) => void
 }
 
@@ -303,9 +340,24 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, trAt, now, occupants
           )}
           {occupants.length > 0 && (
             <Tooltip
-              title={`Inside now: ${occupants
-                .map((occupant) => `${occupant.name}${occupant.level ? ` (L${occupant.level})` : ''}`)
-                .join(', ')}`}
+              title={
+                <Stack spacing={0.5}>
+                  {occupants.map((occupant) => (
+                    <Stack key={occupant.id} direction="row" spacing={0.75} alignItems="center">
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        {occupant.player}
+                      </Typography>
+                      <Typography variant="caption">{occupant.name}</Typography>
+                      {occupant.level ? (
+                        <Typography variant="caption" color="text.secondary">
+                          L{occupant.level}
+                        </Typography>
+                      ) : null}
+                      <ClassDisplay classes={occupant.classes} showIcons iconSize={14} />
+                    </Stack>
+                  ))}
+                </Stack>
+              }
             >
               <Chip
                 size="small"
@@ -335,7 +387,7 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, trAt, now, occupants
                         sx={{ position: 'absolute', inset: 0, borderRadius: '50%', bgcolor: 'currentColor' }}
                       />
                     </Box>
-                    <span>{occupants.length} inside</span>
+                    <span>{formatOccupantPlayers(occupants)} inside</span>
                   </Stack>
                 }
               />
@@ -389,7 +441,8 @@ export default function AdventureLog() {
   const [hideCompleted, setHideCompleted] = useState(false)
   const [sagasOnly, setSagasOnly] = useState(false)
   const [hideOffLevel, setHideOffLevel] = useState(true)
-  const [patronFilter, setPatronFilter] = useState('')
+  const [patronFilters, setPatronFilters] = useState<Set<string>>(new Set())
+  const [favorAnchor, setFavorAnchor] = useState<HTMLElement | null>(null)
   const [hiddenPacks, setHiddenPacks] = useState<Set<string>>(readHiddenPacks)
   const [packsDialogOpen, setPacksDialogOpen] = useState(false)
   const [trDialogOpen, setTrDialogOpen] = useState(false)
@@ -691,7 +744,10 @@ export default function AdventureLog() {
 
   /** `${questId}:${band}` -> characters currently inside that quest version. */
   const occupantsByKey = useMemo(() => {
-    const map = new Map<string, Array<{ id: string; name: string; level: number | null }>>()
+    const map = new Map<
+      string,
+      Array<{ id: string; name: string; player: string; level: number | null; classes: CharacterClass[] }>
+    >()
     for (const [occupantId, presence] of Object.entries(activity)) {
       if (!presence.questId) continue
       const info = CHARACTERS[occupantId]
@@ -699,7 +755,16 @@ export default function AdventureLog() {
       if (!info || !quest) continue
       const level = characterData[occupantId]?.total_level ?? null
       const key = completionKey(quest.id, bandForCharacter(quest, level))
-      map.set(key, [...(map.get(key) ?? []), { id: occupantId, name: info.name, level }])
+      map.set(key, [
+        ...(map.get(key) ?? []),
+        {
+          id: occupantId,
+          name: info.name,
+          player: info.player,
+          level,
+          classes: characterData[occupantId]?.classes ?? [],
+        },
+      ])
     }
     return map
   }, [activity, characterData, questById])
@@ -717,11 +782,11 @@ export default function AdventureLog() {
       if (isWildernessQuest(row.quest)) return false
 
       if (sagasOnly && sagaGroupNamesForRow(row.quest, row.band).length === 0) return false
-      if (patronFilter && row.quest.patron !== patronFilter) return false
+      if (patronFilters.size > 0 && !patronFilters.has(row.quest.patron ?? '')) return false
       if (onlyRansacked && !getRansackStatus(characterCompletions[row.key]?.history ?? []).ransacked) return false
       return true
     })
-  }, [rows, onlyRansacked, sagasOnly, patronFilter, characterCompletions])
+  }, [rows, onlyRansacked, sagasOnly, patronFilters, characterCompletions])
 
   const searching = query.trim().length > 0
 
@@ -1018,23 +1083,6 @@ export default function AdventureLog() {
             sx={{ minWidth: 260, flex: 1 }}
           />
 
-          <FormControl size="small" sx={{ minWidth: 190 }}>
-            <InputLabel id="adventure-log-favor">Favor</InputLabel>
-            <Select
-              labelId="adventure-log-favor"
-              label="Favor"
-              value={patronFilter}
-              onChange={(event) => setPatronFilter(event.target.value)}
-            >
-              <MenuItem value="">All favor</MenuItem>
-              {patrons.map((patron) => (
-                <MenuItem key={patron} value={patron}>
-                  {patron}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
           <FormControlLabel
             control={<Checkbox checked={onlyRansacked} onChange={(event) => setOnlyRansacked(event.target.checked)} />}
             label="Ransacked"
@@ -1063,14 +1111,35 @@ export default function AdventureLog() {
         ) : (
           <Paper variant="outlined">
             <TableContainer sx={{ maxHeight: '70vh' }}>
-              <Table size="small" stickyHeader>
+              <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', minWidth: 900 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell padding="checkbox" />
+                    <TableCell padding="checkbox" sx={{ width: 56 }} />
                     <TableCell>Quest</TableCell>
-                    <TableCell align="right">Level</TableCell>
-                    <TableCell>Favor</TableCell>
-                    <TableCell>Last done</TableCell>
+                    <TableCell align="right" sx={{ width: 150 }}>
+                      Level
+                    </TableCell>
+                    <TableCell sx={{ width: 220 }}>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <span>Favor</span>
+                        <IconButton
+                          size="small"
+                          aria-label="Filter by favor"
+                          aria-haspopup="dialog"
+                          aria-expanded={favorAnchor !== null}
+                          color={patronFilters.size > 0 ? 'primary' : 'default'}
+                          onClick={(event) => setFavorAnchor(event.currentTarget)}
+                        >
+                          <FilterListIcon fontSize="inherit" />
+                        </IconButton>
+                        {patronFilters.size > 0 && (
+                          <Typography variant="caption" color="primary">
+                            {patronFilters.size}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ width: 200 }}>Last done</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1136,6 +1205,12 @@ export default function AdventureLog() {
                                   <Typography variant="caption" color="text.secondary">
                                     L{formatLevelRange(group)}
                                   </Typography>
+                                  {group.kind === 'saga' &&
+                                    getSagaCards(group.label).map((card) => (
+                                      <Tooltip key={card} title={`Saga reward: ${card} (Deck of Many Curses)`}>
+                                        <Chip size="small" variant="outlined" color="secondary" label={card} />
+                                      </Tooltip>
+                                    ))}
                                 </Stack>
                               </TableCell>
                               <TableCell align="right">
@@ -1169,7 +1244,7 @@ export default function AdventureLog() {
           {doneCount} marked done
           {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
           {trAt ? ` · TR ${new Date(trAt).toLocaleDateString()}` : ''}
-          {patronFilter ? ` · favor: ${patronFilter}` : ''}
+          {patronFilters.size > 0 ? ` · ${patronFilters.size} favor filter(s)` : ''}
           {hiddenPacks.size > 0 ? ` · ${hiddenPacks.size} packs hidden` : ''}
         </Typography>
       </Stack>
@@ -1183,6 +1258,48 @@ export default function AdventureLog() {
         onClose={() => setTrDialogOpen(false)}
         onConfirm={handleReincarnation}
       />
+
+      <Popover
+        open={favorAnchor !== null}
+        anchorEl={favorAnchor}
+        onClose={() => setFavorAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Stack spacing={0} sx={{ p: 1, minWidth: 220, maxHeight: 340 }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1, pb: 0.5 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+              Filter by favor
+            </Typography>
+            <Box sx={{ flex: 1 }} />
+            <Button size="small" onClick={() => setPatronFilters(new Set())} disabled={patronFilters.size === 0}>
+              Clear
+            </Button>
+          </Stack>
+          <Box sx={{ overflowY: 'auto', px: 1 }}>
+            {[...patrons, ''].map((patron) => (
+              <FormControlLabel
+                key={patron || '(none)'}
+                sx={{ display: 'flex', mx: 0 }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={patronFilters.has(patron)}
+                    onChange={() =>
+                      setPatronFilters((previous) => {
+                        const next = new Set(previous)
+                        if (next.has(patron)) next.delete(patron)
+                        else next.add(patron)
+                        return next
+                      })
+                    }
+                  />
+                }
+                label={patron || 'No patron'}
+              />
+            ))}
+          </Box>
+        </Stack>
+      </Popover>
 
       <HidePacksDialog
         open={packsDialogOpen}
