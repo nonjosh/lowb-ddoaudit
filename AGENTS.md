@@ -35,8 +35,10 @@ server/                  # Adventure log API (Cloud Run, Firestore) - Node/TypeS
 src/
 ├── App.tsx              # Main app - orchestrates data fetching and state
 ├── api/                 # External API integrations
+│   ├── adventureLog/    # Adventure log API client (completions, notes)
 │   ├── ddoAudit/        # DDO Audit API (raids, characters, LFMs)
-│   └── ddoGearPlanner/  # DDO Gear Planner data (items, crafting, sets)
+│   ├── ddoGearPlanner/  # DDO Gear Planner data (items, crafting, sets)
+│   └── remarks/         # Shared player notes client (dev falls back to localStorage)
 ├── components/          # UI components organized by feature
 │   ├── characters/      # Character display components
 │   ├── gearPlanner/     # Gear planning UI
@@ -44,6 +46,7 @@ src/
 │   ├── layout/          # Layout wrapper
 │   ├── lfm/             # LFM (Looking for More) components
 │   ├── raids/           # Raid timer components
+│   ├── remarks/         # Find character dialog + note badges
 │   └── shared/          # Reusable shared components
 ├── config/              # Configuration (character mappings)
 ├── contexts/            # React contexts for state management
@@ -184,7 +187,30 @@ the Vite build and is deployed to Cloud Run; the SPA calls it with `fetch`.
 | `GET /completions` | public | all recorded completions keyed `questId:band`, 15 s in-process cache |
 | `GET /activity` | public | where the poller last saw each tracked character |
 | `PATCH /completions/{characterId}/{questId}/{band}` | `X-Log-Password` header | uncheck / backfill one version |
+| `GET /remarks` | `X-Log-Password` header | shared player notes, 15 s in-process cache |
+| `PUT /remarks/{characterId}` | `X-Log-Password` header | upsert one note (verdict, note, level, classes, smurfs) |
+| `DELETE /remarks/{characterId}` | `X-Log-Password` header | delete one note |
 | `POST /poll` | Cloud Scheduler OIDC | one poll cycle, run every minute |
+
+### Shared player notes (`ddo_log_remarks`)
+
+One document per real player, **keyed by the owner's DDO Audit character id**:
+
+```ts
+{ character_id, character_name, verdict: 'good'|'info'|'avoid', note,
+  level, classes, smurfs: [{ id: string|null, name }], updated_at }
+```
+
+- `smurfs` always includes the owner. It is the only membership record: saving a note
+  removes those characters from every other note, so a character belongs to one note.
+  `id: null` marks a name DDO Audit does not know yet (matched by name).
+- Reads are password-gated: notes are opinions about named players.
+- The client hydrates every `smurfs` id in one `GET /characters/ids/{ids}` call, so
+  level, classes and `last_update` are fresh after a reload.
+- The dialog is opened from the dashboard (**Find character**), the LFM/raid rows and
+  the online-players popover. Notes are password-protected with the adventure log key.
+- `src/api/remarks` falls back to `localStorage` **only in a dev build** when the route
+  is missing, so the UI can be reviewed before a server deploy.
 
 Commands (from `server/`):
 
@@ -192,6 +218,7 @@ Commands (from `server/`):
 | ------- | ----------- |
 | `npm install` | install server dependencies (separate from the SPA) |
 | `npm run build` | compile to `dist/` |
+| `npm run test:unit` | remarks validation / membership rules (no network, no Firestore) |
 | `npm run test:integration` | live DDO Audit mapping assertions (no mocks) |
 | `npm run test:e2e` | against the deployed service; needs `BASE_URL`, `LOG_PASSWORD`, `TEST_CHARACTER_ID`, `TEST_QUEST_ID` |
 | `npx tsx scripts/update-sagas.ts` | refresh `src/data/sagas.json` from the DDO Wiki (via the reader proxy) |

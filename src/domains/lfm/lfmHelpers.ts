@@ -34,6 +34,8 @@ export interface LfmDisplayData {
   adventureActiveMinutes: number | null
   reaperSkulls: number | null
   leaderName: string
+  /** DDO Audit id of the leader, so a note can be found without a name lookup. */
+  leaderId: string
   leaderGuildName: string
   minLevel: number | null
   maxLevel: number | null
@@ -88,6 +90,7 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
   const level = getEffectiveLevel(lfm, quest)
 
   const leaderName = getCharacterDisplayName(lfm.leader.name, { anonymousWhenBlank: true })
+  const leaderId = lfm.leader.id === undefined || lfm.leader.id === null ? '' : String(lfm.leader.id)
   const leaderGuildName = String(lfm.leader.guild_name ?? '').trim() || ''
   const minLevel = lfm.minimum_level
   const maxLevel = lfm.maximum_level
@@ -207,6 +210,7 @@ export function normalizeLfm(lfm: LfmItem, quest: Quest | null): LfmDisplayData 
     adventureActiveMinutes,
     reaperSkulls,
     leaderName,
+    leaderId,
     leaderGuildName,
     minLevel,
     maxLevel,

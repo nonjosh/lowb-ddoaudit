@@ -6,6 +6,7 @@ export interface FetchOptions {
 }
 
 export interface CharacterData {
+  id?: number | string
   name: string
   total_level: number
   race: string
@@ -15,6 +16,7 @@ export interface CharacterData {
   location_id?: string
   group_id?: string
   is_in_party?: boolean
+  guild_name?: string | null
   last_update?: string
 }
 
@@ -69,6 +71,8 @@ export interface ServerCharacter {
   is_online: boolean
   is_in_party: boolean
   is_anonymous: boolean
+  /** Last time DDO Audit saw this character, ISO. Present for offline characters too. */
+  last_update?: string | null
 }
 
 export async function fetchServerCharacters(serverName: string, options: FetchOptions = {}): Promise<ServerCharacter[]> {
@@ -84,6 +88,29 @@ export async function fetchServerCharacters(serverName: string, options: FetchOp
     char.race = normalizeRaceName(char.race)
   }
   return characters
+}
+
+/**
+ * Exact-name lookup that also finds offline characters (the roster endpoint only lists
+ * online ones). Returns null when the name is unknown on that server.
+ */
+export async function fetchServerCharacterByName(
+  serverName: string,
+  name: string,
+  options: FetchOptions = {},
+): Promise<ServerCharacter | null> {
+  const url = `${DDOAUDIT_BASE_URL}/characters/${encodeURIComponent(serverName)}/${encodeURIComponent(name)}`
+  const resp = await fetch(url, { signal: options.signal })
+  if (resp.status === 404) return null
+  if (!resp.ok) {
+    throw new Error(`Failed to look up character (${resp.status})`)
+  }
+
+  const json = await resp.json()
+  const data = (json?.data ?? null) as ServerCharacter | null
+  if (!data) return null
+  data.race = normalizeRaceName(data.race)
+  return data
 }
 
 export async function fetchRaidActivity(characterIds: string[], options: FetchOptions = {}): Promise<RaidActivityEntry[]> {

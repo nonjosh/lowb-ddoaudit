@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "test:unit": "npm run build && node --test test/unit.test.mjs",
     "test:integration": "npm run build && node --test test/integration.test.mjs",
     "test:e2e": "node --test test/e2e.test.mjs"
   },

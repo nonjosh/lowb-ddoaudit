@@ -11,6 +11,7 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  Popover,
   Stack,
   Switch,
   Table,
@@ -25,8 +26,10 @@ import {
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react'
 
 import { fetchAreasById, fetchQuestsById, fetchServerCharacters, getCharacterDisplayName, Quest, ServerCharacter } from '@/api/ddoAudit'
+import RemarkBadge from '@/components/remarks/RemarkBadge'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import { useConfig } from '@/contexts/useConfig'
+import { useRemarks } from '@/contexts/useRemarks'
 
 const AUTO_REFRESH_INTERVAL_MS = 10_000
 
@@ -417,11 +420,22 @@ function AreaGroupsTable({
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded)
   const { showClassIcons } = useConfig()
+  const { openFindCharacter } = useRemarks()
+  const [playersPopup, setPlayersPopup] = useState<{ anchor: HTMLElement; characters: ServerCharacter[] } | null>(null)
   const contentId = useId()
 
   const totalPlayers = useMemo(() => groups.reduce((sum, g) => sum + g.count, 0), [groups])
 
   if (groups.length === 0) return null
+
+  const popupCharacters = playersPopup
+    ? [...playersPopup.characters].sort((a, b) => {
+        const guildA = a.guild_name ?? ''
+        const guildB = b.guild_name ?? ''
+        if (guildA !== guildB) return guildA.localeCompare(guildB)
+        return b.total_level - a.total_level
+      })
+    : []
 
   return (
     <Box>
@@ -468,45 +482,27 @@ function AreaGroupsTable({
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip
-                      arrow
-                      placement="left"
-                      slotProps={{ tooltip: { sx: { maxWidth: 'none' } } }}
-                      title={
-                        <Stack spacing={1} sx={{ p: 0.5 }}>
-                          {[...g.characters].sort((a, b) => {
-                            const gA = a.guild_name ?? ''
-                            const gB = b.guild_name ?? ''
-                            if (gA !== gB) return gA.localeCompare(gB)
-                            return b.total_level - a.total_level
-                          }).map((c) => (
-                            <Stack key={c.id} direction="row" spacing={1.5} alignItems="center">
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })}
-                              </Typography>
-                              {c.guild_name && (
-                                <Typography variant="caption" color="text.secondary">&lt;{c.guild_name}&gt;</Typography>
-                              )}
-                              <Typography variant="caption" sx={{ ml: 'auto' }}>Lv {c.total_level}</Typography>
-                              <ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={16} />
-                            </Stack>
-                          ))}
-                        </Stack>
-                      }
+                    <Typography
+                      component="button"
+                      type="button"
+                      variant="body2"
+                      fontWeight={600}
+                      aria-haspopup="dialog"
+                      aria-expanded={Boolean(playersPopup)}
+                      aria-label={`Show the ${g.count} characters in ${g.locationName}`}
+                      onClick={(event) => setPlayersPopup({ anchor: event.currentTarget, characters: g.characters })}
+                      sx={{
+                        border: 0,
+                        bgcolor: 'transparent',
+                        font: 'inherit',
+                        cursor: 'pointer',
+                        textDecoration: 'underline dotted',
+                        textUnderlineOffset: 2,
+                        textDecorationColor: 'text.secondary',
+                      }}
                     >
-                      <Typography
-                        variant="body2"
-                        fontWeight={600}
-                        sx={{
-                          cursor: 'help',
-                          textDecoration: 'underline dotted',
-                          textUnderlineOffset: 2,
-                          textDecorationColor: 'text.secondary',
-                        }}
-                      >
-                        {g.count}
-                      </Typography>
-                    </Tooltip>
+                      {g.count}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ))}
@@ -514,6 +510,57 @@ function AreaGroupsTable({
           </Table>
         </TableContainer>
       </Collapse>
+      <Popover
+        open={Boolean(playersPopup)}
+        anchorEl={playersPopup?.anchor ?? null}
+        onClose={() => setPlayersPopup(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Stack spacing={1} sx={{ p: 1.5, maxHeight: 360, overflowY: 'auto' }}>
+          <Typography variant="caption" color="text.secondary">
+            Click a name to open its note
+          </Typography>
+          {popupCharacters.map((c) => (
+            <Stack key={c.id} direction="row" spacing={1.5} alignItems="center">
+              <Typography
+                component={c.name ? 'button' : 'span'}
+                type={c.name ? 'button' : undefined}
+                variant="body2"
+                onClick={() => {
+                  if (!c.name) return
+                  setPlayersPopup(null)
+                  openFindCharacter(c.name, c.id === undefined ? undefined : String(c.id))
+                }}
+                sx={{
+                  fontWeight: 600,
+                  ...(c.name
+                    ? {
+                        border: 0,
+                        bgcolor: 'transparent',
+                        p: 0,
+                        font: 'inherit',
+                        color: 'inherit',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        '&:hover': { textDecoration: 'underline' },
+                        '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                      }
+                    : { cursor: 'default' }),
+                }}
+              >
+                {getCharacterDisplayName(c.name, { isAnonymous: c.is_anonymous })}
+              </Typography>
+              <RemarkBadge characterName={c.name} characterId={c.id === undefined ? null : String(c.id)} iconSize={14} />
+              {c.guild_name && (
+                <Typography variant="caption" color="text.secondary">&lt;{c.guild_name}&gt;</Typography>
+              )}
+              <Typography variant="caption" sx={{ ml: 'auto' }}>Lv {c.total_level}</Typography>
+              <ClassDisplay classes={c.classes} showIcons={showClassIcons} iconSize={16} />
+            </Stack>
+          ))}
+        </Stack>
+      </Popover>
     </Box>
   )
 }

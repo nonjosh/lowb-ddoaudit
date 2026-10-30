@@ -1,5 +1,5 @@
 export * from './areas'
-export { fetchCharactersByIds, fetchRaidActivity, fetchServerCharacters } from './characters'
+export { fetchCharactersByIds, fetchRaidActivity, fetchServerCharacterByName, fetchServerCharacters } from './characters'
 export type { FetchOptions, CharacterData, RaidActivityEntry, ServerCharacter } from './characters'
 export * from './constants'
 export * from './guilds'

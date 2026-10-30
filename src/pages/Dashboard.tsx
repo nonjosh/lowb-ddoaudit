@@ -1,4 +1,5 @@
-import { Box, Container, Grid, Paper } from '@mui/material'
+import PersonSearchIcon from '@mui/icons-material/PersonSearch'
+import { Box, Button, Container, Grid, Paper } from '@mui/material'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
@@ -19,6 +20,7 @@ import { CHARACTERS } from '@/config/characters'
 import { CharacterProvider } from '@/contexts/CharacterContext'
 import { useConfig } from '@/contexts/useConfig'
 import { useLfm } from '@/contexts/useLfm'
+import { useRemarks } from '@/contexts/useRemarks'
 import {
   buildRaidGroups,
   groupEntriesByPlayer
@@ -42,6 +44,7 @@ export default function Dashboard() {
 
   const { autoRefreshEnabled } = useConfig()
   const { refresh: refreshLfm, serverInfo, loading: lfmLoading } = useLfm()
+  const { openFindCharacter } = useRemarks()
 
   const characterIds = useMemo(() => parseCharacterIds(characterIdsInput), [characterIdsInput])
 
@@ -171,20 +174,29 @@ export default function Dashboard() {
         <Box sx={{ mt: 4 }}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, sm: 4, md: 3, lg: 2.5 }}>
-              <Paper sx={{
-                p: 2,
-                position: 'sticky',
-                top: 16,
-                maxHeight: 'calc(100vh - 32px)',
-                overflowY: 'auto'
-              }}>
-                <CharactersSection
-                  loading={loading}
-                  hasFetched={!!lastUpdatedAt}
-                  characterCount={characterIds.length}
-                  raidGroups={raidGroups}
-                />
-              </Paper>
+              <Box sx={{ position: 'sticky', top: 16 }}>
+                <Paper sx={{
+                  p: 2,
+                  maxHeight: 'calc(100vh - 88px)',
+                  overflowY: 'auto'
+                }}>
+                  <CharactersSection
+                    loading={loading}
+                    hasFetched={!!lastUpdatedAt}
+                    characterCount={characterIds.length}
+                    raidGroups={raidGroups}
+                  />
+                </Paper>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<PersonSearchIcon />}
+                  onClick={() => openFindCharacter()}
+                  sx={{ mt: 1 }}
+                >
+                  Find character
+                </Button>
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 8, md: 9, lg: 9.5 }}>

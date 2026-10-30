@@ -7,6 +7,7 @@ import { isQuestBand } from './bands.js'
 import { config } from './config.js'
 import { getCatalog } from './ddo.js'
 import { runPoll } from './poller.js'
+import { deleteRemark, listRemarksJson, parseCharacterId, parseRemarkInput, saveRemark } from './remarks.js'
 import {
   applyManualEdit,
   applyManualEdits,
@@ -37,7 +38,7 @@ function applyCors(request: Request, response: Response): void {
     response.setHeader('Access-Control-Allow-Origin', origin)
     response.setHeader('Vary', 'Origin')
   }
-  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
   response.setHeader('Access-Control-Allow-Headers', 'content-type, x-log-password')
   response.setHeader('Access-Control-Max-Age', '600')
 }
@@ -183,6 +184,57 @@ app.get(
     }
     response.setHeader('Cache-Control', 'no-store')
     response.json({ data, polledAt: state.lastPollAt })
+  }),
+)
+
+app.get(
+  '/remarks',
+  asyncRoute(async (request, response) => {
+    // Notes are opinions about named players, so reading them needs the password too.
+    if (!passwordMatches(request.header('x-log-password'), config.writePassword)) {
+      response.status(401).json({ message: 'Invalid password' })
+      return
+    }
+
+    response.setHeader('Cache-Control', 'no-store')
+    response.type('application/json').send(await listRemarksJson())
+  }),
+)
+
+app.put(
+  '/remarks/:characterId',
+  asyncRoute(async (request, response) => {
+    if (!passwordMatches(request.header('x-log-password'), config.writePassword)) {
+      response.status(401).json({ message: 'Invalid password' })
+      return
+    }
+
+    const parsed = parseRemarkInput(request.params.characterId, request.body)
+    if (!parsed.ok) {
+      response.status(400).json({ message: parsed.message })
+      return
+    }
+
+    response.json({ data: await saveRemark(parsed.value) })
+  }),
+)
+
+app.delete(
+  '/remarks/:characterId',
+  asyncRoute(async (request, response) => {
+    if (!passwordMatches(request.header('x-log-password'), config.writePassword)) {
+      response.status(401).json({ message: 'Invalid password' })
+      return
+    }
+
+    const id = parseCharacterId(request.params.characterId)
+    if (!id.ok) {
+      response.status(400).json({ message: id.message })
+      return
+    }
+
+    await deleteRemark(id.value)
+    response.status(204).end()
   }),
 )
 

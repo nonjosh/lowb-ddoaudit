@@ -194,6 +194,100 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
     assert.equal(response.status, 400)
   })
 
+  await t.test('notes need the password', async () => {
+    const response = await fetch(url('/remarks'))
+    assert.equal(response.status, 401)
+  })
+
+  await t.test('a note round-trips and a write without smurfs keeps them', async () => {
+    const id = String(900000000000 + (Date.now() % 100000))
+    const alt = { id: String(Number(id) + 1), name: 'E2E Alt' }
+    try {
+      const created = await fetch(url(`/remarks/${id}`), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json', ...auth },
+        body: JSON.stringify({ characterName: 'E2E Note', verdict: 'good', note: 'e2e', smurfs: [alt] }),
+      })
+      assert.equal(created.status, 200)
+      const saved = (await created.json()).data
+      assert.equal(saved.characterId, id)
+      assert.deepEqual(saved.smurfs, [{ id, name: 'E2E Note' }, alt])
+
+      // A stale client omits the field; that must not clear the links.
+      const updated = await fetch(url(`/remarks/${id}`), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json', ...auth },
+        body: JSON.stringify({ characterName: 'E2E Note', verdict: 'avoid', note: 'e2e' }),
+      })
+      assert.equal(updated.status, 200)
+      assert.deepEqual((await updated.json()).data.smurfs, [{ id, name: 'E2E Note' }, alt])
+
+      const listed = await fetch(url('/remarks'), { headers: auth })
+      assert.equal(listed.status, 200)
+      const notes = (await listed.json()).data
+      assert.equal(notes.find((entry) => entry.characterId === id)?.verdict, 'avoid')
+    } finally {
+      await fetch(url(`/remarks/${id}`), { method: 'DELETE', headers: auth })
+    }
+  })
+
+  await t.test('linking a character moves it out of its old note', async () => {
+    const base = 910000000000 + (Date.now() % 100000)
+    const first = String(base)
+    const second = String(base + 1)
+    const moved = { id: String(base + 2), name: 'E2E Moved' }
+    try {
+      // `moved` starts on the first note, so linking it to the second must take it away.
+      for (const [id, name, smurfs] of [
+        [first, 'E2E First', [moved]],
+        [second, 'E2E Second', undefined],
+      ]) {
+        const response = await fetch(url(`/remarks/${id}`), {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json', ...auth },
+          body: JSON.stringify({ characterName: name, verdict: 'good', note: 'e2e', ...(smurfs ? { smurfs } : {}) }),
+        })
+        assert.equal(response.status, 200)
+      }
+
+      // The second note adopts `moved`, which must remove it from any other note.
+      const linked = await fetch(url(`/remarks/${second}`), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json', ...auth },
+        body: JSON.stringify({ characterName: 'E2E Second', verdict: 'good', note: 'e2e', smurfs: [moved] }),
+      })
+      assert.equal(linked.status, 200)
+
+      const listed = await fetch(url('/remarks'), { headers: auth })
+      const notes = (await listed.json()).data
+      const holders = notes.filter((entry) => entry.smurfs.some((smurf) => smurf.id === moved.id))
+      assert.equal(holders.length, 1)
+      assert.equal(holders[0].characterId, second)
+      // The first note keeps only its owner.
+      const firstNote = notes.find((entry) => entry.characterId === first)
+      assert.deepEqual(firstNote?.smurfs, [{ id: first, name: 'E2E First' }])
+    } finally {
+      for (const id of [first, second]) {
+        await fetch(url(`/remarks/${id}`), { method: 'DELETE', headers: auth })
+      }
+    }
+  })
+
+  await t.test('deleting a note removes it', async () => {
+    const id = String(920000000000 + (Date.now() % 100000))
+    await fetch(url(`/remarks/${id}`), {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', ...auth },
+      body: JSON.stringify({ characterName: 'E2E Delete', verdict: 'info', note: 'e2e' }),
+    })
+    const removed = await fetch(url(`/remarks/${id}`), { method: 'DELETE', headers: auth })
+    assert.equal(removed.status, 204)
+
+    const listed = await fetch(url('/remarks'), { headers: auth })
+    const notes = (await listed.json()).data
+    assert.equal(notes.some((entry) => entry.characterId === id), false)
+  })
+
   await t.test('restore a clean row', { skip: skipMutation }, async () => {
     const response = await patch({ finished: false, lastFinishedAt: null }, auth)
     assert.equal(response.status, 204)

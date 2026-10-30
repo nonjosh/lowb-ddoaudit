@@ -26,8 +26,10 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 
 import { useLfm } from '@/contexts/useLfm'
 import { useCharacter } from '@/contexts/useCharacter'
+import { useRemarks } from '@/contexts/useRemarks'
 import { useWishlist } from '@/contexts/useWishlist'
 import ItemLootButton from '@/components/items/ItemLootButton'
+import RemarkBadge from '@/components/remarks/RemarkBadge'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
 import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { RaidGroup } from '@/domains/raids/raidLogic'
@@ -47,6 +49,7 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
   const { lfms: lfmsById, loading, error, serverInfo, lastUpdatedAt } = useLfm()
   const { questsById } = useCharacter()
   const { hasWishForQuestName } = useWishlist()
+  const { openFindCharacter } = useRemarks()
   const serverPlayers = serverInfo.players
   const isServerOnline = serverInfo.isOnline
   const hasFetched = !!lastUpdatedAt
@@ -266,9 +269,32 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
                       ) : null}
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" noWrap>
-                        {l.leaderName}
-                      </Typography>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Typography
+                          component="button"
+                          type="button"
+                          variant="body2"
+                          noWrap
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            openFindCharacter(l.leaderName, l.leaderId)
+                          }}
+                          sx={{
+                            border: 0,
+                            bgcolor: 'transparent',
+                            p: 0,
+                            font: 'inherit',
+                            color: 'inherit',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            '&:hover': { textDecoration: 'underline' },
+                            '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                          }}
+                        >
+                          {l.leaderName}
+                        </Typography>
+                        <RemarkBadge characterName={l.leaderName} characterId={l.leaderId} />
+                      </Stack>
                       {l.leaderGuildName ? (
                         <Typography
                           variant="caption"

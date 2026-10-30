@@ -239,6 +239,26 @@ Hidden adventure packs are a browser preference (`localStorage`,
   can show who is inside a quest and focus that group on load.
 - A run is skipped when the last completed poll is younger than 45 s.
 
+## Player notes (`ddo_log_remarks`)
+
+Shared, password-gated notes about other players ("good to group", "avoid"), edited from
+the dashboard **Find character** dialog and shown as a badge in LFM/raid rows.
+
+- One document per real player, keyed by the owner's **DDO Audit character id**:
+  `{ character_id, character_name, verdict, note, level, classes, smurfs, updated_at }`.
+- `smurfs` (`[{ id, name }]`, owner included) is the only membership record. Saving a note
+  removes those characters from every other note, so a character belongs to one note; a
+  note that loses its owner is re-keyed to its next smurf that has an id, or deleted.
+  `id: null` is a name DDO Audit does not know yet (matched by name, filled in on save).
+- `level`/`classes` are a snapshot; the client hydrates every `smurfs` id in one
+  `GET /characters/ids/{ids}` call, so they and `last_update` are fresh after a reload.
+- Reads are gated too (`GET /remarks` needs `X-Log-Password`): notes are opinions about
+  named players, not public data.
+- Absent `level`/`classes`/`smurfs` in a `PUT` keep the stored value; only an explicit
+  value replaces it, so an older client cannot wipe a link.
+- The SPA falls back to `localStorage` **only in a dev build** when `/remarks` is missing,
+  and says so in the dialog; a production build never stores notes locally.
+
 ## Files
 
 | File | Purpose |
@@ -248,6 +268,9 @@ Hidden adventure packs are a browser preference (`localStorage`,
 | `server/src/store.ts` | Firestore reads/writes, cache invalidation |
 | `server/src/poller.ts` | one poll cycle |
 | `server/src/index.ts` | HTTP routes, auth, CORS |
+| `server/src/remarks.ts` | player notes: validation, Firestore, cache |
+| `src/api/remarks/` | browser client for the notes |
+| `src/components/remarks/` | Find character dialog, note badge |
 | `src/api/adventureLog/` | browser client |
 | `src/pages/AdventureLog.tsx` | the page |
 | `terraform-dev/ddo-log/` | Cloud Run + Firestore + Scheduler |

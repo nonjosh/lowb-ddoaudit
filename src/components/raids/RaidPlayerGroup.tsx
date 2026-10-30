@@ -7,11 +7,13 @@ import { Box, Collapse, IconButton, Table, TableBody, TableCell, TableRow, Toolt
 import { memo } from 'react'
 
 import { addMs, formatLocalDateTime, formatTimeRemaining, RAID_LOCKOUT_MS } from '@/api/ddoAudit'
+import RemarkBadge from '@/components/remarks/RemarkBadge'
 import CharacterNamesWithClassTooltip from '@/components/shared/CharacterNamesWithClassTooltip'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import TimeRemainingDisplay from '@/components/shared/TimeRemainingDisplay'
 import { useCharacter } from '@/contexts/useCharacter'
 import { useConfig } from '@/contexts/useConfig'
+import { useRemarks } from '@/contexts/useRemarks'
 import { formatClasses, getPlayerDisplayName, isEntryAvailable, PlayerGroup } from '@/domains/raids/raidLogic'
 
 interface RaidPlayerGroupProps {
@@ -23,6 +25,7 @@ interface RaidPlayerGroupProps {
 function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlayerGroupProps) {
   const { isPlayerOnline: checkPlayerOnline } = useCharacter()
   const { showClassIcons } = useConfig()
+  const { openFindCharacter } = useRemarks()
   const pg = playerGroup
   const entries = pg.entries ?? []
   const now = new Date()
@@ -201,8 +204,27 @@ function RaidPlayerGroup({ playerGroup, collapsed, onToggleCollapsed }: RaidPlay
                             </Tooltip>
                           )}
                           <Tooltip title={formatClasses(e?.classes)}>
-                            <Typography variant="body2">{e.characterName}</Typography>
+                            <Typography
+                              component="button"
+                              type="button"
+                              variant="body2"
+                              onClick={() => openFindCharacter(e.characterName, e.characterId)}
+                              sx={{
+                                border: 0,
+                                bgcolor: 'transparent',
+                                p: 0,
+                                font: 'inherit',
+                                color: 'inherit',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                '&:hover': { textDecoration: 'underline' },
+                                '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                              }}
+                            >
+                              {e.characterName}
+                            </Typography>
                           </Tooltip>
+                          <RemarkBadge characterName={e.characterName} characterId={e.characterId} iconSize={14} />
                         </Box>
                       </TableCell>
                       <TableCell>

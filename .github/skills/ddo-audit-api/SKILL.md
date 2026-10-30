@@ -27,12 +27,24 @@ Defined in `src/api/ddoAudit/constants.ts`.
 | ----------------------------------------------------------- | --------------------------------------------- | --------------- |
 | `GET /characters/ids/{ids}`                                 | `fetchCharactersByIds()`                      | `characters.ts` |
 | `GET /characters/{serverName}`                              | `fetchServerCharacters()`                     | `characters.ts` |
+| `GET /characters/{serverName}/{name}`                       | `fetchServerCharacterByName()`                | `characters.ts` |
 | `GET /activity/raids?character_ids=...`                     | `fetchRaidActivity()`                         | `characters.ts` |
 | `GET /lfms/{serverName}`                                    | `fetchLfms()`                                 | `lfms.ts`       |
 | `GET /characters/by-server-and-guild-name/{server}/{guild}` | `fetchGuildCharacters()`                      | `guilds.ts`     |
 | `GET /game/server-info?server=...`                          | `fetchServerInfo()`                           | `server.ts`     |
 | `GET /quests?force=false`                                   | `fetchQuestsById()` / `fetchQuestsResponse()` | `quests.ts`     |
 | `GET /areas?force=false`                                    | `fetchAreasById()` / `fetchAreasResponse()`   | `areas.ts`      |
+
+Notes on the character endpoints:
+
+- `/characters/{server}` returns **online** characters only (a few hundred); there is no
+  partial-name search endpoint, so name search is client-side over that list.
+- `/characters/{server}/{name}` is an exact-name lookup (case-insensitive, 404 when the
+  name is unknown) that **also finds offline characters**; it is what the notes dialog
+  uses for offline rows.
+- Both character endpoints and `/characters/ids/{ids}` return `last_update` (last time
+  DDO Audit saw the character), `guild_name` and `id`. `is_online` is false for an
+  offline character, and anonymous characters come back with an empty `name`.
 
 **Note**: Quest and area metadata are fetched live from DDO Audit and cached client-side for 24 hours with stale fallback if the network request fails.
 
