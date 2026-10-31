@@ -81,6 +81,7 @@ import {
   isWildernessQuest,
   listAdventurePackInfo,
   recentlyDoneRows,
+  sagaAwardsCard,
   sagaGroupNamesForRow,
   type QuestBand,
   type QuestGroup,
@@ -1391,6 +1392,7 @@ export default function AdventureLog() {
                                     L{formatLevelRange(group)}
                                   </Typography>
                                   {group.kind === 'saga' &&
+                                    sagaAwardsCard(group.label) &&
                                     getSagaCards(group.label).map((card) => (
                                       <Tooltip key={card} title={`Saga reward: ${card} (Deck of Many Curses)`}>
                                         <Chip

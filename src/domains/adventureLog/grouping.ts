@@ -95,6 +95,14 @@ function sagaBand(sagaName: string): QuestBand | null {
   return null
 }
 
+/**
+ * Only a saga's legendary version awards a Deck of Many Curses card; the heroic and
+ * epic versions award none, so the page must not show a card chip for them.
+ */
+export function sagaAwardsCard(sagaName: string): boolean {
+  return sagaBand(sagaName) === 'legendary'
+}
+
 /** Sagas this row belongs to; a "(Heroic)" saga only takes the heroic version. */
 export function sagaGroupNamesForRow(quest: Quest, band: QuestBand): string[] {
   return getSagaNames(quest).filter((name) => {
