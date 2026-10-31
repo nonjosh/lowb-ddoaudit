@@ -65,6 +65,20 @@ export async function fetchReincarnations(signal?: AbortSignal): Promise<Reincar
 }
 
 /**
+ * Cheap change probe: one document read instead of the whole completion map, so a page
+ * that refreshes on a timer does not re-read every row each time.
+ */
+export async function fetchRevision(signal?: AbortSignal): Promise<number> {
+  const response = await fetch(`${ADVENTURE_LOG_API_URL}/revision`, { signal })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch revision (${response.status})`)
+  }
+
+  const body = (await response.json()) as { data?: { revision?: number } }
+  return body.data?.revision ?? 0
+}
+
+/**
  * Records a reincarnation and re-derives the checkboxes: rows whose newest completion
  * is older than `at` are unchecked, history is left untouched.
  */

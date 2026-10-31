@@ -1,4 +1,4 @@
-import { Firestore, Timestamp, type DocumentReference } from '@google-cloud/firestore'
+import { FieldValue, Firestore, Timestamp, type DocumentReference } from '@google-cloud/firestore'
 
 import type { Completion, PollerState } from './detect.js'
 import { emptyState } from './detect.js'
@@ -33,6 +33,8 @@ const completions = db.collection(`${COLLECTION_PREFIX}completions`)
 const edits = db.collection(`${COLLECTION_PREFIX}edits`)
 const reincarnations = db.collection(`${COLLECTION_PREFIX}reincarnations`)
 const stateDocument = db.doc(`${COLLECTION_PREFIX}state/poller`)
+/** Bumped on every completion write so clients can poll one small document. */
+const revisionDocument = db.doc(`${COLLECTION_PREFIX}state/revision`)
 
 export const completionId = (characterId: string, questId: string, band: string): string =>
   `${characterId}_${questId}_${band}`
@@ -82,6 +84,28 @@ let listInFlight: Promise<string> | null = null
 export function invalidateCompletionsCache(): void {
   listCache = null
   listEpoch += 1
+  bumpRevision()
+}
+
+/**
+ * Cheap change probe for the page's auto-refresh. Polling this one document costs one
+ * read; re-reading `GET /completions` costs one read per completion (846 today), which
+ * a 30 s refresh would turn into ~48x the Firestore free tier for a single open tab.
+ */
+export async function completionsRevision(): Promise<number> {
+  const snapshot = await revisionDocument.get()
+  const revision = snapshot.get('revision')
+  return typeof revision === 'number' ? revision : 0
+}
+
+function bumpRevision(): void {
+  // Off the request path and best effort: a lost bump only delays the next client
+  // refresh until the following write.
+  void revisionDocument
+    .set({ revision: FieldValue.increment(1), at: Timestamp.now() }, { merge: true })
+    .catch((error) => {
+      console.warn('completion revision bump failed', error)
+    })
 }
 
 /**
@@ -345,6 +369,9 @@ export async function recordReincarnation(
     },
     { merge: true },
   )
+  // A TR moves the "current life" boundary even when it flips no checkboxes, and the
+  // page derives the TR chip and ransack window from it.
+  invalidateCompletionsCache()
   return { recorded: true, effectiveAt: at }
 }
 

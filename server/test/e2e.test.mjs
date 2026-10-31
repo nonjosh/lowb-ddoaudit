@@ -47,6 +47,13 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
     assert.equal(typeof body.data, 'object')
   })
 
+  await t.test('revision probe is public and returns a number', async () => {
+    const response = await fetch(url('/revision'))
+    assert.equal(response.status, 200)
+    const body = await response.json()
+    assert.equal(typeof body.data?.revision, 'number')
+  })
+
   await t.test('CORS preflight is answered for the Pages origin', async () => {
     const response = await fetch(url(`/completions/${characterId}/${questId}/${band}`), {
       method: 'OPTIONS',
@@ -97,11 +104,22 @@ test('e2e', { skip: enabled ? false : 'set BASE_URL, LOG_PASSWORD, TEST_CHARACTE
   })
 
   await t.test('write round-trips through Firestore', { skip: skipMutation }, async () => {
+    const before = await fetch(url('/revision')).then((response) => response.json())
     const response = await patch({ finished: true }, auth)
     assert.equal(response.status, 204)
 
     const updated = await readState()
     assert.equal(updated.finished, true)
+
+    // The page polls this instead of re-reading the whole log; a write must move it.
+    // The bump is deliberately off the request path, so retry briefly instead of
+    // assuming it has landed by the time the 204 came back.
+    let after = before
+    for (let attempt = 0; attempt < 20 && after.data.revision <= before.data.revision; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      after = await fetch(url('/revision')).then((revision) => revision.json())
+    }
+    assert.ok(after.data.revision > before.data.revision)
   })
 
   await t.test('uncheck keeps the observed timestamp', { skip: skipMutation }, async () => {

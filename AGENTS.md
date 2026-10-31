@@ -153,8 +153,9 @@ When a new quest/raid is not yet in the DDO Audit API (or upstream data is wrong
 2. **Raid timer shows "temporarily not available"** → add the quest id to `PENDING_RAID_IDS` in `src/api/ddoAudit/constants.ts`.
 3. **Area missing from `/v1/areas`** → add a fallback entry to `HARDCODED_AREAS` in `src/api/ddoAudit/areas.ts`.
 4. **Upstream area record is wrong** (e.g., a raid's area mislabeled as wilderness, which breaks Character panel grouping) → add an override to `AREA_PATCHES` in `src/api/ddoAudit/areas.ts`.
+5. **Upstream level data is wrong** (e.g., a legendary-only raid reported with a heroic CR, which grows a bogus heroic row) → add an override to `QUEST_PATCHES` in `src/api/ddoAudit/quests.ts`, **and the same id to `LEGENDARY_ONLY_RAID_IDS` in `server/src/ddo.ts`**. Client and poller must agree on a quest's versions: the completion key is `questId:band`, so a band only the server writes is invisible and cannot be unchecked.
 
-Remove the entries as soon as the API provides correct data. Example: `Terror of the Demon Lords` (quest `1879303683`, area `1879303679`) was hardcoded on 2026-09 and cleaned up once upstream added it; its area remained patched (`is_wilderness: false`) because upstream mislabels it as wilderness `Vision of an Alternate History`.
+Remove the entries as soon as the API provides correct data. Example: `Terror of the Demon Lords` (quest `1879303683`, area `1879303679`) was hardcoded on 2026-09 and cleaned up once upstream added it; its area remained patched (`is_wilderness: false`) because upstream mislabels it as wilderness `Vision of an Alternate History`. The four legendary-only raids patched on 2026-11 (`The Dryad and the Demigod`, `Hunt or Be Hunted`, `Skeletons in the Closet`, `Fire Over Morgrave`) carry a heroic CR of 19/5/19/19 with every heroic XP field null.
 
 ### DDO Gear Planner (GitHub Raw)
 
@@ -186,6 +187,7 @@ the Vite build and is deployed to Cloud Run; the SPA calls it with `fetch`.
 | ----- | ---- | ------- |
 | `GET /completions` | public | all recorded completions keyed `questId:band`, 15 s in-process cache |
 | `GET /activity` | public | where the poller last saw each tracked character |
+| `GET /revision` | public | one-document change counter; the page polls it instead of the log |
 | `PATCH /completions/{characterId}/{questId}/{band}` | `X-Log-Password` header | uncheck / backfill one version |
 | `GET /remarks` | `X-Log-Password` header | shared player notes, 15 s in-process cache |
 | `PUT /remarks/{characterId}` | `X-Log-Password` header | upsert one note (verdict, note, level, classes, smurfs) |
@@ -253,7 +255,12 @@ calling a change finished.
   server-side tests passed.
 - **Public endpoints bill and starve.** Cache the serialized JSON body (not just the
   object) and single-flight the load; a full collection scan or re-serialize per request
-  can starve the single instance and the minute poller.
+  can starve the single instance and the minute poller. A page that refreshes on a timer
+  must poll `GET /revision` (one document), never `GET /completions`: one log refresh is
+  one read per completion (846 today), so a 30 s timer on the log is ~48x the daily free
+  tier for a single open tab. The counter is bumped only when a write actually changed
+  something (`invalidateCompletionsCache`), so idle ticks cost two reads — but every
+  write still costs one full scan per open tab, which is the real bill on a raid night.
 - **Every upstream `fetch` needs `AbortSignal.timeout`.** A hung third-party call holds
   the poller past the scheduler deadline and loses the state write.
 - **One omitted character is not a logout.** Hold poller state for one sample, close the

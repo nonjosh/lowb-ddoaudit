@@ -11,6 +11,7 @@ import { deleteRemark, listRemarksJson, parseCharacterId, parseRemarkInput, save
 import {
   applyManualEdit,
   applyManualEdits,
+  completionsRevision,
   listCompletionsJson,
   listReincarnations,
   loadPollerState,
@@ -123,6 +124,15 @@ app.get(
     const data = await listReincarnations()
     response.setHeader('Cache-Control', 'no-store')
     response.json({ data })
+  }),
+)
+
+/** One document read: lets the page poll for changes without re-reading the log. */
+app.get(
+  '/revision',
+  asyncRoute(async (_request, response) => {
+    response.setHeader('Cache-Control', 'no-store')
+    response.json({ data: { revision: await completionsRevision() } })
   }),
 )
 

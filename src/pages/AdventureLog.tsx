@@ -2,6 +2,8 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import SyncDisabledIcon from '@mui/icons-material/SyncDisabled'
+import SyncIcon from '@mui/icons-material/Sync'
 import TuneIcon from '@mui/icons-material/Tune'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import {
@@ -46,6 +48,7 @@ import {
   fetchActivity,
   fetchCompletions,
   fetchReincarnations,
+  fetchRevision,
   resetReincarnation,
   updateCompletion,
   updateCompletionsBulk,
@@ -59,8 +62,11 @@ import { fetchCharactersByIds, fetchQuestsById, formatLocalDate, formatLocalDate
 import HidePacksDialog from '@/components/adventureLog/HidePacksDialog'
 import ClassDisplay from '@/components/shared/ClassDisplay'
 import ReincarnationDialog from '@/components/adventureLog/ReincarnationDialog'
+import IdleWarningDialog from '@/components/shared/IdleWarningDialog'
 import { CHARACTERS } from '@/config/characters'
+import { useConfig } from '@/contexts/useConfig'
 import type { CharacterClass } from '@/domains/raids/raidLogic'
+import { useIdleTimer } from '@/hooks/useIdleTimer'
 import sagaCardsData from '@/data/sagaCards.json'
 import {
   bandForCharacter,
@@ -88,6 +94,13 @@ import {
 import { getQuestWikiUrl } from '@/utils/wikiUrls'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * The poller writes at most once a minute and `GET /completions` caches for 15 s, so a
+ * faster interval would only re-read the same documents: each tick costs two document
+ * reads, and a whole-log scan is only triggered by a write.
+ */
+const AUTO_REFRESH_INTERVAL_MS = 60_000
 /** Hide quests further than this from the selected character's level. */
 const OFF_LEVEL_RANGE = 6
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
@@ -478,30 +491,65 @@ export default function AdventureLog() {
   const [passwordDraft, setPasswordDraft] = useState('')
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [bulkGroupId, setBulkGroupId] = useState<string | null>(null)
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
+  const { autoRefreshEnabled } = useConfig()
 
   const characterSelectionInitialized = useRef(false)
   const pendingAction = useRef<((secret: string) => void) | null>(null)
+  /** Last payload seen, so a refresh that carries the same rows does not re-render the table. */
+  const lastCompletions = useRef('')
+  const lastActivity = useRef('')
+  const loadingRef = useRef(false)
+  const busyRef = useRef(false)
+  /** Revision the loaded rows correspond to; the timer only refetches when it moves. */
+  const revisionRef = useRef<number | null>(null)
 
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true)
-    setError(null)
+  /**
+   * `quiet` is the background refresh: it keeps the table on screen and the current
+   * rows in place instead of swapping in a spinner every interval. The revision is
+   * recorded only after the rows landed, so a failed load is retried by the next tick.
+   */
+  const load = useCallback(async (signal?: AbortSignal, quiet = false): Promise<void> => {
+    if (!quiet) {
+      setLoading(true)
+      setError(null)
+    }
     try {
-      const [questMap, log, characters, presence, lives] = await Promise.all([
+      // Read the revision before the rows: a write after this point bumps it again, so
+      // the next tick reloads instead of treating rows it never saw as current.
+      const revision = await fetchRevision(signal).catch(() => null)
+      const log = await fetchCompletions(signal)
+      if (revision !== null) revisionRef.current = revision
+      // Apply the rows as soon as they land: a later failure must not leave the table
+      // stale while the revision claims it is current.
+      const nextCompletions = JSON.stringify(log)
+      if (nextCompletions !== lastCompletions.current) {
+        lastCompletions.current = nextCompletions
+        setCompletions(log)
+      }
+
+      const [questMap, characters, presence, lives] = await Promise.all([
         fetchQuestsById(),
-        fetchCompletions(signal),
         fetchCharactersByIds(ALL_CHARACTER_IDS, { signal }),
         fetchActivity(signal),
-        // Decoration only: a 404 before the API deploy must not blank the page.
-        fetchReincarnations(signal).catch(() => ({})),
+        // Decoration only: a 404 before the API deploy must not blank the page, and a
+        // failed read must not wipe the TR boundary the tooltip and ransack use.
+        fetchReincarnations(signal).catch(() => null),
       ])
 
       const unique = new Map<string, Quest>()
       for (const quest of Object.values(questMap)) unique.set(quest.id, quest)
       setQuests([...unique.values()])
-      setCompletions(log)
+      // Occupancy also changes on its own, so it is compared separately.
+      const nextActivity = JSON.stringify(presence)
+      if (nextActivity !== lastActivity.current) {
+        lastActivity.current = nextActivity
+        setActivity(presence)
+      }
       setCharacterData(characters)
-      setActivity(presence)
-      setReincarnations(lives)
+      if (lives !== null) setReincarnations(lives)
+      setError(null)
+      setLastUpdatedAt(new Date())
     } catch (loadError) {
       if ((loadError as Error).name !== 'AbortError') {
         setError((loadError as Error).message)
@@ -516,6 +564,62 @@ export default function AdventureLog() {
     void load(controller.signal)
     return () => controller.abort()
   }, [load])
+
+  useEffect(() => {
+    loadingRef.current = loading
+  }, [loading])
+
+  // A background refresh must not move the table while a write is in flight or a dialog
+  // is open: the TR dialog previews how many rows it will clear.
+  useEffect(() => {
+    busyRef.current =
+      busyKey !== null ||
+      bulkGroupId !== null ||
+      trDialogOpen ||
+      packsDialogOpen ||
+      passwordPromptOpen ||
+      favorAnchor !== null
+  }, [busyKey, bulkGroupId, trDialogOpen, packsDialogOpen, passwordPromptOpen, favorAnchor])
+
+  const {
+    showIdleWarning,
+    handleToggleAutoRefresh,
+    handleIdleWarningReEnable,
+    handleIdleWarningClose,
+  } = useIdleTimer({ onReEnable: () => void load(undefined, true) })
+
+  // Same pattern as the dashboard: refresh in the background, never while a write is
+  // in flight, and never for a hidden tab. A tick reads two small documents; the log
+  // itself is fetched only when its revision moved.
+  useEffect(() => {
+    if (!autoRefreshEnabled) return
+    const id = setInterval(() => {
+      if (document.hidden || loadingRef.current || busyRef.current) return
+      void (async () => {
+        try {
+          // Occupancy moves every poll cycle but never bumps the revision, so it is
+          // read on every tick: one document, no collection scan.
+          const activity = await fetchActivity()
+          const nextActivity = JSON.stringify(activity)
+          if (nextActivity !== lastActivity.current) {
+            lastActivity.current = nextActivity
+            setActivity(activity)
+          }
+
+          const revision = await fetchRevision()
+          if (revisionRef.current !== null && revision === revisionRef.current) return
+
+          // `load` records the revision itself, and only when the rows landed: a failed
+          // load must not mark this change as already seen.
+          await load(undefined, true)
+        } catch {
+          // Offline, or an API without /revision: keep the rows on screen and let the
+          // next tick retry. A full reload here would re-read the whole log on a timer.
+        }
+      })()
+    }, AUTO_REFRESH_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [autoRefreshEnabled, load])
 
   // Relative times and ransack windows need a clock; keep it out of render.
   useEffect(() => {
@@ -719,7 +823,7 @@ export default function AdventureLog() {
       setError(null)
       try {
         await resetReincarnation(characterId, atIso, secret)
-        await load()
+        await load(undefined, true)
       } catch (reincarnationError) {
         if (reincarnationError instanceof WritePasswordRejectedError) {
           storePassword('')
@@ -921,7 +1025,13 @@ export default function AdventureLog() {
   )
 
   // Groups start collapsed; only groups someone is currently inside open themselves.
+  // Runs once per character selection: with auto-refresh on, re-opening on every
+  // activity change shoved the table down while the reader was looking at it.
+  const autoExpandedFor = useRef<string | null>(null)
   useEffect(() => {
+    if (autoExpandedFor.current === characterId || groups.length === 0) return
+    autoExpandedFor.current = characterId
+
     const occupied = groups.filter((group) => group.rows.some((row) => occupantsByKey.has(row.key)))
     if (occupied.length === 0) return
 
@@ -930,7 +1040,7 @@ export default function AdventureLog() {
       for (const group of occupied) next.add(group.id)
       return next
     })
-  }, [groups, occupantsByKey])
+  }, [groups, occupantsByKey, characterId])
 
   const trAt = characterId ? (reincarnations[characterId]?.at ?? null) : null
   const characterEntries = useMemo(() => Object.values(characterCompletions), [characterCompletions])
@@ -968,10 +1078,25 @@ export default function AdventureLog() {
                   </IconButton>
                 </span>
               </Tooltip>
+              <Tooltip title={autoRefreshEnabled ? 'Disable auto refresh' : 'Enable auto refresh'}>
+                <span>
+                  <ToggleButton
+                    value="auto"
+                    size="small"
+                    selected={autoRefreshEnabled}
+                    onChange={handleToggleAutoRefresh}
+                    aria-label="Auto refresh"
+                    sx={{ border: 0, px: 1, py: 0.25 }}
+                  >
+                    {autoRefreshEnabled ? <SyncIcon fontSize="small" /> : <SyncDisabledIcon fontSize="small" />}
+                  </ToggleButton>
+                </span>
+              </Tooltip>
             </Stack>
             <Typography variant="body2" color="text.secondary">
               Quest completions inferred from character activity, editable by hand. Checkbox state is shared by everyone
               with the write password.
+              {lastUpdatedAt ? ` Updated ${formatLocalDateTime(lastUpdatedAt)}.` : ''}
             </Typography>
           </Box>
         </Stack>
@@ -1329,6 +1454,12 @@ export default function AdventureLog() {
         entries={characterEntries}
         onClose={() => setTrDialogOpen(false)}
         onConfirm={handleReincarnation}
+      />
+
+      <IdleWarningDialog
+        open={showIdleWarning}
+        onReEnable={handleIdleWarningReEnable}
+        onClose={handleIdleWarningClose}
       />
 
       <Popover
