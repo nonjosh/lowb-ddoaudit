@@ -25,6 +25,19 @@ const QUESTS_CACHE_KEY = 'ddoaudit:quests'
  */
 const HARDCODED_QUESTS: Array<{ id: string; name: string; type: string | null; level: number | null; areaId: string | null }> = []
 
+/**
+ * Quests whose upstream level data is wrong. The API reports a heroic CR for these
+ * legendary-only raids while every heroic XP field is null, so the adventure log grew a
+ * bogus heroic row (The Dryad and the Demigod showed up as a L19 raid). Drop an entry
+ * once the API stops reporting `heroic_normal_cr` for that quest.
+ */
+const QUEST_PATCHES: Array<{ id: string; heroicLevel: number | null }> = [
+  { id: '1879260120', heroicLevel: null }, // The Dryad and the Demigod, L32 legendary raid
+  { id: '1879260123', heroicLevel: null }, // Hunt or Be Hunted, L32 legendary raid
+  { id: '1879273037', heroicLevel: null }, // Skeletons in the Closet, L34 legendary raid
+  { id: '1879283292', heroicLevel: null }, // Fire Over Morgrave, L34 legendary raid
+]
+
 export interface QuestResponseItem {
   id?: string | number | null
   area_id?: string | number | null
@@ -97,6 +110,18 @@ export async function fetchQuestsById(): Promise<Record<string, Quest>> {
     for (const id of ids) {
       map[id] = questObj
     }
+  }
+
+  // Correct the level data upstream gets wrong. The quest object is shared by its id
+  // and area id keys, so one mutation covers both.
+  for (const patch of QUEST_PATCHES) {
+    const quest = map[patch.id]
+    if (!quest) continue
+    quest.heroicLevel = patch.heroicLevel
+    quest.level =
+      quest.heroicLevel === null && quest.epicLevel === null
+        ? null
+        : Math.max(quest.heroicLevel ?? 0, quest.epicLevel ?? 0)
   }
 
   questsByIdCache = { data: map, updatedAt: result.updatedAt }

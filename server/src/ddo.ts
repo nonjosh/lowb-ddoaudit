@@ -71,6 +71,14 @@ async function getJson(path: string): Promise<unknown> {
   return response.json()
 }
 
+/**
+ * Upstream reports a heroic CR for these legendary-only raids while every heroic XP
+ * field is null. Left alone, the poller files runs under `{questId}:heroic`, a row the
+ * page no longer renders. Keep in sync with `QUEST_PATCHES` in
+ * `src/api/ddoAudit/quests.ts`.
+ */
+const LEGENDARY_ONLY_RAID_IDS = new Set(['1879260120', '1879260123', '1879273037', '1879283292'])
+
 export function buildCatalog(rawQuests: RawQuest[], rawAreas: RawArea[]): Catalog {
   const byArea = new Map<string, QuestRecord[]>()
   const questById = new Map<string, QuestRecord>()
@@ -84,7 +92,7 @@ export function buildCatalog(rawQuests: RawQuest[], rawAreas: RawArea[]): Catalo
       id,
       name: raw.name ?? id,
       areaId,
-      heroicCr: toNumber(raw.heroic_normal_cr),
+      heroicCr: LEGENDARY_ONLY_RAID_IDS.has(id) ? null : toNumber(raw.heroic_normal_cr),
       epicCr: toNumber(raw.epic_normal_cr),
     }
 
