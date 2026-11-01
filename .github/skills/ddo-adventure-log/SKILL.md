@@ -189,17 +189,18 @@ in the filter row, and the Inside chip lists player names with the characters, l
 class icons in its tooltip.
 
 Groups start **collapsed**. The only automatic expansion is for groups that contain a
-character currently inside a quest (`GET /activity`); there is no level-based
-auto-expand or scrolling.
+character currently inside a quest (`GET /activity`), and it runs once per character
+selection — re-opening on every activity change shoved the table down while reading.
+There is no level-based auto-expand or scrolling.
 
 ### Level cut
 
-`OFF_LEVEL_RANGE = 6` in `src/pages/AdventureLog.tsx`, on by default and toggled by the
-"±6 levels" button: rows whose level is more than 6 away from the selected character are
-hidden. A row stays visible when the character already cleared that version or when any
-tracked character is inside it. The cut is skipped while the search box has text, so a
-search is never silently filtered. Raid rows get a Raid badge, and
-a row shows an "N inside" badge when tracked characters are currently in that quest
+`OFF_LEVEL_ABOVE = 0` / `OFF_LEVEL_BELOW = 2` in `src/pages/AdventureLog.tsx`, on by
+default and toggled by the "+0/−2 levels" button: rows below `character − 2` or above the
+character's level are hidden. A row stays visible when the character already cleared that
+version or when any tracked character is inside it. The cut is skipped while the search
+box has text, so a search is never silently filtered. Raid rows get a Raid badge, and a
+row shows an "N inside" badge when tracked characters are currently in that quest
 (`GET /activity`).
 
 `src/data/questGroupings.json` is a snapshot of quest id -> `{ sagas, pack }`, built by
