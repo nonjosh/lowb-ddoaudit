@@ -103,7 +103,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
  */
 const AUTO_REFRESH_INTERVAL_MS = 60_000
 /** Hide quests more than this many levels above / below the selected character. */
-const OFF_LEVEL_ABOVE = 0
+const OFF_LEVEL_ABOVE = 2
 const OFF_LEVEL_BELOW = 2
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
 /** Version colours, shared by the row badge and the group header tint. */

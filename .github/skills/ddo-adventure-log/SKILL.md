@@ -195,13 +195,13 @@ There is no level-based auto-expand or scrolling.
 
 ### Level cut
 
-`OFF_LEVEL_ABOVE = 0` / `OFF_LEVEL_BELOW = 2` in `src/pages/AdventureLog.tsx`, on by
-default and toggled by the "+0/−2 levels" button: rows below `character − 2` or above the
-character's level are hidden. A row stays visible when the character already cleared that
-version or when any tracked character is inside it. The cut is skipped while the search
-box has text, so a search is never silently filtered. Raid rows get a Raid badge, and a
-row shows an "N inside" badge when tracked characters are currently in that quest
-(`GET /activity`).
+`OFF_LEVEL_ABOVE = 2` / `OFF_LEVEL_BELOW = 2` in `src/pages/AdventureLog.tsx`, on by
+default and toggled by the "+2/−2 levels" button: rows more than 2 levels below the
+character or more than 2 above its level are hidden. A row stays visible when the
+character already cleared that version or when any tracked character is inside it. The cut
+is skipped while the search box has text, so a search is never silently filtered. Raid
+rows get a Raid badge, and a row shows an "N inside" badge when tracked characters are
+currently in that quest (`GET /activity`).
 
 `src/data/questGroupings.json` is a snapshot of quest id -> `{ sagas, pack }`, built by
 `scripts/build-quest-groupings.ts` from `src/data/sagas.json` plus the DDO Audit quest
