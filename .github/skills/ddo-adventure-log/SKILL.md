@@ -158,12 +158,14 @@ descending. There are three modes, chosen by one Packs / Sagas / Recently done t
 - **Sagas**: saga groups only; a quest appears in every saga it belongs to
   (`src/data/questGroupings.json`), and rows whose version does not match a
   "(Heroic)"/"(Legendary)" saga are dropped from this view.
-- **Recently done**: no grouping. Completed rows that have a completion date, newest
-  first, with the adventure pack as dim caption text after the quest name instead of a
-  pack header. Rows ticked by hand without a date are left out — they have no last-done
-  date to show. Search matches single rows here instead of whole groups, hidden packs
-  still apply, and "Hide completed" is disabled because every row is already completed.
-  The ±level cut keeps completed rows, so an old run does not disappear.
+- **Recently done**: no grouping. Rows completed with a date, newest first, with the
+  adventure pack as dim caption text after the quest name instead of a pack header, plus
+  the row the selected character is inside right now — shown first, unchecked, reading
+  "inside 3m" and, if the quest was run before, its previous "last done" beside it. Rows
+  ticked by hand without a date are left out unless the character is currently inside
+  them. Search matches single rows here instead of whole groups, hidden packs still apply,
+  and "Hide completed" is disabled. The ±level cut keeps completed rows, so an old run
+  does not disappear.
 
 "Hide completed" removes a group only when **every** quest in it is done; a partially
 finished group keeps its full list. The Type column is gone — a `Solo`/`Raid`/other badge

@@ -291,22 +291,25 @@ interface CompletionLike {
 
 /**
  * "Recently done": completed rows that have a completion date, newest first, no
- * grouping. A row checked by hand without a date has no "last done" to show, so it is
- * left out rather than sorted to an arbitrary place. `rows` is expected to be the
- * already-filtered set; only hidden packs and search are applied here.
+ * grouping, plus whatever the selected character is inside right now (no date yet, so
+ * it sorts to the top). A row checked by hand without a date has no "last done" to show
+ * and is left out. `rows` is expected to be the already-filtered set; only hidden packs
+ * and search are applied here.
  */
 export function recentlyDoneRows(
   rows: QuestRowModel[],
   completions: Record<string, CompletionLike | undefined>,
   query = '',
   hiddenPacks: ReadonlySet<string> = new Set(),
+  liveKeys: ReadonlySet<string> = new Set(),
 ): QuestRowModel[] {
   const needle = query.trim().toLowerCase()
   return rows
     .filter((row) => !hiddenPacks.has(getPackName(row.quest) ?? ''))
     .filter((row) => {
       const entry = completions[row.key]
-      return entry?.finished === true && Boolean(entry.lastFinishedAt)
+      const completed = entry?.finished === true && Boolean(entry.lastFinishedAt)
+      return completed || liveKeys.has(row.key)
     })
     .filter((row) => {
       if (!needle) return true
@@ -315,9 +318,17 @@ export function recentlyDoneRows(
       )
     })
     .sort((left, right) => {
-      const byDate = (completions[right.key]?.lastFinishedAt ?? '').localeCompare(
-        completions[left.key]?.lastFinishedAt ?? '',
-      )
+      // A run in progress goes first, even when the character has run it before.
+      const liveLeft = liveKeys.has(left.key)
+      const liveRight = liveKeys.has(right.key)
+      if (liveLeft !== liveRight) return liveLeft ? -1 : 1
+
+      const a = completions[left.key]?.lastFinishedAt ?? ''
+      const b = completions[right.key]?.lastFinishedAt ?? ''
+      if (!a && !b) return left.quest.name.localeCompare(right.quest.name)
+      if (!a) return -1
+      if (!b) return 1
+      const byDate = b.localeCompare(a)
       return byDate !== 0 ? byDate : left.quest.name.localeCompare(right.quest.name)
     })
 }

@@ -159,6 +159,16 @@ function formatRelative(iso: string | null): string {
   return `${Math.floor(elapsed / DAY_MS)}d ago`
 }
 
+/** "45s" / "3m" / "2h" / "3d" — how long the current run has been going. */
+function formatElapsed(iso: string, now: number): string {
+  const elapsed = now - new Date(iso).getTime()
+  if (!Number.isFinite(elapsed) || elapsed <= 0) return '0s'
+  if (elapsed < 60_000) return `${Math.floor(elapsed / 1000)}s`
+  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m`
+  if (elapsed < DAY_MS) return `${Math.floor(elapsed / 3_600_000)}h`
+  return `${Math.floor(elapsed / DAY_MS)}d`
+}
+
 function HighlightedText({ text, query }: { text: string; query: string }) {
   const needle = query.trim()
   if (!needle) return <>{text}</>
@@ -314,6 +324,8 @@ interface QuestRowProps {
   showSagaBadge: boolean
   /** Flat views have no pack header, so the pack travels with the row. */
   showPack: boolean
+  /** Set when the selected character is inside this quest right now. */
+  liveSince?: string | null
   trAt: string | null
   now: number
   occupants: Array<{
@@ -326,7 +338,7 @@ interface QuestRowProps {
   onToggle: (row: QuestRowModel, finished: boolean) => void
 }
 
-function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, trAt, now, occupants, onToggle }: QuestRowProps) {
+function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, liveSince, trAt, now, occupants, onToggle }: QuestRowProps) {
   const finished = entry?.finished === true
   const ransack = getRansackStatus(entry?.history ?? [], now, trAt)
   const sagaNames = showSagaBadge ? getSagaNames(row.quest) : []
@@ -437,10 +449,29 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, trAt, now,
         <HighlightedText text={row.quest.patron ?? '—'} query={query} />
       </TableCell>
       <TableCell>
-        {(entry?.history.length ?? 0) > 0 ? (
-          <Tooltip title={<HistoryTooltip history={entry?.history ?? []} trAt={trAt} now={now} />}>
+        {liveSince || (entry?.history.length ?? 0) > 0 ? (
+          <Tooltip
+            title={
+              liveSince ? (
+                `Inside since ${formatLocalDateTime(liveSince)}`
+              ) : (
+                <HistoryTooltip history={entry?.history ?? []} trAt={trAt} now={now} />
+              )
+            }
+          >
             <Stack direction="row" useFlexGap flexWrap="wrap" spacing={1} alignItems="center">
-              <span>{finished ? formatRelative(entry?.lastFinishedAt ?? null) : '—'}</span>
+              {liveSince ? (
+                <Typography component="span" variant="body2" color="success.main">
+                  inside {formatElapsed(liveSince, now)}
+                </Typography>
+              ) : (
+                <span>{finished ? formatRelative(entry?.lastFinishedAt ?? null) : '—'}</span>
+              )}
+              {liveSince && finished && (
+                <Typography component="span" variant="caption" color="text.secondary">
+                  {formatRelative(entry?.lastFinishedAt ?? null)}
+                </Typography>
+              )}
               {ransack.ransacked ? (
                 <Chip size="small" color="warning" label="Ransacked" />
               ) : ransack.runsInWindow > 1 ? (
@@ -899,6 +930,16 @@ export default function AdventureLog() {
     return map
   }, [activity, characterData, questById])
 
+  /** Rows the selected character is inside right now, so "Recently done" shows a run in progress. */
+  const liveKeys = useMemo(() => {
+    const keys = new Set<string>()
+    if (!characterId) return keys
+    for (const [key, occupants] of occupantsByKey) {
+      if (occupants.some((occupant) => occupant.id === characterId)) keys.add(key)
+    }
+    return keys
+  }, [occupantsByKey, characterId])
+
 
   const isFinished = useCallback(
     (row: QuestRowModel) => characterCompletions[row.key]?.finished === true,
@@ -913,10 +954,12 @@ export default function AdventureLog() {
 
       if (sagasOnly && sagaGroupNamesForRow(row.quest, row.band).length === 0) return false
       if (patronFilters.size > 0 && !patronFilters.has(row.quest.patron ?? '')) return false
-      if (onlyRansacked && !getRansackStatus(characterCompletions[row.key]?.history ?? []).ransacked) return false
+      if (onlyRansacked && !liveKeys.has(row.key) && !getRansackStatus(characterCompletions[row.key]?.history ?? []).ransacked) {
+        return false
+      }
       return true
     })
-  }, [rows, onlyRansacked, sagasOnly, patronFilters, characterCompletions])
+  }, [rows, onlyRansacked, sagasOnly, patronFilters, characterCompletions, liveKeys])
 
   const searching = query.trim().length > 0
 
@@ -973,8 +1016,10 @@ export default function AdventureLog() {
    */
   const recentRows = useMemo(
     () =>
-      viewMode === 'recent' ? recentlyDoneRows(visibleRows, characterCompletions, query, hiddenPacks) : [],
-    [viewMode, visibleRows, characterCompletions, query, hiddenPacks],
+      viewMode === 'recent'
+        ? recentlyDoneRows(visibleRows, characterCompletions, query, hiddenPacks, liveKeys)
+        : [],
+    [viewMode, visibleRows, characterCompletions, query, hiddenPacks, liveKeys],
   )
 
   /**
@@ -1026,6 +1071,9 @@ export default function AdventureLog() {
     (total, group) => total + group.rows.filter((row) => characterCompletions[row.key]?.finished).length,
     0,
   )
+  /** "Recently done" mixes finished runs with the one in progress, so count them apart. */
+  const recentDoneCount = recentRows.filter((row) => characterCompletions[row.key]?.lastFinishedAt).length
+  const recentLiveCount = recentRows.length - recentDoneCount
 
   // Groups start collapsed; only groups someone is currently inside open themselves.
   // Runs once per character selection: with auto-refresh on, re-opening on every
@@ -1058,6 +1106,7 @@ export default function AdventureLog() {
       query={query}
       showSagaBadge={!sagasOnly}
       showPack={viewMode === 'recent'}
+      liveSince={viewMode === 'recent' && liveKeys.has(row.key) ? (activity[characterId]?.since ?? null) : null}
       trAt={trAt}
       now={now}
       occupants={occupantsByKey.get(row.key) ?? []}
@@ -1252,7 +1301,7 @@ export default function AdventureLog() {
             label="Ransacked"
           />
 
-          <Tooltip title={viewMode === 'recent' ? 'Every row in this view is completed, so this filter does nothing here' : ''}>
+          <Tooltip title={viewMode === 'recent' ? 'This filter does nothing here' : ''}>
             <span>
               <FormControlLabel
                 control={
@@ -1285,7 +1334,7 @@ export default function AdventureLog() {
             >
               Sagas
             </ToggleButton>
-            <ToggleButton value="recent" title="Completed quests, newest first, without grouping">
+            <ToggleButton value="recent" title="Completed quests and the run in progress, newest first, without grouping">
               Recently done
             </ToggleButton>
           </ToggleButtonGroup>
@@ -1427,8 +1476,8 @@ export default function AdventureLog() {
                   {viewMode === 'recent'
                     ? characterId
                       ? searching
-                        ? `No completed quest with a date, pack or favor matches “${search.trim()}”.`
-                        : 'No completed quest with a date matches the filters.'
+                        ? `No completed quest, pack or favor matches “${search.trim()}”.`
+                        : 'No completed quest or run in progress matches the filters.'
                       : 'Select a character to see what they recently completed.'
                     : searching
                       ? `No quest, pack or favor matches “${search.trim()}”.`
@@ -1441,7 +1490,7 @@ export default function AdventureLog() {
 
         <Typography variant="caption" color="text.secondary">
           {viewMode === 'recent'
-            ? `${recentRows.length} recently done`
+            ? `${recentDoneCount} recently done${recentLiveCount > 0 ? ` · ${recentLiveCount} in progress` : ''}`
             : `${renderedGroups.length} ${searching ? 'matching ' : ''}groups · ${groupedRowCount} rows · ${doneCount} marked done`}
           {selectedCharacter && selectedLevel ? ` · ${selectedCharacter.name} is L${selectedLevel}` : ''}
           {trAt ? ` · TR ${formatLocalDate(trAt)}` : ''}
