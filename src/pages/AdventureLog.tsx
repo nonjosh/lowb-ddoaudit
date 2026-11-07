@@ -102,9 +102,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * reads, and a whole-log scan is only triggered by a write.
  */
 const AUTO_REFRESH_INTERVAL_MS = 60_000
-/** Hide quests more than this many levels above / below the selected character. */
-const OFF_LEVEL_ABOVE = 2
-const OFF_LEVEL_BELOW = 2
+/** Hide quests further than this from the selected character's level. */
+const OFF_LEVEL_RANGE = 2
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
 /** Version colours, shared by the row badge and the group header tint. */
 const BAND_COLOR: Record<QuestBand, 'success' | 'info' | 'warning'> = {
@@ -939,7 +938,7 @@ export default function AdventureLog() {
 
     return filteredRows.filter((row) => {
       if (row.level === null) return true
-      if (row.level >= characterLevel - OFF_LEVEL_BELOW && row.level <= characterLevel + OFF_LEVEL_ABOVE) return true
+      if (Math.abs(row.level - characterLevel) <= OFF_LEVEL_RANGE) return true
       // Keep it visible when someone is inside, or this character cleared it.
       if (occupantsByKey.has(row.key)) return true
       return characterCompletions[row.key]?.finished === true
@@ -1221,9 +1220,9 @@ export default function AdventureLog() {
             size="small"
             selected={hideOffLevel}
             onChange={() => setHideOffLevel((previous) => !previous)}
-            title={`Hide quests more than ${OFF_LEVEL_BELOW} levels below or ${OFF_LEVEL_ABOVE} above the character`}
+            title={`Hide quests more than ${OFF_LEVEL_RANGE} levels away from the character`}
           >
-            +{OFF_LEVEL_ABOVE}/−{OFF_LEVEL_BELOW} levels
+            ±{OFF_LEVEL_RANGE} levels
           </ToggleButton>
 
           <Button
