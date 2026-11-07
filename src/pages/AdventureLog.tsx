@@ -598,6 +598,15 @@ export default function AdventureLog() {
       if (document.hidden || loadingRef.current || busyRef.current) return
       void (async () => {
         try {
+          // Check the revision first: when it moved, `load` applies the new rows and the
+          // new occupancy in one render. Applying occupancy alone first would drop a run
+          // that just ended from "Recently done" until its completion landed.
+          const revision = await fetchRevision()
+          if (revisionRef.current === null || revision !== revisionRef.current) {
+            await load(undefined, true)
+            return
+          }
+
           // Occupancy moves every poll cycle but never bumps the revision, so it is
           // read on every tick: one document, no collection scan.
           const activity = await fetchActivity()
@@ -606,13 +615,6 @@ export default function AdventureLog() {
             lastActivity.current = nextActivity
             setActivity(activity)
           }
-
-          const revision = await fetchRevision()
-          if (revisionRef.current !== null && revision === revisionRef.current) return
-
-          // `load` records the revision itself, and only when the rows landed: a failed
-          // load must not mark this change as already seen.
-          await load(undefined, true)
         } catch {
           // Offline, or an API without /revision: keep the rows on screen and let the
           // next tick retry. A full reload here would re-read the whole log on a timer.
