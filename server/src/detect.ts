@@ -88,6 +88,8 @@ export interface Completion {
   /** Which version of the quest the run belongs to. */
   band: QuestBand
   exitAt: Date
+  /** First sample inside the quest; the run's duration is exitAt - enteredAt. */
+  enteredAt: Date
   level: number | null
 }
 
@@ -180,6 +182,7 @@ export function applyObservations(
         questId: previous.questId,
         band: quest ? bandForLevel(quest, previous.level) : 'heroic',
         exitAt: new Date(previous.lastInsideAt),
+        enteredAt: new Date(previous.since),
         level: previous.level,
       })
     }

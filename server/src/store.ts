@@ -12,6 +12,11 @@ export interface CompletionRecord {
   last_finished_at: Timestamp | null
   /** Completion timestamps, newest first. Capped at HISTORY_LIMIT. */
   history: Timestamp[]
+  /**
+   * How long each run took, aligned index-for-index with `history` (null when unknown:
+   * a manual edit, or a row written before durations were recorded).
+   */
+  durations_ms?: Array<number | null>
   level_at_finish: number | null
   source: 'poll' | 'manual'
   updated_at: Timestamp
@@ -39,6 +44,29 @@ const revisionDocument = db.doc(`${COLLECTION_PREFIX}state/revision`)
 export const completionId = (characterId: string, questId: string, band: string): string =>
   `${characterId}_${questId}_${band}`
 
+/** Durations written before this field existed, or by a manual edit, are unknown. */
+function durationsOf(data: Partial<CompletionRecord> | null): Array<number | null> {
+  return Array.isArray(data?.durations_ms) ? data.durations_ms : []
+}
+
+/**
+ * Keeps `durations_ms` aligned with a rewritten history: entries that survived keep their
+ * duration, the entry just written takes `newDuration`, and anything else is null.
+ */
+function alignDurations(
+  previousHistory: Timestamp[],
+  previousDurations: Array<number | null>,
+  nextHistory: Timestamp[],
+  newAt: Timestamp,
+  newDuration: number | null,
+): Array<number | null> {
+  const byMillis = new Map<number, number | null>()
+  previousHistory.forEach((entry, index) => byMillis.set(entry.toMillis(), previousDurations[index] ?? null))
+  return nextHistory.map((entry) =>
+    entry.toMillis() === newAt.toMillis() ? newDuration : (byMillis.get(entry.toMillis()) ?? null),
+  )
+}
+
 /** Older documents only have last_finished_at; treat it as a one-entry history. */
 function historyOf(data: Partial<CompletionRecord> | null): Timestamp[] {
   if (!data) return []
@@ -64,6 +92,7 @@ function previousOf(existing: CompletionRecord | null) {
     previous_exists: existing !== null,
     previous_finished: existing?.finished === true,
     previous_history: historyOf(existing),
+    previous_durations_ms: durationsOf(existing),
     previous_level_at_finish: existing?.level_at_finish ?? null,
     previous_source: existing?.source ?? null,
   }
@@ -134,12 +163,15 @@ async function loadCompletionsJson(epoch: number): Promise<string> {
     if (!characterId || !questId) continue
 
     const history = historyOf(data)
+    const durations = durationsOf(data)
     const band = data.band ?? 'heroic'
     const bucket = result[characterId] ?? {}
     bucket[`${questId}:${band}`] = {
       finished: data.finished === true,
       lastFinishedAt: history[0]?.toDate().toISOString() ?? null,
       history: history.map((entry) => entry.toDate().toISOString()),
+      // Omitted when empty: 1,800 entries of "durationsMs":[] is 12% of the payload.
+      durationsMs: durations.length > 0 ? durations : undefined,
       levelAtFinish: data.level_at_finish ?? null,
       source: data.source ?? 'poll',
     }
@@ -167,11 +199,17 @@ export async function recordPolledCompletion(completion: Completion): Promise<bo
 
   const written = await db.runTransaction(async (transaction) => {
     const current = await transaction.get(reference)
-    const history = historyOf(current.exists ? (current.data() as CompletionRecord) : null)
+    const existing = current.exists ? (current.data() as CompletionRecord) : null
+    const history = historyOf(existing)
+    const durations = durationsOf(existing)
 
     // Timestamp comparison is the only dedupe needed: a retried poll carries the
     // same exit time and is skipped.
     if (history[0] && history[0].toMillis() >= exitAt.toMillis()) return false
+
+    const nextHistory = withHistoryEntry(history, exitAt)
+    // Sampling is per minute at both ends, so this is an estimate, not a stopwatch.
+    const durationMs = Math.max(0, completion.exitAt.getTime() - completion.enteredAt.getTime())
 
     transaction.set(
       reference,
@@ -181,7 +219,8 @@ export async function recordPolledCompletion(completion: Completion): Promise<bo
         band: completion.band,
         finished: true,
         last_finished_at: exitAt,
-        history: withHistoryEntry(history, exitAt),
+        history: nextHistory,
+        durations_ms: alignDurations(history, durations, nextHistory, exitAt, durationMs),
         level_at_finish: completion.level,
         source: 'poll',
         updated_at: Timestamp.now(),
@@ -226,12 +265,21 @@ export async function applyManualEdits(changes: ManualEdit[]): Promise<number> {
       const existing = snapshots[index].exists ? (snapshots[index].data() as CompletionRecord) : null
 
       const previousHistory = historyOf(existing)
+      const previousDurations = durationsOf(existing)
+      const addedAt = edit.lastFinishedAt ? Timestamp.fromDate(edit.lastFinishedAt) : null
       const history =
         edit.lastFinishedAt === undefined
           ? previousHistory
           : edit.lastFinishedAt === null
             ? []
-            : withHistoryEntry(previousHistory, Timestamp.fromDate(edit.lastFinishedAt))
+            : withHistoryEntry(previousHistory, addedAt as Timestamp)
+      // A hand-entered completion has no measured duration.
+      const durations =
+        addedAt === null
+          ? edit.lastFinishedAt === undefined
+            ? previousDurations
+            : []
+          : alignDurations(previousHistory, previousDurations, history, addedAt, null)
 
       transaction.set(
         refs[index],
@@ -242,6 +290,7 @@ export async function applyManualEdits(changes: ManualEdit[]): Promise<number> {
           finished: edit.finished,
           last_finished_at: history[0] ?? null,
           history,
+          durations_ms: durations,
           level_at_finish: existing?.level_at_finish ?? edit.level,
           source: 'manual',
           updated_at: Timestamp.now(),
@@ -278,12 +327,21 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
 
     // Unchecking keeps the observed history so the same visit cannot be re-applied.
     const previousHistory = historyOf(existing)
+    const previousDurations = durationsOf(existing)
+    const addedAt = edit.lastFinishedAt ? Timestamp.fromDate(edit.lastFinishedAt) : null
     const history =
       edit.lastFinishedAt === undefined
         ? previousHistory
         : edit.lastFinishedAt === null
           ? []
-          : withHistoryEntry(previousHistory, Timestamp.fromDate(edit.lastFinishedAt))
+          : withHistoryEntry(previousHistory, addedAt as Timestamp)
+    // A hand-entered completion has no measured duration.
+    const durations =
+      addedAt === null
+        ? edit.lastFinishedAt === undefined
+          ? previousDurations
+          : []
+        : alignDurations(previousHistory, previousDurations, history, addedAt, null)
 
     const lastFinishedAt = history[0] ?? null
 
@@ -294,6 +352,7 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
       finished: edit.finished,
       last_finished_at: lastFinishedAt,
       history,
+      durations_ms: durations,
       level_at_finish: existing?.level_at_finish ?? edit.level,
       source: 'manual',
       updated_at: Timestamp.now(),

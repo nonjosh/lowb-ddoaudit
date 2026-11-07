@@ -5,6 +5,8 @@ export interface CompletionEntry {
   lastFinishedAt: string | null
   /** Completion timestamps, newest first (up to 10). Used for ransack detection. */
   history: string[]
+  /** Estimated run length in ms per history entry (aligned); null when unknown. */
+  durationsMs?: Array<number | null>
   levelAtFinish: number | null
   source: 'poll' | 'manual'
 }

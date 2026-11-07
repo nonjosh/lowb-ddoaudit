@@ -169,6 +169,20 @@ function formatElapsed(iso: string, now: number): string {
   return `${Math.floor(elapsed / DAY_MS)}d`
 }
 
+/**
+ * "14m" / "1h 5m" for a recorded run length. The poller samples once a minute at each
+ * end, so the value is an estimate — callers render it with a "~".
+ */
+function formatDuration(ms: number | null | undefined): string | null {
+  if (ms === null || ms === undefined || !Number.isFinite(ms) || ms <= 0) return null
+  const minutes = Math.round(ms / 60_000)
+  if (minutes < 1) return '<1m'
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
+}
+
 function HighlightedText({ text, query }: { text: string; query: string }) {
   const needle = query.trim()
   if (!needle) return <>{text}</>
@@ -189,10 +203,12 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 function HistoryTooltip({
   history,
+  durations,
   trAt,
   now,
 }: {
   history: readonly string[]
+  durations: ReadonlyArray<number | null>
   trAt: string | null
   now: number
 }) {
@@ -217,10 +233,11 @@ function HistoryTooltip({
           {formatLocalDateTime(status.resetsAt)}
         </Typography>
       )}
-      {history.map((iso) => {
+      {history.map((iso, index) => {
         const timestamp = new Date(iso).getTime()
         const previousLife = lifeStart !== null && timestamp < lifeStart
         const inWindow = status.windowStart ? timestamp >= status.windowStart.getTime() : isWithinRansackWindow(iso)
+        const duration = formatDuration(durations[index])
         return (
           <Stack key={iso} direction="row" spacing={1} sx={{ fontSize: 12, lineHeight: 1.6 }}>
             <Box
@@ -230,12 +247,14 @@ function HistoryTooltip({
                 fontWeight: inWindow && !previousLife ? 700 : 400,
               }}
             >
-              {formatRelative(iso)}
+              {formatLocalDateTime(iso)}
               {previousLife ? ' (prev life)' : ''}
             </Box>
-            <Box component="span" sx={{ color: previousLife ? 'text.disabled' : 'text.secondary' }}>
-              {formatLocalDateTime(iso)}
-            </Box>
+            {duration && (
+              <Box component="span" sx={{ color: previousLife ? 'text.disabled' : 'text.secondary' }}>
+                ~{duration}
+              </Box>
+            )}
           </Stack>
         )
       })}
@@ -340,6 +359,7 @@ interface QuestRowProps {
 
 function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, liveSince, trAt, now, occupants, onToggle }: QuestRowProps) {
   const finished = entry?.finished === true
+  const latestDuration = formatDuration(entry?.durationsMs?.[0])
   const ransack = getRansackStatus(entry?.history ?? [], now, trAt)
   const sagaNames = showSagaBadge ? getSagaNames(row.quest) : []
   const packName = showPack ? getPackName(row.quest) : null
@@ -455,7 +475,12 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, liveSince,
               liveSince ? (
                 `Inside since ${formatLocalDateTime(liveSince)}`
               ) : (
-                <HistoryTooltip history={entry?.history ?? []} trAt={trAt} now={now} />
+                <HistoryTooltip
+                  history={entry?.history ?? []}
+                  durations={entry?.durationsMs ?? []}
+                  trAt={trAt}
+                  now={now}
+                />
               )
             }
           >
@@ -466,6 +491,11 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, liveSince,
                 </Typography>
               ) : (
                 <span>{finished ? formatRelative(entry?.lastFinishedAt ?? null) : '—'}</span>
+              )}
+              {finished && !liveSince && latestDuration && (
+                <Typography component="span" variant="caption" color="text.secondary">
+                  ~{latestDuration}
+                </Typography>
               )}
               {liveSince && finished && (
                 <Typography component="span" variant="caption" color="text.secondary">
@@ -743,6 +773,7 @@ export default function AdventureLog() {
             finished,
             lastFinishedAt: existing?.lastFinishedAt ?? null,
             history: existing?.history ?? [],
+            durationsMs: existing?.durationsMs,
             levelAtFinish: existing?.levelAtFinish ?? null,
             source: 'manual',
           }
