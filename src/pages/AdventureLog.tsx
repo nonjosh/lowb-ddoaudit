@@ -1106,23 +1106,45 @@ export default function AdventureLog() {
   const recentDoneCount = recentRows.filter((row) => characterCompletions[row.key]?.lastFinishedAt).length
   const recentLiveCount = recentRows.length - recentDoneCount
 
-  // Groups start collapsed; only groups someone is currently inside open themselves.
-  // Runs once per character selection: with auto-refresh on, re-opening on every
-  // activity change shoved the table down while the reader was looking at it.
+  // Groups start collapsed. The group holding the *selected* character's current quest
+  // opens when they enter it (and stays closed if they collapse it again); groups another
+  // tracked character is inside open once per selection, so the table does not jump on
+  // every activity tick.
   const autoExpandedFor = useRef<string | null>(null)
+  const liveSignature = useRef('')
   useEffect(() => {
-    if (autoExpandedFor.current === characterId || groups.length === 0) return
-    autoExpandedFor.current = characterId
+    if (groups.length === 0) return
 
-    const occupied = groups.filter((group) => group.rows.some((row) => occupantsByKey.has(row.key)))
-    if (occupied.length === 0) return
+    const signature = [...liveKeys].sort().join('|')
+    const enteredQuest = signature !== liveSignature.current
+    const liveGroups = enteredQuest
+      ? groups.filter((group) => group.rows.some((row) => liveKeys.has(row.key)))
+      : []
+    // A row hidden by a filter must still open its group once that filter is cleared.
+    if (liveKeys.size === 0 || liveGroups.length > 0) liveSignature.current = signature
 
+    const toOpen = new Set(liveGroups.map((group) => group.id))
+
+    if (autoExpandedFor.current !== characterId) {
+      autoExpandedFor.current = characterId
+      for (const group of groups) {
+        if (group.rows.some((row) => occupantsByKey.has(row.key))) toOpen.add(group.id)
+      }
+    }
+
+    if (toOpen.size === 0) return
     setExpandedGroups((previous) => {
       const next = new Set(previous)
-      for (const group of occupied) next.add(group.id)
-      return next
+      let changed = false
+      for (const id of toOpen) {
+        if (next.has(id)) continue
+        next.add(id)
+        changed = true
+      }
+      // Same reference when nothing changed: the effect runs on every activity tick.
+      return changed ? next : previous
     })
-  }, [groups, occupantsByKey, characterId])
+  }, [groups, occupantsByKey, characterId, liveKeys])
 
   const trAt = characterId ? (reincarnations[characterId]?.at ?? null) : null
   const characterEntries = useMemo(() => Object.values(characterCompletions), [characterCompletions])
