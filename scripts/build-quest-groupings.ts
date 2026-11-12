@@ -19,14 +19,13 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
+import { FORCED_QUEST_AREA_IDS } from '../src/api/ddoAudit/areas'
+
 const DATA_DIR = path.join(process.cwd(), 'src', 'data')
 const SAGAS_PATH = path.join(DATA_DIR, 'sagas.json')
 const OUTPUT_PATH = path.join(DATA_DIR, 'questGroupings.json')
 const QUESTS_URL = 'https://api.ddoaudit.com/v1/quests?force=false'
 const AREAS_URL = 'https://api.ddoaudit.com/v1/areas?force=false'
-
-/** Areas upstream mislabels as wilderness; keep in sync with AREA_PATCHES. */
-const FORCED_QUEST_AREAS = new Set(['1879303679'])
 
 /** Case, articles and punctuation do not change which quest a name refers to. */
 function normalizeQuestName(name: string): string {
@@ -79,7 +78,7 @@ async function main() {
     areas
       .filter((area) => area.is_wilderness === true)
       .map((area) => String(area.id))
-      .filter((id) => !FORCED_QUEST_AREAS.has(id)),
+      .filter((id) => !FORCED_QUEST_AREA_IDS.has(id)),
   )
 
   const sagasData = JSON.parse(fs.readFileSync(SAGAS_PATH, 'utf8')) as Record<string, SagaRecord[]>

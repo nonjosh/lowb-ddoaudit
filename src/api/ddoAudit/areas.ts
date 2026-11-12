@@ -1,24 +1,30 @@
 import { fetchJsonWithCache } from './cache'
 import { AREAS_JSON_URL, DDOAUDIT_JSON_CACHE_TTL_MS } from './constants'
 
-// Locations not present in the upstream areas payload but known from in-game observation.
-const HARDCODED_AREAS: { id: string; name: string; is_public: boolean; is_wilderness: boolean }[] = [
+/**
+ * Corrections and additions applied on top of the upstream areas payload: a matching
+ * record has the listed fields overwritten, and an area upstream omits is seeded from
+ * its entry (flags default to `false`), so a new location shows its real name before
+ * the API catches up.
+ * Remove an entry once upstream carries correct data (see AGENTS.md > "Quests or areas missing from DDO Audit").
+ */
+const PATCHED_AREAS: Array<{ id: string; name?: string; is_public?: boolean; is_wilderness?: boolean }> = [
   { id: '1879301916', name: 'The Anniversary Celebration', is_public: true, is_wilderness: false },
   { id: '1879304731', name: 'Eveningstar Crafting Hall', is_public: true, is_wilderness: false },
-]
-
-/**
- * Corrections applied on top of upstream areas data (upstream errors).
- * Unlike HARDCODED_AREAS (fallback injection), these overwrite API records.
- * Remove an entry once upstream fixes it (see AGENTS.md > "Quests or areas missing from DDO Audit").
- */
-const AREA_PATCHES: { id: string; is_public?: boolean; is_wilderness?: boolean }[] = [
   // 1879303679 is the dedicated area of the raid "Terror of the Demon Lords"
   // (quest id 1879303683), but upstream labels it as wilderness
   // "Vision of an Alternate History", which makes raid occupants group under
   // wilderness areas instead of the raid in the Characters panel.
   { id: '1879303679', is_wilderness: false },
+  { id: '1879303681', name: 'Return to Castle Ravenloft', is_public: false, is_wilderness: false },
 ]
+
+/** Instanced quest areas upstream may call wilderness; the poller keeps its own copy in `server/src/detect.ts`. */
+export const FORCED_QUEST_AREA_IDS = new Set(
+  PATCHED_AREAS
+    .filter((patch) => patch.is_wilderness === false && patch.is_public !== true)
+    .map((patch) => patch.id),
+)
 
 const AREAS_CACHE_KEY = 'ddoaudit:areas'
 
@@ -76,17 +82,19 @@ export async function fetchAreasById(): Promise<Record<string, { id: string; nam
     }
   }
 
-  for (const a of HARDCODED_AREAS) {
-    if (!(a.id in map)) {
-      map[a.id] = a
-    }
-  }
-
-  for (const patch of AREA_PATCHES) {
+  for (const patch of PATCHED_AREAS) {
     const existing = map[patch.id]
     if (existing) {
+      if (patch.name !== undefined) existing.name = patch.name
       if (patch.is_public !== undefined) existing.is_public = patch.is_public
       if (patch.is_wilderness !== undefined) existing.is_wilderness = patch.is_wilderness
+    } else if (patch.name !== undefined) {
+      map[patch.id] = {
+        id: patch.id,
+        name: patch.name,
+        is_public: patch.is_public ?? false,
+        is_wilderness: patch.is_wilderness ?? false,
+      }
     }
   }
 

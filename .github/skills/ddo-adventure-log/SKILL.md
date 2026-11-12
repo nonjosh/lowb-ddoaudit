@@ -34,7 +34,8 @@ A visit is recorded as a completion when **all** of these hold:
 | Absence is not logout | one omitted id holds the state (`misses`), the second closes the visit | a transient upstream gap would otherwise fabricate a completion and swallow the real exit |
 
 `FORCED_QUEST_AREAS` in `detect.ts` bypasses the wilderness flag for areas upstream
-mislabels. Keep it in sync with `AREA_PATCHES` in `src/api/ddoAudit/areas.ts`.
+mislabels. Keep it in sync with `PATCHED_AREAS` in `src/api/ddoAudit/areas.ts`
+(`scripts/build-quest-groupings.ts` imports the client's derived `FORCED_QUEST_AREA_IDS`).
 Currently: `Vision of an Alternate History` → `Terror of the Demon Lords`.
 
 ### What is deliberately not tracked

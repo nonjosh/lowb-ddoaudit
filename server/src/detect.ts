@@ -3,7 +3,7 @@ import type { Catalog, CharacterObservation, QuestRecord } from './ddo.js'
 
 /**
  * Areas that the upstream API labels as wilderness but are actually instanced
- * quest areas. Keep in sync with AREA_PATCHES in src/api/ddoAudit/areas.ts.
+ * quest areas. Keep in sync with PATCHED_AREAS in src/api/ddoAudit/areas.ts.
  */
 export const FORCED_QUEST_AREAS = new Set<string>([
   '1879303679', // Vision of an Alternate History -> Terror of the Demon Lords

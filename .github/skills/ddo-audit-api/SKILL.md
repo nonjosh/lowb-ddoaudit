@@ -136,8 +136,7 @@ interface Quest {
 - **Race normalization**: New races may return as `"Unknown: {id}"` — normalized in code
 - **Character caching**: Responses cached in IndexedDB via Dexie
 - **LFM response format**: Can be `{data: Record<string, LfmItem>}` or array
-- **Temporary area fallbacks**: `src/api/ddoAudit/areas.ts` merges `HARDCODED_AREAS` into the API result for known in-game locations that are missing from the upstream areas payload (currently including `1879301916` / The Anniversary Celebration and `1879304731` / Eveningstar Crafting Hall)
-- **Upstream area corrections**: `AREA_PATCHES` in `src/api/ddoAudit/areas.ts` overwrites upstream area records that are wrong (currently `1879303679`, the dedicated area of raid `Terror of the Demon Lords` (quest `1879303683`), forced to `is_wilderness: false` so raid occupants group under the raid instead of the mislabeled wilderness `Vision of an Alternate History`)
+- **Patched areas**: `PATCHED_AREAS` in `src/api/ddoAudit/areas.ts` is applied on top of the upstream areas payload: listed fields overwrite a matching record, and an entry carrying a `name` also seeds an area the payload omits (currently `1879301916` / The Anniversary Celebration, `1879304731` / Eveningstar Crafting Hall, `1879303681` / Return to Castle Ravenloft, and `1879303679` — the dedicated area of raid `Terror of the Demon Lords` (quest `1879303683`) — forced to `is_wilderness: false` so raid occupants group under the raid instead of the mislabeled wilderness `Vision of an Alternate History`)
 - **Temporary quest fallbacks**: `HARDCODED_QUESTS` in `src/api/ddoAudit/quests.ts` injects fallback quest entries for quests missing from the API; `PENDING_RAID_IDS` in `src/api/ddoAudit/constants.ts` marks raid ids whose data is pending. Both lists are kept empty unless a new quest/raid is missing upstream (see AGENTS.md > "Quests or areas missing from DDO Audit")
 
 ## Related Files
