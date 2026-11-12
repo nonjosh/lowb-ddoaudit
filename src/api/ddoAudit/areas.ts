@@ -8,8 +8,7 @@ import { AREAS_JSON_URL, DDOAUDIT_JSON_CACHE_TTL_MS } from './constants'
  * the API catches up.
  * Remove an entry once upstream carries correct data (see AGENTS.md > "Quests or areas missing from DDO Audit").
  */
-const PATCHED_AREAS: Array<{ id: string; name?: string; is_public?: boolean; is_wilderness?: boolean }> = [
-  { id: '1879301916', name: 'The Anniversary Celebration', is_public: true, is_wilderness: false },
+export const PATCHED_AREAS: Array<{ id: string; name?: string; is_public?: boolean; is_wilderness?: boolean }> = [
   { id: '1879304731', name: 'Eveningstar Crafting Hall', is_public: true, is_wilderness: false },
   // 1879303679 is the dedicated area of the raid "Terror of the Demon Lords"
   // (quest id 1879303683), but upstream labels it as wilderness
