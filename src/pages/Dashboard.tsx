@@ -16,6 +16,7 @@ import LfmRaidsSection from '@/components/lfm/LfmRaidsSection'
 import RaidTimerSection from '@/components/raids/RaidTimerSection'
 import Controls from '@/components/shared/Controls'
 import IdleWarningDialog from '@/components/shared/IdleWarningDialog'
+import ServiceNewsDialog from '@/components/shared/ServiceNewsDialog'
 import { CHARACTERS } from '@/config/characters'
 import { CharacterProvider } from '@/contexts/CharacterContext'
 import { useConfig } from '@/contexts/useConfig'
@@ -38,6 +39,8 @@ export default function Dashboard() {
   const [now, setNow] = useState(() => new Date())
   const [collapsedPlayerGroups, setCollapsedPlayerGroups] = useState(() => new Set<string>())
   const [expandedRaids, setExpandedRaids] = useState(() => new Set<string>())
+  const [serviceNewsOpen, setServiceNewsOpen] = useState(false)
+  const serviceNewsShownRef = useRef(false)
   const abortRef = useRef<AbortController | null>(null)
   const resetRaidCollapseRef = useRef(true)
   const loadingRef = useRef(false)
@@ -119,6 +122,13 @@ export default function Dashboard() {
   useEffect(() => {
     loadingRef.current = loading
   }, [loading])
+
+  // Show the downtime notice once per dashboard mount, when the server first reports offline.
+  useEffect(() => {
+    if (serverInfo.isOnline !== false || serviceNewsShownRef.current) return
+    serviceNewsShownRef.current = true
+    setServiceNewsOpen(true)
+  }, [serverInfo.isOnline])
 
   useEffect(() => {
     if (!autoRefreshEnabled || serverInfo.isOnline === false) return
@@ -223,6 +233,7 @@ export default function Dashboard() {
         onReEnable={handleIdleWarningReEnable}
         onClose={handleIdleWarningClose}
       />
+      <ServiceNewsDialog open={serviceNewsOpen} onClose={() => setServiceNewsOpen(false)} />
     </CharacterProvider>
   )
 }

@@ -38,6 +38,7 @@ src/
 │   ├── adventureLog/    # Adventure log API client (completions, notes)
 │   ├── ddoAudit/        # DDO Audit API (raids, characters, LFMs)
 │   ├── ddoGearPlanner/  # DDO Gear Planner data (items, crafting, sets)
+│   ├── ddoNews/         # DDO forum Service News RSS (downtime notices, CORS-open)
 │   └── remarks/         # Shared player notes client (dev falls back to localStorage)
 ├── components/          # UI components organized by feature
 │   ├── characters/      # Character display components
