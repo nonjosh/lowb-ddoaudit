@@ -156,6 +156,14 @@ When a new quest/raid is not yet in the DDO Audit API (or upstream data is wrong
 
 Remove the entries as soon as the API provides correct data: `scripts/check-area-patches.ts` fails when a `PATCHED_AREAS` entry is no longer needed (a weekly cron job pipes its output to the journal and sends failures to Telegram). Example: `Terror of the Demon Lords` (quest `1879303683`, area `1879303679`) was hardcoded on 2026-09 and cleaned up once upstream added it; its area remained patched (`is_wilderness: false`) because upstream mislabels it as wilderness `Vision of an Alternate History`. The four legendary-only raids patched on 2026-11 (`The Dryad and the Demigod`, `Hunt or Be Hunted`, `Skeletons in the Closet`, `Fire Over Morgrave`) carry a heroic CR of 19/5/19/19 with every heroic XP field null.
 
+The weekly check is opt-in and machine-local: `scripts/install-weekly-check.sh` adds a user
+crontab entry that runs `scripts/weekly-area-check.sh` every Monday 11:00, logs the output
+to `journalctl -t area-patches-check`, and forwards failures to
+`~/.local/bin/notify-telegram` when that notifier exists; `--remove` deletes the entry.
+That cron entry lives in the user's crontab, not in the repo or in OpenCode, so run
+`crontab -l` before assuming it is installed — and remove it if you stop maintaining
+`PATCHED_AREAS`.
+
 ### DDO Gear Planner (GitHub Raw)
 
 - Items: `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/refs/heads/master/data/items.json`
