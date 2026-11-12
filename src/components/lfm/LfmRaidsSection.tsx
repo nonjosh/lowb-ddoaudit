@@ -5,6 +5,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import {
   Alert,
   Box,
+  Button,
   Chip,
   CircularProgress,
   IconButton,
@@ -31,6 +32,7 @@ import { useWishlist } from '@/contexts/useWishlist'
 import ItemLootButton from '@/components/items/ItemLootButton'
 import RemarkBadge from '@/components/remarks/RemarkBadge'
 import QuestTierFilter from '@/components/shared/QuestTierFilter'
+import ServiceNewsDialog from '@/components/shared/ServiceNewsDialog'
 import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
@@ -60,6 +62,7 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
   const [selectedLfmId, setSelectedLfmId] = useState<string | null>(null)
   const [selectedGuildName, setSelectedGuildName] = useState<string | null>(null)
   const [playerStatsOpen, setPlayerStatsOpen] = useState(false)
+  const [serviceNewsOpen, setServiceNewsOpen] = useState(false)
   const rawCount = useMemo(() => Object.keys(lfmsById ?? {}).length, [lfmsById])
 
   useEffect(() => {
@@ -137,6 +140,10 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
         <Alert severity="error" sx={{ mt: 2 }}>
           The Shadowdale server is currently <b>offline</b>. LFM data is unavailable.
         </Alert>
+        <Button size="small" sx={{ mt: 1 }} aria-haspopup="dialog" onClick={() => setServiceNewsOpen(true)}>
+          View service news
+        </Button>
+        <ServiceNewsDialog open={serviceNewsOpen} onClose={() => setServiceNewsOpen(false)} />
       </Paper>
     )
   }
