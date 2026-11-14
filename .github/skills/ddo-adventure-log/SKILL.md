@@ -45,6 +45,29 @@ Currently: `Vision of an Alternate History` → `Terror of the Demon Lords`.
 - Per-attempt history, wipes, and TR-life scoping are not stored.
 - Quests shorter than ~2 minutes are missed by design.
 
+### Co-players per run
+
+A completion also records **who shared the instance**, because the group wants to know
+which characters ran a quest together. Upstream has no "party" guarantee: `location_id`
+is the area, so two unrelated parties running the same quest in the same minute share an
+area id and are recorded together (accepted). Party ids (`group_id`) are *not* used: they
+agree 1:1 with `is_in_party` but are only known for characters DDO Audit was told about,
+so trusting them would drop genuine companions.
+
+- Trigger: `GET /characters/{server}` (one ~35 KB gzipped snapshot) is read **only** on a
+  poll where a tracked character is online inside an area `resolveArea()` accepts. Hubs
+  and wilderness areas never collect players.
+- Matching: roster members whose `location_id` equals the tracked character's area, plus
+  the tracked character themselves, deduped by id (`mergePlayers`).
+- Accumulation: the list is a union across every sample of the visit, so a member who
+  joins late or leaves early is still recorded; it resets when the area changes.
+- Snapshot: `{ id, name, level, classes }` is captured at that moment (like `smurfs` in
+  player notes), so a later TR or rename does not rewrite history. Blank upstream names
+  are anonymous characters.
+- Cap: `MAX_RUN_PARTY = 12` (a raid group) bounds both the poller state document and the
+  public payload; the character themselves is always first, so they are never dropped.
+- Cost: a failed roster call only costs that tick's co-players; it never aborts the poll.
+
 ## Completion schema (Firestore)
 
 Every collection this app owns is prefixed `ddo_log_` (`COLLECTION_PREFIX` in
@@ -69,6 +92,8 @@ a one-off script that was removed after it ran.
 | `finished` | the user-facing checkbox |
 | `history` | completion timestamps, newest first, capped at 10 (`HISTORY_LIMIT`) |
 | `last_finished_at` | `history[0]`; `null` = no known completion date (rendered as "no data") |
+| `durations_ms` | estimated run length per `history` entry, aligned; `null` when unknown (manual edit, or written before the field) |
+| `players` | per `history` entry, aligned, including the character: `{ members: [{ id, name, level, classes }] }`, or `null` for manual edits and older rows. The object wrapper exists because Firestore rejects an array whose elements are arrays; `GET /completions` unwraps it to `PartyMember[][] | null[]` |
 | `level_at_finish` | character level at exit; a manual edit preserves the existing value and never sets one |
 | `source` | `poll` or `manual` |
 | `updated_at` | audit timestamp |
@@ -226,6 +251,10 @@ Hidden adventure packs are a browser preference (`localStorage`,
 - `MIN_SAMPLES = 2` at 1/minute is the dwell floor. If the interval changes, rescale it.
 - A run is skipped (no upstream request) when the last completed poll is under 45 s old,
   and an in-process flag blocks a second overlapping run (single instance).
+- Co-players need `GET /characters/{server}` (~35 KB gzipped), read only when a tracked
+  character is inside a resolvable quest area. The server name comes from
+  `DDO_SERVER_NAME` (default `Shadowdale`). A failed call keeps the run but drops its
+  co-player list.
 - State is saved with a compare-and-swap on `lastPollAt`, so a slow run cannot overwrite
   a newer one; completions are already committed and deduped by timestamp.
 - `getCatalog()` logs a warning when a quest area is missing from `/areas` or is flagged
@@ -234,7 +263,8 @@ Hidden adventure packs are a browser preference (`localStorage`,
 ## Operations
 
 - State lives in `ddo_log_state/poller` (one document): per-character `areaId`, `since`,
-  `samples`, `questId`, `lastInsideAt`, `misses`, plus `lastPollAt`.
+  `samples`, `questId`, `lastInsideAt`, `misses`, `players` (this visit's co-players),
+  plus `lastPollAt`.
 - `POST /poll` requires the scheduler OIDC token (audience = service URL, email verified).
 - `PATCH` requires `X-Log-Password` (Secret Manager, constant-time compare).
 - `GET /completions` is public and served from a 15 s in-process cache.

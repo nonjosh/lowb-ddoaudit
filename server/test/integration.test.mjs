@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { getCatalog } from '../dist/ddo.js'
+import { getCatalog, fetchServerRoster } from '../dist/ddo.js'
 import { applyObservations, emptyState, resolveArea } from '../dist/detect.js'
 
 const options = { minSamples: 2, levelMargin: 4 }
 const catalog = await getCatalog()
+
+test('the server roster carries names, areas and classes', async () => {
+  const roster = await fetchServerRoster('Shadowdale')
+  assert.ok(roster.length > 50, `only ${roster.length} online characters`)
+  const withClasses = roster.filter((character) => character.name && character.classes.length > 0)
+  assert.ok(withClasses.length > 0, 'no roster character had a name and classes')
+  assert.ok(withClasses.some((character) => character.areaId !== null))
+})
 
 test('catalog covers the live quest list', () => {
   assert.ok(catalog.questById.size > 600, `only ${catalog.questById.size} quests`)
@@ -70,6 +78,38 @@ test('a two-sample visit is recorded, a single-sample one is not', () => {
   // Re-applying the same observation must not produce a second completion.
   const fourth = applyObservations(third.state, [outside], t3, catalog, options)
   assert.equal(fourth.completions.length, 0)
+})
+
+test('a run records the characters sharing its instance with class and level', () => {
+  const self = {
+    characterId: 'c9',
+    name: 'Self',
+    online: true,
+    areaId: '1879132475',
+    level: 19,
+    classes: [{ name: 'Fighter', level: 19 }],
+    updatedAt: null,
+  }
+  const outside = { ...self, areaId: '1879248486' }
+  const buddy = {
+    id: 'p2',
+    name: 'Buddy',
+    level: 18,
+    classes: [{ name: 'Rogue', level: 18 }],
+  }
+  // The buddy leaves after the first sample; the union keeps them in the run.
+  const first = applyObservations(emptyState(), [self], new Date('2026-01-01T00:00:00Z'), catalog, {
+    ...options,
+    playersByArea: new Map([[self.areaId, [buddy]]]),
+  })
+  const second = applyObservations(first.state, [self], new Date('2026-01-01T00:01:00Z'), catalog, options)
+  const third = applyObservations(second.state, [outside], new Date('2026-01-01T00:02:00Z'), catalog, options)
+
+  assert.equal(third.completions.length, 1)
+  const players = third.completions[0].players
+  assert.deepEqual(players.map((player) => player.id), ['c9', 'p2'])
+  assert.deepEqual(players[0].classes, [{ name: 'Fighter', level: 19 }])
+  assert.equal(players[1].level, 18)
 })
 
 test('a single upstream omission does not close a visit', () => {

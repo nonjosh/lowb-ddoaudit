@@ -1,5 +1,5 @@
 import { bandForLevel, type QuestBand } from './bands.js'
-import type { Catalog, CharacterObservation, QuestRecord } from './ddo.js'
+import type { Catalog, CharacterClass, CharacterObservation, QuestRecord } from './ddo.js'
 
 /**
  * Areas that the upstream API labels as wilderness but are actually instanced
@@ -66,10 +66,40 @@ export interface CharacterState {
   /** Consecutive polls where upstream omitted this character. */
   misses?: number
   /**
+   * Everyone seen in the same area during this visit, including the character
+   * themselves, with the class and level they had at that moment.
+   */
+  players?: PlayerSnapshot[]
+  /**
    * Set when the character level drops hard (20+ -> 5-). Cleared when a low-level
    * quest confirms the reincarnation, or by the poller after a day.
    */
   pendingTrAt?: string | null
+}
+
+export interface PlayerSnapshot {
+  id: string
+  name: string
+  level: number | null
+  classes: CharacterClass[]
+}
+
+/** A raid group is the largest party DDO allows; anything past it is another group. */
+export const MAX_RUN_PARTY = 12
+
+/** Union of two samples, keeping first-seen order; a later snapshot replaces an earlier one. */
+export function mergePlayers(
+  previous: PlayerSnapshot[] | undefined,
+  next: PlayerSnapshot[] | undefined,
+): PlayerSnapshot[] {
+  const merged = new Map<string, PlayerSnapshot>()
+  for (const player of [...(previous ?? []), ...(next ?? [])]) {
+    // Bounds both the poller state document and the public payload when an idle
+    // character sits inside a busy instance.
+    if (!merged.has(player.id) && merged.size >= MAX_RUN_PARTY) continue
+    merged.set(player.id, player)
+  }
+  return [...merged.values()]
 }
 
 export interface Reincarnation {
@@ -91,6 +121,8 @@ export interface Completion {
   /** First sample inside the quest; the run's duration is exitAt - enteredAt. */
   enteredAt: Date
   level: number | null
+  /** Who shared the instance, including the character, as seen during the run. */
+  players: PlayerSnapshot[]
 }
 
 export function emptyState(): PollerState {
@@ -111,7 +143,7 @@ export function applyObservations(
   observations: CharacterObservation[],
   now: Date,
   catalog: Catalog,
-  options: { minSamples: number; levelMargin: number },
+  options: { minSamples: number; levelMargin: number; playersByArea?: Map<string, PlayerSnapshot[]> },
 ): { state: PollerState; completions: Completion[]; reincarnations: Reincarnation[] } {
   const characters: Record<string, CharacterState> = { ...state.characters }
   const completions: Completion[] = []
@@ -129,6 +161,23 @@ export function applyObservations(
 
     const areaId = observation.online ? observation.areaId : null
     const resolved = resolveArea(areaId, observation.level, catalog, options.levelMargin)
+
+    // Only quest instances are recorded: a hub or wilderness area holds every player in
+    // it, which would put strangers into the poller state for no reason.
+    const samplePlayers =
+      resolved && areaId
+        ? mergePlayers(
+            [
+              {
+                id: observation.characterId,
+                name: observation.name ?? '',
+                level: observation.level,
+                classes: observation.classes ?? [],
+              },
+            ],
+            options.playersByArea?.get(areaId),
+          )
+        : []
 
     // A hard level drop (20+ down to 5 or less) is a reincarnation candidate; it only
     // becomes one when the character turns up in a low-level quest.
@@ -166,6 +215,7 @@ export function applyObservations(
         misses: 0,
         level: observation.level ?? previous.level,
         pendingTrAt: nextPendingTrAt,
+        players: mergePlayers(previous.players, samplePlayers),
         questId: previous.questId ?? resolved?.quest.id ?? null,
         // Keep the clock running while we still hold a quest for this visit, even
         // if a level change makes the area ambiguous mid-run.
@@ -184,6 +234,7 @@ export function applyObservations(
         exitAt: new Date(previous.lastInsideAt),
         enteredAt: new Date(previous.since),
         level: previous.level,
+        players: previous.players ?? [],
       })
     }
 
@@ -196,6 +247,7 @@ export function applyObservations(
       level: observation.level ?? previous?.level ?? null,
       lastInsideAt: resolved ? now.toISOString() : null,
       misses: 0,
+      players: samplePlayers,
       pendingTrAt: nextPendingTrAt,
     }
   }

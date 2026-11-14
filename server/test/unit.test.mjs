@@ -1,7 +1,29 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { mergePlayers } from '../dist/detect.js'
 import { mergeSmurfs, parseCharacterId, parseCharacterName, parseRemarkInput, remainingSmurfs } from '../dist/remarks.js'
+
+test('co-player samples merge by id with the newest snapshot winning', () => {
+  const early = { id: '1', name: 'Chz', level: 10, classes: [{ name: 'Fighter', level: 10 }] }
+  const late = { ...early, level: 12, classes: [{ name: 'Fighter', level: 12 }] }
+  const other = { id: '2', name: 'Chzz', level: 11, classes: [] }
+
+  const merged = mergePlayers([early], [late, other])
+  assert.deepEqual(merged.map((player) => player.id), ['1', '2'])
+  assert.equal(merged[0].level, 12)
+  assert.deepEqual(merged[0].classes, [{ name: 'Fighter', level: 12 }])
+  assert.deepEqual(mergePlayers(undefined, undefined), [])
+
+  // A busy instance must not grow past a raid group.
+  const crowd = Array.from({ length: 20 }, (_, index) => ({
+    id: String(100 + index),
+    name: `p${index}`,
+    level: 1,
+    classes: [],
+  }))
+  assert.equal(mergePlayers([], crowd).length, 12)
+})
 
 test('character ids are validated', () => {
   assert.equal(parseCharacterId('47251953651').ok, true)

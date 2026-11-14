@@ -38,7 +38,10 @@ Defined in `src/api/ddoAudit/constants.ts`.
 Notes on the character endpoints:
 
 - `/characters/{server}` returns **online** characters only (a few hundred); there is no
-  partial-name search endpoint, so name search is client-side over that list.
+  partial-name search endpoint, so name search is client-side over that list. On
+  Shadowdale it is ~478 characters: 235 KB raw, ~35 KB gzipped. The adventure-log poller
+  reads it once per minute *only while a tracked character is inside a quest*, to name the
+  characters sharing the instance — never attach it to a page-level refresh timer.
 - `/characters/{server}/{name}` is an exact-name lookup (case-insensitive, 404 when the
   name is unknown) that **also finds offline characters**; it is what the notes dialog
   uses for offline rows.

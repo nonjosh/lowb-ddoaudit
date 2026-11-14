@@ -53,6 +53,7 @@ async function main() {
     enteredAt: new Date(now - 20 * MINUTE),
     exitAt: new Date(now - 6 * MINUTE),
     level: 7,
+    players: [],
   })
 
   const id = `${CHARACTER}_${QUEST}_${BAND}`
@@ -69,6 +70,7 @@ async function main() {
     enteredAt: new Date(now - 5 * MINUTE),
     exitAt: new Date(now - 1 * MINUTE),
     level: 7,
+    players: [{ id: 'synthetic-buddy', name: 'Buddy', level: 7, classes: [{ name: 'Fighter', level: 7 }] }],
   })
 
   data = (await completions.doc(id).get()).data()
@@ -76,6 +78,9 @@ async function main() {
   assert(data.durations_ms.length === 2, 'durations not aligned with history')
   assert(minutes(data.durations_ms[0]) === 4, `newest run should be 4m, got ${minutes(data.durations_ms[0])}m`)
   assert(minutes(data.durations_ms[1]) === 14, 'older run lost its duration')
+  assert(data.players.length === 2, 'players not aligned with history')
+  assert(data.players[0].members[0].name === 'Buddy', 'newest run lost its co-player')
+  assert(data.players[1] === null, 'a run with no co-players must be null')
 
   // A hand-entered completion has no measured length but must stay aligned.
   await applyManualEdit({
@@ -95,6 +100,9 @@ async function main() {
   assert(data.durations_ms[1] === null, 'a manual entry must have no duration')
   assert(minutes(data.durations_ms[0]) === 4, 'newest run lost its duration after a manual edit')
   assert(minutes(data.durations_ms[2]) === 14, 'oldest run lost its duration after a manual edit')
+  assert(data.players.length === 3, 'players lost alignment after a manual edit')
+  assert(data.players[0].members[0].name === 'Buddy', 'newest run lost its co-player after a manual edit')
+  assert(data.players[1] === null, 'a manual entry must have no co-player list')
 
   // Clearing the history clears the durations with it.
   await applyManualEdit({
@@ -106,9 +114,12 @@ async function main() {
     level: null,
   })
   data = (await completions.doc(id).get()).data()
-  assert(data.history.length === 0 && data.durations_ms.length === 0, 'clearing history left durations behind')
+  assert(
+    data.history.length === 0 && data.durations_ms.length === 0 && (data.players ?? []).length === 0,
+    'clearing history left durations or players behind',
+  )
 
-  console.log('OK: polled runs record a duration, manual entries are null, arrays stay aligned')
+  console.log('OK: polled runs record duration and co-players, manual entries are null, arrays stay aligned')
 }
 
 main()

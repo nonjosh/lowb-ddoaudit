@@ -55,6 +55,7 @@ import {
   type ActivityMap,
   type CompletionEntry,
   type CompletionMap,
+  type PartyMember,
   type ReincarnationMap,
 } from '@/api/adventureLog'
 import { ADVENTURE_LOG_PASSWORD_STORAGE_KEY } from '@/api/adventureLog/constants'
@@ -65,7 +66,7 @@ import ReincarnationDialog from '@/components/adventureLog/ReincarnationDialog'
 import IdleWarningDialog from '@/components/shared/IdleWarningDialog'
 import { CHARACTERS } from '@/config/characters'
 import { useConfig } from '@/contexts/useConfig'
-import type { CharacterClass } from '@/domains/raids/raidLogic'
+import { formatClasses, type CharacterClass } from '@/domains/raids/raidLogic'
 import { useIdleTimer } from '@/hooks/useIdleTimer'
 import sagaCardsData from '@/data/sagaCards.json'
 import {
@@ -201,14 +202,27 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   )
 }
 
+/** "OldMic (Warlock 20, FvS 5), Shraz (L11)" — blank upstream names are anonymous. */
+function formatParty(players: PartyMember[]): string {
+  return players
+    .map((player) => {
+      const name = player.name || 'Anonymous'
+      const classes = formatClasses(player.classes)
+      return classes === '—' ? name : `${name} (${classes})`
+    })
+    .join(', ')
+}
+
 function HistoryTooltip({
   history,
   durations,
+  players,
   trAt,
   now,
 }: {
   history: readonly string[]
   durations: ReadonlyArray<number | null>
+  players: ReadonlyArray<PartyMember[] | null | undefined>
   trAt: string | null
   now: number
 }) {
@@ -218,7 +232,7 @@ function HistoryTooltip({
   const lifeStart = trAt ? new Date(trAt).getTime() : null
 
   return (
-    <Box sx={{ py: 0.5 }}>
+    <Box sx={{ py: 0.5, maxWidth: 420 }}>
       <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
         {status.runsInWindow}/{QUEST_RANSACK_LIMIT} loots in this ransack timer
         {status.ransacked
@@ -238,24 +252,35 @@ function HistoryTooltip({
         const previousLife = lifeStart !== null && timestamp < lifeStart
         const inWindow = status.windowStart ? timestamp >= status.windowStart.getTime() : isWithinRansackWindow(iso)
         const duration = formatDuration(durations[index])
+        const party = players[index]
         return (
-          <Stack key={iso} direction="row" spacing={1} sx={{ fontSize: 12, lineHeight: 1.6 }}>
-            <Box
-              component="span"
-              sx={{
-                color: previousLife ? 'text.disabled' : inWindow ? 'warning.main' : 'text.secondary',
-                fontWeight: inWindow && !previousLife ? 700 : 400,
-              }}
-            >
-              {formatLocalDateTime(iso)}
-              {previousLife ? ' (prev life)' : ''}
-            </Box>
-            {duration && (
-              <Box component="span" sx={{ color: previousLife ? 'text.disabled' : 'text.secondary' }}>
-                ~{duration}
+          <Box key={iso}>
+            <Stack direction="row" spacing={1} sx={{ fontSize: 12, lineHeight: 1.6 }}>
+              <Box
+                component="span"
+                sx={{
+                  color: previousLife ? 'text.disabled' : inWindow ? 'warning.main' : 'text.secondary',
+                  fontWeight: inWindow && !previousLife ? 700 : 400,
+                }}
+              >
+                {formatLocalDateTime(iso)}
+                {previousLife ? ' (prev life)' : ''}
               </Box>
+              {duration && (
+                <Box component="span" sx={{ color: previousLife ? 'text.disabled' : 'text.secondary' }}>
+                  ~{duration}
+                </Box>
+              )}
+            </Stack>
+            {party && party.length > 0 && (
+              <Typography
+                variant="caption"
+                sx={{ display: 'block', fontSize: 11, color: previousLife ? 'text.disabled' : 'text.secondary' }}
+              >
+                Party: {formatParty(party)}
+              </Typography>
             )}
-          </Stack>
+          </Box>
         )
       })}
     </Box>
@@ -478,6 +503,7 @@ function QuestRow({ row, entry, busy, query, showSagaBadge, showPack, liveSince,
                 <HistoryTooltip
                   history={entry?.history ?? []}
                   durations={entry?.durationsMs ?? []}
+                  players={entry?.players ?? []}
                   trAt={trAt}
                   now={now}
                 />
@@ -774,6 +800,7 @@ export default function AdventureLog() {
             lastFinishedAt: existing?.lastFinishedAt ?? null,
             history: existing?.history ?? [],
             durationsMs: existing?.durationsMs,
+            players: existing?.players,
             levelAtFinish: existing?.levelAtFinish ?? null,
             source: 'manual',
           }

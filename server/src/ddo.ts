@@ -15,14 +15,30 @@ export interface Catalog {
   areaIsPublic: Map<string, boolean>
 }
 
+export interface CharacterClass {
+  name: string
+  level: number
+}
+
 export interface CharacterObservation {
   characterId: string
+  name: string
   online: boolean
   areaId: string | null
   level: number | null
+  classes: CharacterClass[]
   updatedAt: string | null
   /** True when upstream simply omitted the id; one omission is not a logout. */
   missing?: boolean
+}
+
+/** One online character, as the server roster reports them. */
+export interface RosterCharacter {
+  id: string
+  name: string
+  areaId: string | null
+  level: number | null
+  classes: CharacterClass[]
 }
 
 interface RawQuest {
@@ -41,16 +57,31 @@ interface RawArea {
 
 interface RawCharacter {
   id?: string | number
+  name?: string | null
   total_level?: number | null
   location_id?: string | number | null
   is_online?: boolean
   last_update?: string | null
+  classes?: unknown
 }
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+/** `[{ name, level }]`, dropping entries that cannot be shown. */
+function toClasses(value: unknown): CharacterClass[] {
+  if (!Array.isArray(value)) return []
+  const classes: CharacterClass[] = []
+  for (const entry of value) {
+    const raw = entry as { name?: unknown; level?: unknown } | null
+    const name = typeof raw?.name === 'string' ? raw.name : ''
+    const level = toNumber(raw?.level)
+    if (name && level !== null) classes.push({ name, level })
+  }
+  return classes
 }
 
 function asArray<T>(payload: unknown): T[] {
@@ -170,9 +201,11 @@ export async function fetchObservations(characterIds: string[]): Promise<Charact
         // can also be a transient gap. Flag it and let the caller decide.
         observations.push({
           characterId,
+          name: '',
           online: false,
           areaId: null,
           level: null,
+          classes: [],
           updatedAt: null,
           missing: true,
         })
@@ -183,13 +216,42 @@ export async function fetchObservations(characterIds: string[]): Promise<Charact
         : String(character.location_id)
       observations.push({
         characterId,
+        name: character.name ?? '',
         online: character.is_online === true,
         areaId,
         level: toNumber(character.total_level),
+        classes: toClasses(character.classes),
         updatedAt: character.last_update ?? null,
       })
     }
   }
 
   return observations
+}
+
+/**
+ * Every online character on the server, in one request (~35 KB gzipped). The poller
+ * uses it only to name the characters sharing a quest instance with a tracked one;
+ * `location_id` is the area, so two parties running the same quest at the same minute
+ * cannot be told apart upstream and are recorded together.
+ */
+export async function fetchServerRoster(serverName: string): Promise<RosterCharacter[]> {
+  const payload = await getJson(`/characters/${encodeURIComponent(serverName)}`)
+  const roster: RosterCharacter[] = []
+  for (const character of asArray<RawCharacter>(payload)) {
+    if (character.id === null || character.id === undefined) continue
+    // The endpoint is online-only by contract, but a lingering record must not become
+    // a co-player of every later run in that area.
+    if (character.is_online !== true) continue
+    roster.push({
+      id: String(character.id),
+      name: character.name ?? '',
+      areaId: character.location_id === null || character.location_id === undefined
+        ? null
+        : String(character.location_id),
+      level: toNumber(character.total_level),
+      classes: toClasses(character.classes),
+    })
+  }
+  return roster
 }

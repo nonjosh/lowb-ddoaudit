@@ -1,6 +1,6 @@
 import { config } from './config.js'
-import { applyObservations } from './detect.js'
-import { fetchObservations, getCatalog } from './ddo.js'
+import { applyObservations, resolveArea, type PlayerSnapshot } from './detect.js'
+import { fetchObservations, fetchServerRoster, getCatalog, type RosterCharacter } from './ddo.js'
 import {
   loadPollerState,
   recordPolledCompletion,
@@ -20,6 +20,33 @@ export interface PollResult {
 // in savePollerState. A time-based gap is deliberately not used: scheduler jitter
 // could skip a legitimate tick and lose a sample.
 let inFlight = false
+
+/** A failed roster only costs the co-player list of that tick; never abort the poll. */
+async function loadRoster(): Promise<RosterCharacter[]> {
+  try {
+    return await fetchServerRoster(config.serverName)
+  } catch (error) {
+    console.warn('poll: roster fetch failed', error)
+    return []
+  }
+}
+
+function buildPlayersByArea(roster: RosterCharacter[]): Map<string, PlayerSnapshot[]> {
+  const byArea = new Map<string, PlayerSnapshot[]>()
+  for (const member of roster) {
+    if (!member.areaId) continue
+    const snapshot: PlayerSnapshot = {
+      id: member.id,
+      name: member.name,
+      level: member.level,
+      classes: member.classes,
+    }
+    const bucket = byArea.get(member.areaId)
+    if (bucket) bucket.push(snapshot)
+    else byArea.set(member.areaId, [snapshot])
+  }
+  return byArea
+}
 
 export async function runPoll(now: Date = new Date()): Promise<PollResult> {
   if (inFlight) {
@@ -43,6 +70,15 @@ async function pollOnce(now: Date): Promise<PollResult> {
   const catalog = await getCatalog()
   const observations = await fetchObservations(config.trackedCharacterIds)
 
+  // The roster is one large response, so it is read only while someone is actually
+  // inside a quest: that is the only moment a run can collect co-players.
+  const questing = observations.some(
+    (observation) =>
+      observation.online &&
+      resolveArea(observation.areaId, observation.level, catalog, config.levelMargin) !== null,
+  )
+  const playersByArea = buildPlayersByArea(questing ? await loadRoster() : [])
+
   const {
     state: nextState,
     completions,
@@ -50,6 +86,7 @@ async function pollOnce(now: Date): Promise<PollResult> {
   } = applyObservations(state, observations, now, catalog, {
     minSamples: config.minSamples,
     levelMargin: config.levelMargin,
+    playersByArea,
   })
 
   // Record before advancing state: a failed write is retried on the next tick and

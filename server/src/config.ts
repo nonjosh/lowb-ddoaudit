@@ -24,6 +24,8 @@ function positiveInt(name: string, fallback: number): number {
 export const config = {
   port: positiveInt('PORT', 8080),
   ddoApiBaseUrl: process.env.DDO_API_BASE_URL ?? 'https://api.ddoaudit.com/v1',
+  // The server whose online roster is read to name the characters sharing a run.
+  serverName: process.env.DDO_SERVER_NAME ?? 'Shadowdale',
   // Comma-separated character ids to poll. Not a secret, but deployment-specific.
   trackedCharacterIds: list('TRACKED_CHARACTER_IDS'),
   // Shared write password, mounted from Secret Manager.

@@ -1,6 +1,8 @@
+import { gzipSync } from 'node:zlib'
+
 import { FieldValue, Firestore, Timestamp, type DocumentReference } from '@google-cloud/firestore'
 
-import type { Completion, PollerState } from './detect.js'
+import type { Completion, PlayerSnapshot, PollerState } from './detect.js'
 import { emptyState } from './detect.js'
 
 export interface CompletionRecord {
@@ -17,6 +19,12 @@ export interface CompletionRecord {
    * a manual edit, or a row written before durations were recorded).
    */
   durations_ms?: Array<number | null>
+  /**
+   * Who shared the instance during each run, aligned with `history`; null for runs
+   * recorded by hand or before this field existed. Includes the tracked character.
+   * Wrapped in an object because Firestore rejects an array whose elements are arrays.
+   */
+  players?: Array<{ members: PlayerSnapshot[] } | null>
   level_at_finish: number | null
   source: 'poll' | 'manual'
   updated_at: Timestamp
@@ -44,26 +52,32 @@ const revisionDocument = db.doc(`${COLLECTION_PREFIX}state/revision`)
 export const completionId = (characterId: string, questId: string, band: string): string =>
   `${characterId}_${questId}_${band}`
 
+/** Rows written before this field existed, or by a manual edit, have no co-player list. */
+function playersOf(data: Partial<CompletionRecord> | null): Array<{ members: PlayerSnapshot[] } | null> {
+  return Array.isArray(data?.players) ? data.players : []
+}
+
 /** Durations written before this field existed, or by a manual edit, are unknown. */
 function durationsOf(data: Partial<CompletionRecord> | null): Array<number | null> {
   return Array.isArray(data?.durations_ms) ? data.durations_ms : []
 }
 
 /**
- * Keeps `durations_ms` aligned with a rewritten history: entries that survived keep their
- * duration, the entry just written takes `newDuration`, and anything else is null.
+ * Keeps a per-run array (`durations_ms`, `players`) aligned with a rewritten history:
+ * entries that survived keep their value, the entry just written takes `newValue`,
+ * and anything else is null.
  */
-function alignDurations(
+export function alignAligned<T>(
   previousHistory: Timestamp[],
-  previousDurations: Array<number | null>,
+  previousValues: Array<T | null>,
   nextHistory: Timestamp[],
   newAt: Timestamp,
-  newDuration: number | null,
-): Array<number | null> {
-  const byMillis = new Map<number, number | null>()
-  previousHistory.forEach((entry, index) => byMillis.set(entry.toMillis(), previousDurations[index] ?? null))
+  newValue: T | null,
+): Array<T | null> {
+  const byMillis = new Map<number, T | null>()
+  previousHistory.forEach((entry, index) => byMillis.set(entry.toMillis(), previousValues[index] ?? null))
   return nextHistory.map((entry) =>
-    entry.toMillis() === newAt.toMillis() ? newDuration : (byMillis.get(entry.toMillis()) ?? null),
+    entry.toMillis() === newAt.toMillis() ? newValue : (byMillis.get(entry.toMillis()) ?? null),
   )
 }
 
@@ -93,6 +107,7 @@ function previousOf(existing: CompletionRecord | null) {
     previous_finished: existing?.finished === true,
     previous_history: historyOf(existing),
     previous_durations_ms: durationsOf(existing),
+    previous_players: playersOf(existing),
     previous_level_at_finish: existing?.level_at_finish ?? null,
     previous_source: existing?.source ?? null,
   }
@@ -104,11 +119,16 @@ type SerializedCompletions = Record<string, Record<string, unknown>>
 // collection, which is both a bill and a way to starve the poller on the single
 // instance. 15s of staleness is invisible in the UI.
 const LIST_CACHE_TTL_MS = 15_000
-let listCache: { json: string; expiresAt: number } | null = null
+/** Serialized once per cache fill, gzipped once with it: 345 KB of JSON is ~40 KB. */
+export interface CompletionsBody {
+  json: string
+  gzip: Buffer
+}
+let listCache: (CompletionsBody & { expiresAt: number }) | null = null
 // Bumped on every write: a read that started before the write must not repopulate
 // the cache with the pre-write snapshot.
 let listEpoch = 0
-let listInFlight: Promise<string> | null = null
+let listInFlight: Promise<CompletionsBody> | null = null
 
 export function invalidateCompletionsCache(): void {
   listCache = null
@@ -138,21 +158,21 @@ function bumpRevision(): void {
 }
 
 /**
- * Serialized body for GET /completions. The string is cached, not just the object,
- * so a public request costs no re-stringify on the single instance.
+ * Serialized body for GET /completions. Both the string and its gzip are cached, not just
+ * the object, so a public request costs no re-stringify or re-compress on the single instance.
  */
-export async function listCompletionsJson(): Promise<string> {
-  if (listCache && listCache.expiresAt > Date.now()) return listCache.json
+export async function listCompletions(): Promise<CompletionsBody> {
+  if (listCache && listCache.expiresAt > Date.now()) return listCache
   // Single-flight: a public endpoint should never fan a cold cache out into N scans.
   if (listInFlight) return listInFlight
 
-  listInFlight = loadCompletionsJson(listEpoch).finally(() => {
+  listInFlight = loadCompletions(listEpoch).finally(() => {
     listInFlight = null
   })
   return listInFlight
 }
 
-async function loadCompletionsJson(epoch: number): Promise<string> {
+async function loadCompletions(epoch: number): Promise<CompletionsBody> {
   const snapshot = await completions.get()
   const result: SerializedCompletions = {}
 
@@ -164,6 +184,7 @@ async function loadCompletionsJson(epoch: number): Promise<string> {
 
     const history = historyOf(data)
     const durations = durationsOf(data)
+    const players = playersOf(data)
     const band = data.band ?? 'heroic'
     const bucket = result[characterId] ?? {}
     bucket[`${questId}:${band}`] = {
@@ -172,6 +193,7 @@ async function loadCompletionsJson(epoch: number): Promise<string> {
       history: history.map((entry) => entry.toDate().toISOString()),
       // Omitted when empty: 1,800 entries of "durationsMs":[] is 12% of the payload.
       durationsMs: durations.length > 0 ? durations : undefined,
+      players: players.length > 0 ? players.map((party) => party?.members ?? null) : undefined,
       levelAtFinish: data.level_at_finish ?? null,
       source: data.source ?? 'poll',
     }
@@ -179,10 +201,11 @@ async function loadCompletionsJson(epoch: number): Promise<string> {
   }
 
   const json = JSON.stringify({ data: result })
+  const body: CompletionsBody = { json, gzip: gzipSync(Buffer.from(json)) }
   if (epoch === listEpoch) {
-    listCache = { json, expiresAt: Date.now() + LIST_CACHE_TTL_MS }
+    listCache = { ...body, expiresAt: Date.now() + LIST_CACHE_TTL_MS }
   }
-  return json
+  return body
 }
 
 /**
@@ -202,6 +225,7 @@ export async function recordPolledCompletion(completion: Completion): Promise<bo
     const existing = current.exists ? (current.data() as CompletionRecord) : null
     const history = historyOf(existing)
     const durations = durationsOf(existing)
+    const players = playersOf(existing)
 
     // Timestamp comparison is the only dedupe needed: a retried poll carries the
     // same exit time and is skipped.
@@ -220,7 +244,14 @@ export async function recordPolledCompletion(completion: Completion): Promise<bo
         finished: true,
         last_finished_at: exitAt,
         history: nextHistory,
-        durations_ms: alignDurations(history, durations, nextHistory, exitAt, durationMs),
+        durations_ms: alignAligned<number>(history, durations, nextHistory, exitAt, durationMs),
+        players: alignAligned<{ members: PlayerSnapshot[] }>(
+          history,
+          players,
+          nextHistory,
+          exitAt,
+          completion.players.length > 0 ? { members: completion.players } : null,
+        ),
         level_at_finish: completion.level,
         source: 'poll',
         updated_at: Timestamp.now(),
@@ -266,6 +297,7 @@ export async function applyManualEdits(changes: ManualEdit[]): Promise<number> {
 
       const previousHistory = historyOf(existing)
       const previousDurations = durationsOf(existing)
+      const previousPlayers = playersOf(existing)
       const addedAt = edit.lastFinishedAt ? Timestamp.fromDate(edit.lastFinishedAt) : null
       const history =
         edit.lastFinishedAt === undefined
@@ -273,13 +305,19 @@ export async function applyManualEdits(changes: ManualEdit[]): Promise<number> {
           : edit.lastFinishedAt === null
             ? []
             : withHistoryEntry(previousHistory, addedAt as Timestamp)
-      // A hand-entered completion has no measured duration.
+      // A hand-entered completion has no measured duration and no observed co-players.
       const durations =
         addedAt === null
           ? edit.lastFinishedAt === undefined
             ? previousDurations
             : []
-          : alignDurations(previousHistory, previousDurations, history, addedAt, null)
+          : alignAligned<number>(previousHistory, previousDurations, history, addedAt, null)
+      const players =
+        addedAt === null
+          ? edit.lastFinishedAt === undefined
+            ? previousPlayers
+            : []
+          : alignAligned<{ members: PlayerSnapshot[] }>(previousHistory, previousPlayers, history, addedAt, null)
 
       transaction.set(
         refs[index],
@@ -291,6 +329,7 @@ export async function applyManualEdits(changes: ManualEdit[]): Promise<number> {
           last_finished_at: history[0] ?? null,
           history,
           durations_ms: durations,
+          players,
           level_at_finish: existing?.level_at_finish ?? edit.level,
           source: 'manual',
           updated_at: Timestamp.now(),
@@ -328,6 +367,7 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
     // Unchecking keeps the observed history so the same visit cannot be re-applied.
     const previousHistory = historyOf(existing)
     const previousDurations = durationsOf(existing)
+    const previousPlayers = playersOf(existing)
     const addedAt = edit.lastFinishedAt ? Timestamp.fromDate(edit.lastFinishedAt) : null
     const history =
       edit.lastFinishedAt === undefined
@@ -335,13 +375,19 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
         : edit.lastFinishedAt === null
           ? []
           : withHistoryEntry(previousHistory, addedAt as Timestamp)
-    // A hand-entered completion has no measured duration.
+    // A hand-entered completion has no measured duration and no observed co-players.
     const durations =
       addedAt === null
         ? edit.lastFinishedAt === undefined
           ? previousDurations
           : []
-        : alignDurations(previousHistory, previousDurations, history, addedAt, null)
+        : alignAligned<number>(previousHistory, previousDurations, history, addedAt, null)
+    const players =
+      addedAt === null
+        ? edit.lastFinishedAt === undefined
+          ? previousPlayers
+          : []
+        : alignAligned<{ members: PlayerSnapshot[] }>(previousHistory, previousPlayers, history, addedAt, null)
 
     const lastFinishedAt = history[0] ?? null
 
@@ -353,6 +399,7 @@ export async function applyManualEdit(edit: ManualEdit): Promise<CompletionRecor
       last_finished_at: lastFinishedAt,
       history,
       durations_ms: durations,
+      players,
       level_at_finish: existing?.level_at_finish ?? edit.level,
       source: 'manual',
       updated_at: Timestamp.now(),

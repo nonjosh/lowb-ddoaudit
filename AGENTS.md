@@ -244,6 +244,14 @@ Rules that matter when editing this area:
 - `src/data/character_ids.csv` is the source of the tracked character list; the
   `tracked_character_ids` Terraform variable must be regenerated when an alt is added
   (see `terraform-dev/ddo-log/README.md`).
+- Every completion also stores who shared the run (`players`, aligned with `history`:
+  `{ id, name, level, classes }`, including the tracked character). The poller reads
+  `GET /characters/{server}` (`DDO_SERVER_NAME`, default `Shadowdale`) only on a poll where
+  a tracked character is inside a resolvable quest — ~35 KB gzipped, zero extra Firestore
+  reads. Upstream `location_id` is the area, not the instance, so two unrelated parties
+  running the same quest in the same minute are recorded together on purpose; party ids
+  are not used because their coverage is patchy. A failed roster call keeps the run and
+  only drops its co-player list.
 - Never commit the write password, and never log it. It only exists in Secret Manager.
 - Inference rules are documented in `.github/skills/ddo-adventure-log/SKILL.md`; update
   that skill when changing `server/src/detect.ts`.

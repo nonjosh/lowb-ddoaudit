@@ -12,7 +12,7 @@ import {
   applyManualEdit,
   applyManualEdits,
   completionsRevision,
-  listCompletionsJson,
+  listCompletions,
   listReincarnations,
   loadPollerState,
   recordReincarnation,
@@ -111,10 +111,18 @@ app.get('/health', (_request, response) => {
 
 app.get(
   '/completions',
-  asyncRoute(async (_request, response) => {
-    const body = await listCompletionsJson()
+  asyncRoute(async (request, response) => {
+    const body = await listCompletions()
     response.setHeader('Cache-Control', 'no-store')
-    response.type('application/json').send(body)
+    response.type('application/json')
+    response.append('Vary', 'Accept-Encoding')
+    // The log is the page's largest response and grows with every recorded run.
+    if ((request.header('accept-encoding') ?? '').includes('gzip')) {
+      response.setHeader('Content-Encoding', 'gzip')
+      response.send(body.gzip)
+      return
+    }
+    response.send(body.json)
   }),
 )
 

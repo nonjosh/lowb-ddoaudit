@@ -1,5 +1,13 @@
 import { ADVENTURE_LOG_API_URL } from './constants'
 
+/** One character as they were seen inside a run: class and level included. */
+export interface PartyMember {
+  id: string
+  name: string
+  level: number | null
+  classes: Array<{ name: string; level: number }>
+}
+
 export interface CompletionEntry {
   finished: boolean
   lastFinishedAt: string | null
@@ -7,6 +15,11 @@ export interface CompletionEntry {
   history: string[]
   /** Estimated run length in ms per history entry (aligned); null when unknown. */
   durationsMs?: Array<number | null>
+  /**
+   * Who shared the instance during each run, aligned with `history`; null for runs
+   * recorded by hand or before the feature existed. Includes this character.
+   */
+  players?: Array<PartyMember[] | null>
   levelAtFinish: number | null
   source: 'poll' | 'manual'
 }
