@@ -66,7 +66,7 @@ import ReincarnationDialog from '@/components/adventureLog/ReincarnationDialog'
 import IdleWarningDialog from '@/components/shared/IdleWarningDialog'
 import { CHARACTERS } from '@/config/characters'
 import { useConfig } from '@/contexts/useConfig'
-import { formatClasses, type CharacterClass } from '@/domains/raids/raidLogic'
+import { type CharacterClass } from '@/domains/raids/raidLogic'
 import { useIdleTimer } from '@/hooks/useIdleTimer'
 import sagaCardsData from '@/data/sagaCards.json'
 import {
@@ -202,17 +202,6 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   )
 }
 
-/** "OldMic (Warlock 20, FvS 5), Shraz (L11)" — blank upstream names are anonymous. */
-function formatParty(players: PartyMember[]): string {
-  return players
-    .map((player) => {
-      const name = player.name || 'Anonymous'
-      const classes = formatClasses(player.classes)
-      return classes === '—' ? name : `${name} (${classes})`
-    })
-    .join(', ')
-}
-
 function HistoryTooltip({
   history,
   durations,
@@ -273,12 +262,37 @@ function HistoryTooltip({
               )}
             </Stack>
             {party && party.length > 0 && (
-              <Typography
-                variant="caption"
-                sx={{ display: 'block', fontSize: 11, color: previousLife ? 'text.disabled' : 'text.secondary' }}
-              >
-                Party: {formatParty(party)}
-              </Typography>
+              <Box sx={{ mt: 0.25 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    fontWeight: 600,
+                    color: previousLife ? 'text.disabled' : 'text.secondary',
+                  }}
+                >
+                  Party
+                </Typography>
+                {party.map((member) => (
+                  <Stack key={member.id} direction="row" spacing={0.75} alignItems="center">
+                    <Typography
+                      variant="caption"
+                      sx={{ color: previousLife ? 'text.disabled' : 'text.primary' }}
+                    >
+                      {member.name || 'Anonymous'}
+                    </Typography>
+                    {typeof member.level === 'number' && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: previousLife ? 'text.disabled' : 'text.secondary' }}
+                      >
+                        L{member.level}
+                      </Typography>
+                    )}
+                    <ClassDisplay classes={member.classes} showIcons iconSize={14} />
+                  </Stack>
+                ))}
+              </Box>
             )}
           </Box>
         )
