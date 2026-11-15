@@ -271,7 +271,7 @@ function HistoryTooltip({
                     color: previousLife ? 'text.disabled' : 'text.secondary',
                   }}
                 >
-                  Party
+                  Seen in this run (estimated)
                 </Typography>
                 {party.map((member) => (
                   <Stack key={member.id} direction="row" spacing={0.75} alignItems="center">
