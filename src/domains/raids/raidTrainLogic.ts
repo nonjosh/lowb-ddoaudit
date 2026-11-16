@@ -1,3 +1,5 @@
+import type { Quest } from '@/api/ddoAudit'
+
 import { CharacterClass, isEntryAvailable, RaidEntry, RaidGroup } from './raidLogic'
 
 /**
@@ -8,6 +10,10 @@ import { CharacterClass, isEntryAvailable, RaidEntry, RaidGroup } from './raidLo
 const RAID_ABBREVIATIONS: Record<string, string> = {
   dov: 'den of vipers',
   threats: 'threats old and new',
+  toan: 'threats old and new',
+  ton: 'threats old and new',
+  todl: 'temple of the deathwyrm',
+  rel: 'relentless',
   fom: 'fire over morgrave',
   ma: 'master artificer',
   lob: 'lord of blades',
@@ -17,6 +23,8 @@ const RAID_ABBREVIATIONS: Record<string, string> = {
   kt: 'killing time',
   strahd: 'curse of strahd',
   drya: 'dryad and the demigod',
+  dryad: 'dryad and the demigod',
+  driad: 'dryad and the demigod',
   demigod: 'dryad and the demigod',
   esos: 'enemy of my enemy',
   eome: 'enemy of my enemy',
@@ -40,6 +48,7 @@ const RAID_ABBREVIATIONS: Record<string, string> = {
   skellys: 'skeletons in the closet',
   skellies: 'skeletons in the closet',
   sitc: 'skeletons in the closet',
+  hunt: 'hunt or be hunted',
   'fall of truth': 'fall of truth',
   fot: 'fall of truth',
 }
@@ -125,6 +134,25 @@ export function matchTokenToRaid(
 }
 
 /**
+ * Raid groups plus every raid known to the quest cache. Train matching must not
+ * depend on which raids tracked characters happened to run this lockout.
+ */
+export function buildRaidTrainCatalog(
+  raidGroups: RaidGroup[],
+  questsById: Record<string, Quest>,
+): RaidGroup[] {
+  const catalog = [...raidGroups]
+  const seen = new Set(raidGroups.map((g) => g.questId))
+  for (const quest of Object.values(questsById)) {
+    const questId = String(quest.id)
+    if (quest.type !== 'Raid' || seen.has(questId)) continue
+    seen.add(questId)
+    catalog.push({ questId, raidName: quest.name, questLevel: quest.level, entries: [] })
+  }
+  return catalog
+}
+
+/**
  * Detect raid train from an LFM comment string.
  * Returns an array of unique matched RaidGroups.
  *
@@ -207,6 +235,13 @@ export function buildTrainAvailability(
       if (entry.isOnline) existing.isOnline = true
       existing.perRaid[raid.questId] = isEntryAvailable(entry, now)
     }
+  }
+
+  // A raid with no recorded entries (catalog-only) has no lockout to report, so
+  // everyone counts as available, matching isEntryAvailable(null) === true.
+  for (const raid of selectedRaids) {
+    if (raid.entries.length) continue
+    for (const { perRaid } of charMap.values()) perRaid[raid.questId] = true
   }
 
   // Build character availability objects

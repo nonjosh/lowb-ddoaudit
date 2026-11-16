@@ -21,10 +21,11 @@ import RaidTimerTable from '@/components/raids/RaidTimerTable'
 import DdoWikiLink from '@/components/shared/DdoWikiLink'
 import RaidNotesDisplay from '@/components/shared/RaidNotesDisplay'
 import RaidTrainAvailability from '@/components/shared/RaidTrainAvailability'
+import { useCharacter } from '@/contexts/useCharacter'
 import { useTrove } from '@/contexts/useTrove'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
 import { getRuneNamesForRaid } from '@/domains/raids/raidRunes'
-import { detectRaidTrain } from '@/domains/raids/raidTrainLogic'
+import { buildRaidTrainCatalog, detectRaidTrain } from '@/domains/raids/raidTrainLogic'
 
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
@@ -39,12 +40,20 @@ const ALL_DDO_CLASSES = [
   'Sorcerer', 'Warlock', 'Wizard',
 ]
 
+// Stable empty list: some call sites render the dialog without raid groups.
+const EMPTY_RAID_GROUPS: NonNullable<LfmParticipantsDialogProps['raidGroups']> = []
+
 const normalizeClassName = (name: string): string => name.trim().toLowerCase().replace(/\s+/g, ' ')
 
 export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRaidData, raidGroups, onGuildClick }: ExtendedLfmParticipantsDialogProps) {
   const [areas, setAreas] = useState<Record<string, { name: string }>>({})
   const [now, setNow] = useState(() => new Date())
   const { inventoryMap } = useTrove()
+  const { questsById } = useCharacter()
+  const raidTrainCatalog = useMemo(
+    () => buildRaidTrainCatalog(raidGroups ?? EMPTY_RAID_GROUPS, questsById),
+    [raidGroups, questsById],
+  )
   const acceptedClassSet = useMemo(() => {
     const accepted = selectedLfm?.acceptedClasses ?? []
     if (!accepted.length) {
@@ -142,16 +151,16 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
 
   // Auto-detect raid train from LFM comment, including the current quest
   const detectedTrainRaids = useMemo(() => {
-    if (!selectedLfm?.comment || !raidGroups?.length) return []
-    const fromComment = detectRaidTrain(selectedLfm.comment, raidGroups)
+    if (!selectedLfm?.comment || !raidTrainCatalog.length) return []
+    const fromComment = detectRaidTrain(selectedLfm.comment, raidTrainCatalog)
     if (fromComment.length < 2) return fromComment
     // Include the current LFM's quest if not already in the detected train
-    const currentRaid = raidGroups.find((g) => g.questId === selectedLfm.questId)
+    const currentRaid = raidTrainCatalog.find((g) => g.questId === selectedLfm.questId)
     if (currentRaid && !fromComment.some((r) => r.questId === currentRaid.questId)) {
       return [currentRaid, ...fromComment]
     }
     return fromComment
-  }, [selectedLfm?.comment, selectedLfm?.questId, raidGroups])
+  }, [selectedLfm?.comment, selectedLfm?.questId, raidTrainCatalog])
 
   return (
     <Dialog open={Boolean(selectedLfm)} onClose={onClose} maxWidth="md" fullWidth>

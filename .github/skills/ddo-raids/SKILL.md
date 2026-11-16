@@ -131,6 +131,7 @@ Functions: `getIgnoredTimers()`, `isTimerIgnored()`, `addIgnoredTimer()`, `remov
 - Raid train comments are split on common separators such as commas, slashes, arrows, `>`, `+`, and `|`
 - Matching normalizes case and strips surrounding punctuation so fragments like `KT...` still match `Killing Time`
 - Segment matching considers contiguous sub-phrases, so filler text before the target raid (for example `next THTH`) still resolves to the raid abbreviation
-- Common shorthand aliases such as `MA`, `LoB`, `Skellys`, and `SITC` are expanded before fallback substring matching
+- Common shorthand aliases such as `MA`, `LoB`, `Skellys`, and `SITC` are expanded before fallback substring matching. Current short forms: `ToDL` (Temple of the Deathwyrm), `ToaN`/`ToN` (Threats Old and New), `DoV` (Den of Vipers), `Rel` (Relentless), `FoM` (Fire Over Morgrave), `Dryad`/`Driad` (The Dryad and the Demigod), `Hunt` (Hunt or Be Hunted)
+- Matching uses every raid known to `questsById` (`type === 'Raid'`), not only raids with recent tracked activity, so an alias still resolves for a raid nobody in the group has run this lockout; these extra groups carry no entries, so the availability matrix treats them as unlocked (everyone available)
 - Generic fallback matches are ignored when they would match multiple raids, which prevents broad tokens like `legendary` from hijacking a more specific later alias in the same segment
 - A train requires **2+ distinct matched raids** from the comment; the selected LFM raid may then be prepended in the dialog if it was not explicitly mentioned

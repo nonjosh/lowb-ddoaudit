@@ -36,7 +36,7 @@ import ServiceNewsDialog from '@/components/shared/ServiceNewsDialog'
 import { filterAndSortLfms, LfmDisplayData, normalizeLfm } from '@/domains/lfm/lfmHelpers'
 import { RaidGroup } from '@/domains/raids/raidLogic'
 import { getPlayerDisplayName, groupEntriesByPlayer } from '@/domains/raids/raidLogic'
-import { detectRaidTrain } from '@/domains/raids/raidTrainLogic'
+import { buildRaidTrainCatalog, detectRaidTrain } from '@/domains/raids/raidTrainLogic'
 
 import GuildCharactersDialog from './GuildCharactersDialog'
 import LfmParticipantsDialog from './LfmParticipantsDialog'
@@ -82,6 +82,11 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
     return { raidGroup, perPlayerEligible }
   }, [selectedLfmId, raidGroups, now, lfmsById])
 
+  const raidTrainCatalog = useMemo(
+    () => buildRaidTrainCatalog(raidGroups, questsById),
+    [raidGroups, questsById],
+  )
+
   const raidLfms = useMemo(() => {
     const lfms = Object.values(lfmsById ?? {})
     const normalized: LfmDisplayData[] = []
@@ -94,8 +99,8 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
     // Override isRaid and maxPlayers for LFMs with NO QUEST SELECTED but raid train in comment
     for (const lfm of normalized) {
       const questId = String(lfm.questId)
-      if (questId === '0' && lfm.comment && raidGroups.length > 0) {
-        const matched = detectRaidTrain(lfm.comment, raidGroups)
+      if (questId === '0' && lfm.comment && raidTrainCatalog.length > 0) {
+        const matched = detectRaidTrain(lfm.comment, raidTrainCatalog)
         if (matched.length >= 2) {
           lfm.isRaid = true
           lfm.maxPlayers = 12
@@ -105,7 +110,7 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
     }
 
     return filterAndSortLfms(normalized, questFilter, tierFilter)
-  }, [lfmsById, questsById, questFilter, tierFilter, raidGroups])
+  }, [lfmsById, questsById, questFilter, tierFilter, raidTrainCatalog])
 
   const selectedLfm = useMemo(() => {
     if (!selectedLfmId) return null
@@ -119,13 +124,13 @@ export default function LfmRaidsSection({ raidGroups }: LfmRaidsSectionProps) {
   const trainLfmIds = useMemo(() => {
     const ids = new Set<string>()
     for (const l of raidLfms) {
-      if (l.comment && raidGroups.length > 0) {
-        const matched = detectRaidTrain(l.comment, raidGroups)
+      if (l.comment && raidTrainCatalog.length > 0) {
+        const matched = detectRaidTrain(l.comment, raidTrainCatalog)
         if (matched.length >= 2) ids.add(l.id)
       }
     }
     return ids
-  }, [raidLfms, raidGroups])
+  }, [raidLfms, raidTrainCatalog])
 
   // If server is offline, show message and do not render LFM table.
   if (isServerOnline === false) {
