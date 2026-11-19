@@ -61,6 +61,18 @@ function normalizeRaidSearchText(value: string): string {
     .replace(/\s+/g, ' ')
 }
 
+/**
+ * True when two raid names are the heroic/legendary versions of the same raid,
+ * e.g. "A Vision of Destruction" and "Legendary Vision of Destruction".
+ */
+export function isSameRaidTierVariant(nameA: string, nameB: string): boolean {
+  const core = (name: string) =>
+    normalizeRaidSearchText(name)
+      .replace(/^(?:(?:the|a|an|legendary)\s+)+/, '')
+      .replace(/\s+legendary$/, '')
+  return core(nameA) === core(nameB)
+}
+
 function buildRaidNameCandidates(raidName: string): Set<string> {
   const words = normalizeRaidSearchText(raidName).split(' ').filter(Boolean)
   const candidates = new Set<string>()
@@ -101,36 +113,40 @@ function findRaidByCandidate(candidate: string, raidGroups: RaidGroup[]): RaidGr
 }
 
 /**
- * Try to match a token (word or abbreviation) from a comment against
- * the available raid groups. Returns the matched RaidGroup or null.
+ * Match a token (word or abbreviation) from a comment against the available
+ * raid groups. Returns every distinct raid mentioned, so "fom and hunt"
+ * resolves both raids instead of stopping at the first hit.
  */
-export function matchTokenToRaid(
+export function matchTokenToRaids(
   token: string,
   raidGroups: RaidGroup[],
-): RaidGroup | null {
+): RaidGroup[] {
   const normalized = normalizeRaidSearchText(token)
-  if (!normalized) return null
+  if (!normalized) return []
 
   const words = normalized.split(' ')
-  const candidates: string[] = []
-  const seenCandidates = new Set<string>()
+  const matched: RaidGroup[] = []
+  const seen = new Set<string>()
+  const usedSpans: Array<{ start: number; end: number }> = []
 
   for (let length = words.length; length >= 1; length -= 1) {
     for (let start = 0; start <= words.length - length; start += 1) {
+      const end = start + length - 1
+      if (usedSpans.some((span) => start <= span.end && end >= span.start)) continue
+
       const candidate = words.slice(start, start + length).join(' ')
-      if (!seenCandidates.has(candidate)) {
-        seenCandidates.add(candidate)
-        candidates.push(candidate)
+      const matchedRaid = findRaidByCandidate(candidate, raidGroups)
+      if (!matchedRaid) continue
+
+      usedSpans.push({ start, end })
+      if (!seen.has(matchedRaid.questId)) {
+        seen.add(matchedRaid.questId)
+        matched.push(matchedRaid)
       }
     }
   }
 
-  for (const candidate of candidates) {
-    const matchedRaid = findRaidByCandidate(candidate, raidGroups)
-    if (matchedRaid) return matchedRaid
-  }
-
-  return null
+  return matched
 }
 
 /**
@@ -174,8 +190,8 @@ export function detectRaidTrain(
   const seen = new Set<string>()
 
   for (const segment of segments) {
-    const raid = matchTokenToRaid(segment, raidGroups)
-    if (raid && !seen.has(raid.questId)) {
+    for (const raid of matchTokenToRaids(segment, raidGroups)) {
+      if (seen.has(raid.questId)) continue
       seen.add(raid.questId)
       matched.push(raid)
     }

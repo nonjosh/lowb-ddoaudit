@@ -25,7 +25,7 @@ import { useCharacter } from '@/contexts/useCharacter'
 import { useTrove } from '@/contexts/useTrove'
 import { getRaidNotesForRaidName } from '@/domains/raids/raidNotes'
 import { getRuneNamesForRaid } from '@/domains/raids/raidRunes'
-import { buildRaidTrainCatalog, detectRaidTrain } from '@/domains/raids/raidTrainLogic'
+import { buildRaidTrainCatalog, detectRaidTrain, isSameRaidTierVariant } from '@/domains/raids/raidTrainLogic'
 
 import LfmParticipantsTable from './LfmParticipantsTable'
 import { LfmParticipantsDialogProps } from './types'
@@ -154,12 +154,12 @@ export default function LfmParticipantsDialog({ selectedLfm, onClose, selectedRa
     if (!selectedLfm?.comment || !raidTrainCatalog.length) return []
     const fromComment = detectRaidTrain(selectedLfm.comment, raidTrainCatalog)
     if (fromComment.length < 2) return fromComment
-    // Include the current LFM's quest if not already in the detected train
+    // Include the current LFM's quest if not already in the detected train.
+    // Drop a heroic/legendary twin it detected in its place.
     const currentRaid = raidTrainCatalog.find((g) => g.questId === selectedLfm.questId)
-    if (currentRaid && !fromComment.some((r) => r.questId === currentRaid.questId)) {
-      return [currentRaid, ...fromComment]
-    }
-    return fromComment
+    if (!currentRaid) return fromComment
+    const others = fromComment.filter((r) => !isSameRaidTierVariant(r.raidName, currentRaid.raidName))
+    return [currentRaid, ...others]
   }, [selectedLfm?.comment, selectedLfm?.questId, raidTrainCatalog])
 
   return (
