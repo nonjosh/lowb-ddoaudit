@@ -105,6 +105,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const AUTO_REFRESH_INTERVAL_MS = 60_000
 /** Hide quests further than this from the selected character's level. */
 const OFF_LEVEL_RANGE = 2
+/** Character level cap; at cap every quest is fair game, so the off-level cut starts off. */
+const CHARACTER_LEVEL_CAP = 36
 const HIDDEN_PACKS_STORAGE_KEY = 'lowb-adventure-log-hidden-packs'
 /** Version colours, shared by the row badge and the group header tint. */
 const BAND_COLOR: Record<QuestBand, 'success' | 'info' | 'warning'> = {
@@ -761,6 +763,19 @@ export default function AdventureLog() {
     writeStorage(PLAYER_STORAGE_KEY, player)
     writeStorage(CHARACTER_STORAGE_KEY, character)
   }, [characterData, loading])
+
+  // Default the off-level cut per selection: off at the level cap, on below it. The ref
+  // keys on character+level so a manual toggle survives refreshes and only a change resets.
+  const offLevelDefaultFor = useRef<string | null>(null)
+  useEffect(() => {
+    if (!characterId) return
+    const level = characterData[characterId]?.total_level ?? null
+    if (level === null) return
+    const key = `${characterId}:${level}`
+    if (offLevelDefaultFor.current === key) return
+    offLevelDefaultFor.current = key
+    setHideOffLevel(level < CHARACTER_LEVEL_CAP)
+  }, [characterId, characterData])
 
   const handlePlayerChange = useCallback(
     (nextPlayer: string) => {
