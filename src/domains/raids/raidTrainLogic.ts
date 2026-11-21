@@ -14,6 +14,7 @@ const RAID_ABBREVIATIONS: Record<string, string> = {
   ton: 'threats old and new',
   todl: 'temple of the deathwyrm',
   rel: 'relentless',
+  relent: 'relentless',
   fom: 'fire over morgrave',
   ma: 'master artificer',
   lob: 'lord of blades',
