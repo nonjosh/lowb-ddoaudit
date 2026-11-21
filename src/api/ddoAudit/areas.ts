@@ -10,6 +10,7 @@ import { AREAS_JSON_URL, DDOAUDIT_JSON_CACHE_TTL_MS } from './constants'
  */
 export const PATCHED_AREAS: Array<{ id: string; name?: string; is_public?: boolean; is_wilderness?: boolean }> = [
   { id: '1879304731', name: 'Eveningstar Crafting Hall', is_public: true, is_wilderness: false },
+  { id: '1879272740', name: 'Saltmarsh Training Hall', is_public: true, is_wilderness: false },
   // 1879303679 is the dedicated area of the raid "Terror of the Demon Lords"
   // (quest id 1879303683), but upstream labels it as wilderness
   // "Vision of an Alternate History", which makes raid occupants group under
